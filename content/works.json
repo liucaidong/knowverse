@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.0.1",
   "updated": "2026-10-30",
   "pillars": [
     {
@@ -65,6 +65,39 @@
       "status": "live",
       "href": "./puzzles/worlds/first-realm/",
       "summary": "探索房间、激活装置，以机制推理开启出口"
+    },
+    {
+      "id": "promise-identity",
+      "pillar": "lab",
+      "title": "Promise.resolve · 同一性与采用",
+      "subject": "JavaScript",
+      "level": "进阶",
+      "kind": "experiment",
+      "status": "live",
+      "href": "./lab/experiments/promise-identity/",
+      "summary": "原版动画：区分 Promise.resolve(inner) 与 new Promise(resolve => resolve(inner))"
+    },
+    {
+      "id": "microtask-resolution",
+      "pillar": "lab",
+      "title": "微任务解析流程 · 校正动画",
+      "subject": "JavaScript",
+      "level": "进阶",
+      "kind": "experiment",
+      "status": "live",
+      "href": "./lab/experiments/microtask-resolution/",
+      "summary": "逐帧呈现 Promise 解析及微任务调度，含执行顺序验证"
+    },
+    {
+      "id": "promise-realm",
+      "pillar": "puzzles",
+      "title": "约定之境 · 完整 3D 解谜 MVP",
+      "subject": "JavaScript",
+      "level": "进阶",
+      "kind": "game",
+      "status": "live",
+      "href": "./puzzles/worlds/promise-realm/",
+      "summary": "此前制作的原版独立 HTML 游戏，已原样迁入作品目录"
     }
   ]
 }
