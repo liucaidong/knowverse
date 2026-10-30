@@ -1,0 +1,56 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="复现历史重点难题，分离 getter、采用、微任务和日志。"><title>综合推演：thenable × inner × race · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 14</div><span class="eyebrow">THE PROMISE HANDBOOK / 14</span><h1>综合推演：thenable × inner × race</h1><p class="lead">复现历史重点难题，分离 getter、采用、微任务和日志。</p><div class="course-reading-meta">专题进度：第 <strong>15</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>综合推演：多个 Promise 的时序不是一条线</h1>
+<p>下面是课程复盘中反复出现的机制组合：thenable getter、inner 采用、拒绝与 throw 无效、race、allSettled 和微任务嵌套。<strong>此处代码为教学重构，并非历史题目的逐字复刻</strong>。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">(() =&gt; {
+  let finish;
+  const inner = new Promise(resolve =&gt; { finish = resolve; });
+  const thenable = {
+    get then() {
+      console.log('get');
+      return (resolve, reject) =&gt; {
+        console.log('call');
+        resolve(inner);
+        reject(new Error('late'));
+        throw new Error('thenable-throw');
+      };
+    }
+  };
+  console.log('start');
+  const p = Promise.resolve(thenable);
+  const q = p.then(value =&gt; {
+    console.log('p', value);
+    throw new Error('chain');
+  });
+  const r = q.catch(e =&gt; {
+    console.log('catch', e.message);
+    return 'recovered';
+  });
+  Promise.race([p, Promise.resolve('fast')])
+    .then(v =&gt; console.log('race', v));
+  Promise.allSettled([q, r])
+    .then(result =&gt; console.log('all', result.map(x =&gt; x.status).join(',')));
+  queueMicrotask(() =&gt; {
+    console.log('M1');
+    finish(42);
+    queueMicrotask(() =&gt; console.log('M2'));
+  });
+  console.log('end');
+})();
+</code></pre>
+<h2 id="part-1">不猜答案，先画事件模型</h2>
+<p><strong>同步阶段</strong>：<code>inner</code> executor 保存 <code>finish</code>；打印 <code>start</code>；<code>Promise.resolve(thenable)</code> 同步读取 getter → <code>get</code>，然后安排 thenable Job；注册 <code>q/r/race/allSettled</code> 相关处理；入队 M1；打印 <code>end</code>。</p>
+<p><strong>第一轮 Jobs</strong>：thenable Job 调用 <code>then</code> → <code>call</code>；<code>resolve(inner)</code> 锁定采用，随后 late reject / throw 无法覆盖。独立已 fulfilled 的 <code>'fast'</code> 将触发 race 的一条处理流程。M1 使 inner 兑现，随后追加 M2。这些并非都直接让 p 的外部 reaction 即刻执行。</p>
+<p><strong>后续 Jobs</strong>：p 最终兑现 42，q 的回调 <code>throw chain</code> 导致拒绝，r.catch 恢复为 <code>'recovered'</code>。allSettled 的状态数组应该对应 q 的 rejected、r 的 fulfilled（<code>rejected,fulfilled</code>），但相关日志运行时机取决于 reaction Job 入队链条。</p>
+<pre class="mermaid">flowchart TD
+  I[inner pending] --&gt;|finish 42| IF[inner fulfilled 42]
+  T[thenable: get 同步] --&gt; J[thenable Job: call]
+  J --&gt;|resolve inner| P[p 采用 inner]
+  IF --&gt; P
+  P --&gt;|最终兑现后安排 reaction| Q[q: throw chain → rejected]
+  Q --&gt; R[r: catch → fulfilled recovered]
+  Q --&gt; A[allSettled 汇总]
+  R --&gt; A
+  F[fast fulfilled] --&gt; RC[race: 外层可先落定]
+</pre>
+<h2 id="part-2">对照你的历史薄弱点</h2>
+<p>在过去的复习中，你反复要求分清 <strong>“get 同步，call 异步”“状态落定 ≠ Job 入队 ≠ 回调输出”“resolved 仍可能 pending”</strong>；此题专为这些概念设计。请先推理完整输出序列，再在真实浏览器运行，解释每次微任务入队原因。不能只用答案对错来判定掌握程度。</p>
+<div class="course-nav"><a href="../lesson-13/">← 工程实践：取消、超时与失败恢复</a><a href="../lesson-15/">历史课程诊断档案 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">不猜答案，先画事件模型</a><a href="#part-2">对照你的历史薄弱点</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

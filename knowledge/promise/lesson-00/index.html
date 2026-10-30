@@ -1,0 +1,66 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="把 Promise 拆成五层观察：对象状态、解决权、反应注册、Jobs 入队与宿主调度。"><title>导学与机制地图 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 00</div><span class="eyebrow">THE PROMISE HANDBOOK / 00</span><h1>导学与机制地图</h1><p class="lead">把 Promise 拆成五层观察：对象状态、解决权、反应注册、Jobs 入队与宿主调度。</p><div class="course-reading-meta">专题进度：第 <strong>1</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>导学：这门课不是背 API</h1>
+<blockquote>
+<p><strong>学习目标</strong>：看到一段异步 JavaScript，能够独立画出 Promise 对象、状态变化、反应注册、Job 队列和实际输出的先后顺序。这里依据此前课程第 1—14 课的可恢复线索重构知识体系，不代表每道历史习题均已完成。</p>
+</blockquote>
+<h2 id="part-1">一张概念地图</h2>
+<p>Promise 是<strong>未来结果的占位符</strong>，不是任务调度器，也不是线程。理解一段代码，需要分别回答五个问题：<strong>创建了哪些 Promise 对象？谁取得了解决权？何时落定？何时把 reaction Job 入队？Job 何时运行？</strong></p>
+<pre class="mermaid">flowchart LR
+  A[代码调用 / executor] --&gt; B[Promise 对象与状态]
+  B --&gt; C[resolve / reject 与采用]
+  C --&gt; D[reaction 注册和 Job 入队]
+  D --&gt; E[宿主微任务检查点]
+  E --&gt; F[回调结果 / 新 Promise]
+  F --&gt; C
+</pre>
+<h2 id="part-2">学习顺序与课程阶段</h2>
+<table>
+<thead>
+<tr>
+<th>单元</th>
+<th>要解决的错误直觉</th>
+<th>学会之后能解释什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01–03</td>
+<td><code>resolve</code> 就是立刻 <code>fulfilled</code></td>
+<td>resolved、settled、thenable 采用</td>
+</tr>
+<tr>
+<td>04–06</td>
+<td><code>.then</code> 回调立即执行</td>
+<td>executor 同步、Job 入队、链式新对象</td>
+</tr>
+<tr>
+<td>07–10</td>
+<td><code>catch/finally</code> 只是语法糖</td>
+<td>错误恢复、finally 覆盖、async/await</td>
+</tr>
+<tr>
+<td>11–14</td>
+<td>四个组合 API 只有返回值差异</td>
+<td>胜出规则、空输入、索引顺序、失败分支</td>
+</tr>
+<tr>
+<td>15–17</td>
+<td>微任务只有“先来先服务”一条公式</td>
+<td>Browser / Node 宿主差异、thenable Job 和复盘</td>
+</tr>
+</tbody>
+</table>
+<h2 id="part-3">本专题的用法</h2>
+<p>每章按 <strong>可观察现象 → 原因 → 代码试验 → 常见误区 → 诊断任务</strong> 排列。先用纸笔预测，再在“可运行实验”运行代码；正确选项不等于掌握，必须说明原因。专题首页的“执行观察台”会显示日志和逐帧轨迹；本章参考资料可在专题末尾集中查看。</p>
+<h2 id="part-4">一道预热题</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">console.log('start');
+new Promise(resolve =&gt; {
+  console.log('executor');
+  resolve(1);
+}).then(() =&gt; console.log('then'));
+console.log('end');
+</code></pre>
+<p><strong>先预测输出</strong>。本题检查的是 executor 的同步性与 reaction 的异步性，答案请在章节最后的自测区揭晓。</p>
+<details><summary>展开预热题答案</summary>
+<p><code>start → executor → end → then</code>。创建 Promise 时 executor 同步执行；<code>.then()</code> 注册反应，即使对象已经 fulfilled，回调也在后续 Job 中执行。</p>
+</details>
+<div class="course-nav"><a href="../">← 专题全景</a><a href="../lesson-01/">Promise 状态机与解决权 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">一张概念地图</a><a href="#part-2">学习顺序与课程阶段</a><a href="#part-3">本专题的用法</a><a href="#part-4">一道预热题</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

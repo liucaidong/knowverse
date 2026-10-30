@@ -1,0 +1,56 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="为 UI、请求、批量执行设计可取消、可观测、可维护的异步边界。"><title>迁移到真实业务：任务生命周期 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 19</div><span class="eyebrow">THE PROMISE HANDBOOK / 19</span><h1>迁移到真实业务：任务生命周期</h1><p class="lead">为 UI、请求、批量执行设计可取消、可观测、可维护的异步边界。</p><div class="course-reading-meta">专题进度：第 <strong>20</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>将 Promise 原理变成真实项目的可靠性</h1>
+<h2 id="part-1">从页面重复请求开始</h2>
+<p>用户连续输入搜索关键词，前一个请求比后一个更晚返回。即使两次 fetch 都成功，也会发生“旧结果覆盖新结果”。这不是 Promise 自身出了错，而是业务需要规定<strong>哪个结果具有提交 UI 的资格</strong>。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">let generation = 0;
+let activeController = null;
+async function search(query) {
+  const mine = ++generation;
+  activeController?.abort();
+  const controller = new AbortController();
+  activeController = controller;
+  try {
+    const response = await fetch(`/search?q=${encodeURIComponent(query)}`, {
+      signal: controller.signal
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const rows = await response.json();
+    if (mine === generation) render(rows);
+  } catch (error) {
+    if (mine !== generation) return; // 过期请求不影响新请求 UI
+    if (error.name !== 'AbortError') showError(error);
+  } finally {
+    if (mine === generation) activeController = null;
+  }
+}
+</code></pre>
+<p>上面展示了<strong>取消底层请求 + 校验版本号</strong>两种不同的保护措施。仅 abort 不能保证所有底层任务都能立刻停止；版本号可保护最终 UI 写入。示例依赖页面中已有 <code>render</code> 与 <code>showError</code> 函数，并非可单独运行的完整应用。</p>
+<h2 id="part-2">有界并发的价值</h2>
+<p>假设 10,000 个任务：<code>Promise.all(items.map(run))</code> 会立即求值 <code>map</code> 并创建所有操作，可能造成连接、内存、后端限流压力。应按容量启动一小组任务，某个任务结束后再开始下一项。<code>Promise.all</code> 本身不提供队列容量管理。</p>
+<h2 id="part-3">链式操作的所有权边界</h2>
+<ul>
+<li><strong>业务步骤</strong>：应明确是否接受部分成功、是否提供回滚或补偿。</li>
+<li><strong>HTTP 交互</strong>：应提供取消信号、超时、重试上限、状态码判断。</li>
+<li><strong>测试</strong>：使用 controlled promises 验证异常分支，而非无限堆叠计时器。</li>
+<li><strong>监控</strong>：对每次操作关联请求 ID、耗时、完成状态和错误原因；避免敏感数据进入日志。</li>
+<li><strong>UI</strong>：区分 loading、success、error、cancelled，不把所有 catch 统一渲染成“网络错误”。</li>
+</ul>
+<h2 id="part-4">一张系统流程图</h2>
+<pre class="mermaid">flowchart TD
+  UI[用户事件] --&gt; G[生成请求代次 / ID]
+  G --&gt; AC[创建 AbortController]
+  AC --&gt; HTTP[发起 Promise 化 I/O]
+  HTTP --&gt;|fulfilled| V{结果仍最新?}
+  V --&gt;|是| SHOW[提交 UI]
+  V --&gt;|否| DROP[忽略过期结果]
+  HTTP --&gt;|rejected| ERR[错误分类]
+  ERR --&gt;|可重试| RETRY[限次退避并重试]
+  ERR --&gt;|被取消| STOP[安全结束]
+  ERR --&gt;|真实失败| NOTICE[反馈用户 / 上报]
+  SHOW --&gt; CLEAN[清理资源]
+  DROP --&gt; CLEAN
+  STOP --&gt; CLEAN
+  NOTICE --&gt; CLEAN
+</pre>
+<h2 id="part-5">完成专题的判定</h2>
+<p>掌握 Promise 不止是能够背出四种组合 API：你应能把任意故障拆成“触发、对象、结果、解决权、reaction、微任务、底层操作”七个维度，知道什么由语言保证，什么必须交给宿主或业务来保证。至此再去学习复杂 3D Promise 解谜世界，才能明确何处是知识机制、何处是为了游戏体验的可视化隐喻。</p>
+<div class="course-nav"><a href="../lesson-18/">← 并发测试与错误监控</a><a href="../">回到专题 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">从页面重复请求开始</a><a href="#part-2">有界并发的价值</a><a href="#part-3">链式操作的所有权边界</a><a href="#part-4">一张系统流程图</a><a href="#part-5">完成专题的判定</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

@@ -1,0 +1,85 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="按实际入队时刻追踪，不以代码外观排序。"><title>微任务、队列与时间线 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 04</div><span class="eyebrow">THE PROMISE HANDBOOK / 04</span><h1>微任务、队列与时间线</h1><p class="lead">按实际入队时刻追踪，不以代码外观排序。</p><div class="course-reading-meta">专题进度：第 <strong>5</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>事件循环不是“微任务优先”四个字</h1>
+<h2 id="part-1">五步可重复的推演法</h2>
+<p><strong>阶段 A：同步调用栈</strong>。逐行标注 console、executor、thenable getter 和 <code>.then</code> 注册。<strong>阶段 B：每一个入队动作</strong>。写出 <code>PromiseReactionJob</code>、<code>PromiseResolveThenableJob</code> 和显式 <code>queueMicrotask</code>。<strong>阶段 C：每次取出队首</strong>。执行可能又入队新的任务。<strong>阶段 D：记录每个 Promise 的状态</strong>。<strong>阶段 E：进入后续 timer 等任务</strong>。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">console.log('A');
+Promise.resolve().then(() =&gt; {
+  console.log('B');
+  queueMicrotask(() =&gt; console.log('D'));
+});
+queueMicrotask(() =&gt; console.log('C'));
+console.log('E');
+// A E B C D
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>时刻</th>
+<th>当前动作</th>
+<th>微任务队列</th>
+<th>输出</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>同步</td>
+<td><code>console.log('A')</code></td>
+<td>[]</td>
+<td>A</td>
+</tr>
+<tr>
+<td>同步</td>
+<td><code>.then(...)</code></td>
+<td>[B]</td>
+<td>—</td>
+</tr>
+<tr>
+<td>同步</td>
+<td><code>queueMicrotask(C)</code></td>
+<td>[B, C]</td>
+<td>—</td>
+</tr>
+<tr>
+<td>同步</td>
+<td><code>console.log('E')</code></td>
+<td>[B, C]</td>
+<td>E</td>
+</tr>
+<tr>
+<td>检查点</td>
+<td>执行 B、再入队 D</td>
+<td>[C, D]</td>
+<td>B</td>
+</tr>
+<tr>
+<td>检查点</td>
+<td>执行 C</td>
+<td>[D]</td>
+<td>C</td>
+</tr>
+<tr>
+<td>检查点</td>
+<td>执行 D</td>
+<td>[]</td>
+<td>D</td>
+</tr>
+</tbody>
+</table>
+<pre class="mermaid">flowchart LR
+  A[同步栈 A → E] --&gt; Q1[入队 B, C]
+  Q1 --&gt; B[运行 B]
+  B --&gt; Q2[再入队 D]
+  Q2 --&gt; C[运行 C]
+  C --&gt; D[运行 D]
+</pre>
+<h2 id="part-2">为什么 <code>then</code> 链不是一次 job</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.resolve().then(() =&gt; {
+  console.log('one');
+  return 2;
+}).then(() =&gt; console.log('two'));
+queueMicrotask(() =&gt; console.log('M'));
+// one M two
+</code></pre>
+<p>第一个 <code>.then</code> 的回调完成后，<strong>下游 Promise 才兑现、第二个 reaction 才被入队</strong>。M 已经在队列里，所以它先于 <code>two</code>。</p>
+<h2 id="part-3">环境边界</h2>
+<p>浏览器事件循环的 task/microtask 规则由宿主定义；ECMAScript 定义 Promise Jobs，但不独立规定浏览器渲染时机或 Node 特有的 nextTick 队列。不要用“宏任务先后”替代具体 API 的宿主定义。</p>
+<div class="course-nav"><a href="../lesson-03/">← Promise Resolution Procedure</a><a href="../lesson-05/">then 链、返回值与错误传播 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">五步可重复的推演法</a><a href="#part-2">为什么 then 链不是一次 job</a><a href="#part-3">环境边界</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

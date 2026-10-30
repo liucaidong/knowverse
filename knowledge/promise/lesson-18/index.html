@@ -1,0 +1,74 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="从可重复的日志实验走向受控延迟、Fake Timers 与拒绝链诊断。"><title>并发测试与错误监控 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 18</div><span class="eyebrow">THE PROMISE HANDBOOK / 18</span><h1>并发测试与错误监控</h1><p class="lead">从可重复的日志实验走向受控延迟、Fake Timers 与拒绝链诊断。</p><div class="course-reading-meta">专题进度：第 <strong>19</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>在工程里如何为 Promise 写可重复的测试</h1>
+<p>学习时的输出顺序题是观察机制的工具；工程测试要更进一步：<strong>明确输入时机、所有权、可观察输出、失败分支和清理义务</strong>。仅靠 <code>setTimeout(0)</code> 等待“所有事情应该都结束”是不稳定的测试策略。</p>
+<h2 id="part-1">设计可控的 Promise</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">function deferred() {
+  let resolve, reject;
+  const promise = new Promise((res, rej) =&gt; {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+const d = deferred();
+const events = [];
+d.promise.then(v =&gt; events.push(v));
+d.resolve(42);
+await d.promise;
+// 不要仅根据 await d.promise 就断言所有后续级联反应一定已完成；
+// 如需测试某个 downstream，请显式 await 该 downstream Promise。
+</code></pre>
+<p>与其依赖设备快慢，不如使用可控 <code>deferred</code> 来安排<strong>何时解决</strong>。注意 <code>await d.promise</code> 和提前注册的 <code>d.promise.then</code> 的先后仍受 reaction Jobs 具体入队规则控制，所以在复杂链上，最稳妥的断言目标是你要测试的那个“最终结果 Promise”。</p>
+<h2 id="part-2">测试可观察行为，而非隐藏内部槽</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const source = Promise.resolve(4);
+const downstream = source.then(v =&gt; v * 2);
+const result = await downstream;
+if (result !== 8) throw new Error('bad result');
+</code></pre>
+<p>断言最终值、外部副作用和错误传播，不依赖非标准的 Promise 状态 inspection。想验证具体入队行为时，使用日志序列测试，但要声明运行环境和控制 timer、I/O 的方式。</p>
+<h2 id="part-3">Fake Timers 不能代替 Promise 微任务知识</h2>
+<p>许多测试框架支持伪时钟，它可以控制 timer 回调；然而 Promise Jobs 和 <code>process.nextTick</code> 等队列可能不受同一套模拟控制（取决于测试框架版本与配置）。测试需要明确：推进了哪一种计时器？刷新了哪些 Jobs？哪些回调可能仍在进行？</p>
+<p>在 Node.js 和浏览器中，<code>await Promise.resolve()</code> 常作为一个让出执行权的手段，但不能被当作“清空整个未来微任务世界”的万能指令：await 本身会安排续体，而续体执行时有些下游 Jobs 还未入队。</p>
+<h2 id="part-4">诊断未处理拒绝</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">async function save() {
+  throw new Error('save failed');
+}
+const p = save();
+// 不调用 await 或 catch，就可能触发宿主的未处理拒绝机制。
+p.catch(e =&gt; console.error('handled:', e.message));
+</code></pre>
+<p>在业务边界明确地 <code>await</code> 并处理，或者显式返回给上游；如果故意 fire-and-forget，应提供独立的错误处理和生命周期管理。浏览器 <code>unhandledrejection</code> 和 Node unhandled rejection 策略会随宿主配置变化，应按运行环境文档验证。</p>
+<h2 id="part-5">排障记录模板</h2>
+<p>每一次异步问题记录以下五项，可避免复盘时混淆：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>需要记录</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Promise 身份</td>
+<td>p、q、r 是谁创建，是否相等</td>
+</tr>
+<tr>
+<td>解决权</td>
+<td>是否 resolve(inner)，有无晚到 reject</td>
+</tr>
+<tr>
+<td>同步阶段</td>
+<td>executor、getter、console 的实际顺序</td>
+</tr>
+<tr>
+<td>Job 队列</td>
+<td>每条 reaction 在何时入队</td>
+</tr>
+<tr>
+<td>观测结果</td>
+<td>浏览器 / Node 版本、日志、异常、断言</td>
+</tr>
+</tbody>
+</table>
+<p><strong>实践练习</strong>：将第 14 单元的 <code>thenable + inner + race</code> 代码拆成 <code>deferred</code> 和独立 Job 记录。不要直接把“输出相同”推导成“内部状态每个时刻都相同”。</p>
+<div class="course-nav"><a href="../lesson-17/">← ECMAScript 规范解剖：内部槽与抽象操作</a><a href="../lesson-19/">迁移到真实业务：任务生命周期 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">设计可控的 Promise</a><a href="#part-2">测试可观察行为，而非隐藏内部槽</a><a href="#part-3">Fake Timers 不能代替 Promise 微任务知识</a><a href="#part-4">诊断未处理拒绝</a><a href="#part-5">排障记录模板</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

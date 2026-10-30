@@ -1,35 +1,45 @@
 flowchart LR
-classDef hub fill:#10374a,color:#ffffff,stroke:#4a8b9a,stroke-width:2px;
-classDef node fill:#f0f7f6,color:#1b4452,stroke:#accfd0,stroke-width:1px;
-  subgraph G0["状态与解析"]
-    N00["pending / fulfilled / rejected"]
-    N01["resolve ≠ fulfill"]
-    N02["thenable / adoption"]
+classDef stem fill:#0d3d49,color:#ffffff,stroke:#0f8081,stroke-width:2px;
+classDef core fill:#edf8f6,color:#10445b,stroke:#79b7b8,stroke-width:1.4px;
+  subgraph G0["01 · 对象与状态"]
+    P["Promise 对象"]
+    S["三状态机"]
+    L["resolved ≠ settled"]
+    A["thenable 采用"]
   end
-  N00 --> N01
-  N01 --> N02
-  subgraph G1["调度与链"]
-    N10["Executor 同步"]
-    N11["Promise reactions"]
-    N12["事件循环与微任务"]
+  subgraph G1["02 · 回调与调度"]
+    X["executor 同步"]
+    R["reactions 注册"]
+    J["Promise Jobs 入队"]
+    Q["微任务检查点"]
   end
-  N10 --> N11
-  N11 --> N12
-  subgraph G2["组合与应用"]
-    N20["all / race"]
-    N21["any / allSettled"]
-    N22["错误桥接与取消"]
+  subgraph G2["03 · 链与组合"]
+    T["then / catch / finally"]
+    W["async / await"]
+    C["all / race"]
+    N["any / allSettled"]
   end
-  N20 --> N21
-  N21 --> N22
-  N02 ==> N10
-  N12 ==> N20
-  class N00 node
-  class N01 node
-  class N02 node
-  class N10 node
-  class N11 node
-  class N12 node
-  class N20 node
-  class N21 node
-  class N22 node
+  subgraph G3["04 · 实战与学习"]
+    E["错误桥接"]
+    K["Abort / 超时"]
+    H["Browser / Node"]
+    D["螺旋诊断"]
+  end
+  P --> S
+  S --> L
+  L --> A
+  A --> J
+  X --> R
+  R --> J
+  J --> Q
+  Q --> T
+  T --> W
+  T --> C
+  C --> N
+  N --> D
+  W --> E
+  E --> K
+  Q --> H
+  H --> D
+class P stem;
+class S,L,A,X,R,J,Q,T,W,C,N,E,K,H,D core;

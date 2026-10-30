@@ -1,0 +1,49 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="AggregateError.errors 的顺序由输入索引决定，而不是拒绝时间。"><title>Promise.any：至少一个兑现 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 10</div><span class="eyebrow">THE PROMISE HANDBOOK / 10</span><h1>Promise.any：至少一个兑现</h1><p class="lead">AggregateError.errors 的顺序由输入索引决定，而不是拒绝时间。</p><div class="course-reading-meta">专题进度：第 <strong>11</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>Promise.any：只要有一个成功</h1>
+<p><code>Promise.any(iterable)</code> 把输入中的<strong>首次 fulfilled</strong> 值作为结果；只有<strong>全部 rejected</strong> 时，才用 <code>AggregateError</code> 拒绝。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const a = Promise.reject('early');
+const b = new Promise(resolve =&gt; setTimeout(() =&gt; resolve('winner'), 10));
+Promise.any([a, b]).then(console.log); // winner
+</code></pre>
+<h2 id="part-1">errors 按输入顺序，和拒绝先后无关</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const slow = new Promise((_, reject) =&gt; setTimeout(() =&gt; reject('S'), 12));
+const fast = Promise.reject('F');
+Promise.any([slow, fast]).catch(e =&gt; {
+  console.log(e instanceof AggregateError);
+  console.log(e.errors); // ['S', 'F']
+});
+</code></pre>
+<p>虽然 F 可能更早拒绝，但 <code>errors</code> 按 iterable 进入组合时的索引顺序整理。不要用 <code>Promise.race</code> 的“先落定”直觉来理解 <code>any</code>。</p>
+<h2 id="part-2">any 与 race 的语义差异</h2>
+<table>
+<thead>
+<tr>
+<th>特征</th>
+<th><code>any</code></th>
+<th><code>race</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>胜出条件</td>
+<td>首个 fulfilled</td>
+<td>首个 settled</td>
+</tr>
+<tr>
+<td>遇到 rejected</td>
+<td>继续等待其他输入</td>
+<td>立刻以该拒绝结束</td>
+</tr>
+<tr>
+<td>所有 rejected</td>
+<td>AggregateError</td>
+<td>谁先 rejected 就是谁</td>
+</tr>
+<tr>
+<td>空输入</td>
+<td>rejected(AggregateError)</td>
+<td>永远 pending</td>
+</tr>
+</tbody>
+</table>
+<p><strong>适用场景</strong>：多个冗余镜像中找第一个可用结果；但不要用它吞掉全部失败的细节，处理时应该查看 <code>.errors</code>。</p>
+<div class="course-nav"><a href="../lesson-09/">← Promise.race：先落定者胜出</a><a href="../lesson-11/">Promise.allSettled：全局快照 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">errors 按输入顺序，和拒绝先后无关</a><a href="#part-2">any 与 race 的语义差异</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

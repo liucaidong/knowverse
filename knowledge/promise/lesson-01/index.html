@@ -1,0 +1,37 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="三种状态之外，理解 resolved、settled、adoption 与不可逆。"><title>Promise 状态机与解决权 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 01</div><span class="eyebrow">THE PROMISE HANDBOOK / 01</span><h1>Promise 状态机与解决权</h1><p class="lead">三种状态之外，理解 resolved、settled、adoption 与不可逆。</p><div class="course-reading-meta">专题进度：第 <strong>2</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>Promise 状态机与“已经解决”</h1>
+<h2 id="part-1">三种状态；两个容易混淆的术语</h2>
+<p>一个 Promise 始终处于 <code>pending</code>、<code>fulfilled</code>、<code>rejected</code> 三者之一。<code>settled</code> 指 <strong>fulfilled 或 rejected</strong>；<code>resolved</code> 则是 <strong>解决权已锁定</strong>：它可能已经落定，也可能正在采用其他 Promise 的结果、自己仍处于 pending。</p>
+<pre class="mermaid">stateDiagram-v2
+  [*] --&gt; pending
+  pending --&gt; fulfilled: fulfill(value)
+  pending --&gt; rejected: reject(reason)
+  pending --&gt; pending: resolve(inner) / locked, adopt inner
+  fulfilled --&gt; [*]
+  rejected --&gt; [*]
+</pre>
+<p>注意：图中 <code>pending → pending</code> 并非发生了状态切换，而是<strong>外观状态仍 pending、内部解决权已锁定</strong>。它和 <code>new Promise(() =&gt; {})</code> 这种未解决 pending 不同。</p>
+<h2 id="part-2">以 inner 为例观察两个 Promise</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">let finish;
+const inner = new Promise(resolve =&gt; { finish = resolve; });
+const outer = new Promise(resolve =&gt; resolve(inner));
+// outer 已 resolved，但 inner 未落定，因此 outer 仍 pending
+outer.then(v =&gt; console.log('outer', v));
+finish(42);
+console.log('synchronous end');
+</code></pre>
+<p>调用 <code>resolve(inner)</code> 后，后续 <code>reject('late')</code>、<code>resolve(0)</code> 或 executor 抛错都不能改变 outer 已经采用 inner 的决定；<strong>不能</strong>因此说 outer 同步 fulfilled。<code>finish(42)</code> 使 inner 先获得兑现结果，outer 的状态传播仍需要通过 Promise 机制完成。</p>
+<h2 id="part-3">同一性与“采用”是两个维度</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const inner = Promise.resolve(42);
+const a = Promise.resolve(inner);
+const b = new Promise(resolve =&gt; resolve(inner));
+console.log(a === inner, b === inner); // true false
+</code></pre>
+<p>当 <code>Promise.resolve(x)</code> 收到相同构造器的原生 Promise，可能<strong>直接返回原对象</strong>；<code>new Promise(...)</code> 总创建新对象，即使它采用了 inner 的最终值。身份相同与状态传播的先后并不是同一个问题。</p>
+<h2 id="part-4">常见误区</h2>
+<ul>
+<li>“resolved = fulfilled”——错；<code>resolved</code> 指命运已经被锁定。</li>
+<li>“状态不能反转，所以任何 <code>resolve</code> 都立刻完成”——错；采用未落定的 thenable 可以继续 pending。</li>
+<li>“两个 Promise 最终都是 42，所以 <code>===</code> 一定相等”——错；值相等不代表对象同一。</li>
+</ul>
+<p><strong>检查点</strong>：尝试在 <code>resolve(inner)</code> 后立即调用一次 <code>reject(new Error('late'))</code>；然后让 inner 兑现或拒绝。预测 outer 会如何落定。</p>
+<div class="course-nav"><a href="../lesson-00/">← 导学与机制地图</a><a href="../lesson-02/">构造器、then 与作业模型 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">三种状态；两个容易混淆的术语</a><a href="#part-2">以 inner 为例观察两个 Promise</a><a href="#part-3">同一性与“采用”是两个维度</a><a href="#part-4">常见误区</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

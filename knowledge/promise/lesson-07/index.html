@@ -1,0 +1,53 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="async 总返回 Promise，await 让函数暂停而不是阻塞线程。"><title>async / await 的解糖模型 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 07</div><span class="eyebrow">THE PROMISE HANDBOOK / 07</span><h1>async / await 的解糖模型</h1><p class="lead">async 总返回 Promise，await 让函数暂停而不是阻塞线程。</p><div class="course-reading-meta">专题进度：第 <strong>8</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1><code>await</code> 暂停的是 async 函数，不是整个 JS 线程</h1>
+<h2 id="part-1">async 返回一个 Promise</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">async function f() { return 42; }
+const p = f();
+console.log(p instanceof Promise); // true
+p.then(console.log);              // 后续输出 42
+</code></pre>
+<p><code>async</code> 函数即使直接返回普通值，也会返回 Promise；函数体里的同步 <code>throw</code> 会使返回 Promise 被拒绝（不会以同样的方式同步抛给普通调用点）。</p>
+<h2 id="part-2">await 前后的时间分界</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">async function demo() {
+  console.log('before');
+  const value = await Promise.resolve(7);
+  console.log('after', value);
+}
+console.log('start');
+demo();
+console.log('end');
+// start before end after 7
+</code></pre>
+<p><code>await</code> 对 Promise/thenable 使用 Promise 机制取得结果，并在异步续体中恢复。即使值已就绪，它也不会让 <code>after</code> 插入当前同步栈中。</p>
+<pre class="mermaid">sequenceDiagram
+  participant Caller as 调用者
+  participant Async as async 函数
+  participant Jobs as Promise Jobs
+  Caller-&gt;&gt;Async: demo()
+  Async-&gt;&gt;Async: 同步执行 await 之前
+  Async-&gt;&gt;Jobs: 等待值与安排续体
+  Async--&gt;&gt;Caller: 返回 Promise
+  Caller-&gt;&gt;Caller: 继续当前同步代码
+  Jobs-&gt;&gt;Async: 恢复 await 之后
+</pre>
+<h2 id="part-3">并发和串行不是语法选项，而是依赖关系</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">// 需要串行：第二步依赖第一步结果
+const user = await getUser();
+const profile = await getProfile(user.id);
+
+// 两步独立：并发发起，统一等待
+const [settings, alerts] = await Promise.all([
+  getSettings(), getAlerts()
+]);
+</code></pre>
+<p>不要以为 <code>Promise.all</code> 自己“启动”异步动作：<code>getSettings()</code> 和 <code>getAlerts()</code> 已经在构造输入数组时被调用。组合 API <strong>管理结果</strong>，不是给 JavaScript 创建线程。</p>
+<h2 id="part-4">异常与调试</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">try {
+  const data = await fetchData();
+  return parse(data);
+} catch (e) {
+  report(e);
+  throw e; // 若希望上游知道失败，必须继续抛出
+}
+</code></pre>
+<p>没有 <code>throw</code> 的 catch 会正常返回 <code>undefined</code>，使上游看到 fulfilled(undefined)；这是工程中常见的“吞掉错误”。</p>
+<div class="course-nav"><a href="../lesson-06/">← catch、finally 与异常边界</a><a href="../lesson-08/">Promise.all：全成功或早拒绝 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">async 返回一个 Promise</a><a href="#part-2">await 前后的时间分界</a><a href="#part-3">并发和串行不是语法选项，而是依赖关系</a><a href="#part-4">异常与调试</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

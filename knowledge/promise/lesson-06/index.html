@@ -1,0 +1,41 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="finally 保留结果有条件；异步 timer 抛错不属于外层 Promise。"><title>catch、finally 与异常边界 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 06</div><span class="eyebrow">THE PROMISE HANDBOOK / 06</span><h1>catch、finally 与异常边界</h1><p class="lead">finally 保留结果有条件；异步 timer 抛错不属于外层 Promise。</p><div class="course-reading-meta">专题进度：第 <strong>7</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1><code>catch</code> 处理失败，<code>finally</code> 处理收尾</h1>
+<h2 id="part-1">catch 恢复与传播</h2>
+<p><code>p.catch(onRejected)</code> 对拒绝作出响应。如果 <code>onRejected</code> 正常返回，后继 Promise 变为 fulfilled；如果再次抛错或返回拒绝的 Promise，拒绝继续传播。</p>
+<h2 id="part-2">finally 是透传，不是无条件保真</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.resolve(7)
+  .finally(() =&gt; console.log('cleanup'))
+  .then(v =&gt; console.log('value', v));
+// cleanup
+// value 7
+</code></pre>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.resolve(7)
+  .finally(() =&gt; Promise.reject(new Error('cleanup failed')))
+  .then(console.log)
+  .catch(e =&gt; console.log(e.message));
+// cleanup failed
+</code></pre>
+<p>在 cleanup 正常结束时，<code>finally</code> <strong>透传原有 fulfilled 值或 rejected 原因</strong>；若 cleanup 抛错或返回的 thenable 最终拒绝，会用新的拒绝覆盖原结果。<code>finally</code> 回调的普通返回值（比如 <code>return 100</code>）不会改写成功结果。</p>
+<pre class="mermaid">flowchart TD
+  P[原 Promise] --&gt; F[执行 finally 回调]
+  F --&gt; E{cleanup 抛错或拒绝?}
+  E --&gt;|否| K[透传原结果]
+  E --&gt;|是| R[后继以新原因 rejected]
+</pre>
+<h2 id="part-3">定时器里的 <code>throw</code> 为什么捕不住</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">new Promise(resolve =&gt; {
+  setTimeout(() =&gt; { throw new Error('timer'); }, 0);
+  resolve(1);
+}).catch(e =&gt; console.log('will not catch', e));
+</code></pre>
+<p>定时器回调在<strong>未来单独的任务执行上下文</strong>中运行，已脱离 executor 同步调用的 <code>try/catch</code>。正确的桥接方式是在回调里<strong>调用 reject</strong>，而不是在外层等待一个与定时器毫无关联的 Promise。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const wait = ms =&gt; new Promise((resolve, reject) =&gt; {
+  setTimeout(() =&gt; {
+    try { resolve('done'); }
+    catch (error) { reject(error); }
+  }, ms);
+});
+</code></pre>
+<p>上面只是演示如何把异步回调的失败交由 <code>reject</code>；<code>resolve</code> 自身一般不会向这里同步抛出业务错误。实际工程应把<strong>可能抛错的操作</strong>放进回调的 try 块，例如 <code>try { resolve(JSON.parse(raw)); } catch(e) { reject(e); }</code>。更推荐在 timer 中显式 <code>reject(new Error(...))</code> 或使用返回 Promise 的底层 API。</p>
+<h2 id="part-4">自测</h2>
+<p><code>finally(() =&gt; 100)</code> 与 <code>then(() =&gt; 100)</code> 的值传播有何不同？答案：前者正常完成时透传源结果，后者直接返回 100 作为下游兑现值。</p>
+<div class="course-nav"><a href="../lesson-05/">← then 链、返回值与错误传播</a><a href="../lesson-07/">async / await 的解糖模型 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">catch 恢复与传播</a><a href="#part-2">finally 是透传，不是无条件保真</a><a href="#part-3">定时器里的 throw 为什么捕不住</a><a href="#part-4">自测</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

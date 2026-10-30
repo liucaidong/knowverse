@@ -1,0 +1,121 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="16 道新编可验证题，围绕状态、采用、组合 API 和错误传播。"><title>诊断题库：先作答，再看解析 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 16</div><span class="eyebrow">THE PROMISE HANDBOOK / 16</span><h1>诊断题库：先作答，再看解析</h1><p class="lead">16 道新编可验证题，围绕状态、采用、组合 API 和错误传播。</p><div class="course-reading-meta">专题进度：第 <strong>17</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>新编诊断题库（不代替历史原题）</h1>
+<blockquote>
+<p>教学方式：<strong>先预测输出与每个 Promise 的状态，再展开答案。</strong> 以下均为新编练习，并非历史对话中的逐字题干。</p>
+</blockquote>
+<h2 id="part-1">Q01 · executor 顺序</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">console.log('A');
+new Promise(resolve =&gt; { console.log('B'); resolve(); })
+  .then(() =&gt; console.log('D'));
+console.log('C');
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>A → B → C → D</code>。executor 同步，then 异步。</p>
+</details>
+<h2 id="part-2">Q02 · 链式 Job 的位置</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.resolve().then(() =&gt; console.log('A'))
+  .then(() =&gt; console.log('B'));
+queueMicrotask(() =&gt; console.log('M'));
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>A → M → B</code>；第二个 then 的反应要等前一个 handler 返回后才入队。</p>
+</details>
+<h2 id="part-3">Q03 · resolve 不等于立即 fulfilled</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">let finish;
+const inner = new Promise(r =&gt; finish = r);
+const outer = new Promise(r =&gt; r(inner));
+outer.then(v =&gt; console.log(v));
+finish('OK');
+</code></pre>
+<details><summary>查看解析</summary>
+<p>只会在后续 Job 中打印 <code>OK</code>；outer 在采用 inner 时可以仍为 pending。</p>
+</details>
+<h2 id="part-4">Q04 · Promise 身份</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const p = Promise.resolve(1);
+console.log(Promise.resolve(p) === p);
+console.log(new Promise(r =&gt; r(p)) === p);
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>true</code>、<code>false</code>。原生 Promise 同构造器可被直接返回，新构造器调用总创建新对象。</p>
+</details>
+<h2 id="part-5">Q05 · getter 与 then 调用</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const x = { get then() { console.log('G'); return r =&gt; { console.log('T'); r(1); }; } };
+Promise.resolve(x);
+console.log('E');
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>G → E → T</code>。getter 读取同步，thenable 调用由 Job 安排。</p>
+</details>
+<h2 id="part-6">Q06 · 错误恢复</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.reject('X').catch(() =&gt; 5).then(console.log);
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>5</code>。catch 返回普通值使下游兑现。</p>
+</details>
+<h2 id="part-7">Q07 · 同一 then 的两个回调</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.resolve(1).then(() =&gt; { throw Error('X'); }, () =&gt; console.log('NO'))
+ .catch(e =&gt; console.log(e.message));
+</code></pre>
+<details><summary>查看解析</summary>
+<p>只输出 <code>X</code>；原 Promise 未拒绝，因此同一 then 的 onRejected 不执行。</p>
+</details>
+<h2 id="part-8">Q08 · 无 return</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.resolve(9).then(v =&gt; { v + 1; }).then(console.log);
+</code></pre>
+<details><summary>查看解析</summary>
+<p>打印 <code>undefined</code>。表达式求值未被 return。</p>
+</details>
+<h2 id="part-9">Q09 · finally 的普通返回值</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.resolve(9).finally(() =&gt; 99).then(console.log);
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>9</code>。finally 正常完成时透传原结果。</p>
+</details>
+<h2 id="part-10">Q10 · finally 覆盖原结果</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.resolve(9).finally(() =&gt; { throw Error('X'); })
+ .catch(e =&gt; console.log(e.message));
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>X</code>。cleanup 抛错使下游拒绝。</p>
+</details>
+<h2 id="part-11">Q11 · all 结果顺序</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.all([new Promise(r=&gt;setTimeout(()=&gt;r('slow'),10)), 'fast']).then(console.log);
+</code></pre>
+<details><summary>查看解析</summary>
+<p>最终 <code>['slow', 'fast']</code>，顺序按输入位置。</p>
+</details>
+<h2 id="part-12">Q12 · any.errors 索引顺序</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.any([new Promise((_,j)=&gt;setTimeout(()=&gt;j('A'),10)), Promise.reject('B')])
+ .catch(e =&gt; console.log(e.errors.join(',')));
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>A,B</code>，即使 B 更早拒绝。</p>
+</details>
+<h2 id="part-13">Q13 · race 忽略成功偏好吗</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.race([Promise.reject('R'), Promise.resolve('F')])
+ .then(console.log, console.log);
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>R</code>。首先参与竞争的已拒绝 Promise，其 reaction Job 先入队，race 因此拒绝。</p>
+</details>
+<h2 id="part-14">Q14 · 空组合</h2>
+<p><code>all([])</code>、<code>allSettled([])</code>、<code>any([])</code>、<code>race([])</code> 的命运分别是什么？</p>
+<details><summary>查看解析</summary>
+<p>分别为 fulfilled([])、fulfilled([])、rejected(AggregateError)、永久 pending。</p>
+</details>
+<h2 id="part-15">Q15 · async 同步体</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">async function f(){ console.log('inner'); return 1; }
+console.log('before'); f().then(() =&gt; console.log('then')); console.log('after');
+</code></pre>
+<details><summary>查看解析</summary>
+<p><code>before → inner → after → then</code>。async 在首次 await 前可同步运行，返回值仍是 Promise。</p>
+</details>
+<h2 id="part-16">Q16 · thenable 锁定</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const t = { then(resolve, reject) { resolve(1); reject(2); throw Error('late'); } };
+Promise.resolve(t).then(console.log, console.error);
+</code></pre>
+<details><summary>查看解析</summary>
+<p>打印 <code>1</code>，晚到 reject/throw 不覆盖已锁定结果。</p>
+</details>
+<h2 id="part-17">下一步</h2>
+<p>使用专题首页的交互实验室逐题运行 Q01–Q16。需要分辨<strong>日志顺序</strong>和<strong>对象实际落定时间</strong>时，用纸绘制 Jobs 队列并逐帧记录。</p>
+<div class="course-nav"><a href="../lesson-15/">← 历史课程诊断档案</a><a href="../lesson-17/">ECMAScript 规范解剖：内部槽与抽象操作 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">Q01 · executor 顺序</a><a href="#part-2">Q02 · 链式 Job 的位置</a><a href="#part-3">Q03 · resolve 不等于立即 fulfilled</a><a href="#part-4">Q04 · Promise 身份</a><a href="#part-5">Q05 · getter 与 then 调用</a><a href="#part-6">Q06 · 错误恢复</a><a href="#part-7">Q07 · 同一 then 的两个回调</a><a href="#part-8">Q08 · 无 return</a><a href="#part-9">Q09 · finally 的普通返回值</a><a href="#part-10">Q10 · finally 覆盖原结果</a><a href="#part-11">Q11 · all 结果顺序</a><a href="#part-12">Q12 · any.errors 索引顺序</a><a href="#part-13">Q13 · race 忽略成功偏好吗</a><a href="#part-14">Q14 · 空组合</a><a href="#part-15">Q15 · async 同步体</a><a href="#part-16">Q16 · thenable 锁定</a><a href="#part-17">下一步</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

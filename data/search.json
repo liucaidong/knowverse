@@ -32,14 +32,6 @@
     "href": "knowledge/database/chapter-03/"
   },
   {
-    "title": "JavaScript · Promise · 全景图",
-    "topic": "编程语言",
-    "summary": "从状态机到微任务调度，再到规范级解析与工程实践",
-    "tags": "ECMAScript Event Loop 单步动画 第14课",
-    "body": "状态与解析 pending / fulfilled / rejected resolve ≠ fulfill thenable / adoption 调度与链 Executor 同步 Promise reactions 事件循环与微任务 组合与应用 all / race any / allSettled 错误桥接与取消",
-    "href": "knowledge/promise/"
-  },
-  {
     "title": "Mac × iPhone 多模态学习台需求",
     "topic": "AI · 多模态教育",
     "summary": "核心目标（2026-10-24）：Mac 大屏阅读，iPhone 支架作为实时摄像头，AI 能保持持续视频/语音沟通，讲解书本并审阅作业、试卷。",
@@ -366,5 +358,181 @@
     "tags": "1000案例 CPI 量化 风险",
     "body": "基础理论 货币时间价值 利率与现金流 信用 / 流动性 市场与案例 资本市场 金融机构与危机 行为金融 量化与风险 数据→回测→风控 趋势 / 均值回归 杠杆 / 马丁风险",
     "href": "knowledge/finance/"
+  },
+  {
+    "title": "Promise 从原理到工程实践 · 全景教材",
+    "topic": "JavaScript Promise",
+    "summary": "20 个原理单元 · 16 道诊断 · Mermaid 全景图 · 微任务观察台",
+    "tags": "Promise ECMAScript thenable resolution microtask all any race allSettled",
+    "body": "状态机 resolved settled pending fulfilled rejected 微任务 组合 API 错误传播 event loop Job 逐帧动画 深度课程",
+    "href": "knowledge/promise/"
+  },
+  {
+    "title": "导学与机制地图",
+    "topic": "JavaScript Promise",
+    "summary": "把 Promise 拆成五层观察：对象状态、解决权、反应注册、Jobs 入队与宿主调度。",
+    "tags": "Promise ECMAScript 第1单元 resolved settle jobs",
+    "body": "   导学：这门课不是背 API      学习目标  ：看到一段异步 JavaScript，能够独立画出 Promise 对象、状态变化、反应注册、Job 队列和实际输出的先后顺序。这里依据此前课程第 1—14 课的可恢复线索重构知识体系，不代表每道历史习题均已完成。     一张概念地图  Promise 是  未来结果的占位符  ，不是任务调度器，也不是线程。理解一段代码，需要分别回答五个问题：  创建了哪些 Promise 对象？谁取得了解决权？何时落定？何时把 reaction Job 入队？Job 何时运行？       mermaid flowchart LR   A[代码调用 / executor] --  B[Promise 对象与状态]   B --  C[resolve / reject 与采用]   C --  D[reaction 注册和 Job 入队]   D --  E[宿主微任务检查点]   E --  F[回调结果 / 新 Promise]   F --  C         学习顺序与课程阶段    单元   要解决的错误直觉   学会之后能解释什么    --- --- ---    01–03    resolve  就是立刻  fulfilled    resolved、settled、thenable 采用     04–06    .then  回调立即执行   executor 同步、Job 入队、链式新对象     07–10    catch/finally  只是语法糖   错误恢复、finally 覆盖、async/await     11–14   四个组合 API 只有返回值差异   胜出规则、空输入、索引顺序、失败分支     15–17   微任务只有“先来先服务”一条公式   Browser / Node 宿主差异、thenable Job 和复盘       本专题的用法  每章按   可观察现象 → 原因 → 代码试验 → 常见误区 → 诊断任务   排列。先用纸笔预测，再在“可运行实验”运行代码；正确选项不等于掌握，必须说明原因。专题首页的“执行观察台”会显示日志和逐帧轨迹；本章参考资料可在专题末尾集中查看。     一道预热题     js console.log('start'); new Promise(resolve =  {   console.log('executor');   resolve(1); }).then(() =  console.log('then')); console.log('end');        先预测输出  。本题检查的是 executor 的同步性与 reaction 的异步性，答案请在章节最后的自测区揭晓。  <details <summary 展开预热题答案</summary    start → executor → end → then 。创建 Promise 时 executor 同步执行； .then()  注册反应，即使对象已经 fulfilled，回调也在后续 Job 中执行。  </details  ",
+    "href": "knowledge/promise/lesson-00/"
+  },
+  {
+    "title": "Promise 状态机与解决权",
+    "topic": "JavaScript Promise",
+    "summary": "三种状态之外，理解 resolved、settled、adoption 与不可逆。",
+    "tags": "Promise ECMAScript 第2单元 resolved settle jobs",
+    "body": "   Promise 状态机与“已经解决”     三种状态；两个容易混淆的术语  一个 Promise 始终处于  pending 、 fulfilled 、 rejected  三者之一。 settled  指   fulfilled 或 rejected  ； resolved  则是   解决权已锁定  ：它可能已经落定，也可能正在采用其他 Promise 的结果、自己仍处于 pending。     mermaid stateDiagram-v2   [ ] --  pending   pending --  fulfilled: fulfill(value)   pending --  rejected: reject(reason)   pending --  pending: resolve(inner) / locked, adopt inner   fulfilled --  [ ]   rejected --  [ ]      注意：图中  pending → pending  并非发生了状态切换，而是  外观状态仍 pending、内部解决权已锁定  。它和  new Promise(() =  {})  这种未解决 pending 不同。     以 inner 为例观察两个 Promise     js let finish; const inner = new Promise(resolve =  { finish = resolve; }); const outer = new Promise(resolve =  resolve(inner)); // outer 已 resolved，但 inner 未落定，因此 outer 仍 pending outer.then(v =  console.log('outer', v)); finish(42); console.log('synchronous end');      调用  resolve(inner)  后，后续  reject('late') 、 resolve(0)  或 executor 抛错都不能改变 outer 已经采用 inner 的决定；  不能  因此说 outer 同步 fulfilled。 finish(42)  使 inner 先获得兑现结果，outer 的状态传播仍需要通过 Promise 机制完成。     同一性与“采用”是两个维度     js const inner = Promise.resolve(42); const a = Promise.resolve(inner); const b = new Promise(resolve =  resolve(inner)); console.log(a === inner, b === inner); // true false      当  Promise.resolve(x)  收到相同构造器的原生 Promise，可能  直接返回原对象  ； new Promise(...)  总创建新对象，即使它采用了 inner 的最终值。身份相同与状态传播的先后并不是同一个问题。     常见误区  - “resolved = fulfilled”——错； resolved  指命运已经被锁定。 - “状态不能反转，所以任何  resolve  都立刻完成”——错；采用未落定的 thenable 可以继续 pending。 - “两个 Promise 最终都是 42，所以  ===  一定相等”——错；值相等不代表对象同一。    检查点  ：尝试在  resolve(inner)  后立即调用一次  reject(new Error('late')) ；然后让 inner 兑现或拒绝。预测 outer 会如何落定。 ",
+    "href": "knowledge/promise/lesson-01/"
+  },
+  {
+    "title": "构造器、then 与作业模型",
+    "topic": "JavaScript Promise",
+    "summary": "分清 executor、注册反应、入队与运行四个独立事件。",
+    "tags": "Promise ECMAScript 第3单元 resolved settle jobs",
+    "body": "    new Promise()  不是异步启动器     executor 当场执行     js console.log('1'); const p = new Promise(resolve =  {   console.log('2');   resolve('ok'); }); p.then(() =  console.log('4')); console.log('3'); // 1 2 3 4       new Promise(executor)  在构造过程  同步调用 executor  。真正的异步边界是注册之后由 Promise reaction Job 运行的处理器。因此把“创建 Promise”当作“延迟执行一个函数”是错误模型。     反应有两种入队时刻  当  .then(handler)  调用时：  1.   对象仍 pending  ：先保存 reactions；以后落定时，逐个将相应 reaction jobs 加入队列。 2.   对象已经 settled  ：这次  .then  的反应 job 在调用  .then  时就被入队；处理器依然不会同步运行。     mermaid flowchart TD   T[调用 then] --  Q{Promise 已落定?}   Q --  是  E[创建 reaction Job 并入队]   Q --  否  R[保存 reaction]   R --  S[稍后落定]   S --  E   E --  M[微任务检查点执行]         “注册先后”和“执行先后”     js const p = Promise.resolve('done'); p.then(() =  console.log('A')); queueMicrotask(() =  console.log('M')); p.then(() =  console.log('B')); // A M B      这是浏览器和标准 JavaScript Promise Job 的常见情况。关键不是“ .then  永远比  queueMicrotask  优先”，而是  这三个 job 按 A、M、B 的顺序实际入队  。     诊断  如果把  Promise.resolve('done')  换成一个尚未落定的  p ，再把  resolve()  放在 M 的回调中， A  和  B  将延后入队：此时要重新画队列，不能照抄  A M B 。 ",
+    "href": "knowledge/promise/lesson-02/"
+  },
+  {
+    "title": "Promise Resolution Procedure",
+    "topic": "JavaScript Promise",
+    "summary": "then 属性读取同步，thenable 执行异步；首次调用锁定结果。",
+    "tags": "Promise ECMAScript 第4单元 resolved settle jobs",
+    "body": "   thenable 同化：本课程的核心边界     thenable 与原生 Promise 不同  对象只要暴露可调用的  .then ，就可能被 Promise 解决流程  当作 thenable  。采用 thenable 时，先取得  then  属性；如为可调用函数，则安排一个   NewPromiseResolveThenableJob   在稍后的 Job 中调用它。     js const thenable = {   get then() {     console.log('get');     return resolve =  {       console.log('call');       resolve(42);     };   } }; console.log('start'); Promise.resolve(thenable).then(v =  console.log('value', v)); console.log('end'); // start, get, end, call, value       get  是  同步属性读取  ； call  则是后续 PromiseResolveThenableJob 执行。  getter 和 thenable 本身不是两个并列的任务  ，混为一谈会直接导致日志顺序预测错误。     mermaid sequenceDiagram   participant Stack as 当前 JS 调用栈   participant P as 新 Promise   participant Q as Promise Jobs   Stack-  P: Promise.resolve(thenable)   P-  Stack: Get(thenable, \"then\") / getter 同步   P-  Q: Enqueue NewPromiseResolveThenableJob   Stack-  Stack: console.log('end')   Q-  P: Call(thenable.then, resolve, reject)   P-  Q: 如落定，enqueue reaction jobs         解决权锁定、晚到的 reject/throw     js let finish; const inner = new Promise(resolve =  { finish = resolve; }); const obj = { then(resolve, reject) {   resolve(inner);             // 先占有解决权，采用 inner   reject(new Error('late')); // 被忽略   throw new Error('boom');   // 不能覆盖已锁定的解决结果 }}; const outer = Promise.resolve(obj); outer.then(console.log, console.error); finish(42);      这并不是  throw  从未发生，而是 thenable Job 捕获异常、发现解决回调已调用后  不会再改变已锁定的 outer  。需分清“执行了什么”和“最后能影响谁”。     异常路径与自解析  - 读取  then  属性时 getter 抛错：新 Promise   拒绝  ，不会再调用 then。 -  then  不是函数：把该对象作为普通值兑现。 -  resolve(promise自身) ：发生自解析，触发  TypeError  拒绝。 - 别的 thenable 循环、互相引用的情况更复杂，  不能  将每一种循环都说成即时 TypeError；规范中直接检测的是 promise 对自身解析。     js let resolveSelf; const p = new Promise(resolve =  { resolveSelf = resolve; }); resolveSelf(p); p.catch(e =  console.log(e instanceof TypeError)); // true         检查点  把上面 getter 改成  throw new Error('get-failed') ，预测  call  是否会出现、outer 最终是什么状态。答案： call  不会出现，outer 拒绝，catch 在 reaction Job 中执行。 ",
+    "href": "knowledge/promise/lesson-03/"
+  },
+  {
+    "title": "微任务、队列与时间线",
+    "topic": "JavaScript Promise",
+    "summary": "按实际入队时刻追踪，不以代码外观排序。",
+    "tags": "Promise ECMAScript 第5单元 resolved settle jobs",
+    "body": "   事件循环不是“微任务优先”四个字     五步可重复的推演法    阶段 A：同步调用栈  。逐行标注 console、executor、thenable getter 和  .then  注册。  阶段 B：每一个入队动作  。写出  PromiseReactionJob 、 PromiseResolveThenableJob  和显式  queueMicrotask 。  阶段 C：每次取出队首  。执行可能又入队新的任务。  阶段 D：记录每个 Promise 的状态  。  阶段 E：进入后续 timer 等任务  。     js console.log('A'); Promise.resolve().then(() =  {   console.log('B');   queueMicrotask(() =  console.log('D')); }); queueMicrotask(() =  console.log('C')); console.log('E'); // A E B C D        时刻   当前动作   微任务队列   输出    --- --- --- ---    同步    console.log('A')    []   A     同步    .then(...)    [B]   —     同步    queueMicrotask(C)    [B, C]   —     同步    console.log('E')    [B, C]   E     检查点   执行 B、再入队 D   [C, D]   B     检查点   执行 C   [D]   C     检查点   执行 D   []   D       mermaid flowchart LR   A[同步栈 A → E] --  Q1[入队 B, C]   Q1 --  B[运行 B]   B --  Q2[再入队 D]   Q2 --  C[运行 C]   C --  D[运行 D]         为什么  then  链不是一次 job     js Promise.resolve().then(() =  {   console.log('one');   return 2; }).then(() =  console.log('two')); queueMicrotask(() =  console.log('M')); // one M two      第一个  .then  的回调完成后，  下游 Promise 才兑现、第二个 reaction 才被入队  。M 已经在队列里，所以它先于  two 。     环境边界  浏览器事件循环的 task/microtask 规则由宿主定义；ECMAScript 定义 Promise Jobs，但不独立规定浏览器渲染时机或 Node 特有的 nextTick 队列。不要用“宏任务先后”替代具体 API 的宿主定义。 ",
+    "href": "knowledge/promise/lesson-04/"
+  },
+  {
+    "title": "then 链、返回值与错误传播",
+    "topic": "JavaScript Promise",
+    "summary": "每次 then 都生成新 Promise；值、throw、thenable 决定下游。",
+    "tags": "Promise ECMAScript 第6单元 resolved settle jobs",
+    "body": "   每个  .then()  都产生新 Promise     使用对象关系图思考     js const p = Promise.resolve(5); const q = p.then(v =  v + 3); const r = q.then(v =  { console.log(v); }); console.log(p === q, q === r); // false false // 后续记录 8         mermaid flowchart LR   P[p: fulfilled 5] --  then(v =  v+3)  Q[q: fulfilled 8]   Q --  then(log) 返回 undefined  R[r: fulfilled undefined]      注意图中箭头表示  逻辑依赖  ，不是同步状态切换；不同状态往往跨越多个 Job。     四条传播规则    处理器行为   下游 Promise 命运    --- ---     return 9    fulfilled(9)     不写  return    fulfilled(undefined)      throw Error('x')    rejected(error)      return somePromise/thenable    采用该对象的结果       js Promise.resolve('origin')   .then(() =  { throw new Error('chain'); })   .then(() =  console.log('never'))   .catch(err =  {     console.log('recover:', err.message);     return 'ok';   })   .then(v =  console.log('done:', v)); // recover: chain // done: ok       .catch(handler)  等价于  .then(undefined, handler)  的常见形式。  catch 返回普通值会恢复链  ，除非 handler 再次抛错或返回拒绝的 Promise。     容易错的一点：同一个 then 的 onRejected     js Promise.resolve(1)   .then(     () =  { throw new Error('inside-onFulfilled'); },     () =  console.log('not-caught-here')   )   .catch(e =  console.log('caught later', e.message));      第二个参数只处理  源 Promise 的拒绝  ，不会捕获同一次  .then  的成功回调内部的异常；该异常会拒绝  .then  返回的  新   Promise，因此由后面的  .catch  捕获。     作业  画出每次  .then  的新对象，并在每条箭头旁写出其处理器是  return 、 throw  还是  adopt 。能画出对象身份，再考虑时间顺序。 ",
+    "href": "knowledge/promise/lesson-05/"
+  },
+  {
+    "title": "catch、finally 与异常边界",
+    "topic": "JavaScript Promise",
+    "summary": "finally 保留结果有条件；异步 timer 抛错不属于外层 Promise。",
+    "tags": "Promise ECMAScript 第7单元 resolved settle jobs",
+    "body": "    catch  处理失败， finally  处理收尾     catch 恢复与传播   p.catch(onRejected)  对拒绝作出响应。如果  onRejected  正常返回，后继 Promise 变为 fulfilled；如果再次抛错或返回拒绝的 Promise，拒绝继续传播。     finally 是透传，不是无条件保真     js Promise.resolve(7)   .finally(() =  console.log('cleanup'))   .then(v =  console.log('value', v)); // cleanup // value 7         js Promise.resolve(7)   .finally(() =  Promise.reject(new Error('cleanup failed')))   .then(console.log)   .catch(e =  console.log(e.message)); // cleanup failed      在 cleanup 正常结束时， finally    透传原有 fulfilled 值或 rejected 原因  ；若 cleanup 抛错或返回的 thenable 最终拒绝，会用新的拒绝覆盖原结果。 finally  回调的普通返回值（比如  return 100 ）不会改写成功结果。     mermaid flowchart TD   P[原 Promise] --  F[执行 finally 回调]   F --  E{cleanup 抛错或拒绝?}   E --  否  K[透传原结果]   E --  是  R[后继以新原因 rejected]         定时器里的  throw  为什么捕不住     js new Promise(resolve =  {   setTimeout(() =  { throw new Error('timer'); }, 0);   resolve(1); }).catch(e =  console.log('will not catch', e));      定时器回调在  未来单独的任务执行上下文  中运行，已脱离 executor 同步调用的  try/catch 。正确的桥接方式是在回调里  调用 reject  ，而不是在外层等待一个与定时器毫无关联的 Promise。     js const wait = ms =  new Promise((resolve, reject) =  {   setTimeout(() =  {     try { resolve('done'); }     catch (error) { reject(error); }   }, ms); });      上面只是演示如何把异步回调的失败交由  reject ； resolve  自身一般不会向这里同步抛出业务错误。实际工程应把  可能抛错的操作  放进回调的 try 块，例如  try { resolve(JSON.parse(raw)); } catch(e) { reject(e); } 。更推荐在 timer 中显式  reject(new Error(...))  或使用返回 Promise 的底层 API。     自测   finally(() =  100)  与  then(() =  100)  的值传播有何不同？答案：前者正常完成时透传源结果，后者直接返回 100 作为下游兑现值。 ",
+    "href": "knowledge/promise/lesson-06/"
+  },
+  {
+    "title": "async / await 的解糖模型",
+    "topic": "JavaScript Promise",
+    "summary": "async 总返回 Promise，await 让函数暂停而不是阻塞线程。",
+    "tags": "Promise ECMAScript 第8单元 resolved settle jobs",
+    "body": "    await  暂停的是 async 函数，不是整个 JS 线程     async 返回一个 Promise     js async function f() { return 42; } const p = f(); console.log(p instanceof Promise); // true p.then(console.log);              // 后续输出 42       async  函数即使直接返回普通值，也会返回 Promise；函数体里的同步  throw  会使返回 Promise 被拒绝（不会以同样的方式同步抛给普通调用点）。     await 前后的时间分界     js async function demo() {   console.log('before');   const value = await Promise.resolve(7);   console.log('after', value); } console.log('start'); demo(); console.log('end'); // start before end after 7       await  对 Promise/thenable 使用 Promise 机制取得结果，并在异步续体中恢复。即使值已就绪，它也不会让  after  插入当前同步栈中。     mermaid sequenceDiagram   participant Caller as 调用者   participant Async as async 函数   participant Jobs as Promise Jobs   Caller-  Async: demo()   Async-  Async: 同步执行 await 之前   Async-  Jobs: 等待值与安排续体   Async--  Caller: 返回 Promise   Caller-  Caller: 继续当前同步代码   Jobs-  Async: 恢复 await 之后         并发和串行不是语法选项，而是依赖关系     js // 需要串行：第二步依赖第一步结果 const user = await getUser(); const profile = await getProfile(user.id);  // 两步独立：并发发起，统一等待 const [settings, alerts] = await Promise.all([   getSettings(), getAlerts() ]);      不要以为  Promise.all  自己“启动”异步动作： getSettings()  和  getAlerts()  已经在构造输入数组时被调用。组合 API   管理结果  ，不是给 JavaScript 创建线程。     异常与调试     js try {   const data = await fetchData();   return parse(data); } catch (e) {   report(e);   throw e; // 若希望上游知道失败，必须继续抛出 }      没有  throw  的 catch 会正常返回  undefined ，使上游看到 fulfilled(undefined)；这是工程中常见的“吞掉错误”。 ",
+    "href": "knowledge/promise/lesson-07/"
+  },
+  {
+    "title": "Promise.all：全成功或早拒绝",
+    "topic": "JavaScript Promise",
+    "summary": "输入迭代与任务启动的边界；拒绝不等于取消其他操作。",
+    "tags": "Promise ECMAScript 第9单元 resolved settle jobs",
+    "body": "   Promise.all：汇总一组必须全部成功的结果     语义不等于“并发调度器”   Promise.all(iterable)  返回一个新的 Promise：  所有输入最终兑现后  ，它按  输入顺序  兑现为数组；只要任何输入拒绝，它就拒绝为第一个可观察到的拒绝原因。     js const slow = new Promise(resolve =  setTimeout(() =  resolve('slow'), 30)); const fast = Promise.resolve('fast'); Promise.all([slow, fast]).then(console.log); // 最终 ['slow', 'fast'] —— 输入顺序，不是完成先后         “早拒绝”≠“自动取消”     js const a = Promise.reject(new Error('failed')); const b = new Promise(resolve =  setTimeout(() =  {   console.log('b still runs');   resolve(2); }, 10)); Promise.all([a, b]).catch(e =  console.log(e.message));       all  的外层失败不意味着 b 的定时器、网络请求或其他底层操作被取消。取消应单独使用  AbortController  等底层 API 支持的机制。     空输入和非 Promise 值  -  Promise.all([])  立即创建一个已经 fulfilled 的 Promise，值为  [] ；  其 then 回调依旧异步执行  。 - 普通值会经过 Promise 解决机制，以数组原顺序加入结果。 - iterable 在调用期间被  同步迭代  ；迭代器本身发生异常时，外层 Promise 会按算法拒绝。不要将它误读成逐项异步启动。     诊断矩阵    输入情况   外层结果   是否等待其余任务停下    --- --- ---    全部 fulfilled   fulfilled(按输入顺序数组)   等待全部落定     至少一个 rejected   rejected(先观察到的失败)   否，其他底层任务仍可执行      []    fulfilled([])   不涉及等待      适用场景  ：页面同时需要多个缺一不可的数据来源；或者一项失败时这个组合结果整体失去价值。 ",
+    "href": "knowledge/promise/lesson-08/"
+  },
+  {
+    "title": "Promise.race：先落定者胜出",
+    "topic": "JavaScript Promise",
+    "summary": "race 对 fulfilled/rejected 没有偏好，空迭代永不落定。",
+    "tags": "Promise ECMAScript 第10单元 resolved settle jobs",
+    "body": "   Promise.race：比的是落定，不是成功     先 fulfilled 或先 rejected，谁先落定谁胜出     js Promise.race([   Promise.reject('X'),   new Promise(resolve =  setTimeout(() =  resolve('Y'), 10)) ]).then(console.log, err =  console.log('rejected', err)); // rejected X       Promise.race  不会为了挑到成功值而忽略拒绝。它常用于超时竞争，但只让组合结果先落定，不会强制停止超时后仍在运行的操作。     race 与  .then  的日志时间不是同一时刻  race 外层 Promise 可以在某个 reaction Job 中落定，用户传给它的  .then  回调却要以  另一个 reaction Job   才执行。因此在日志预测里，不能把  race  结果打印当作它真正落定时刻。     mermaid flowchart LR   I[参与者之一落定] --  J[对应 reaction Job]   J --  R[race 外层落定]   R --  K[race.then 反应 Job 入队]   K --  L[输出 race 日志]         边界   Promise.race([])  返回  永远 pending   的 Promise。若输入的某个 thenable 在采用过程中需要更多 Job，实际“先落定”由 Job 的调度过程决定，不是简单比较输入数组谁写在前面。     超时竞赛的典型误区     js const timeout = ms =  new Promise((_, reject) =    setTimeout(() =  reject(new Error('timeout')), ms) ); const result = Promise.race([fetch('/api/data'), timeout(3000)]);      这样写即使超时，原始 fetch 也可能继续进行。正式工程应使用  AbortController  并清理 timer，见工程篇。 ",
+    "href": "knowledge/promise/lesson-09/"
+  },
+  {
+    "title": "Promise.any：至少一个兑现",
+    "topic": "JavaScript Promise",
+    "summary": "AggregateError.errors 的顺序由输入索引决定，而不是拒绝时间。",
+    "tags": "Promise ECMAScript 第11单元 resolved settle jobs",
+    "body": "   Promise.any：只要有一个成功   Promise.any(iterable)  把输入中的  首次 fulfilled   值作为结果；只有  全部 rejected   时，才用  AggregateError  拒绝。     js const a = Promise.reject('early'); const b = new Promise(resolve =  setTimeout(() =  resolve('winner'), 10)); Promise.any([a, b]).then(console.log); // winner         errors 按输入顺序，和拒绝先后无关     js const slow = new Promise((_, reject) =  setTimeout(() =  reject('S'), 12)); const fast = Promise.reject('F'); Promise.any([slow, fast]).catch(e =  {   console.log(e instanceof AggregateError);   console.log(e.errors); // ['S', 'F'] });      虽然 F 可能更早拒绝，但  errors  按 iterable 进入组合时的索引顺序整理。不要用  Promise.race  的“先落定”直觉来理解  any 。     any 与 race 的语义差异    特征    any     race     --- --- ---    胜出条件   首个 fulfilled   首个 settled     遇到 rejected   继续等待其他输入   立刻以该拒绝结束     所有 rejected   AggregateError   谁先 rejected 就是谁     空输入   rejected(AggregateError)   永远 pending      适用场景  ：多个冗余镜像中找第一个可用结果；但不要用它吞掉全部失败的细节，处理时应该查看  .errors 。 ",
+    "href": "knowledge/promise/lesson-10/"
+  },
+  {
+    "title": "Promise.allSettled：全局快照",
+    "topic": "JavaScript Promise",
+    "summary": "每项状态结果按输入序排列，不因为失败而提前结束。",
+    "tags": "Promise ECMAScript 第12单元 resolved settle jobs",
+    "body": "   allSettled：保留成功与失败的完整快照   Promise.allSettled(iterable)  不会因为任一参与者拒绝而让外层拒绝；它等  所有参与者落定  后，用与输入位置一致的对象数组兑现。     js Promise.allSettled([   Promise.resolve(1),   Promise.reject(new Error('no')),   3 ]).then(results =  {   console.log(results.map(r =  r.status));   // ['fulfilled', 'rejected', 'fulfilled'] });      返回对象形态：fulfilled 为  { status: 'fulfilled', value } ，rejected 为  { status: 'rejected', reason } 。不能一律读取  .value 。     核心差异表    API   什么时候成功   什么时候失败   保留全体结果    --- --- --- ---     all    全部 fulfilled   任一 rejected   成功时保留全部值      race    最先 settled 为 fulfilled   最先 settled 为 rejected   否      any    任一 fulfilled   全部 rejected   失败时 errors 数组      allSettled    全部 settled 后永远 fulfilled   通常不会因输入拒绝而拒绝   是       空数组要特别记忆     js Promise.all([]);        // fulfilled([]) Promise.allSettled([]); // fulfilled([]) Promise.any([]);        // rejected(AggregateError) Promise.race([]);       // pending forever      外层是否已经落定与  .then  回调是否同步执行仍是两个问题。  不论空输入如何，注册的  .then  处理器不会同步运行。       工程选择  独立任务汇报、批量文件处理、允许部分成功时选择 allSettled；如果全体成功才有意义，选择 all。仅需第一个可用结果选择 any；需要最先发生事件的命运选择 race。 ",
+    "href": "knowledge/promise/lesson-11/"
+  },
+  {
+    "title": "Browser 与 Node.js 的宿主调度",
+    "topic": "JavaScript Promise",
+    "summary": "区分 ECMAScript Jobs、浏览器微任务与 Node nextTick；不要跨环境套公式。",
+    "tags": "Promise ECMAScript 第13单元 resolved settle jobs",
+    "body": "   Promise Jobs 属于语言，事件循环属于宿主     三层职责  ECMAScript 规定 Promise 的抽象操作和 Jobs；浏览器的 HTML 事件循环定义 task、微任务检查点和渲染机会；Node.js 在 libuv 和自身运行阶段上额外引入  process.nextTick()  等语义。     mermaid flowchart TD   E[ECMAScript Promise Jobs] --  H{宿主环境}   H --  B[Browser: 微任务检查点]   H --  N[Node.js: 微任务 + nextTick 队列]   B --  R[可能进行渲染]   N --  L[libuv 事件循环阶段]         浏览器：微任务可在同一检查点继续生长     js queueMicrotask(() =  {   console.log('A');   queueMicrotask(() =  console.log('C')); }); queueMicrotask(() =  console.log('B')); // A B C      因为 A 执行时 C 才入队，B 早已在队首。不断递归入队微任务可能  饿死渲染或延迟其他任务  ，不等于“更快”。     Node.js：CommonJS 与 ESM 不能无条件复用顺序  Node 官方文档指出：在 CJS 顶层执行时， process.nextTick  队列通常先于  queueMicrotask  / Promise microtask 队列；在 ESM 模块顶层，由于模块执行自身已在微任务处理上下文中，示例顺序可不同。     js // CommonJS 文件运行时典型顺序（Node 官方示例）： process.nextTick(() =  console.log('tick')); Promise.resolve().then(() =  console.log('promise')); queueMicrotask(() =  console.log('microtask')); // tick, promise, microtask        重要限制  ：具体输出顺序还与调用位置、宿主版本和处于哪个回调阶段有关；不要宣称 “nextTick 永远比所有 Promise 先”。     官方来源  - [Node.js process 文档](https://nodejs.org/api/process.html when-to-use-queuemicrotask-vs-processnexttick) - [MDN microtask guide](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide)    实践建议  ：浏览器演示使用  queueMicrotask  + Promise；涉及  nextTick  时使用独立  .cjs  /  .mjs  文件实验并明确运行环境。 ",
+    "href": "knowledge/promise/lesson-12/"
+  },
+  {
+    "title": "工程实践：取消、超时与失败恢复",
+    "topic": "JavaScript Promise",
+    "summary": "Promise 的取消不是内建能力；把底层资源控制与组合结果分开。",
+    "tags": "Promise ECMAScript 第14单元 resolved settle jobs",
+    "body": "   工程实践：只处理结果还不够     超时应该同时处理资源  下面的代码以  fetch  为例，使用  AbortController  在超时后要求底层 API 取消请求，并始终清理 timer。     js async function fetchWithTimeout(url, ms = 3000) {   const controller = new AbortController();   const timer = setTimeout(() =  controller.abort(), ms);   try {     const response = await fetch(url, { signal: controller.signal });     if (!response.ok) throw new Error( HTTP ${response.status} );     return response.json();   } finally {     clearTimeout(timer);   } }       AbortController  能否真的中止操作由具体 API 决定；它不是  Promise.cancel() 。 Promise.race  只裁定外层命运，不负责释放底层资源。     顺序、重试与有界并发  -   串行  ：B 需要 A 的结果才启动，用先后两个  await 。 -   并发  ：两个任务独立时，先创建两个 Promise，再一次  Promise.all  等待。 -   限流  ：几十万个请求不能直接  Promise.all  一股脑启动，需要有界并发队列。 -   重试  ：仅对可重试错误进行，并设置次数、退避、幂等性及取消信号。     包装回调式 API     js function readLegacy(cbApi) {   return new Promise((resolve, reject) =  {     cbApi((err, value) =  {       if (err) reject(err);       else resolve(value);     });   }); }      包装时要处理回调多次触发（Promise 状态会锁定，但底层回调仍可能发生副作用）、同步 throw 和超时，不要把所有异步错误都寄希望于外层 try/catch。     错误恢复分三层    层级   目的   常用方式    --- --- ---    本地恢复   使用备用值，继续提供功能    .catch(() =  fallback)      上报后传播   记录诊断但不吞掉失败    catch (e) { log(e); throw e; }      整体汇总   保留多个任务的成败    allSettled        “未处理拒绝”的边界   unhandledrejection （浏览器）与 Node 的 unhandled rejection 机制属于宿主行为。生产程序不应依赖全局监听器替代每条业务链的显式失败处理；还应避免创建未被消费的 fire-and-forget Promise。 ",
+    "href": "knowledge/promise/lesson-13/"
+  },
+  {
+    "title": "综合推演：thenable × inner × race",
+    "topic": "JavaScript Promise",
+    "summary": "复现历史重点难题，分离 getter、采用、微任务和日志。",
+    "tags": "Promise ECMAScript 第15单元 resolved settle jobs",
+    "body": "   综合推演：多个 Promise 的时序不是一条线  下面是课程复盘中反复出现的机制组合：thenable getter、inner 采用、拒绝与 throw 无效、race、allSettled 和微任务嵌套。  此处代码为教学重构，并非历史题目的逐字复刻  。     js (() =  {   let finish;   const inner = new Promise(resolve =  { finish = resolve; });   const thenable = {     get then() {       console.log('get');       return (resolve, reject) =  {         console.log('call');         resolve(inner);         reject(new Error('late'));         throw new Error('thenable-throw');       };     }   };   console.log('start');   const p = Promise.resolve(thenable);   const q = p.then(value =  {     console.log('p', value);     throw new Error('chain');   });   const r = q.catch(e =  {     console.log('catch', e.message);     return 'recovered';   });   Promise.race([p, Promise.resolve('fast')])     .then(v =  console.log('race', v));   Promise.allSettled([q, r])     .then(result =  console.log('all', result.map(x =  x.status).join(',')));   queueMicrotask(() =  {     console.log('M1');     finish(42);     queueMicrotask(() =  console.log('M2'));   });   console.log('end'); })();         不猜答案，先画事件模型    同步阶段  ： inner  executor 保存  finish ；打印  start ； Promise.resolve(thenable)  同步读取 getter →  get ，然后安排 thenable Job；注册  q/r/race/allSettled  相关处理；入队 M1；打印  end 。    第一轮 Jobs  ：thenable Job 调用  then  →  call ； resolve(inner)  锁定采用，随后 late reject / throw 无法覆盖。独立已 fulfilled 的  'fast'  将触发 race 的一条处理流程。M1 使 inner 兑现，随后追加 M2。这些并非都直接让 p 的外部 reaction 即刻执行。    后续 Jobs  ：p 最终兑现 42，q 的回调  throw chain  导致拒绝，r.catch 恢复为  'recovered' 。allSettled 的状态数组应该对应 q 的 rejected、r 的 fulfilled（ rejected,fulfilled ），但相关日志运行时机取决于 reaction Job 入队链条。     mermaid flowchart TD   I[inner pending] --  finish 42  IF[inner fulfilled 42]   T[thenable: get 同步] --  J[thenable Job: call]   J --  resolve inner  P[p 采用 inner]   IF --  P   P --  最终兑现后安排 reaction  Q[q: throw chain → rejected]   Q --  R[r: catch → fulfilled recovered]   Q --  A[allSettled 汇总]   R --  A   F[fast fulfilled] --  RC[race: 外层可先落定]         对照你的历史薄弱点  在过去的复习中，你反复要求分清   “get 同步，call 异步”“状态落定 ≠ Job 入队 ≠ 回调输出”“resolved 仍可能 pending”  ；此题专为这些概念设计。请先推理完整输出序列，再在真实浏览器运行，解释每次微任务入队原因。不能只用答案对错来判定掌握程度。 ",
+    "href": "knowledge/promise/lesson-14/"
+  },
+  {
+    "title": "历史课程诊断档案",
+    "topic": "JavaScript Promise",
+    "summary": "按第 1—14 课重建可核实进度、错误直觉和待复习点，不虚构逐字原题。",
+    "tags": "Promise ECMAScript 第16单元 resolved settle jobs",
+    "body": "   课程档案：从第 1 课到第 14 课      来源说明  ：这里根据当前可恢复的历史会话线索和已有《Promise 学习笔记》整理。记录中缺少部分题干与完整推理，未将“选项正确”推定为已掌握，也不将整理性解释冒充用户原话。     时间与环境  -   起始  ：2026-10-12，用户要求“原理驱动 + 螺旋式”教学，JS 中级，已使用  then/async-await ，学习环境含 Browser 与 Node.js。 -   截至 2026-10-24  ：推进至第 14 课，并提出每周复习计划。课堂采取“每次一题，先回答、再诊断”的节奏。 -   2026-10-30  ：反复制作微任务动画与 3D Promise 解谜游戏，要求机制准确、能够看懂以及完善的体验。     课程阶段索引    课程   重点   可确认的学习活动    --- --- ---    1–3   状态机、resolve、同步与微任务   多轮选项练习     4–6   throw 传播、timer 错误、async 返回值   用户要求纠错并继续     7–9   组合 API 基础与顺序   综合练习     10–12   race/any/allSettled、空输入、AggregateError、螺旋题   大量边界推导     13   新 Promise 链、return/throw/undefined   练习并深入讨论     14   thenable getter / Job / 采用与锁定   逐题诊断，随后复习       特别值得保留的真实推理线索  1. 第 6 课：用户正确指出  async  总返回 Promise，内部 throw 会导致拒绝；同时追问定时器 throw 如何被 catch 接住。 2. 第 11 课：用户曾解释 “any 只要一个 fulfilled 就成功，全部 rejected 才失败”；后续继续练习  AggregateError.errors  的输入顺序。 3. 第 13 课：用户明确意识到链式调用并非同一个 Promise，并指出代码没有显式  return  时隐式返回  undefined 。 4. 第 14 课：用户指出  then  与  get then()  的同步边界需要区分，还将  resolve(inner)  视为 outer 跟随 inner 的过程；此处仍需精细校正  何时落实为 fulfilled  。 5. 螺旋复习：用户要求“先不公布答案，待作答后诊断漏洞，并逐渐提高难度”；该原则在下方自测题保留。     当前诊断维度  - 细分  resolved  /  settled  /  fulfilled 。 - 区分 getter 的同步读取和 thenable Job 的异步调用。 - 分离反应注册、真正入队与执行三个时刻。 - 判断链上  return 、 throw 、 finally  和拒绝恢复对后继 Promise 的影响。 - 组合 API 的首个成功 / 首个落定 / 输入顺序结果 / 空数组边界。     下一次复习的判定标准  只选对不算过关。至少说明：  每个 Promise 的身份、状态、解决权是否锁定、微任务队列的变化  ，再检查输出。遇到无法恢复的历史题目，使用独立新题重建测试，明确标注为“新编”。 ",
+    "href": "knowledge/promise/lesson-15/"
+  },
+  {
+    "title": "诊断题库：先作答，再看解析",
+    "topic": "JavaScript Promise",
+    "summary": "16 道新编可验证题，围绕状态、采用、组合 API 和错误传播。",
+    "tags": "Promise ECMAScript 第17单元 resolved settle jobs",
+    "body": "   新编诊断题库（不代替历史原题）    教学方式：  先预测输出与每个 Promise 的状态，再展开答案。   以下均为新编练习，并非历史对话中的逐字题干。     Q01 · executor 顺序     js console.log('A'); new Promise(resolve =  { console.log('B'); resolve(); })   .then(() =  console.log('D')); console.log('C');      <details <summary 查看解析</summary    A → B → C → D 。executor 同步，then 异步。  </details      Q02 · 链式 Job 的位置     js Promise.resolve().then(() =  console.log('A'))   .then(() =  console.log('B')); queueMicrotask(() =  console.log('M'));      <details <summary 查看解析</summary    A → M → B ；第二个 then 的反应要等前一个 handler 返回后才入队。  </details      Q03 · resolve 不等于立即 fulfilled     js let finish; const inner = new Promise(r =  finish = r); const outer = new Promise(r =  r(inner)); outer.then(v =  console.log(v)); finish('OK');      <details <summary 查看解析</summary   只会在后续 Job 中打印  OK ；outer 在采用 inner 时可以仍为 pending。  </details      Q04 · Promise 身份     js const p = Promise.resolve(1); console.log(Promise.resolve(p) === p); console.log(new Promise(r =  r(p)) === p);      <details <summary 查看解析</summary    true 、 false 。原生 Promise 同构造器可被直接返回，新构造器调用总创建新对象。  </details      Q05 · getter 与 then 调用     js const x = { get then() { console.log('G'); return r =  { console.log('T'); r(1); }; } }; Promise.resolve(x); console.log('E');      <details <summary 查看解析</summary    G → E → T 。getter 读取同步，thenable 调用由 Job 安排。  </details      Q06 · 错误恢复     js Promise.reject('X').catch(() =  5).then(console.log);      <details <summary 查看解析</summary    5 。catch 返回普通值使下游兑现。  </details      Q07 · 同一 then 的两个回调     js Promise.resolve(1).then(() =  { throw Error('X'); }, () =  console.log('NO'))  .catch(e =  console.log(e.message));      <details <summary 查看解析</summary   只输出  X ；原 Promise 未拒绝，因此同一 then 的 onRejected 不执行。  </details      Q08 · 无 return     js Promise.resolve(9).then(v =  { v + 1; }).then(console.log);      <details <summary 查看解析</summary   打印  undefined 。表达式求值未被 return。  </details      Q09 · finally 的普通返回值     js Promise.resolve(9).finally(() =  99).then(console.log);      <details <summary 查看解析</summary    9 。finally 正常完成时透传原结果。  </details      Q10 · finally 覆盖原结果     js Promise.resolve(9).finally(() =  { throw Error('X'); })  .catch(e =  console.log(e.message));      <details <summary 查看解析</summary    X 。cleanup 抛错使下游拒绝。  </details      Q11 · all 结果顺序     js Promise.all([new Promise(r= setTimeout(()= r('slow'),10)), 'fast']).then(console.log);      <details <summary 查看解析</summary   最终  ['slow', 'fast'] ，顺序按输入位置。  </details      Q12 · any.errors 索引顺序     js Promise.any([new Promise((_,j)= setTimeout(()= j('A'),10)), Promise.reject('B')])  .catch(e =  console.log(e.errors.join(',')));      <details <summary 查看解析</summary    A,B ，即使 B 更早拒绝。  </details      Q13 · race 忽略成功偏好吗     js Promise.race([Promise.reject('R'), Promise.resolve('F')])  .then(console.log, console.log);      <details <summary 查看解析</summary    R 。首先参与竞争的已拒绝 Promise，其 reaction Job 先入队，race 因此拒绝。  </details      Q14 · 空组合   all([]) 、 allSettled([]) 、 any([]) 、 race([])  的命运分别是什么？  <details <summary 查看解析</summary   分别为 fulfilled([])、fulfilled([])、rejected(AggregateError)、永久 pending。  </details      Q15 · async 同步体     js async function f(){ console.log('inner'); return 1; } console.log('before'); f().then(() =  console.log('then')); console.log('after');      <details <summary 查看解析</summary    before → inner → after → then 。async 在首次 await 前可同步运行，返回值仍是 Promise。  </details      Q16 · thenable 锁定     js const t = { then(resolve, reject) { resolve(1); reject(2); throw Error('late'); } }; Promise.resolve(t).then(console.log, console.error);      <details <summary 查看解析</summary   打印  1 ，晚到 reject/throw 不覆盖已锁定结果。  </details      下一步  使用专题首页的交互实验室逐题运行 Q01–Q16。需要分辨  日志顺序  和  对象实际落定时间  时，用纸绘制 Jobs 队列并逐帧记录。 ",
+    "href": "knowledge/promise/lesson-16/"
+  },
+  {
+    "title": "ECMAScript 规范解剖：内部槽与抽象操作",
+    "topic": "JavaScript Promise",
+    "summary": "从 Promise Objects、Reaction Records 到 NewPromiseResolveThenableJob 的规范路径。",
+    "tags": "Promise ECMAScript 第18单元 resolved settle jobs",
+    "body": "   规范读法：先辨认“语言规范”与“引擎实现”  本章用于回答一个更深的问题：为什么我们在 JavaScript 里看不到 Promise 的内部状态，却仍能精确解释它的行为？因为 ECMAScript 规范规定了可观察语义。规范里的  [[PromiseState]] 、 [[PromiseResult]] 、 [[PromiseFulfillReactions]] 、 [[PromiseRejectReactions]]  等是  抽象内部槽位  ，不是可通过普通 JS 属性直接读取的字段。不同引擎可能使用不同内存布局和优化策略，只要遵守规范的可观察效果即可。     从 new Promise 到 executor  概念上，构造器会创建带 Promise 内部槽位的对象，创建 resolving functions（包含 resolve/reject 能力），然后  同步  调用 executor。若 executor 同步抛错，并且解决权未被锁定，构造过程会使 Promise 拒绝。一个常见误判是“executor throw 会像普通函数调用一样同步冒泡到创建表达式外部”，但规范中的构造器会捕获它并调用 reject。     js const p = new Promise(() =  { throw new Error('boom'); }); console.log('still synchronous'); p.catch(e =  console.log(e.message)); // still synchronous // boom         PromiseResolve：区分快捷返回与创建包装   Promise.resolve(x)  对某些相同构造器的 Promise 可直接返回 x；对普通值/thenable 则会通过 Promise capability 的解决函数生成一个新的 Promise。关键步骤是取得  .then  属性、检查它是否 callable，必要时把   NewPromiseResolveThenableJob   入队。     mermaid flowchart TD   A[调用 resolving function] --  B{已 resolved?}   B --  是  IGN[忽略后续尝试]   B --  否  C{resolution === promise?}   C --  是  T[拒绝 TypeError]   C --  否  D{resolution 为对象?}   D --  否  F[fulfill 普通值]   D --  是  E[Get resolution.then]   E --  getter 抛错  R[reject 抛出的异常]   E --  不可调用  F   E --  可调用  J[安排 PromiseResolveThenableJob]   J --  K[异步调用 then 并采用结果]      图中的“已 resolved”测试是逻辑解决权守卫，不等价于检查  [[PromiseState]]  是否 pending：  两个判断维度不同  。如果外部 Promise 已 resolved to inner，它仍可能 pending，但后续调用同一组 resolving functions 已不起作用。     FulfillPromise / RejectPromise  两者会更新状态并触发相应 reactions。若已经记录  .then  handlers，触发会  安排 Job  ，而不是在 FulfillPromise 抽象操作内直接调用任意用户 handler。     js const p = Promise.resolve(1); p.then(() =  console.log('reaction')); console.log('sync'); // sync, reaction          Reaction record 与 Promise capability  每次  .then  调用通常为新 Promise 创建 capability，并把 fulfilled/rejected 对应的处理器编入 reaction。一个 handler 返回  x  时，  不是原 p 的结果直接被改写  ，而是通过新 Promise 的 resolving function 处理 x；这正是“每次 then 创建新 Promise”的规范原因。      PromiseJob 与宿主接口  ECMAScript 规范中有  HostEnqueuePromiseJob ，宿主决定如何执行 Jobs。浏览器微任务检查点、Node 特有任务队列是宿主概念，不应倒推成引擎内部槽字段。别把 V8 对象 Inspector 展示的  Promise { <pending  }  当成可跨环境、可可靠读取的规范 API。     实战读规范的路径  按照以下顺序阅读官方章节更高效：  1.  Promise Objects  状态定义。 2.  CreateResolvingFunctions 、 NewPromiseCapability 。 3.  FulfillPromise 、 RejectPromise 、 PerformPromiseThen 。 4.  NewPromiseResolveThenableJob 、 NewPromiseReactionJob 。 5.  Promise.all/race/any/allSettled  及对应 PerformPromiseXxx 算法。  参考：[ECMAScript 2026 · Promise Objects](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html sec-promise-objects)。本章是规范语义解释，不试图伪装成 ECMAScript 实现源码。  ",
+    "href": "knowledge/promise/lesson-17/"
+  },
+  {
+    "title": "并发测试与错误监控",
+    "topic": "JavaScript Promise",
+    "summary": "从可重复的日志实验走向受控延迟、Fake Timers 与拒绝链诊断。",
+    "tags": "Promise ECMAScript 第19单元 resolved settle jobs",
+    "body": "   在工程里如何为 Promise 写可重复的测试  学习时的输出顺序题是观察机制的工具；工程测试要更进一步：  明确输入时机、所有权、可观察输出、失败分支和清理义务  。仅靠  setTimeout(0)  等待“所有事情应该都结束”是不稳定的测试策略。     设计可控的 Promise     js function deferred() {   let resolve, reject;   const promise = new Promise((res, rej) =  {     resolve = res;     reject = rej;   });   return { promise, resolve, reject }; }  const d = deferred(); const events = []; d.promise.then(v =  events.push(v)); d.resolve(42); await d.promise; // 不要仅根据 await d.promise 就断言所有后续级联反应一定已完成； // 如需测试某个 downstream，请显式 await 该 downstream Promise。      与其依赖设备快慢，不如使用可控  deferred  来安排  何时解决  。注意  await d.promise  和提前注册的  d.promise.then  的先后仍受 reaction Jobs 具体入队规则控制，所以在复杂链上，最稳妥的断言目标是你要测试的那个“最终结果 Promise”。     测试可观察行为，而非隐藏内部槽     js const source = Promise.resolve(4); const downstream = source.then(v =  v   2); const result = await downstream; if (result !== 8) throw new Error('bad result');      断言最终值、外部副作用和错误传播，不依赖非标准的 Promise 状态 inspection。想验证具体入队行为时，使用日志序列测试，但要声明运行环境和控制 timer、I/O 的方式。     Fake Timers 不能代替 Promise 微任务知识  许多测试框架支持伪时钟，它可以控制 timer 回调；然而 Promise Jobs 和  process.nextTick  等队列可能不受同一套模拟控制（取决于测试框架版本与配置）。测试需要明确：推进了哪一种计时器？刷新了哪些 Jobs？哪些回调可能仍在进行？  在 Node.js 和浏览器中， await Promise.resolve()  常作为一个让出执行权的手段，但不能被当作“清空整个未来微任务世界”的万能指令：await 本身会安排续体，而续体执行时有些下游 Jobs 还未入队。     诊断未处理拒绝     js async function save() {   throw new Error('save failed'); } const p = save(); // 不调用 await 或 catch，就可能触发宿主的未处理拒绝机制。 p.catch(e =  console.error('handled:', e.message));      在业务边界明确地  await  并处理，或者显式返回给上游；如果故意 fire-and-forget，应提供独立的错误处理和生命周期管理。浏览器  unhandledrejection  和 Node unhandled rejection 策略会随宿主配置变化，应按运行环境文档验证。     排障记录模板  每一次异步问题记录以下五项，可避免复盘时混淆：    维度   需要记录    --- ---    Promise 身份   p、q、r 是谁创建，是否相等     解决权   是否 resolve(inner)，有无晚到 reject     同步阶段   executor、getter、console 的实际顺序     Job 队列   每条 reaction 在何时入队     观测结果   浏览器 / Node 版本、日志、异常、断言      实践练习  ：将第 14 单元的  thenable + inner + race  代码拆成  deferred  和独立 Job 记录。不要直接把“输出相同”推导成“内部状态每个时刻都相同”。 ",
+    "href": "knowledge/promise/lesson-18/"
+  },
+  {
+    "title": "迁移到真实业务：任务生命周期",
+    "topic": "JavaScript Promise",
+    "summary": "为 UI、请求、批量执行设计可取消、可观测、可维护的异步边界。",
+    "tags": "Promise ECMAScript 第20单元 resolved settle jobs",
+    "body": "   将 Promise 原理变成真实项目的可靠性     从页面重复请求开始  用户连续输入搜索关键词，前一个请求比后一个更晚返回。即使两次 fetch 都成功，也会发生“旧结果覆盖新结果”。这不是 Promise 自身出了错，而是业务需要规定  哪个结果具有提交 UI 的资格  。     js let generation = 0; let activeController = null; async function search(query) {   const mine = ++generation;   activeController?.abort();   const controller = new AbortController();   activeController = controller;   try {     const response = await fetch( /search?q=${encodeURIComponent(query)} , {       signal: controller.signal     });     if (!response.ok) throw new Error( HTTP ${response.status} );     const rows = await response.json();     if (mine === generation) render(rows);   } catch (error) {     if (mine !== generation) return; // 过期请求不影响新请求 UI     if (error.name !== 'AbortError') showError(error);   } finally {     if (mine === generation) activeController = null;   } }      上面展示了  取消底层请求 + 校验版本号  两种不同的保护措施。仅 abort 不能保证所有底层任务都能立刻停止；版本号可保护最终 UI 写入。示例依赖页面中已有  render  与  showError  函数，并非可单独运行的完整应用。     有界并发的价值  假设 10,000 个任务： Promise.all(items.map(run))  会立即求值  map  并创建所有操作，可能造成连接、内存、后端限流压力。应按容量启动一小组任务，某个任务结束后再开始下一项。 Promise.all  本身不提供队列容量管理。     链式操作的所有权边界  -   业务步骤  ：应明确是否接受部分成功、是否提供回滚或补偿。 -   HTTP 交互  ：应提供取消信号、超时、重试上限、状态码判断。 -   测试  ：使用 controlled promises 验证异常分支，而非无限堆叠计时器。 -   监控  ：对每次操作关联请求 ID、耗时、完成状态和错误原因；避免敏感数据进入日志。 -   UI  ：区分 loading、success、error、cancelled，不把所有 catch 统一渲染成“网络错误”。     一张系统流程图     mermaid flowchart TD   UI[用户事件] --  G[生成请求代次 / ID]   G --  AC[创建 AbortController]   AC --  HTTP[发起 Promise 化 I/O]   HTTP --  fulfilled  V{结果仍最新?}   V --  是  SHOW[提交 UI]   V --  否  DROP[忽略过期结果]   HTTP --  rejected  ERR[错误分类]   ERR --  可重试  RETRY[限次退避并重试]   ERR --  被取消  STOP[安全结束]   ERR --  真实失败  NOTICE[反馈用户 / 上报]   SHOW --  CLEAN[清理资源]   DROP --  CLEAN   STOP --  CLEAN   NOTICE --  CLEAN         完成专题的判定  掌握 Promise 不止是能够背出四种组合 API：你应能把任意故障拆成“触发、对象、结果、解决权、reaction、微任务、底层操作”七个维度，知道什么由语言保证，什么必须交给宿主或业务来保证。至此再去学习复杂 3D Promise 解谜世界，才能明确何处是知识机制、何处是为了游戏体验的可视化隐喻。 ",
+    "href": "knowledge/promise/lesson-19/"
+  },
+  {
+    "title": "Promise 执行观察台",
+    "topic": "JavaScript Promise",
+    "summary": "逐帧运行和真实浏览器输出校验",
+    "tags": "微任务 jobs 单步 动画 浏览器",
+    "body": "任务入队 Promise.resolve thenable getter call reaction",
+    "href": "knowledge/promise/observatory/"
   }
 ]

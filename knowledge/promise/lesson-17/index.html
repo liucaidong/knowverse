@@ -1,0 +1,48 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="从 Promise Objects、Reaction Records 到 NewPromiseResolveThenableJob 的规范路径。"><title>ECMAScript 规范解剖：内部槽与抽象操作 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 17</div><span class="eyebrow">THE PROMISE HANDBOOK / 17</span><h1>ECMAScript 规范解剖：内部槽与抽象操作</h1><p class="lead">从 Promise Objects、Reaction Records 到 NewPromiseResolveThenableJob 的规范路径。</p><div class="course-reading-meta">专题进度：第 <strong>18</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>规范读法：先辨认“语言规范”与“引擎实现”</h1>
+<p>本章用于回答一个更深的问题：为什么我们在 JavaScript 里看不到 Promise 的内部状态，却仍能精确解释它的行为？因为 ECMAScript 规范规定了可观察语义。规范里的 <code>[[PromiseState]]</code>、<code>[[PromiseResult]]</code>、<code>[[PromiseFulfillReactions]]</code>、<code>[[PromiseRejectReactions]]</code> 等是<strong>抽象内部槽位</strong>，不是可通过普通 JS 属性直接读取的字段。不同引擎可能使用不同内存布局和优化策略，只要遵守规范的可观察效果即可。</p>
+<h2 id="part-1">从 new Promise 到 executor</h2>
+<p>概念上，构造器会创建带 Promise 内部槽位的对象，创建 resolving functions（包含 resolve/reject 能力），然后<strong>同步</strong>调用 executor。若 executor 同步抛错，并且解决权未被锁定，构造过程会使 Promise 拒绝。一个常见误判是“executor throw 会像普通函数调用一样同步冒泡到创建表达式外部”，但规范中的构造器会捕获它并调用 reject。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const p = new Promise(() =&gt; { throw new Error('boom'); });
+console.log('still synchronous');
+p.catch(e =&gt; console.log(e.message));
+// still synchronous
+// boom
+</code></pre>
+<h2 id="part-2">PromiseResolve：区分快捷返回与创建包装</h2>
+<p><code>Promise.resolve(x)</code> 对某些相同构造器的 Promise 可直接返回 x；对普通值/thenable 则会通过 Promise capability 的解决函数生成一个新的 Promise。关键步骤是取得 <code>.then</code> 属性、检查它是否 callable，必要时把 <strong>NewPromiseResolveThenableJob</strong> 入队。</p>
+<pre class="mermaid">flowchart TD
+  A[调用 resolving function] --&gt; B{已 resolved?}
+  B --&gt;|是| IGN[忽略后续尝试]
+  B --&gt;|否| C{resolution === promise?}
+  C --&gt;|是| T[拒绝 TypeError]
+  C --&gt;|否| D{resolution 为对象?}
+  D --&gt;|否| F[fulfill 普通值]
+  D --&gt;|是| E[Get resolution.then]
+  E --&gt;|getter 抛错| R[reject 抛出的异常]
+  E --&gt;|不可调用| F
+  E --&gt;|可调用| J[安排 PromiseResolveThenableJob]
+  J --&gt; K[异步调用 then 并采用结果]
+</pre>
+<p>图中的“已 resolved”测试是逻辑解决权守卫，不等价于检查 <code>[[PromiseState]]</code> 是否 pending：<strong>两个判断维度不同</strong>。如果外部 Promise 已 resolved to inner，它仍可能 pending，但后续调用同一组 resolving functions 已不起作用。</p>
+<h2 id="part-3">FulfillPromise / RejectPromise</h2>
+<p>两者会更新状态并触发相应 reactions。若已经记录 <code>.then</code> handlers，触发会<strong>安排 Job</strong>，而不是在 FulfillPromise 抽象操作内直接调用任意用户 handler。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const p = Promise.resolve(1);
+p.then(() =&gt; console.log('reaction'));
+console.log('sync');
+// sync, reaction
+</code></pre>
+<h3 id="part-4">Reaction record 与 Promise capability</h3>
+<p>每次 <code>.then</code> 调用通常为新 Promise 创建 capability，并把 fulfilled/rejected 对应的处理器编入 reaction。一个 handler 返回 <code>x</code> 时，<strong>不是原 p 的结果直接被改写</strong>，而是通过新 Promise 的 resolving function 处理 x；这正是“每次 then 创建新 Promise”的规范原因。</p>
+<h3 id="part-5">PromiseJob 与宿主接口</h3>
+<p>ECMAScript 规范中有 <code>HostEnqueuePromiseJob</code>，宿主决定如何执行 Jobs。浏览器微任务检查点、Node 特有任务队列是宿主概念，不应倒推成引擎内部槽字段。别把 V8 对象 Inspector 展示的 <code>Promise { &lt;pending&gt; }</code> 当成可跨环境、可可靠读取的规范 API。</p>
+<h2 id="part-6">实战读规范的路径</h2>
+<p>按照以下顺序阅读官方章节更高效：</p>
+<ol>
+<li><code>Promise Objects</code> 状态定义。</li>
+<li><code>CreateResolvingFunctions</code>、<code>NewPromiseCapability</code>。</li>
+<li><code>FulfillPromise</code>、<code>RejectPromise</code>、<code>PerformPromiseThen</code>。</li>
+<li><code>NewPromiseResolveThenableJob</code>、<code>NewPromiseReactionJob</code>。</li>
+<li><code>Promise.all/race/any/allSettled</code> 及对应 PerformPromiseXxx 算法。</li>
+</ol>
+<p>参考：<a href="https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-objects">ECMAScript 2026 · Promise Objects</a>。本章是规范语义解释，不试图伪装成 ECMAScript 实现源码。</p>
+<div class="course-nav"><a href="../lesson-16/">← 诊断题库：先作答，再看解析</a><a href="../lesson-18/">并发测试与错误监控 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">从 new Promise 到 executor</a><a href="#part-2">PromiseResolve：区分快捷返回与创建包装</a><a href="#part-3">FulfillPromise / RejectPromise</a><a href="#part-6">实战读规范的路径</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

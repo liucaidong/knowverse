@@ -14,3 +14,7 @@ jobs:
         run: python3 scripts/validate-content.py
       - name: Validate V2 knowledge pages and Mermaid panoramas
         run: python3 scripts/validate-v2.py
+      - name: Validate Promise deep-dive
+        run: python3 scripts/validate-promise.py
+      - name: Check Promise semantic examples
+        run: node scripts/verify-promise-model.mjs

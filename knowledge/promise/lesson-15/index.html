@@ -1,0 +1,71 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="按第 1—14 课重建可核实进度、错误直觉和待复习点，不虚构逐字原题。"><title>历史课程诊断档案 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 15</div><span class="eyebrow">THE PROMISE HANDBOOK / 15</span><h1>历史课程诊断档案</h1><p class="lead">按第 1—14 课重建可核实进度、错误直觉和待复习点，不虚构逐字原题。</p><div class="course-reading-meta">专题进度：第 <strong>16</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>课程档案：从第 1 课到第 14 课</h1>
+<blockquote>
+<p><strong>来源说明</strong>：这里根据当前可恢复的历史会话线索和已有《Promise 学习笔记》整理。记录中缺少部分题干与完整推理，未将“选项正确”推定为已掌握，也不将整理性解释冒充用户原话。</p>
+</blockquote>
+<h2 id="part-1">时间与环境</h2>
+<ul>
+<li><strong>起始</strong>：2026-10-12，用户要求“原理驱动 + 螺旋式”教学，JS 中级，已使用 <code>then/async-await</code>，学习环境含 Browser 与 Node.js。</li>
+<li><strong>截至 2026-10-24</strong>：推进至第 14 课，并提出每周复习计划。课堂采取“每次一题，先回答、再诊断”的节奏。</li>
+<li><strong>2026-10-30</strong>：反复制作微任务动画与 3D Promise 解谜游戏，要求机制准确、能够看懂以及完善的体验。</li>
+</ul>
+<h2 id="part-2">课程阶段索引</h2>
+<table>
+<thead>
+<tr>
+<th>课程</th>
+<th>重点</th>
+<th>可确认的学习活动</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1–3</td>
+<td>状态机、resolve、同步与微任务</td>
+<td>多轮选项练习</td>
+</tr>
+<tr>
+<td>4–6</td>
+<td>throw 传播、timer 错误、async 返回值</td>
+<td>用户要求纠错并继续</td>
+</tr>
+<tr>
+<td>7–9</td>
+<td>组合 API 基础与顺序</td>
+<td>综合练习</td>
+</tr>
+<tr>
+<td>10–12</td>
+<td>race/any/allSettled、空输入、AggregateError、螺旋题</td>
+<td>大量边界推导</td>
+</tr>
+<tr>
+<td>13</td>
+<td>新 Promise 链、return/throw/undefined</td>
+<td>练习并深入讨论</td>
+</tr>
+<tr>
+<td>14</td>
+<td>thenable getter / Job / 采用与锁定</td>
+<td>逐题诊断，随后复习</td>
+</tr>
+</tbody>
+</table>
+<h2 id="part-3">特别值得保留的真实推理线索</h2>
+<ol>
+<li>第 6 课：用户正确指出 <code>async</code> 总返回 Promise，内部 throw 会导致拒绝；同时追问定时器 throw 如何被 catch 接住。</li>
+<li>第 11 课：用户曾解释 “any 只要一个 fulfilled 就成功，全部 rejected 才失败”；后续继续练习 <code>AggregateError.errors</code> 的输入顺序。</li>
+<li>第 13 课：用户明确意识到链式调用并非同一个 Promise，并指出代码没有显式 <code>return</code> 时隐式返回 <code>undefined</code>。</li>
+<li>第 14 课：用户指出 <code>then</code> 与 <code>get then()</code> 的同步边界需要区分，还将 <code>resolve(inner)</code> 视为 outer 跟随 inner 的过程；此处仍需精细校正<strong>何时落实为 fulfilled</strong>。</li>
+<li>螺旋复习：用户要求“先不公布答案，待作答后诊断漏洞，并逐渐提高难度”；该原则在下方自测题保留。</li>
+</ol>
+<h2 id="part-4">当前诊断维度</h2>
+<ul>
+<li>细分 <code>resolved</code> / <code>settled</code> / <code>fulfilled</code>。</li>
+<li>区分 getter 的同步读取和 thenable Job 的异步调用。</li>
+<li>分离反应注册、真正入队与执行三个时刻。</li>
+<li>判断链上 <code>return</code>、<code>throw</code>、<code>finally</code> 和拒绝恢复对后继 Promise 的影响。</li>
+<li>组合 API 的首个成功 / 首个落定 / 输入顺序结果 / 空数组边界。</li>
+</ul>
+<h2 id="part-5">下一次复习的判定标准</h2>
+<p>只选对不算过关。至少说明：<strong>每个 Promise 的身份、状态、解决权是否锁定、微任务队列的变化</strong>，再检查输出。遇到无法恢复的历史题目，使用独立新题重建测试，明确标注为“新编”。</p>
+<div class="course-nav"><a href="../lesson-14/">← 综合推演：thenable × inner × race</a><a href="../lesson-16/">诊断题库：先作答，再看解析 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">时间与环境</a><a href="#part-2">课程阶段索引</a><a href="#part-3">特别值得保留的真实推理线索</a><a href="#part-4">当前诊断维度</a><a href="#part-5">下一次复习的判定标准</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

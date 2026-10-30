@@ -1,0 +1,52 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="输入迭代与任务启动的边界；拒绝不等于取消其他操作。"><title>Promise.all：全成功或早拒绝 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 08</div><span class="eyebrow">THE PROMISE HANDBOOK / 08</span><h1>Promise.all：全成功或早拒绝</h1><p class="lead">输入迭代与任务启动的边界；拒绝不等于取消其他操作。</p><div class="course-reading-meta">专题进度：第 <strong>9</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>Promise.all：汇总一组必须全部成功的结果</h1>
+<h2 id="part-1">语义不等于“并发调度器”</h2>
+<p><code>Promise.all(iterable)</code> 返回一个新的 Promise：<strong>所有输入最终兑现后</strong>，它按<strong>输入顺序</strong>兑现为数组；只要任何输入拒绝，它就拒绝为第一个可观察到的拒绝原因。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const slow = new Promise(resolve =&gt; setTimeout(() =&gt; resolve('slow'), 30));
+const fast = Promise.resolve('fast');
+Promise.all([slow, fast]).then(console.log);
+// 最终 ['slow', 'fast'] —— 输入顺序，不是完成先后
+</code></pre>
+<h2 id="part-2">“早拒绝”≠“自动取消”</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const a = Promise.reject(new Error('failed'));
+const b = new Promise(resolve =&gt; setTimeout(() =&gt; {
+  console.log('b still runs');
+  resolve(2);
+}, 10));
+Promise.all([a, b]).catch(e =&gt; console.log(e.message));
+</code></pre>
+<p><code>all</code> 的外层失败不意味着 b 的定时器、网络请求或其他底层操作被取消。取消应单独使用 <code>AbortController</code> 等底层 API 支持的机制。</p>
+<h2 id="part-3">空输入和非 Promise 值</h2>
+<ul>
+<li><code>Promise.all([])</code> 立即创建一个已经 fulfilled 的 Promise，值为 <code>[]</code>；<strong>其 then 回调依旧异步执行</strong>。</li>
+<li>普通值会经过 Promise 解决机制，以数组原顺序加入结果。</li>
+<li>iterable 在调用期间被<strong>同步迭代</strong>；迭代器本身发生异常时，外层 Promise 会按算法拒绝。不要将它误读成逐项异步启动。</li>
+</ul>
+<h2 id="part-4">诊断矩阵</h2>
+<table>
+<thead>
+<tr>
+<th>输入情况</th>
+<th>外层结果</th>
+<th>是否等待其余任务停下</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>全部 fulfilled</td>
+<td>fulfilled(按输入顺序数组)</td>
+<td>等待全部落定</td>
+</tr>
+<tr>
+<td>至少一个 rejected</td>
+<td>rejected(先观察到的失败)</td>
+<td>否，其他底层任务仍可执行</td>
+</tr>
+<tr>
+<td><code>[]</code></td>
+<td>fulfilled([])</td>
+<td>不涉及等待</td>
+</tr>
+</tbody>
+</table>
+<p><strong>适用场景</strong>：页面同时需要多个缺一不可的数据来源；或者一项失败时这个组合结果整体失去价值。</p>
+<div class="course-nav"><a href="../lesson-07/">← async / await 的解糖模型</a><a href="../lesson-09/">Promise.race：先落定者胜出 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">语义不等于“并发调度器”</a><a href="#part-2">“早拒绝”≠“自动取消”</a><a href="#part-3">空输入和非 Promise 值</a><a href="#part-4">诊断矩阵</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

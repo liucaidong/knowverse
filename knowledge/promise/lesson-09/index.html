@@ -1,0 +1,27 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="race 对 fulfilled/rejected 没有偏好，空迭代永不落定。"><title>Promise.race：先落定者胜出 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 09</div><span class="eyebrow">THE PROMISE HANDBOOK / 09</span><h1>Promise.race：先落定者胜出</h1><p class="lead">race 对 fulfilled/rejected 没有偏好，空迭代永不落定。</p><div class="course-reading-meta">专题进度：第 <strong>10</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>Promise.race：比的是落定，不是成功</h1>
+<h2 id="part-1">先 fulfilled 或先 rejected，谁先落定谁胜出</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">Promise.race([
+  Promise.reject('X'),
+  new Promise(resolve =&gt; setTimeout(() =&gt; resolve('Y'), 10))
+]).then(console.log, err =&gt; console.log('rejected', err));
+// rejected X
+</code></pre>
+<p><code>Promise.race</code> 不会为了挑到成功值而忽略拒绝。它常用于超时竞争，但只让组合结果先落定，不会强制停止超时后仍在运行的操作。</p>
+<h2 id="part-2">race 与 <code>.then</code> 的日志时间不是同一时刻</h2>
+<p>race 外层 Promise 可以在某个 reaction Job 中落定，用户传给它的 <code>.then</code> 回调却要以<strong>另一个 reaction Job</strong> 才执行。因此在日志预测里，不能把 <code>race</code> 结果打印当作它真正落定时刻。</p>
+<pre class="mermaid">flowchart LR
+  I[参与者之一落定] --&gt; J[对应 reaction Job]
+  J --&gt; R[race 外层落定]
+  R --&gt; K[race.then 反应 Job 入队]
+  K --&gt; L[输出 race 日志]
+</pre>
+<h2 id="part-3">边界</h2>
+<p><code>Promise.race([])</code> 返回<strong>永远 pending</strong> 的 Promise。若输入的某个 thenable 在采用过程中需要更多 Job，实际“先落定”由 Job 的调度过程决定，不是简单比较输入数组谁写在前面。</p>
+<h2 id="part-4">超时竞赛的典型误区</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const timeout = ms =&gt; new Promise((_, reject) =&gt;
+  setTimeout(() =&gt; reject(new Error('timeout')), ms)
+);
+const result = Promise.race([fetch('/api/data'), timeout(3000)]);
+</code></pre>
+<p>这样写即使超时，原始 fetch 也可能继续进行。正式工程应使用 <code>AbortController</code> 并清理 timer，见工程篇。</p>
+<div class="course-nav"><a href="../lesson-08/">← Promise.all：全成功或早拒绝</a><a href="../lesson-10/">Promise.any：至少一个兑现 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">先 fulfilled 或先 rejected，谁先落定谁胜出</a><a href="#part-2">race 与 .then 的日志时间不是同一时刻</a><a href="#part-3">边界</a><a href="#part-4">超时竞赛的典型误区</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

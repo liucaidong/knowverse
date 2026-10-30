@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="区分 ECMAScript Jobs、浏览器微任务与 Node nextTick；不要跨环境套公式。"><title>Browser 与 Node.js 的宿主调度 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 12</div><span class="eyebrow">THE PROMISE HANDBOOK / 12</span><h1>Browser 与 Node.js 的宿主调度</h1><p class="lead">区分 ECMAScript Jobs、浏览器微任务与 Node nextTick；不要跨环境套公式。</p><div class="course-reading-meta">专题进度：第 <strong>13</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>Promise Jobs 属于语言，事件循环属于宿主</h1>
+<h2 id="part-1">三层职责</h2>
+<p>ECMAScript 规定 Promise 的抽象操作和 Jobs；浏览器的 HTML 事件循环定义 task、微任务检查点和渲染机会；Node.js 在 libuv 和自身运行阶段上额外引入 <code>process.nextTick()</code> 等语义。</p>
+<pre class="mermaid">flowchart TD
+  E[ECMAScript Promise Jobs] --&gt; H{宿主环境}
+  H --&gt; B[Browser: 微任务检查点]
+  H --&gt; N[Node.js: 微任务 + nextTick 队列]
+  B --&gt; R[可能进行渲染]
+  N --&gt; L[libuv 事件循环阶段]
+</pre>
+<h2 id="part-2">浏览器：微任务可在同一检查点继续生长</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">queueMicrotask(() =&gt; {
+  console.log('A');
+  queueMicrotask(() =&gt; console.log('C'));
+});
+queueMicrotask(() =&gt; console.log('B'));
+// A B C
+</code></pre>
+<p>因为 A 执行时 C 才入队，B 早已在队首。不断递归入队微任务可能<strong>饿死渲染或延迟其他任务</strong>，不等于“更快”。</p>
+<h2 id="part-3">Node.js：CommonJS 与 ESM 不能无条件复用顺序</h2>
+<p>Node 官方文档指出：在 CJS 顶层执行时，<code>process.nextTick</code> 队列通常先于 <code>queueMicrotask</code> / Promise microtask 队列；在 ESM 模块顶层，由于模块执行自身已在微任务处理上下文中，示例顺序可不同。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">// CommonJS 文件运行时典型顺序（Node 官方示例）：
+process.nextTick(() =&gt; console.log('tick'));
+Promise.resolve().then(() =&gt; console.log('promise'));
+queueMicrotask(() =&gt; console.log('microtask'));
+// tick, promise, microtask
+</code></pre>
+<p><strong>重要限制</strong>：具体输出顺序还与调用位置、宿主版本和处于哪个回调阶段有关；不要宣称 “nextTick 永远比所有 Promise 先”。</p>
+<h2 id="part-4">官方来源</h2>
+<ul>
+<li><a href="https://nodejs.org/api/process.html#when-to-use-queuemicrotask-vs-processnexttick">Node.js process 文档</a></li>
+<li><a href="https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide">MDN microtask guide</a></li>
+</ul>
+<p><strong>实践建议</strong>：浏览器演示使用 <code>queueMicrotask</code> + Promise；涉及 <code>nextTick</code> 时使用独立 <code>.cjs</code> / <code>.mjs</code> 文件实验并明确运行环境。</p>
+<div class="course-nav"><a href="../lesson-11/">← Promise.allSettled：全局快照</a><a href="../lesson-13/">工程实践：取消、超时与失败恢复 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">三层职责</a><a href="#part-2">浏览器：微任务可在同一检查点继续生长</a><a href="#part-3">Node.js：CommonJS 与 ESM 不能无条件复用顺序</a><a href="#part-4">官方来源</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

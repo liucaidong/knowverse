@@ -1,0 +1,64 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="Promise 的取消不是内建能力；把底层资源控制与组合结果分开。"><title>工程实践：取消、超时与失败恢复 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 13</div><span class="eyebrow">THE PROMISE HANDBOOK / 13</span><h1>工程实践：取消、超时与失败恢复</h1><p class="lead">Promise 的取消不是内建能力；把底层资源控制与组合结果分开。</p><div class="course-reading-meta">专题进度：第 <strong>14</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>工程实践：只处理结果还不够</h1>
+<h2 id="part-1">超时应该同时处理资源</h2>
+<p>下面的代码以 <code>fetch</code> 为例，使用 <code>AbortController</code> 在超时后要求底层 API 取消请求，并始终清理 timer。</p>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">async function fetchWithTimeout(url, ms = 3000) {
+  const controller = new AbortController();
+  const timer = setTimeout(() =&gt; controller.abort(), ms);
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    return response.json();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+</code></pre>
+<p><code>AbortController</code> 能否真的中止操作由具体 API 决定；它不是 <code>Promise.cancel()</code>。<code>Promise.race</code> 只裁定外层命运，不负责释放底层资源。</p>
+<h2 id="part-2">顺序、重试与有界并发</h2>
+<ul>
+<li><strong>串行</strong>：B 需要 A 的结果才启动，用先后两个 <code>await</code>。</li>
+<li><strong>并发</strong>：两个任务独立时，先创建两个 Promise，再一次 <code>Promise.all</code> 等待。</li>
+<li><strong>限流</strong>：几十万个请求不能直接 <code>Promise.all</code> 一股脑启动，需要有界并发队列。</li>
+<li><strong>重试</strong>：仅对可重试错误进行，并设置次数、退避、幂等性及取消信号。</li>
+</ul>
+<h2 id="part-3">包装回调式 API</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">function readLegacy(cbApi) {
+  return new Promise((resolve, reject) =&gt; {
+    cbApi((err, value) =&gt; {
+      if (err) reject(err);
+      else resolve(value);
+    });
+  });
+}
+</code></pre>
+<p>包装时要处理回调多次触发（Promise 状态会锁定，但底层回调仍可能发生副作用）、同步 throw 和超时，不要把所有异步错误都寄希望于外层 try/catch。</p>
+<h2 id="part-4">错误恢复分三层</h2>
+<table>
+<thead>
+<tr>
+<th>层级</th>
+<th>目的</th>
+<th>常用方式</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>本地恢复</td>
+<td>使用备用值，继续提供功能</td>
+<td><code>.catch(() =&gt; fallback)</code></td>
+</tr>
+<tr>
+<td>上报后传播</td>
+<td>记录诊断但不吞掉失败</td>
+<td><code>catch (e) { log(e); throw e; }</code></td>
+</tr>
+<tr>
+<td>整体汇总</td>
+<td>保留多个任务的成败</td>
+<td><code>allSettled</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="part-5">“未处理拒绝”的边界</h2>
+<p><code>unhandledrejection</code>（浏览器）与 Node 的 unhandled rejection 机制属于宿主行为。生产程序不应依赖全局监听器替代每条业务链的显式失败处理；还应避免创建未被消费的 fire-and-forget Promise。</p>
+<div class="course-nav"><a href="../lesson-12/">← Browser 与 Node.js 的宿主调度</a><a href="../lesson-14/">综合推演：thenable × inner × race →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">超时应该同时处理资源</a><a href="#part-2">顺序、重试与有界并发</a><a href="#part-3">包装回调式 API</a><a href="#part-4">错误恢复分三层</a><a href="#part-5">“未处理拒绝”的边界</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>

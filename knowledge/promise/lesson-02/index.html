@@ -1,0 +1,37 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="分清 executor、注册反应、入队与运行四个独立事件。"><title>构造器、then 与作业模型 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/promise-course.css"></head><body data-root="../../../"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 02</div><span class="eyebrow">THE PROMISE HANDBOOK / 02</span><h1>构造器、then 与作业模型</h1><p class="lead">分清 executor、注册反应、入队与运行四个独立事件。</p><div class="course-reading-meta">专题进度：第 <strong>3</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1><code>new Promise()</code> 不是异步启动器</h1>
+<h2 id="part-1">executor 当场执行</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">console.log('1');
+const p = new Promise(resolve =&gt; {
+  console.log('2');
+  resolve('ok');
+});
+p.then(() =&gt; console.log('4'));
+console.log('3');
+// 1 2 3 4
+</code></pre>
+<p><code>new Promise(executor)</code> 在构造过程<strong>同步调用 executor</strong>。真正的异步边界是注册之后由 Promise reaction Job 运行的处理器。因此把“创建 Promise”当作“延迟执行一个函数”是错误模型。</p>
+<h2 id="part-2">反应有两种入队时刻</h2>
+<p>当 <code>.then(handler)</code> 调用时：</p>
+<ol>
+<li><strong>对象仍 pending</strong>：先保存 reactions；以后落定时，逐个将相应 reaction jobs 加入队列。</li>
+<li><strong>对象已经 settled</strong>：这次 <code>.then</code> 的反应 job 在调用 <code>.then</code> 时就被入队；处理器依然不会同步运行。</li>
+</ol>
+<pre class="mermaid">flowchart TD
+  T[调用 then] --&gt; Q{Promise 已落定?}
+  Q --&gt;|是| E[创建 reaction Job 并入队]
+  Q --&gt;|否| R[保存 reaction]
+  R --&gt; S[稍后落定]
+  S --&gt; E
+  E --&gt; M[微任务检查点执行]
+</pre>
+<h2 id="part-3">“注册先后”和“执行先后”</h2>
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const p = Promise.resolve('done');
+p.then(() =&gt; console.log('A'));
+queueMicrotask(() =&gt; console.log('M'));
+p.then(() =&gt; console.log('B'));
+// A M B
+</code></pre>
+<p>这是浏览器和标准 JavaScript Promise Job 的常见情况。关键不是“<code>.then</code> 永远比 <code>queueMicrotask</code> 优先”，而是<strong>这三个 job 按 A、M、B 的顺序实际入队</strong>。</p>
+<h2 id="part-4">诊断</h2>
+<p>如果把 <code>Promise.resolve('done')</code> 换成一个尚未落定的 <code>p</code>，再把 <code>resolve()</code> 放在 M 的回调中，<code>A</code> 和 <code>B</code> 将延后入队：此时要重新画队列，不能照抄 <code>A M B</code>。</p>
+<div class="course-nav"><a href="../lesson-01/">← Promise 状态机与解决权</a><a href="../lesson-03/">Promise Resolution Procedure →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">executor 当场执行</a><a href="#part-2">反应有两种入队时刻</a><a href="#part-3">“注册先后”和“执行先后”</a><a href="#part-4">诊断</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script></body></html>
