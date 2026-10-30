@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>Promise 身份复用与异步采纳｜逐帧拆解动画</title>
+<style>
+:root{--bg:#080d19;--bg2:#0d1424;--surface:#121c2e;--surface2:#18243a;--line:#2b3951;--text:#edf5ff;--muted:#97a9c3;--teal:#51e0c8;--blue:#7eaaff;--purple:#b2a0ff;--orange:#ffc17b;--red:#fd92a2;--shadow:0 18px 52px rgba(0,0,0,.25)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:radial-gradient(ellipse 80% 42% at 48% -5%,#203456 0%,transparent 65%),linear-gradient(170deg,#070b15,#0d1421 70%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;min-height:100vh}
+button,select{font:inherit}button{cursor:pointer}button:focus-visible,select:focus-visible,.tick:focus-visible{outline:2px solid var(--teal);outline-offset:3px}button:disabled{cursor:not-allowed;opacity:.42}
+.shell{width:min(1500px,calc(100% - 46px));margin:0 auto;padding:31px 0 44px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+.eyebrow{font-size:11px;letter-spacing:2.7px;color:var(--teal);text-transform:uppercase;font-weight:750;margin-bottom:10px}
+h1{font-size:clamp(24px,3vw,40px);letter-spacing:-.85px;line-height:1.22;margin:0 0 10px;font-weight:780}h1 b{color:var(--teal)}
+.intro{margin:0;max-width:900px;color:var(--muted);font-size:14px;line-height:1.9}.intro strong{color:#f2f6fc}
+.top-right{display:flex;align-items:center;gap:10px;padding-top:8px}.tag{font-size:11px;white-space:nowrap;border-radius:999px;padding:8px 10px;border:1px solid var(--line);color:var(--muted);background:#121b2b}.tag.success{color:var(--teal);border-color:#25534f;background:#102b2b}
+.dashboard{display:grid;grid-template-columns:minmax(380px,1.03fr) minmax(500px,1.27fr);gap:16px;align-items:start}
+.panel{background:linear-gradient(145deg,#151f32e8,#101827e8);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}
+.panel-title{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:15px 19px;border-bottom:1px solid #253247}.panel-title h2{font-size:13px;font-weight:750;margin:0;letter-spacing:.3px}.sub{font-size:11px;color:var(--muted)}
+.left-stack,.right-stack{display:grid;gap:16px}
+.code-box{padding:16px 0;background:#0a1120;max-height:410px;overflow:auto}.code-line{display:flex;min-height:27px;align-items:center;border-left:3px solid transparent;padding:2px 13px 2px 8px;white-space:pre;transition:background .25s,border-color .25s}.code-line .n{width:34px;flex:none;text-align:right;margin-right:16px;font:12px ui-monospace,SFMono-Regular,Consolas,monospace;color:#65748c}.code-line .src{font:12.5px/1.65 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#cad5e6}.code-line.executing{background:linear-gradient(90deg,#1944459e,#1630364d);border-left-color:var(--teal)}.code-line.executing .n{color:var(--teal)}.code-line.origin{background:#322d4555;border-left-color:var(--purple)}.code-line.origin .n{color:var(--purple)}.code-line .src .kw{color:#aeafff}.code-line .src .fn{color:#7ccfff}.code-line .src .str{color:#f9be8c}.code-line .src .num{color:#9bebb9}
+.code-footer{border-top:1px solid var(--line);padding:11px 17px;display:flex;gap:15px;flex-wrap:wrap;color:var(--muted);font-size:11px}.marker{display:inline-block;width:7px;height:7px;border-radius:2px;margin-right:6px}.marker.green{background:var(--teal)}.marker.purple{background:var(--purple)}
+.terminal{min-height:182px;padding:15px 18px 18px;background:#08111c;font:13px/1.85 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.prompt{color:#6c819c}.out-row{display:flex;gap:12px;align-items:center;animation:arrive .3s ease}.out-index{font-size:10px;color:#567089;width:18px;text-align:right}.out-text{color:#dbeeff}.out-row:last-of-type .out-text{color:var(--teal)}.empty{font-family:system-ui;color:#627791;font-size:12px;margin-top:4px}
+.verify{padding:13px 16px;border-top:1px solid var(--line);display:flex;gap:10px;flex-wrap:wrap;align-items:center}.verify-msg{font-size:11px;color:var(--muted);flex:1;min-width:200px;line-height:1.7}
+.right-stack .stage{padding:20px 22px 16px;position:relative;min-height:258px}
+.kicker{color:var(--teal);letter-spacing:1.4px;text-transform:uppercase;font-weight:800;font-size:10px;margin-bottom:12px}.step-title{font-size:clamp(19px,2vw,27px);font-weight:760;margin:0 0 11px;letter-spacing:-.35px}.detail{font-size:13px;line-height:1.95;color:#bcccde;margin:0;max-width:880px;min-height:77px}.detail strong{color:#f4f8ff}.detail code,.notice code,.footnote code{background:#21314a;color:#c6d9ff;font-size:.92em;padding:2px 5px;border-radius:5px}.stage-bottom{margin-top:17px;display:flex;flex-wrap:wrap;align-items:center;gap:7px}.pill{font-size:11px;border-radius:6px;padding:5px 8px;background:#202b40;color:#aebfd8;border:1px solid #34425b}.pill.sync{border-color:#28584e;background:#13302e;color:var(--teal)}.pill.async{border-color:#4e4279;background:#2b244a;color:#c3b5ff}.pill.event{border-color:#6b4d30;background:#392b20;color:#ffd29e}
+.statequeue{display:grid;grid-template-columns:1fr 1fr;gap:16px}.statebody,.queuebody{padding:17px;min-height:230px}.stategroup{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:12px}.statecard{flex:1;min-width:125px;background:#0e1a2b;border:1px solid #2b3d55;border-radius:12px;padding:11px 12px;transition:transform .3s,border-color .3s}.statecard.changed{border-color:var(--teal);animation:flash 650ms ease}.statecard.waiting{border-color:#776344}.statecard .name{font-weight:750;font-size:13px}.statecard .value{font:12px/1.6 ui-monospace,monospace;margin-top:7px}.statecard .value.done{color:var(--teal)}.statecard .value.wait{color:var(--orange)}.statecard .value.uninit{color:#8393a8}.statecard .note{color:#8ca2ba;font-size:10px;line-height:1.5;margin-top:6px}.refmap{padding:8px 11px;border:1px dashed #435470;color:#9eafca;border-radius:9px;font-size:11px;line-height:1.6}.refmap b{color:#b7aaff}.refmap .accent{color:var(--teal)}
+.queue-rail{display:flex;align-items:center;gap:6px;flex-wrap:wrap;min-height:58px;margin:9px 0 15px}.job{width:61px;min-height:57px;border-radius:10px;border:1px solid #536180;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:3px;background:#243551;animation:pop .26s ease}.job strong{font-size:17px;line-height:1}.job small{font-size:9px;line-height:1.3;color:#b9c9de}.job.rose{border-color:#92596e;background:#42263a}.job.cyan{border-color:#377d81;background:#153d43}.job.gold{border-color:#8d6e46;background:#423326}.job.purp{border-color:#695fa1;background:#342a56}.job.blue{border-color:#526fa4;background:#243c63}.q-arrow{color:#7085a2;font-size:15px}.queue-empty{color:#667b96;border:1px dashed #41536b;padding:16px;border-radius:9px;font-size:12px;width:100%;text-align:center}.qfooter{font-size:11px;line-height:1.8;color:#8296b2;border-top:1px dashed #39465d;padding-top:10px}.qfooter b{color:#d1def0}
+.timeline{padding:18px 19px 20px}.timeline-inner{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:6px;margin:12px 0 8px}.tick{height:34px;border-radius:7px;border:1px solid #35435a;background:#182337;color:#8193b0;padding:0;font-weight:700;font-size:11px;transition:all .2s}.tick.done{background:#163a3a;border-color:#307267;color:var(--teal)}.tick.current{background:var(--teal);color:#082a2c;border-color:var(--teal);transform:translateY(-3px);box-shadow:0 5px 15px #24c7b65b}.ticks-note{display:flex;align-items:center;justify-content:space-between;color:#7c8ea8;font-size:10px;gap:10px}
+.controls{display:flex;flex-wrap:wrap;align-items:center;gap:9px;margin-top:15px}.btn{border:1px solid #465773;background:#24334a;color:#e5f0ff;border-radius:10px;padding:10px 13px;font-size:12px;font-weight:700;min-height:40px;transition:background .16s,transform .16s}.btn:hover:not(:disabled){background:#314660;transform:translateY(-1px)}.btn.primary{background:var(--teal);color:#062829;border-color:var(--teal);min-width:110px}.btn.primary:hover:not(:disabled){background:#76efda}.btn.small{padding:8px 12px;min-height:34px}.select{background:#202d42;color:#d2e3fa;border:1px solid #40516e;border-radius:9px;padding:9px 8px;font-size:12px}.spacer{flex:1}.counter{font:12px ui-monospace,monospace;color:#91a7c2;min-width:57px;text-align:right}
+.notice{border:1px solid #3c534f;border-radius:13px;background:linear-gradient(110deg,#112e2e,#142332);padding:17px 19px;line-height:1.85;font-size:12px;color:#b1cbd0}.notice strong{color:#61ead3}.legend{display:flex;align-items:center;flex-wrap:wrap;gap:11px;margin-top:11px;color:#a1b4cb}.legend-item{display:inline-flex;gap:5px;align-items:center;font-size:10px}.legend .sq{width:10px;height:10px;border-radius:3px;display:inline-block}.footnote{margin-top:16px;color:#8398b3;font-size:11px;line-height:1.9;padding:0 3px}.kbd{border:1px solid #526078;border-bottom-width:2px;border-radius:4px;padding:0 5px;color:#c6d4e8;font:11px ui-monospace,monospace}
+@keyframes arrive{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}@keyframes pop{from{opacity:.4;transform:scale(.86)}to{opacity:1;transform:scale(1)}}@keyframes flash{0%{box-shadow:0 0 0 0 #57e6cd99}100%{box-shadow:0 0 0 9px #57e6cd00}}
+@media (max-width:1140px){.dashboard{grid-template-columns:1fr}.left-stack{grid-template-columns:1.12fr .88fr}.left-stack .panel:nth-child(2){align-self:stretch}.code-box{max-height:none}.terminal{min-height:240px}}@media (max-width:800px){.shell{width:min(100% - 26px,650px);padding-top:20px}.left-stack,.statequeue{grid-template-columns:1fr}.panel{border-radius:14px}.right-stack .stage{min-height:auto}.intro{font-size:13px}.top-right{padding-top:0}.timeline-inner{gap:4px}.tick{font-size:10px;height:31px}.controls{gap:6px}.btn{padding:9px 10px}.code-line .src{font-size:11px}.code-box{overflow-x:auto}.statebody,.queuebody{min-height:auto}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<main class="shell">
+<header class="top"><div><div class="eyebrow">JavaScript runtime lab / interactive explainer</div><h1>为什么是 <b>A → M → B</b>？</h1><p class="intro">把 <strong>Promise.resolve(inner)</strong> 和 <strong>new Promise(resolve =&gt; resolve(inner))</strong> 拆成 14 个可观察瞬间。重点看清：<strong>同步入队</strong>、<strong>PromiseResolveThenableJob</strong>、<strong>PromiseReactionJob</strong> 和 <strong>resolved ≠ fulfilled</strong>。</p></div><div class="top-right"><span class="tag success">✓ 原生 Node.js v22 实测</span><span class="tag">单文件 · 完全离线</span></div></header>
+<section class="dashboard">
+<div class="left-stack">
+  <section class="panel" aria-label="原始代码"><div class="panel-title"><h2>01 / 原始代码</h2><span class="sub" id="code-mode">高亮：即将执行/正在执行的代码</span></div><div class="code-box" id="source"></div><div class="code-footer"><span><i class="marker green"></i>同步执行位置</span><span><i class="marker purple"></i>异步任务来源（并非重新执行该行）</span></div></section>
+  <section class="panel" aria-label="控制台输出"><div class="panel-title"><h2>02 / 控制台输出</h2><span class="sub">实际发生时才追加</span></div><div id="terminal" class="terminal" aria-live="polite"></div><div class="verify"><button class="btn small" id="verify-btn" type="button">▶ 在本页运行真实代码</button><span id="verify-msg" class="verify-msg">实际运行结果可与动画对照（不依赖网络）。</span></div></section>
+</div>
+<div class="right-stack">
+  <section class="panel"><div class="panel-title"><h2>03 / 解释当前时刻</h2><span class="sub" id="phase-head">SYNC PHASE</span></div><div class="stage"><div class="kicker" id="step-kicker">FRAME 00 / 13</div><h2 class="step-title" id="step-title"></h2><p class="detail" id="step-detail"></p><div class="stage-bottom" id="step-tags"></div></div></section>
+  <div class="statequeue">
+    <section class="panel"><div class="panel-title"><h2>04 / Promise 状态</h2><span class="sub">状态 ≠ 命运锁定</span></div><div class="statebody"><div class="stategroup" id="states"></div><div class="refmap" id="relations"></div></div></section>
+    <section class="panel"><div class="panel-title"><h2>05 / 微任务 FIFO 队列</h2><span class="sub">左 → 右，先入先出</span></div><div class="queuebody"><div class="queue-rail" id="queue" aria-label="微任务等待队列"></div><div class="qfooter" id="queue-notes"></div><div class="legend"><span class="legend-item"><span class="sq" style="background:#ae6381"></span>T：采纳任务</span><span class="legend-item"><span class="sq" style="background:#5b91df"></span>A / B：回调</span><span class="legend-item"><span class="sq" style="background:#dfae6f"></span>M：普通微任务</span><span class="legend-item"><span class="sq" style="background:#a69aff"></span>J：内部反应</span></div></div></section>
+  </div>
+  <section class="panel"><div class="panel-title"><h2>06 / 执行时间轴</h2><span class="sub">点击任意数字跳转</span></div><div class="timeline"><div class="ticks-note"><span>同步执行（0–8）</span><span>微任务检查点（9–13）</span></div><div id="ticks" class="timeline-inner" role="group" aria-label="步骤跳转"></div><div class="controls"><button id="first" class="btn" aria-label="回到第一帧" title="第一帧">⟲</button><button id="prev" class="btn" title="键盘 ←">← 上一步</button><button id="play" class="btn primary">▶ 自动播放</button><button id="next" class="btn" title="键盘 →">下一步 →</button><div class="spacer"></div><select id="speed" class="select" aria-label="播放速度"><option value="2000">0.75×</option><option value="1400" selected>1×</option><option value="900">1.5×</option><option value="600">2×</option></select><span id="counter" class="counter"></span></div></div></section>
+  <aside class="notice"><strong>关键细节：</strong><code>resolve(inner)</code> 会让 <code>b</code> 的命运锁定为跟随 <code>inner</code>，但此时 <code>b</code> 的状态仍是 <code>pending</code>。<code>T</code> 只是把 <code>J</code> 排入队列；直到 <code>J</code> 执行，<code>b</code> 才真正 <code>fulfilled(42)</code> 并排入 <code>B</code>。</aside>
+</div>
+</section>
+<p class="footnote">说明：动画将规范中的 PromiseResolveThenableJob 记作 T，将由 inner.then 注册的内部 PromiseReactionJob 记作 J；A/B 为用户注册的 PromiseReactionJob，M 为 queueMicrotask 的回调。队列只展示本示例中影响观察结果的微任务；.then 返回的 Promise 不另外展开，因为本例没有继续监听它们。使用 <span class="kbd">←</span> / <span class="kbd">→</span> 逐帧切换，<span class="kbd">空格</span> 播放或暂停。</p>
+</main>
+<script>
+'use strict';
+const lines = [
+  '(() => {',
+  '  const inner = Promise.resolve(42);',
+  '',
+  '  const a = Promise.resolve(inner);',
+  '  const b = new Promise(resolve => resolve(inner));',
+  '',
+  '  console.log("same", a === inner, b === inner);',
+  '',
+  '  a.then(value => console.log("A", value));',
+  '  b.then(value => console.log("B", value));',
+  '',
+  '  queueMicrotask(() => console.log("M"));',
+  '})();'
+];
+const expected = ['same true false','A 42','M','B 42'];
+// Frames describe the queue *after* each action. T = PromiseResolveThenableJob;
+// J = PromiseReactionJob registered by the internal then(inner).
+const frames = [
+  {title:'准备执行：建立基准',phase:'sync',line:1,queue:[],inner:'none',a:'none',b:'none',logs:[],tags:['尚未创建 Promise','队列为空'],detail:'点击 <strong>下一步</strong>，从同步代码开始。注意：<strong>队列展示的是当前步骤执行完成以后，仍待执行的任务</strong>。'},
+  {title:'inner 立即兑现为 42',phase:'sync',line:2,queue:[],inner:'ok',a:'none',b:'none',logs:[],tags:['同步执行','inner = fulfilled(42)'],detail:'<code>Promise.resolve(42)</code> 创建一个已经 <strong>fulfilled(42)</strong> 的原生 Promise。此时没有任何可执行的回调，所以微任务队列仍为空。'},
+  {title:'a 直接复用 inner 的身份',phase:'sync',line:4,queue:[],inner:'ok',a:'ok',b:'none',logs:[],tags:['同步执行','a === inner 为 true'],detail:'<code>Promise.resolve(inner)</code> 发现 <code>inner</code> 本身就是构造器匹配的原生 Promise，因此直接返回原对象：<strong>a 与 inner 是同一个对象</strong>。不存在额外的采纳任务。'},
+  {title:'b 新建 Promise，开始采纳 inner',phase:'sync',line:5,queue:['T'],inner:'ok',a:'ok',b:'wait',logs:[],tags:['同步执行','入队 T','b 仍是 pending'],detail:'<code>new Promise</code> 创建了另一份对象。执行器中的 <code>resolve(inner)</code> <strong>同步调用</strong>，将 b 的命运锁定为跟随 inner，读取 inner 的 then 并安排<strong>采纳任务 T</strong>。注意：<strong>b 还没有 fulfilled</strong>。'},
+  {title:'先输出身份比较结果',phase:'sync',line:7,queue:['T'],inner:'ok',a:'ok',b:'wait',logs:['same true false'],tags:['同步 console.log','b !== inner'],detail:'<code>a === inner</code> 是 <strong>true</strong>；<code>b === inner</code> 是 <strong>false</strong>，因为 b 是新建的 Promise。同步日志先出现，微任务 T 仍在等待。'},
+  {title:'a.then 使 A 立即入队',phase:'sync',line:9,queue:['T','A'],inner:'ok',a:'ok',b:'wait',logs:['same true false'],tags:['同步注册 then','入队 A'],detail:'a 就是已兑现的 inner。因此对 <code>a.then(...)</code> 注册反应时，<strong>A 反应任务当场入队</strong>，排在更早的 T 后面。注意：回调此时还没有运行。'},
+  {title:'b.then 仅保存 B 的反应',phase:'sync',line:10,queue:['T','A'],inner:'ok',a:'ok',b:'wait',logs:['same true false'],tags:['同步注册 then','B 尚未入队'],detail:'b 当前仍然 <strong>pending</strong>，所以 <code>b.then(...)</code> 只是在 b 上登记一个待兑现反应。<strong>这里不会把 B 放进微任务队列</strong>。'},
+  {title:'queueMicrotask 将 M 入队',phase:'sync',line:12,queue:['T','A','M'],inner:'ok',a:'ok',b:'wait',logs:['same true false'],tags:['同步调用 queueMicrotask','入队 M'],detail:'<code>queueMicrotask</code> 将 M 放到队尾。当前队列严格是 <strong>T → A → M</strong>，不是 A → B → M，因为 b 尚未兑现。'},
+  {title:'同步栈清空，开始微任务检查点',phase:'sync',line:13,queue:['T','A','M'],inner:'ok',a:'ok',b:'wait',logs:['same true false'],tags:['同步阶段结束','队列 T → A → M'],detail:'IIFE 的同步主体执行结束。开始按 <strong>FIFO（先进先出）</strong> 取微任务。尚未执行任何微任务时，b 依然是 pending；接下来队首 T 将被执行。'},
+  {title:'执行 T：给 inner 添加内部 then',phase:'async',source:5,active:'T',queue:['A','M','J'],inner:'ok',a:'ok',b:'wait',logs:['same true false'],tags:['执行采纳任务 T','入队内部反应 J'],detail:'T 是 <strong>PromiseResolveThenableJob</strong>，它通过 inner 的 <code>then</code> 注册一对内部回调，用于兑现/拒绝 b。inner 已兑现，因此注册后生成<strong>内部反应任务 J</strong>，排到队尾。队列变成 <strong>A → M → J</strong>。T 运行完时 <strong>b 仍 pending</strong>。'},
+  {title:'执行 A：输出 A 42',phase:'async',source:9,active:'A',queue:['M','J'],inner:'ok',a:'ok',b:'wait',logs:['same true false','A 42'],tags:['执行 PromiseReactionJob A','输出 A 42'],detail:'A 是 a.then 的反应任务，由于 a 本就是 inner，因此读取值 42 并输出 <strong>A 42</strong>。队列中下一个任务是 M，J 还在它后面。'},
+  {title:'执行 M：输出 M',phase:'async',source:12,active:'M',queue:['J'],inner:'ok',a:'ok',b:'wait',logs:['same true false','A 42','M'],tags:['执行普通微任务 M','b 仍是 pending'],detail:'M 是 <code>queueMicrotask</code> 安排的回调。由于 M 比 J 更早入队，输出 <strong>M</strong>。此时 b 尽管早就调用过 resolve(inner)，<strong>依然 pending</strong>。'},
+  {title:'执行 J：b 真正兑现，B 才入队',phase:'async',source:5,active:'J',queue:['B'],inner:'ok',a:'ok',b:'ok',logs:['same true false','A 42','M'],tags:['执行内部反应任务 J','b = fulfilled(42)','入队 B'],detail:'J 把 inner 的兑现值 <strong>42</strong> 传给 b 的内部 resolve 函数。现在 b 才正式成为 <strong>fulfilled(42)</strong>；之前保存在 b 上的 <code>b.then</code> 反应任务 <strong>B 这时才入队</strong>。'},
+  {title:'执行 B：输出 B 42，队列清空',phase:'async',source:10,active:'B',queue:[],inner:'ok',a:'ok',b:'ok',logs:expected,tags:['执行 PromiseReactionJob B','输出 B 42','全部完成'],detail:'终于执行 b.then 的反应任务，得到值 42，输出 <strong>B 42</strong>。完整顺序为 <strong>same true false → A 42 → M → B 42</strong>。'}
+];
+const taskInfo={T:['采纳','rose'],A:['a.then','blue'],M:['用户任务','gold'],J:['内部 then','purp'],B:['b.then','cyan']};
+const el = id => document.getElementById(id);
+const escapeHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let cursor=0, timer=null;
+function makeCode(){el('source').innerHTML=lines.map((s,i)=>`<div class="code-line" data-line="${i+1}"><span class="n">${String(i+1).padStart(2,'0')}</span><span class="src">${escapeHtml(s)||'&nbsp;'}</span></div>`).join('');}
+function makeTicks(){el('ticks').innerHTML=frames.map((f,i)=>`<button type="button" class="tick" data-frame="${i}" aria-label="跳转第 ${i} 帧：${escapeHtml(f.title)}">${i}</button>`).join('');el('ticks').addEventListener('click',ev=>{const b=ev.target.closest('[data-frame]');if(b){pause();go(+b.dataset.frame);}})}
+function renderState(name,status,note,highlight){const statusText=status==='none'?'未创建':status==='ok'?'fulfilled(42)':'pending';const cls=status==='ok'?'done':status==='wait'?'wait':'uninit';return `<div class="statecard ${status==='wait'?'waiting':''} ${highlight?'changed':''}"><div class="name">${name}</div><div class="value ${cls}">${statusText}</div><div class="note">${note}</div></div>`}
+function render(){const f=frames[cursor],prior=frames[Math.max(0,cursor-1)];
+  el('step-kicker').textContent=`FRAME ${String(cursor).padStart(2,'0')} / ${frames.length-1}`;
+  el('step-title').textContent=f.title;el('step-detail').innerHTML=f.detail;
+  el('phase-head').textContent=f.phase==='sync'?'① 同步执行':'② 微任务检查点';
+  el('step-tags').innerHTML=f.tags.map(t=>`<span class="pill ${f.phase==='sync'?'sync':'async'}">${escapeHtml(t)}</span>`).join('');
+  el('code-mode').textContent=f.phase==='sync'?'绿色 = 同步执行位置':`紫色 = ${f.active} 任务来源，并非同步重跑`;
+  document.querySelectorAll('.code-line').forEach(row=>{const n=+row.dataset.line;row.classList.toggle('executing',f.phase==='sync'&&n===f.line);row.classList.toggle('origin',f.phase==='async'&&n===f.source);});
+  const states=[renderState('inner',f.inner,'独立原生 Promise',f.inner!==prior.inner),renderState('a',f.a,f.a==='none'?'尚无引用':'与 inner 是同一个对象',f.a!==prior.a),renderState('b',f.b,f.b==='wait'?'resolve(inner) 已调用；跟随中':f.b==='ok'?'已采纳 inner 的值':'尚未创建',f.b!==prior.b)];
+  el('states').innerHTML=states.join('');
+  el('relations').innerHTML=f.a==='none'&&f.b==='none'?'引用关系尚未建立':`${f.a!=='none'?'<b>a ──同一对象──▶ inner</b><br>':''}${f.b!=='none'?'<span class="accent">b</span> ──采纳/跟随──▶ inner<br>b !== inner（始终如此）':''}`;
+  el('queue').innerHTML=f.queue.length?f.queue.map((id,i)=>`${i?'<span class="q-arrow">→</span>':''}<div class="job ${taskInfo[id][1]}" title="${id} — ${taskInfo[id][0]}"><strong>${id}</strong><small>${taskInfo[id][0]}</small></div>`).join(''):'<div class="queue-empty">队列为空</div>';
+  el('queue-notes').innerHTML=f.queue.length?`<b>队首：</b>${f.queue[0]}（下一次执行）<br><b>队尾：</b>${f.queue[f.queue.length-1]} ｜ 待执行 ${f.queue.length} 项`:'<b>队列已清空。</b>没有待执行的微任务。';
+  el('terminal').innerHTML=`<div class="prompt">$ output</div>${f.logs.length?f.logs.map((str,i)=>`<div class="out-row"><span class="out-index">${String(i+1).padStart(2,'0')}</span><span class="out-text">${escapeHtml(str)}</span></div>`).join(''):'<div class="empty">(暂无输出)</div>'}`;
+  document.querySelectorAll('.tick').forEach((b,i)=>{b.classList.toggle('done',i<cursor);b.classList.toggle('current',i===cursor);b.setAttribute('aria-current',i===cursor?'step':'false')});
+  el('counter').textContent=`${String(cursor).padStart(2,'0')} / 13`;
+  el('first').disabled=cursor===0;el('prev').disabled=cursor===0;el('next').disabled=cursor===frames.length-1;
+}
+function go(i){cursor=Math.max(0,Math.min(frames.length-1,i));render();if(cursor===frames.length-1)pause();}
+function pause(){if(timer){clearInterval(timer);timer=null;}el('play').textContent='▶ 自动播放';el('play').setAttribute('aria-pressed','false');}
+function play(){if(timer){pause();return;}if(cursor===frames.length-1)go(0);el('play').textContent='Ⅱ 暂停';el('play').setAttribute('aria-pressed','true');timer=setInterval(()=>{if(cursor===frames.length-1){pause();return;}go(cursor+1);},+el('speed').value)}
+function bind(){el('first').addEventListener('click',()=>{pause();go(0)});el('prev').addEventListener('click',()=>{pause();go(cursor-1)});el('next').addEventListener('click',()=>{pause();go(cursor+1)});el('play').addEventListener('click',play);el('speed').addEventListener('change',()=>{if(timer){pause();play();}});document.addEventListener('keydown',ev=>{if(['INPUT','SELECT','TEXTAREA','BUTTON'].includes(document.activeElement?.tagName))return;if(ev.key==='ArrowLeft'){ev.preventDefault();pause();go(cursor-1)}else if(ev.key==='ArrowRight'){ev.preventDefault();pause();go(cursor+1)}else if(ev.code==='Space'){ev.preventDefault();play()}});
+  el('verify-btn').addEventListener('click',()=>{const logs=[];
+    // Same semantics as the original IIFE; only the console sink is redirected.
+    (()=>{const inner=Promise.resolve(42);const a=Promise.resolve(inner);const b=new Promise(resolve=>resolve(inner));logs.push('same '+(a===inner)+' '+(b===inner));a.then(v=>logs.push('A '+v));b.then(v=>logs.push('B '+v));queueMicrotask(()=>logs.push('M'));})();
+    // A timer runs after the current microtask checkpoint, so the check sees all logs.
+    el('verify-msg').textContent='正在执行真实 Promise 与微任务…';setTimeout(()=>{const ok=JSON.stringify(logs)===JSON.stringify(expected);el('verify-msg').textContent=(ok?'✅ 验证一致：':'❌ 与预测不同：')+logs.join(' → ');el('verify-msg').style.color=ok?'var(--teal)':'var(--red)';},0);
+  });
+}
+makeCode();makeTicks();bind();render();
+</script>
+</body>
+</html>
