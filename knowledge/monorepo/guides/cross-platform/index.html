@@ -1,0 +1,35 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f8f7"><meta name="description" content="TypeScript 共享逻辑、Metro exports、Node 运行时与服务端独立验证"><title>跨端 Monorepo：React、RN 与 NestJS 排障清单 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../../assets/css/monorepo-deep.css"></head><body><div class="topbar"></div><a class="skip" href="#main">跳过导航到正文</a><header class="sitehead"><div class="sitehead-inner"><a class="brand" href="../../../../">KNOW<span>VERSE</span></a><nav aria-label="网站导航"><a href="../../../../knowledge/">知识库</a><a href="../../../../lab/">原理实验室</a><a href="../../../../gallery/">知识展厅</a><a href="../../../../puzzles/">解谜世界</a><a href="../../../../timeline/">研究时间线</a></nav><a class="back-home" href="../../../../knowledge/monorepo/" aria-current="page">Monorepo 专题 ↗</a></div></header><main id="main"><div class="wide"><div class="breadcrumbs"><a href="../../">Monorepo 专题</a> / 实战手册</div><div class="reading"><div class="article-wrap"><div class="article-title"><div class="eyebrow">PRACTICE HANDBOOK / CROSS-PLATFORM</div><h1>跨端 Monorepo：React、RN 与 NestJS 排障清单</h1><p class="lead">TypeScript 共享逻辑、Metro exports、Node 运行时与服务端独立验证</p></div><article class="article"><h1>跨端 Monorepo：React、React Native 与 NestJS 排障清单</h1>
+<h2>共享类型，为什么仍可能无法运行</h2>
+<p>一个类型纯净的 <code>contracts</code> 包可能被 React、React Native 和 NestJS 消费，但它的 JS 产物仍要面对三个不同的 resolver。Web bundler 可能把某些模块内联为浏览器代码；Metro 会考虑其自己的平台模块规则；Node.js 则依据 package <code>exports</code> 和实际 ESM/CJS 规则加载。能通过 <code>tsc -b</code> 只证明了类型编译图成立，不能替代 Web 与原生端的运行验证。</p>
+<h2>第一步：把核心与平台适配分离</h2>
+<p>推荐沿着依赖方向拆层：<code>contracts</code> → <code>domain</code> → <code>adapters</code>。在代码里代表的是<strong>消费者到提供者</strong>的导入方向（各端 adapter 依赖 domain 和 contracts），而不是让 contracts 向外调用组件。业务函数需要日期、随机数、文件系统等能力时，通过参数或接口从适配层注入；不要在纯逻辑包直接 import <code>node:fs</code>、React DOM 或原生 UI 模块。</p>
+<h2>第二步：评估包公开入口</h2>
+<pre><code class="language-json">{
+  &quot;name&quot;: &quot;@knowverse/domain&quot;,
+  &quot;type&quot;: &quot;module&quot;,
+  &quot;exports&quot;: {
+    &quot;.&quot;: { &quot;types&quot;: &quot;./dist/index.d.ts&quot;, &quot;default&quot;: &quot;./dist/index.js&quot; }
+  }
+}
+</code></pre>
+<p>这份基础入口适合示例中的 Node 运行环境。若真实包需要 <code>react-native</code>、<code>browser</code>、<code>import</code>、<code>require</code> 等条件，必须明确这些条件的选择顺序与目标文件，分别在 Node、Web、Metro 上验证。不要因为某篇旧文章提过 <code>unstable_enablePackageExports</code> 就在现在的项目中盲目使用同一开关；Metro 配置与版本演进已发生变化。</p>
+<h2>第三步：React Native 的独立验收</h2>
+<p>至少覆盖 iOS/Android 两个 bundle，检查 monorepo symlink、pnpm 实际 node linker、Hermes、Native Module 版本、平台扩展名和 CodeGen 输入。启动失败时按层排查：是否 package 无法解析？是否 Metro 选择了错误条件导出？是否 JS 运行时使用了 Node 专用 API？还是 Native 模块没有正确链接？这些不是同一个错误。</p>
+<p>对共享 UI 要区分三种诉求：统一样式 token、统一状态逻辑、统一具体组件。前两者通常成本较低；第三者可能需要跨平台组件抽象或分开实现。<strong>“重复少一点”不是压倒所有平台限制的目标。</strong></p>
+<h2>第四步：NestJS 的独立验收</h2>
+<p>Nest CLI 的 Monorepo 模式是一套围绕 Nest 应用和库的 CLI 组织模式，它不自动管理 pnpm Workspace 中 Web/RN 的整个任务图。可以把真正的 Nest 项目放在 <code>apps/api</code>，但 Controller、Provider、依赖注入装饰器等服务端实现必须留在适配层。公共 <code>contracts</code> 只定义跨端数据协议；对于网络请求数据还必须进行运行时校验，不能用 TypeScript interface 当作输入安全检查。</p>
+<h2>第五步：CI 里的四段证据链</h2>
+<ol>
+<li><strong>Node 参考工程</strong>：<code>node --test</code> 验证纯逻辑依赖图和类型计算。</li>
+<li><strong>TypeScript Build</strong>：<code>tsc -b</code> 验证 references、DTS 产物和消费者类型。</li>
+<li><strong>Web &amp; API</strong>：分别运行正式 bundler build 和 Nest 的真实启动烟雾测试。</li>
+<li><strong>React Native</strong>：Android/iOS 都能 bundle，且最低支持设备可运行关键路径。</li>
+</ol>
+<p>只在前两步完成的仓库应声明「核心契约示例可运行」，而不应该标成「React/RN/Nest 三端生产工程已经完成」。这也是本专题 starter 严格区分教学适配器和真实框架项目的原因。</p>
+<h2>参考</h2>
+<ul>
+<li><a href="https://reactnative.dev/docs/metro">React Native Metro</a></li>
+<li><a href="https://docs.nestjs.com/cli/monorepo">NestJS Monorepo</a></li>
+<li><a href="https://www.typescriptlang.org/docs/handbook/project-references.html">TypeScript Project References</a></li>
+</ul>
+</article><div class="reader-nav"><a href="../../">← 返回专题</a><a href="../../starter/">查看参考工程 →</a></div></div><aside class="toc"><strong>进阶实战手册</strong><a href="../ghost-deps/">幽灵依赖取证：为什么本机能跑、CI 却失败</a><a href="../nx24-affected/">Nx 24 任务级 Affected 迁移实战</a><a href="../rush-rollout/">Rush 治理落地：什么时候值得引入</a><a href="../cross-platform/">跨端 Monorepo：React、RN 与 NestJS 排障清单</a></aside></div></div></main><footer class="footer">KNOWVERSE · Monorepo 系统学习 · 原理 → 实验 → 工程证据 · 资料校对：2026-10-30</footer></body></html>

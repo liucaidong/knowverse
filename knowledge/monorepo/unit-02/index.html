@@ -1,1 +1,46 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>pnpm Workspace 基础 · Monorepo 知识库</title><style>:root{font-family:Inter,system-ui,"Noto Sans CJK SC",sans-serif;color:#172b38;background:#f5f8f7}*{box-sizing:border-box}body{margin:0}a{color:#086e72;text-decoration:none}a:hover{text-decoration:underline}header{background:#fff;border-bottom:1px solid #dce7e8;padding:20px max(22px,calc((100vw - 1160px)/2));display:flex;justify-content:space-between;gap:20px;align-items:center}main{max-width:1160px;margin:auto;padding:48px 22px 100px}.eyebrow{color:#0a7779;letter-spacing:.14em;font-weight:700;font-size:12px}.hero h1{font-size:clamp(35px,5vw,66px);letter-spacing:-.055em;margin:18px 0}.hero p{font-size:19px;line-height:1.85;color:#596d7a;max-width:820px}.atlas{background:#fff;border:1px solid #dce7e8;border-radius:20px;padding:22px;margin:35px 0}.atlas pre{overflow:auto;font-size:13px;background:#f1f6f6;padding:18px;border-radius:12px}.atlas svg{max-width:100%}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}.card{background:white;border:1px solid #dce7e8;border-radius:17px;padding:24px;display:flex;flex-direction:column;min-height:185px}.card h2{font-size:21px;margin:10px 0}.card p{line-height:1.7;color:#617582}.card span{font-size:12px;color:#087477}.card .go{margin-top:auto;font-weight:700}.article{max-width:820px;background:#fff;padding:clamp(24px,5vw,64px);border:1px solid #dce7e8;border-radius:20px;line-height:1.9}.article h2{margin-top:40px;border-top:1px solid #e4ebeb;padding-top:20px}.article h3{margin-top:30px}.article li{margin-bottom:10px}.article blockquote{border-left:4px solid #0b8982;background:#eef8f6;padding:12px 20px;margin:22px 0}.article pre{overflow:auto;background:#142432;color:#e8f8f6;padding:22px;border-radius:12px}.article code{font-size:.91em}.article p{color:#415463}.nav{display:flex;justify-content:space-between;gap:15px;margin-top:28px}.nav a{padding:12px;background:white;border:1px solid #dce7e8;border-radius:10px}@media(max-width:620px){header{font-size:13px}main{padding-top:30px}.atlas{padding:12px}.article{padding:24px}}</style></head><body><header><a href="../../../">KNOWVERSE · 知域</a><a href="../">返回专题目录 ↗</a></header><main><div class="eyebrow">MONOREPO / UNIT 02</div><h1>pnpm Workspace 基础</h1><article class="article"><h2>本章要解决什么</h2><p>理解 workspace 链接和依赖声明，避免幽灵依赖。</p><h2>核心概念与实验</h2><h3>1. workspace.yaml</h3><p><strong>workspace.yaml</strong> 是需要单独验证的工程能力。先判断其属于包管理、编译、任务编排或治理层，再用双包最小仓库检查输入、输出及故障边界。</p><h3>2. workspace:*</h3><p><strong>workspace:*</strong> 是需要单独验证的工程能力。先判断其属于包管理、编译、任务编排或治理层，再用双包最小仓库检查输入、输出及故障边界。</p><h3>3. 严格依赖</h3><p><strong>严格依赖</strong> 是需要单独验证的工程能力。先判断其属于包管理、编译、任务编排或治理层，再用双包最小仓库检查输入、输出及故障边界。</p><h3>4. lockfile</h3><p><strong>lockfile</strong> 是需要单独验证的工程能力。先判断其属于包管理、编译、任务编排或治理层，再用双包最小仓库检查输入、输出及故障边界。</p><h2>工程推演</h2><ol><li>列出包、运行环境和变更场景</li><li>画出依赖方向，区分运行时与构建时</li><li>修改一个包，记录安装、类型检查、测试和打包的影响</li><li>故意移除依赖声明或污染缓存输入，观察故障</li><li>写下决策依据、代价与退出条件</li></ol><h2>关键边界</h2><blockquote>严格依赖依赖于实际安装模式、包声明与工具配置；不要把 node_modules 结构当作稳定 API。</blockquote><h2>诊断问题</h2><ol><li>公共类型包变化后，哪些消费者需要重新检查？</li><li>缓存命中但结果错误时，最可能遗漏什么输入？</li><li>什么时候当前工具组合不再适用？</li></ol><h2>官方参考</h2><p><a href="https://pnpm.io/workspaces">pnpm</a> · <a href="https://www.typescriptlang.org/docs/handbook/project-references.html">TypeScript</a> · <a href="https://rushjs.io/">Rush</a> · <a href="https://nx.dev/">Nx</a> · <a href="https://turborepo.com/docs">Turborepo</a></p></article><div class="nav"><a href="../unit-01/">← 上一章</a><a href="../unit-03/">下一章 →</a></div></main></body></html>
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f8f7"><meta name="description" content="workspace:、幽灵依赖、符号链接与安装布局"><title>pnpm Workspace：严格依赖是怎么形成的 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../assets/css/monorepo-deep.css"></head><body><div class="topbar"></div><a class="skip" href="#main">跳过导航到正文</a><header class="sitehead"><div class="sitehead-inner"><a class="brand" href="../../../">KNOW<span>VERSE</span></a><nav aria-label="网站导航"><a href="../../../knowledge/">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">知识展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../timeline/">研究时间线</a></nav><a class="back-home" href="../../../knowledge/monorepo/" aria-current="page">Monorepo 专题 ↗</a></div></header><main id="main"><div class="wide"><div class="breadcrumbs"><a href="../../../knowledge/">知识库</a> / <a href="../">Monorepo 专题</a> / 单元 02</div><div class="reading"><div class="article-wrap"><div class="article-title"><div class="eyebrow">UNIT 02 / MONOREPO MECHANICS</div><h1>pnpm Workspace：严格依赖是怎么形成的</h1><p class="lead">workspace:、幽灵依赖、符号链接与安装布局</p><div class="stats"><span>案例驱动</span><span>原理 → 实验 → 诊断</span><span>官方资料校对</span></div></div><figure class="atlas"><div class="atlas-bar"><strong>本章 Mermaid 机制图</strong><a href="../../../assets/panoramas/monorepo-unit-02.mmd" download>下载 .mmd ↓</a></div><div class="atlas-figure"><img src="../../../assets/panoramas/monorepo-unit-02.svg" alt="本章机制图" loading="lazy"></div><details><summary>查看 Mermaid 源代码</summary><pre>flowchart LR
+  N0[&quot;workspace 定义&quot;]
+  N1[&quot;package.json 声明&quot;]
+  N2[&quot;workspace: 强制本地&quot;]
+  N3[&quot;依赖可解析&quot;]
+  N4[&quot;幽灵依赖检查&quot;]
+  N0 --&gt; N1
+  N1 --&gt; N2
+  N2 --&gt; N3
+  N3 --&gt; N4
+</pre></details></figure><article class="article"><p class="source-note">本章是经过整理的专题教学内容，包含原理推导、工程案例和官方引用；不是历史对话的逐字备份。</p><h2><code>workspace:</code> 的价值不是方便，而是阻止错误来源</h2>
+<p>假设 <code>@knowverse/domain</code> 的 <code>package.json</code> 声明了 <code>&quot;@knowverse/contracts&quot;: &quot;workspace:*&quot;</code>。pnpm 会把它解释为仓库内的工作区包，而不是将来有机会从 npm registry 下载的同名包；如果包在本地不存在，安装就应失败。相比允许 registry 回退的普通版本范围，这是更明确的来源契约。<a href="https://pnpm.io/workspaces">pnpm Workspace 官方说明</a>。</p>
+<pre><code class="language-yaml"># pnpm-workspace.yaml
+packages:
+  - 'apps/*'
+  - 'packages/*'
+</code></pre>
+<pre><code class="language-json">// packages/domain/package.json
+{
+  &quot;name&quot;: &quot;@knowverse/domain&quot;,
+  &quot;dependencies&quot;: {&quot;@knowverse/contracts&quot;: &quot;workspace:*&quot;}
+}
+</code></pre>
+<p><strong>注意</strong>：<code>workspace:*</code> 约束了依赖来源，不等于自动检查架构规则。例如它不会阻止 <code>contracts → api</code> 的不合理依赖，也不会自动创建 TypeScript 项目引用。</p>
+<h2>为什么 node_modules 不应被视作唯一真相</h2>
+<p>pnpm 使用内容寻址 store 与链接组织依赖。不同 pnpm 版本、node linker 配置、hoist 策略会影响实际目录。开发者偶尔在根目录能 <code>import</code> 一个并未在当前包声明的包，不代表这个引用受工程保护；它可能是被某个安装模式或编辑器环境意外暴露的<strong>幽灵依赖</strong>。</p>
+<p>检查时不要仅执行 <code>ls node_modules</code>。更可靠的做法是读取每个包的 <code>dependencies</code>，执行严格的独立构建，并在 CI 运行 import 边界检查。对 React Native 来说，还应实测 Metro 是否正确处理工作区符号链接、<code>exports</code> 条件和平台扩展名，而不能因为 Node.js 能解析就假定移动端也能解析。</p>
+<h2>正向与反向过滤器的区别</h2>
+<p>在 pnpm 官方过滤语法中，<code>foo...</code> 选择 <code>foo</code> 和它的依赖；<code>...foo</code> 选择 <code>foo</code> 和它的被依赖者。记住：<strong>箭头朝向依赖，但 changed 影响往往反向传播</strong>。</p>
+<pre><code class="language-bash">pnpm --filter '@knowverse/api...' run build     # API 以及上游依赖
+pnpm --filter '...@knowverse/domain' run test    # Domain 以及依赖它的包
+pnpm --filter '...[origin/main]' run test         # 相对基准变更及相关依赖者
+</code></pre>
+<p>第三条命令要求 Git baseline 在 CI 中可用。浅克隆、没有 fetch 对应分支、rename / root config 变化都可能让选择结果与直觉不符。pnpm 11/12 的过滤语义细节要看<strong>运行版本</strong>，不要从多年以前的博客复制命令。</p>
+<h2>可复现实验：制造一个幽灵依赖</h2>
+<ol>
+<li>创建 <code>packages/domain/src/illegal.ts</code>，尝试 <code>import</code> 一个未在 <code>domain/package.json</code> 声明的依赖。</li>
+<li>不要先手工安装到根目录；直接执行从干净状态的类型检查和构建。</li>
+<li>再在根目录临时安装依赖，观察为什么本机偶尔能运行而 CI 未必能够。</li>
+<li>删除依赖声明，要求检查工具能够报出准确的<strong>包名、文件位置、缺少的声明</strong>，而不是依赖系统是否“刚好找得到”。</li>
+</ol>
+<h2>容易被忽略的另一侧：peerDependencies</h2>
+<p>React 和 React Native 等运行时有宿主单例与版本兼容要求。共享 UI 库可能应使用 peer dependency，而非在自己包里安装第二份 React。<strong>peerDependencies 是消费者需提供兼容宿主依赖的约定</strong>，与 workspace 依赖来源是不同维度。必须验证实际依赖树、运行时单例和 bundler 的处理。</p>
+<h2>诊断题</h2>
+<p><code>foo...</code> 和 <code>...foo</code> 哪个适合「改动基础类型库，筛出需要运行测试的消费者」？如果修改根 <code>pnpm-workspace.yaml</code>，为什么只筛出一个包可能不安全？</p>
+</article><div class="reader-nav"><a href="../unit-01/">← 先有依赖图，才有 Monorepo</a><a href="../unit-03/">TypeScript Project References 的真正边界 →</a></div></div><aside class="toc" aria-label="本专题目录"><strong>学习地图 · 10 单元</strong><a href="../unit-01/">01 · 先有依赖图，才有 Monorepo</a><a href="../unit-02/">02 · pnpm Workspace：严格依赖是怎么形成的</a><a href="../unit-03/">03 · TypeScript Project References 的真正边界</a><a href="../unit-04/">04 · 包入口：types、exports 与跨端条件导出</a><a href="../unit-05/">05 · 任务图、增量构建与缓存键</a><a href="../unit-06/">06 · Affected：从文件变更到任务的精确传播</a><a href="../unit-07/">07 · Rush 治理：从单仓编排到组织契约</a><a href="../unit-08/">08 · 工具选型：pnpm、Turbo、Nx、Rush</a><a href="../unit-09/">09 · React + React Native + NestJS 的跨端边界</a><a href="../unit-10/">10 · 从代码治理到 AI Agent 的单仓闭环</a><a href="../labs/graph/">交互：依赖图</a><a href="../labs/cache/">交互：缓存</a><a href="../labs/build/">交互：TS 构建</a></aside></div></div></main><footer class="footer">KNOWVERSE · Monorepo 系统学习 · 原理 → 实验 → 工程证据 · 资料校对：2026-10-30</footer></body></html>

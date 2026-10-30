@@ -1,0 +1,10 @@
+flowchart LR
+  N0["源代码"]
+  N1["composite 项目"]
+  N2["d.ts 产物"]
+  N3["引用图"]
+  N4["tsc -b"]
+  N0 --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4

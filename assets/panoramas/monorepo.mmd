@@ -1,11 +1,24 @@
 flowchart LR
-  A["需求与规模"] --> B["包管理层 pnpm"]
-  B --> C["依赖图与包边界"]
-  C --> D["TypeScript 构建图"]
-  C --> E["任务编排与缓存"]
-  E --> F["受影响分析"]
-  F --> G["CI / 测试 / 发布"]
-  G --> H["治理与反馈"]
-  H -.-> A
-  I["Rush / Nx / Turbo"] --> E
-  I --> G
+  N0["现实痛点
+依赖不清晰"]
+  N1["pnpm Workspace
+本地依赖显式"]
+  N2["包依赖图
+声明与边界"]
+  N3["TS References
+类型构建图"]
+  N4["任务图 / 缓存
+输入输出约束"]
+  N5["Affected
+变更传播"]
+  N6["Rush / Nx / Turbo
+治理选型"]
+  N7["CI / 发布
+证据与审计"]
+  N0 --> N1
+  N1 --> N2
+  N2 --> N3
+  N3 --> N4
+  N4 --> N5
+  N5 --> N6
+  N6 --> N7

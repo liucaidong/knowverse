@@ -1,0 +1,32 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f8f7"><meta name="description" content="从 import → package.json → node_modules → lockfile → bundler 查找真正的依赖边界"><title>幽灵依赖取证：为什么本机能跑、CI 却失败 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../../assets/css/monorepo-deep.css"></head><body><div class="topbar"></div><a class="skip" href="#main">跳过导航到正文</a><header class="sitehead"><div class="sitehead-inner"><a class="brand" href="../../../../">KNOW<span>VERSE</span></a><nav aria-label="网站导航"><a href="../../../../knowledge/">知识库</a><a href="../../../../lab/">原理实验室</a><a href="../../../../gallery/">知识展厅</a><a href="../../../../puzzles/">解谜世界</a><a href="../../../../timeline/">研究时间线</a></nav><a class="back-home" href="../../../../knowledge/monorepo/" aria-current="page">Monorepo 专题 ↗</a></div></header><main id="main"><div class="wide"><div class="breadcrumbs"><a href="../../">Monorepo 专题</a> / 实战手册</div><div class="reading"><div class="article-wrap"><div class="article-title"><div class="eyebrow">PRACTICE HANDBOOK / GHOST-DEPS</div><h1>幽灵依赖取证：为什么本机能跑、CI 却失败</h1><p class="lead">从 import → package.json → node_modules → lockfile → bundler 查找真正的依赖边界</p></div><article class="article"><h1>幽灵依赖取证：为什么本机能跑、CI 却失败</h1>
+<h2>先确定故障不是一个问题，而是四种不同的问题</h2>
+<p><strong>声明缺失</strong>：<code>packages/domain</code> 从 <code>lodash</code> 导入工具函数，但自己的 <code>package.json</code> 没有声明这个包。由于根目录恰好安装过 lodash，本机解析成功，干净 CI 失败。<strong>运行时分歧</strong>：Node 能解析 <code>exports</code> 的 <code>default</code> 分支，Metro 却选择另一套条件，某端打包失败。<strong>类型/运行时不一致</strong>：TypeScript 找到了 <code>.d.ts</code>，最终 JS 入口却不提供某个符号。<strong>构建顺序问题</strong>：消费者先于提供者运行，声明产物尚未生成。</p>
+<p>把这四类混成「pnpm 有 bug」会把排查引到错误方向。每次排障先写下：错误发生在安装、类型检查、bundle 还是设备运行阶段？出现在哪个项目包？是否可在删除 node_modules 后复现？</p>
+<h2>证据链 01：确认包所有权与声明</h2>
+<p>打开报错文件，找到最小导入，例如：</p>
+<pre><code class="language-ts">// packages/domain/src/calc.ts
+import { parseScore } from '@knowverse/contracts';
+</code></pre>
+<p>然后逐项检查：<code>packages/domain/package.json</code> 的 <code>dependencies</code> 是否包含 <code>@knowverse/contracts</code>；其版本是否使用明确的 <code>workspace:</code> 约束；工作区是否实际包含对应的包路径；名称是否与包 <code>name</code> 精确一致。<code>paths</code> 配置不能代替这一步，因为它只影响 TS 模块查找，不保证 Node 或 Metro 的可运行入口。</p>
+<h2>证据链 02：用干净安装复现</h2>
+<pre><code class="language-bash"># 保存必要文件后，在一个独立的临时工作树执行
+pnpm install --frozen-lockfile
+pnpm --filter @knowverse/domain exec node -p 'process.cwd()'
+pnpm --filter @knowverse/domain run build
+</code></pre>
+<p>若当前仓库没有 lockfile，<code>--frozen-lockfile</code> 会失败，这正是输入不完整的信号；先在开发分支生成并审查锁文件，而不是在 CI 偷偷允许更新锁文件。还要核对团队配置的 linker、hoist、peer 处理策略，不能用肉眼看 <code>node_modules</code> 推断可靠性。</p>
+<h2>证据链 03：TS、Node 和 Metro 分开验证</h2>
+<p><code>tsc -b</code> 正确说明类型编译图与声明产物成立；<code>node -e &quot;import('@knowverse/domain')&quot;</code> 才会验证 Node 条件导出；Web bundle 必须在项目 bundler 上跑；RN 还要运行当前 Metro 版本的 Android/iOS bundle。一次 TS 通过不是四次运行成功。</p>
+<p>如果报 <code>ERR_PACKAGE_PATH_NOT_EXPORTED</code>，重点检查消费者是否深度导入了未导出的子路径；不要靠修改 node_modules 内文件救火。如果某端找错入口，记录实际条件分支、扩展名和平台 resolver 的版本。</p>
+<h2>自动化防复发</h2>
+<p>在 PR 上添加一条 package boundary 检查：解析每个包的 import，检测外部依赖是否被当前包显式声明；内部依赖必须经过公开包名，不得跨越 <code>src/</code>；遇到动态加载或依赖生成器的边，输出需要人工审查的提示，不假装静态分析能覆盖所有调用。</p>
+<p>再加一条清洁构建：从新的 workspace 安装、构建、运行导出入口。失败日志必须打印 package、导入语句、预期依赖位置和实际解析结果。多端工程还需要单独报告 Metro / Web bundler 的产物验证结果。</p>
+<h2>思考</h2>
+<p>如果一个 <code>import type</code> 因编译擦除没有出现在 JS 里，它是否完全没有工程成本？考虑编辑器声明跳转、编译图、类型工具版本和 CodeGen 后再回答。</p>
+<h2>参考</h2>
+<ul>
+<li><a href="https://pnpm.io/workspaces">pnpm Workspace</a></li>
+<li><a href="https://nodejs.org/api/packages.html">Node packages / exports</a></li>
+<li><a href="https://reactnative.dev/docs/metro">React Native Metro</a></li>
+</ul>
+</article><div class="reader-nav"><a href="../../">← 返回专题</a><a href="../../starter/">查看参考工程 →</a></div></div><aside class="toc"><strong>进阶实战手册</strong><a href="../ghost-deps/">幽灵依赖取证：为什么本机能跑、CI 却失败</a><a href="../nx24-affected/">Nx 24 任务级 Affected 迁移实战</a><a href="../rush-rollout/">Rush 治理落地：什么时候值得引入</a><a href="../cross-platform/">跨端 Monorepo：React、RN 与 NestJS 排障清单</a></aside></div></div></main><footer class="footer">KNOWVERSE · Monorepo 系统学习 · 原理 → 实验 → 工程证据 · 资料校对：2026-10-30</footer></body></html>

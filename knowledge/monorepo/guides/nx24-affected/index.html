@@ -1,0 +1,32 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f8f7"><meta name="description" content="区分图结构变化、输入命中、执行前置条件和迁移旧配置"><title>Nx 24 任务级 Affected 迁移实战 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../../assets/css/monorepo-deep.css"></head><body><div class="topbar"></div><a class="skip" href="#main">跳过导航到正文</a><header class="sitehead"><div class="sitehead-inner"><a class="brand" href="../../../../">KNOW<span>VERSE</span></a><nav aria-label="网站导航"><a href="../../../../knowledge/">知识库</a><a href="../../../../lab/">原理实验室</a><a href="../../../../gallery/">知识展厅</a><a href="../../../../puzzles/">解谜世界</a><a href="../../../../timeline/">研究时间线</a></nav><a class="back-home" href="../../../../knowledge/monorepo/" aria-current="page">Monorepo 专题 ↗</a></div></header><main id="main"><div class="wide"><div class="breadcrumbs"><a href="../../">Monorepo 专题</a> / 实战手册</div><div class="reading"><div class="article-wrap"><div class="article-title"><div class="eyebrow">PRACTICE HANDBOOK / NX24-AFFECTED</div><h1>Nx 24 任务级 Affected 迁移实战</h1><p class="lead">区分图结构变化、输入命中、执行前置条件和迁移旧配置</p></div><article class="article"><h1>Nx 24 任务级 Affected 迁移实战</h1>
+<h2>先问：旧仓库是不是仍在 Legacy 模式？</h2>
+<p>Nx 24 在新项目里把 <strong>task-based affected</strong> 作为默认策略，但已有工作区通过升级迁移可能保留 <code>affected.legacy: true</code>。检查版本、迁移结果、工作区 <code>nx.json</code> 以及本次 CI 环境变量覆盖。不同机器如果一边是 legacy、一边是 task-based，得到不同结果并不令人意外。官方说明（2026-10-29）强调，新算法主要根据任务自己的 inputs 和所配置的上游输入判定，而不是仅按被修改的 package 扩散整个任务集合。</p>
+<h2>为什么依赖存在却不一定运行任务</h2>
+<p>设 <code>web:build</code> 需要先执行 <code>ui:build</code>，这个 <code>dependsOn</code> 表示调度约束。但是 UI 测试文件的变化不一定影响 web 构建产物；如果 <code>web:build</code> 的 <code>inputs</code> 仅包含 production files、上游 production files，则 UI 的测试变更可以被合理跳过。反之，如果 web 的 bundler 从 UI 目录读取生成的 <code>dist/</code>，但你没有把这项输出声明为 <code>outputs</code> 或对应输入，任务级精确性可能导致错误跳过。</p>
+<p>这是构建系统的本质：<strong>正确的跳过比更快的跳过重要</strong>。</p>
+<h2>一套从粗到细的迁移步骤</h2>
+<ol>
+<li>固定一个可以复现的 Git baseline；确保 CI 能获取 merge-base，而不是只 checkout 一个提交。</li>
+<li>保留旧 CI 运行日志和 job 时间，记录被选中的 project 和 task。</li>
+<li>为关键目标明确 <code>inputs</code>、<code>outputs</code>：<code>build</code>、<code>test</code>、<code>lint</code> 最好按实际读取文件拆开。</li>
+<li>用 source / test / generated output / root lockfile 四类变更重复执行 affected，逐项对照真实构建结果。</li>
+<li>消除未声明的隐式输入（环境变量、配置继承、CodeGen、依赖二进制），再启用任务级策略。</li>
+<li>对比两种模式运行任务列表和失败率；若节省时间但漏掉该重跑的任务，迁移应回滚。</li>
+</ol>
+<pre><code class="language-bash"># 以 Nx 官方文档和本仓 Nx 实际版本为准
+nx affected -t build test --graph
+# 观察为什么某项任务被选中（各版本支持的解释参数可能变化）
+nx affected -t build --explain
+</code></pre>
+<h2>四个不可偷懒的检验场景</h2>
+<p><strong>A：只修改 <code>domain/test</code></strong>。测试应该重跑，生产 build 可以跳过，前提是测试文件真的不参与 build。<strong>B：修改 <code>contracts/src</code> 的公开 API</strong>。所有读取它的消费者构建/测试应按声明输入受到影响。<strong>C：修改工作区 lockfile 或 TypeScript 共享配置</strong>。可能需要扩大选择范围，不能把它归属到单个包。<strong>D：删除生成文件并从远端缓存恢复</strong>。检查 artifacts 是否完整，尤其是 DTS、JS、map、静态资源。</p>
+<h2>对比 Rush 与 pnpm</h2>
+<p>Rush 的项目选择、增量构建与远程缓存存在自己的配置约束；pnpm <code>--filter ...[origin/main]</code> 能筛出依赖者但不等于完整任务输入判定。用同一份故障样本比较，不要把它们的命令名字当成等价算法。</p>
+<h2>验收</h2>
+<p>任何一个受影响任务都应能回答：改变了哪个文件？属于哪个项目？被哪个 <code>inputs</code> 规则命中？需要哪个上游任务作为执行前置？命中/恢复缓存依据是什么？如果 CI 只能回答“因为 Nx 说需要”，工程证据仍不够充分。</p>
+<h2>参考</h2>
+<ul>
+<li><a href="https://nx.dev/blog/nx-24-release">Nx 24 版本说明</a></li>
+<li><a href="https://nx.dev/docs/features/ci-features/affected">Nx Affected 文档</a></li>
+</ul>
+</article><div class="reader-nav"><a href="../../">← 返回专题</a><a href="../../starter/">查看参考工程 →</a></div></div><aside class="toc"><strong>进阶实战手册</strong><a href="../ghost-deps/">幽灵依赖取证：为什么本机能跑、CI 却失败</a><a href="../nx24-affected/">Nx 24 任务级 Affected 迁移实战</a><a href="../rush-rollout/">Rush 治理落地：什么时候值得引入</a><a href="../cross-platform/">跨端 Monorepo：React、RN 与 NestJS 排障清单</a></aside></div></div></main><footer class="footer">KNOWVERSE · Monorepo 系统学习 · 原理 → 实验 → 工程证据 · 资料校对：2026-10-30</footer></body></html>

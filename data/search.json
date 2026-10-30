@@ -534,5 +534,157 @@
     "tags": "微任务 jobs 单步 动画 浏览器",
     "body": "任务入队 Promise.resolve thenable getter call reaction",
     "href": "knowledge/promise/observatory/"
+  },
+  {
+    "title": "先有依赖图，才有 Monorepo",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "从单仓目录堆砌到可验证的架构图",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 先有依赖图，才有 Monorepo",
+    "body": "   本章的真实问题：为什么「放进同一个仓库」还不够\n\n假设一个学习平台同时运行 Web、iOS/Android 和 API：Web 使用 React，Mobile 使用 React Native，API 使用 NestJS。每端各自复制了一份  Lesson  类型和分数计算函数。一周后 API 的字段改名，前端仍使用旧字段；另一个星期，Mobile 为避免兼容问题复制了第三份实现。把三个应用搬进  apps/  并不能自动消除这些不一致——它们只是从多仓漂移变成单仓漂移。\n\nMonorepo 真正要解决的是  变化如何沿边界传播  ：谁是契约的所有者、谁可依赖谁、一个公共包变化后哪些任务必须跑、哪些发布对象受影响。如果这些问题答不出来，单仓仅仅增加了工具配置成本。\n\n   第一张图：目录不是依赖图\n\n   text\nrepo/\n  apps/web               React 消费者\n  apps/mobile            React Native 消费者\n  apps/api               NestJS 消费者\n  packages/contracts     数据契约\n  packages/domain        纯业务逻辑\n   \n\n真正重要的是有方向的边  consumer → dependency 。例如： api → domain → contracts ， mobile → contracts 。方向不能凭文件夹名字猜测，而应来自每个  package.json  的实际依赖声明。 domain  如果意外依赖了  apps/api ，即使 TypeScript 能编译，也会形成不合理的逆向边界。\n\n   三张容易混淆的图\n\n  图   节点是什么   边代表什么   解决哪类问题  \n --- --- --- --- \n  包依赖图   package / project   消费者依赖提供者   是否产生循环、变更影响谁  \n  TS Project References 图   tsconfig 项目   声明文件构建先后    tsc -b  的拓扑编译  \n  任务图    web:build  /  api:test    执行前置条件   调度、并行、缓存、CI  \n\n这三张图通常相关，但  并不相同  。举例： web  在运行时依赖  contracts ，但  web:lint  并不一定需要先执行  contracts:build 。把每个任务全部依赖所有上游任务，会让正确性看似安全却极端缓慢。\n\n   最小验证：先从仓库读取事实\n\n进入本专题的参考工程，运行：\n\n   bash\nnode scripts/graph.mjs\nnode scripts/affected.mjs packages/domain/src/index.ts\nnode --test tests/ .test.mjs\n   \n\n第一条从每个包的  dependencies  读取边、检测循环并输出拓扑顺序；第二条从变化文件定位直接所属包，再求  反向依赖闭包  ；第三条验证这些规则没有被重构破坏。这些工具仅是教学实现，不会冒充 Nx 或 Rush 的完整能力。\n\n   设计约束：先写出禁止边\n\n-  packages/contracts  不依赖 UI 框架、NestJS、Node 文件系统；它应该能被移动端安全消费。\n-  packages/domain  可以依赖契约，但不应依赖具体 HTTP Controller 或 React 组件。\n-  apps/   是装配层，可以依赖下游库；下游库不应反向导入应用代码。\n- 如果多个应用共享 UI，Web UI 与原生 UI 需要判断是否真的共享运行时或只是共享 design tokens。\n\n   自检问题\n\n某人说「我们已经用 pnpm Workspace，所以有缓存、affected 和发布治理」。这句话混淆了哪些层？应怎样用证据逐项验证？\n",
+    "href": "knowledge/monorepo/unit-01/"
+  },
+  {
+    "title": "pnpm Workspace：严格依赖是怎么形成的",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "workspace:、幽灵依赖、符号链接与安装布局",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected pnpm Workspace：严格依赖是怎么形成的",
+    "body": "    workspace:  的价值不是方便，而是阻止错误来源\n\n假设  @knowverse/domain  的  package.json  声明了  \"@knowverse/contracts\": \"workspace: \" 。pnpm 会把它解释为仓库内的工作区包，而不是将来有机会从 npm registry 下载的同名包；如果包在本地不存在，安装就应失败。相比允许 registry 回退的普通版本范围，这是更明确的来源契约。<a href=\"https://pnpm.io/workspaces\" pnpm Workspace 官方说明</a 。\n\n   yaml\n  pnpm-workspace.yaml\npackages:\n  - 'apps/ '\n  - 'packages/ '\n   \n\n   json\n// packages/domain/package.json\n{\n  \"name\": \"@knowverse/domain\",\n  \"dependencies\": {\"@knowverse/contracts\": \"workspace: \"}\n}\n   \n\n  注意  ： workspace:   约束了依赖来源，不等于自动检查架构规则。例如它不会阻止  contracts → api  的不合理依赖，也不会自动创建 TypeScript 项目引用。\n\n   为什么 node_modules 不应被视作唯一真相\n\npnpm 使用内容寻址 store 与链接组织依赖。不同 pnpm 版本、node linker 配置、hoist 策略会影响实际目录。开发者偶尔在根目录能  import  一个并未在当前包声明的包，不代表这个引用受工程保护；它可能是被某个安装模式或编辑器环境意外暴露的  幽灵依赖  。\n\n检查时不要仅执行  ls node_modules 。更可靠的做法是读取每个包的  dependencies ，执行严格的独立构建，并在 CI 运行 import 边界检查。对 React Native 来说，还应实测 Metro 是否正确处理工作区符号链接、 exports  条件和平台扩展名，而不能因为 Node.js 能解析就假定移动端也能解析。\n\n   正向与反向过滤器的区别\n\n在 pnpm 官方过滤语法中， foo...  选择  foo  和它的依赖； ...foo  选择  foo  和它的被依赖者。记住：  箭头朝向依赖，但 changed 影响往往反向传播  。\n\n   bash\npnpm --filter '@knowverse/api...' run build       API 以及上游依赖\npnpm --filter '...@knowverse/domain' run test      Domain 以及依赖它的包\npnpm --filter '...[origin/main]' run test           相对基准变更及相关依赖者\n   \n\n第三条命令要求 Git baseline 在 CI 中可用。浅克隆、没有 fetch 对应分支、rename / root config 变化都可能让选择结果与直觉不符。pnpm 11/12 的过滤语义细节要看  运行版本  ，不要从多年以前的博客复制命令。\n\n   可复现实验：制造一个幽灵依赖\n\n1. 创建  packages/domain/src/illegal.ts ，尝试  import  一个未在  domain/package.json  声明的依赖。\n2. 不要先手工安装到根目录；直接执行从干净状态的类型检查和构建。\n3. 再在根目录临时安装依赖，观察为什么本机偶尔能运行而 CI 未必能够。\n4. 删除依赖声明，要求检查工具能够报出准确的  包名、文件位置、缺少的声明  ，而不是依赖系统是否“刚好找得到”。\n\n   容易被忽略的另一侧：peerDependencies\n\nReact 和 React Native 等运行时有宿主单例与版本兼容要求。共享 UI 库可能应使用 peer dependency，而非在自己包里安装第二份 React。  peerDependencies 是消费者需提供兼容宿主依赖的约定  ，与 workspace 依赖来源是不同维度。必须验证实际依赖树、运行时单例和 bundler 的处理。\n\n   诊断题\n\n foo...  和  ...foo  哪个适合「改动基础类型库，筛出需要运行测试的消费者」？如果修改根  pnpm-workspace.yaml ，为什么只筛出一个包可能不安全？\n",
+    "href": "knowledge/monorepo/unit-02/"
+  },
+  {
+    "title": "TypeScript Project References 的真正边界",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "声明产物、复合项目、增量构建与编辑器体验",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected TypeScript Project References 的真正边界",
+    "body": "   references 不是路径别名，也不是 npm dependencies\n\n一个常见误解是：在  tsconfig.json  写了  paths ，两个包就已经形成可靠的构建依赖。实际上  paths  影响的是模块查找映射，  不会改写运行时导入路径  ，也不能替你保证发布包的  exports  有效。Project References 的作用不同：它把多个 TypeScript 编译项目连接成有向图，使  tsc -b  按顺序检查并生成声明文件。\n\n   json\n// 根 tsconfig.json：solution 模式\n{\n  \"files\": [],\n  \"references\": [\n    {\"path\": \"./packages/contracts\"},\n    {\"path\": \"./packages/domain\"},\n    {\"path\": \"./apps/api\"}\n  ]\n}\n   \n\n   json\n// packages/domain/tsconfig.json\n{\n  \"extends\": \"../../tsconfig.base.json\",\n  \"compilerOptions\": {\"rootDir\": \"src\", \"outDir\": \"dist\"},\n  \"include\": [\"src/  / .ts\"],\n  \"references\": [{\"path\": \"../contracts\"}]\n}\n   \n\n共享配置里要给引用目标启用  composite  和  declaration ，并确保所有源文件明确落在  include  中。 declarationMap  支持跨项目的编辑器跳转； .tsbuildinfo  能帮助 TypeScript 增量判断。官方文档明确：普通  tsc -p    不会  自动像  tsc -b  那样构建引用依赖。\n\n   四个具体阶段\n\n1. 读取根 solution references，得到构建入口。\n2. 递归加载每个项目引用，检测环与输出配置。\n3. 先编译  contracts ，产生  dist/index.d.ts  和  dist/index.js 。\n4. 后续  domain  使用依赖声明文件进行类型检查， api  再消费  domain  的类型产物。\n\n这里存在  两种合同  ：TypeScript 检查用的  .d.ts  和 Node/Metro 执行用的  .js 。二者可能不一致，例如  types  指向新接口，但  exports.default  指向了旧实现。代码能在 IDE 里自动补全，不能证明 Node 运行就正确。\n\n   一次真实故障\n\n把  contracts  里的  StudyEvent.state  改成  state: 'done'   'pending' ，不修改  domain 。如果  domain  仍检查  state === 'fulfilled' ， tsc -b  应在消费者发现类型错误。这才是  共享契约带来的受控破坏  ：由 CI 及时失败，避免三个端在运行后才出现语义漂移。\n\n   ESM 与 NodeNext\n\nTypeScript 项目在  module: 'NodeNext' 、 type: 'module'  的组合下，需要考虑最终 JS 的文件扩展名、条件导出和包入口。 export  目录只暴露  dist ，不要依赖  src  路径别名直接供运行时消费。Web bundler 和 Metro 可能支持不同的条件组合，必须按环境验证。\n\n   运行实验\n\n   bash\npnpm install\npnpm exec tsc -b --verbose\npnpm exec tsc -b --dry\npnpm exec tsc -b --clean\n   \n\n参考工程在本地使用 TypeScript 5.8.3 做过实际编译验证。示例语法以兼容性为优先，不代表所有项目应停留在这个版本；升级 TS 大版本时需要对 Compiler API、eslint 插件、RN/Metro 和 Nest 构建链路单独做兼容矩阵。\n\n   诊断题\n\n如果根  tsconfig.json  有 references，但只执行  tsc -p apps/api ，为什么不能假设上游包会自动重建？如果使用  paths  指向  contracts/src ，又有什么隐患？\n",
+    "href": "knowledge/monorepo/unit-03/"
+  },
+  {
+    "title": "包入口：types、exports 与跨端条件导出",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "把公共 API 做成可执行边界，而不是文件夹约定",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 包入口：types、exports 与跨端条件导出",
+    "body": "   包边界存在三层，缺一不可\n\n  源代码边界  ：开发者承诺不从另一个包的  src/internal/  深度导入。  类型边界  ：编译器只通过导出声明检查。  运行时边界  ：Node.js、Metro、Web bundler 必须把相同公开名称解析到正确的产物。只配置 ESLint 不足以解决运行时差异；只配置  exports  也未必能阻止所有构建工具绕过深度导入。\n\n   json\n{\n  \"name\": \"@knowverse/domain\",\n  \"type\": \"module\",\n  \"exports\": {\n    \".\": {\n      \"types\": \"./dist/index.d.ts\",\n      \"default\": \"./dist/index.js\"\n    }\n  }\n}\n   \n\n这是参考工程的最小出口设计。对 Node ESM 导出有效，并与 TS 项目引用的  dist  产物一致。在真正 React Native 共享库中，可能需要额外的  react-native 、 browser  等条件，  但不要在未测试 Metro 版本前抄一个复杂导出表  。不同版本的 Metro 对  exports  优先级、平台扩展名行为与符号链接处理有过变化。\n\n   为什么不直接共享 React 组件？\n\n contracts  可以共享数据结构、事件协议、网络消息 schema（必要时配合运行时验证），但  ui  常常更复杂。Web DOM 组件和 Native View 并非同一个运行时；共享样式 token 和无平台副作用的状态计算，通常比共享具体渲染实现更稳健。\n\n跨端代码建议拆为三个层次：\n\n-  contracts ：纯类型和跨端协议，理论上无框架依赖。\n-  domain ：业务规则，依赖 contracts；能在 Node 与浏览器运行。\n-  adapters ：React hook、RN 组件、Nest Controller 分别适配运行环境。\n\n  禁止的典型边  ： contracts → @nestjs/common 、 mobile → fs/promises 、 domain → react-native 。注意纯 TypeScript 类型  import type  虽然可在输出中擦除，也可能形成构建层依赖和工具链耦合；不能被当成无成本引用。\n\n   案例：声明产物与执行产物漂移\n\n如果  types  暴露  calculate(): number ，但  default  指向的旧 JS 返回字符串，TypeScript 消费者会通过，而运行时报错。解决策略不是把所有包都设成  any ，而是：先  tsc -b ，再针对导出后的  真实包入口  运行 Node ESM smoke test，并在 Web/RN 的打包流水线验证条件映射。\n\n   诊断题\n\n为什么「编辑器可自动补全」不是「包可以跨端运行」的证据？如果一个包需要区分 Node.js、浏览器和原生端，你会优先写哪三种契约测试？\n",
+    "href": "knowledge/monorepo/unit-04/"
+  },
+  {
+    "title": "任务图、增量构建与缓存键",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "什么可以缓存，什么必须重新执行",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 任务图、增量构建与缓存键",
+    "body": "   区分三种加速\n\n  增量跳过  ：本地已经构建过，且任务输入没有变化，直接跳过（可能需要原输出还在）。  缓存恢复  ：输入相同，系统从本地或远端保存的产物重新解包，无须实际构建。  远端分布式执行  ：任务交给其它工作节点，扩展并发能力。这三种优化经常被混为一个功能，实际上对稳定性、存储、权限和调度要求完全不同。\n\nRush 官方说明中，增量分析与 build cache 是两个不同机制：前者判断本地输出可否保留，后者缓存构建产物以便跨分支或机器恢复。Turbo 和 Nx 也通过明确  inputs 、 outputs 、任务依赖等机制管理缓存。\n\n   缓存键是正确性的数学约定\n\n可以抽象为：\n\n\\[K = H(\\text{source},\\text{lockfile},\\text{task config},\\text{env},\\text{toolchain},\\text{upstream outputs})\\]\n\n如果一个影响结果的输入不在哈希里，就可能出现  错误的缓存命中  。例如构建读取  FEATURE_MODE ，但缓存输入只包含源文件；切换  FEATURE_MODE  后任务仍从旧缓存恢复，页面功能与预期不一致。\n\n   text\n输入集合未变 → 可以尝试缓存恢复\n输入集合变化 → 必须重新计算对应任务\n输出声明不完整 → 即便缓存键正确，也可能恢复不完整构建产物\n   \n\n  提示  ：生产级缓存键还必须处理路径规范化、配置继承、命令参数、操作系统相关性和依赖任务产物。网页实验里的简化哈希仅用于教学，不是可复制的生产缓存实现。\n\n   任务依赖不等于受影响传播\n\n例如  web:build  依赖  contracts:build  完成，这只是调度前置条件。是否因为  contracts  代码变化而重新执行  web:build ，还需要看  web:build  的输入是否包含了上游代码/产物。在 Nx 24 的 task-based affected 里，官方特别强调：   dependsOn  本身不会使任务被判定为 affected  。这是依赖图、任务图、输入图的关键区别。\n\n   反直觉案例：测试修改影响 build 吗？\n\n修改  packages/domain/test/calculation.test.ts ：包级 affected 可能粗粒度地选择  domain  及其消费者的全部任务；任务级 affected 在正确配置  inputs  的前提下，可以只重跑测试而跳过产物不变的 build。这种精确性有代价：如果  build  隐式读取测试快照却未声明，跳过反而是错误。\n\n   实验任务\n\n进入「缓存键实验台」，先让  MODE  不纳入键，构建一次  MODE=A  后切换  MODE=B  并重跑。观察错误复用；再把环境变量纳入键，确认必须重新构建。\n\n   诊断题\n\n构建任务恢复成功但缺少  dist/assets ，你优先怀疑缓存键、outputs 声明还是 pnpm 安装？为什么？\n",
+    "href": "knowledge/monorepo/unit-05/"
+  },
+  {
+    "title": "Affected：从文件变更到任务的精确传播",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "反向依赖闭包、Git 基准和 Nx 24 任务级判定",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected Affected：从文件变更到任务的精确传播",
+    "body": "   一条变化如何扩散\n\n以图  api → domain → contracts 、 web → domain 、 mobile → contracts  为例：修改  domain  的生产源码，应首先标记  domain ，再沿「谁依赖 domain」反向走到  api  与  web ； mobile  并不依赖  domain ，因此不该自动纳入。同理，改  contracts  会触及所有消费者。\n\n这里必须明确  方向约定  ：包依赖图的边通常画成「消费者 → 提供者」，但受影响传播应沿反向边。这是很多教程把 affected 图画错的根源。\n\n   从项目级 affected 走向任务级 affected\n\n早期工具往往先找受影响项目，再运行被请求的每项任务。Nx 24（2026 年 10 月）则把任务级 affected 作为新仓库默认策略：任务是否被选取主要取决于其  inputs  和相关上游输入，并允许测试文件变化只触发  test 。官方迁移文档提示，升级现有仓库可能通过  affected.legacy: true  保留旧策略，必须显式检查配置；不能只看 CLI 版本就认定启用了新算法。\n\n   text\npackage graph:  web → domain → contracts\n                 api ↗\n\naffected(project): changed(domain) → {domain, web, api}\naffected(task):    changed(domain/test) → test 输入命中；build 输入可不命中\n   \n\n为什么 task graph 的  dependsOn  不足以判断 affected？因为执行顺序依赖与变化读取之间缺少必然联系。 web:test  即使先跑  domain:build ，如果它实际上直接引用了 domain 的源码，但未声明任何相关上游输入，task-based affected 也可能错误跳过。\n\n   Git 基准的完整性\n\n git diff origin/main...HEAD  依赖 merge-base；CI 若只 shallow clone 一个提交，可能缺少所需基准，造成比较不完整或命令失败。对 monorepo 还要处理：根级配置、锁文件、catalog 版本、代码生成器、Git rename、跨平台文件名大小写。可接受的安全策略是对无法归属的全局变更  扩大受影响集合  而不是乐观跳过。\n\n   一套可审计的输出\n\nAffected 工具至少应输出：变更文件列表、文件到包的归属理由、传播路径、被选中的任务和任务输入依据。这比只打印一行  5 projects affected  有用得多。诊断时要回答「为何这个包受影响」和「为何那个包没有受影响」。\n\n   交互练习\n\n打开「依赖图实验室」，点  domain  并选  test only ：比较项目级和任务级输出；切换  source  再观察差异。注意实验里用了教学化输入模型，真实 Nx 应以  nx affected --graph  和  --explain  以及对应配置为准。\n\n   诊断题\n\n如果  domain:build  已缓存，而  web:test  仍必须重跑，这两件事矛盾吗？需要怎样声明它们各自的输入？\n",
+    "href": "knowledge/monorepo/unit-06/"
+  },
+  {
+    "title": "Rush 治理：从单仓编排到组织契约",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "发布变更文件、严格版本策略与构建缓存",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected Rush 治理：从单仓编排到组织契约",
+    "body": "   为什么有些组织选择 Rush\n\n在仓库包数量多、应用团队独立、发布节奏不同、需要审计变更的组织里，单纯「有一条快的 build 命令」不足以解决问题。真正昂贵的是依赖失控、版本策略不一致、发布流水线不透明和变更责任缺失。Rush 的设计偏向集中规定规则，让跨项目操作有统一的流程入口。\n\n本专题保留历史讨论的结论：  Rush 是有前提的倾向，不是所有仓库的首选  。当团队规模、包数量、发布审计要求确实能抵消治理成本时，Rush 才可能成为合理选择。\n\n   三种经常被误解的能力\n\n1.   安装管理  ：Rush 可以管理其下的 pnpm 配置、锁版本和一致性策略；它不等于用一个独立魔法安装器替代 npm 生态。\n2.   增量构建 / 缓存  ： rush build  可以利用输入状态跳过无需重做的构建；启用 build cache 后可从保存的产物恢复。两者不同。\n3.   发布治理  ：公开包的变更文件、版本策略、发布动作有一条可审计的链路；不是  rush publish  永远安全地自动推送。\n\n   发布闭环：change → version → publish\n\n rush change  为公开包的变化登记类型与描述；维护者或 CI 可以用  rush change --verify  约束缺失的变更文件。版本整理过程考虑 change files 和 version policy； rush publish  支持只读预览及显式发布行为。具体命令组合和权限要按官方版本文档配置，并且发布步骤应要求独立审批，不能仅凭  main  新提交就自动发布。\n\n   text\n开发者改公共 API\n   ↓\n登记 changelog / semver 影响\n   ↓\nCI 验证变更文件与依赖一致性\n   ↓\n版本变更预览 / review\n   ↓\n打包、验签、发布和回滚证据\n   \n\n   构建缓存的可信边界\n\n假设一个  react-native  包的构建输出依赖 Xcode 配置、Hermes 版本、环境变量和 CodeGen 输入。如果缓存键只包含 JavaScript 文件，那么跨机器恢复的产物可能不可用。先把构建描述完整，才能讨论远端缓存与 Cobuild。远端缓存的共享策略还要考虑谁可以写缓存、是否可以由不可信 PR 污染、产物是否含敏感数据。\n\n   与 Nx 的正确比较\n\nNx 的项目图和边界规则更容易直接回答「谁依赖谁」，也有基于任务输入的 affected 能力；Rush 偏整体工程治理和发布纪律。两者并不在每一个维度直接对应同一种实现。比较时把「哪一层解决什么」拆开，避免把偏好当作功能事实。\n\n   诊断题\n\n一个只有 6 个内部包、从不向 npm 发布、团队 3 人的仓库，是不是也必须上 Rush？怎样量化它带来的收益？\n",
+    "href": "knowledge/monorepo/unit-07/"
+  },
+  {
+    "title": "工具选型：pnpm、Turbo、Nx、Rush",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "把宣传指标转成可验证的决策矩阵",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 工具选型：pnpm、Turbo、Nx、Rush",
+    "body": "   我们不做没有前提的冠军榜\n\npnpm Workspace 是  工作区与包管理基础  ，Turborepo 偏重任务编排与缓存，Nx 强于项目图、受影响任务、约束与云端能力，Rush 偏组织治理、版本与发布流程。几者不在同一层上，不应该用「五个工具谁最强」的标题直接做结论。\n\n  典型约束   先考察   为什么  \n --- --- --- \n  5—10 个包、少量 CI   pnpm alone   少引入一层工具成本  \n  CI 构建重复、输入输出清晰   Turbo   声明任务图与缓存就可能收益明显  \n  依赖可视化、模块边界、精细 affected   Nx   项目图和任务级 affected 是重要区分点  \n  大规模团队、发布审计、复杂版本策略   Rush   治理流程收益更大  \n\n这是工程判断的  起点  ，不是特性保证。具体方案还要衡量版本成熟度、团队技能、构建缓存命中率、跨端兼容成本和迁移锁定。\n\n   2026 的关键变化：Nx 24\n\nNx 24 的 task-based affected 默认策略与旧版的 project-based affected 不同。旧仓库升级可能仍保留兼容模式。由于影响任务的输入定义会决定是否跳过工作，验证工具时必须显式构造三个修改样本： src/ .ts 、 test/ .test.ts 、根配置文件。比较实际选中的 build、test、lint，而不是只看一个「affected 项目总数」。\n\n   一个可复现的 POC\n\n设定 5 包示例图（contracts、domain、web、mobile、api），为每个工具写同样的任务：类型检查、单元测试、产物构建。准备固定修改集：改  contracts 、改  domain  的测试、改  web  CSS、改锁文件。分别记录：\n\n1.   正确性  ：该重跑的任务是否重跑，该复用的产物是否可恢复。\n2.   性能  ：冷启动、热缓存、跨分支、跨 CI worker 的耗时。\n3.   治理  ：非法跨包 import 是否被阻止，发布计划可否审计。\n4.   可迁移性  ：是否需要换项目结构、改几十份配置才能退出。\n\n不要把空仓库微基准测试的结果推广到 150 包的生产仓库；也不要仅根据营销功能列表就假设缓存正确。\n\n   保留 Rush 的条件结论\n\n如果实际组织需要集中依赖治理、复杂版本策略、审核公开发布并且愿意投入工具维护，Rush 可能更适合。如果首要痛点是「看不清依赖关系」和「想先把 affected 跑对」，Nx 或更简单的自建边界检查通常更直接。工具选型是持续可审计的选择，不是一次无法推翻的信仰。\n\n   诊断题\n\n团队迁移 Rush 三个月后发布错误减少但日常开发变慢，你要看哪些数据才能判断继续还是回退？\n",
+    "href": "knowledge/monorepo/unit-08/"
+  },
+  {
+    "title": "React + React Native + NestJS 的跨端边界",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "共享模型不等于共享运行时",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected React + React Native + NestJS 的跨端边界",
+    "body": "   跨端最容易犯的错：把 TypeScript 等同于可移植性\n\n同一个  .ts  文件能被三端类型检查，并不意味着它能运行在浏览器、Hermes 和 Node.js。举例：某个名为  utils  的包引入  node:crypto  或  fs ，然后被 React Native 消费；TypeScript 可能通过，但 Metro 构建或设备运行会失败。反过来，直接把  react-native  平台组件导入 API 也没有意义。\n\n因此跨端依赖边界首先按运行时分组，而不是先从复用率出发：\n\n   text\n                   contracts（纯协议）\n                  ↗       ↑       ↖\n      domain（纯逻辑）      │        mobile adapter\n       ↑          ↑        │\n   web adapter   api adapter\n   \n\n contracts  可以是基础类型、枚举、校验规则的抽象； domain  可以包含评分、计算、权限判断等纯业务规则；三个 adapter 负责 React 组件、RN UI 和 Nest Controller。若  domain  需要使用时钟、随机数、存储，就通过接口注入而不是直接调用平台 API。\n\n   Web 边界\n\nReact 应用由 bundler 管理运行时模块；需要检查内部库导出的 ESM / CJS 目标、CSS 副作用、SSR 等需求。共享包的  exports  不能只为 Node.js 设计。构建时可以先对纯逻辑库生成声明与 JS，再让 Vite 等 bundler 消费稳定公共入口。\n\n   React Native / Metro 边界\n\nMetro 的 workspace symlink、package  exports  与平台条件行为受具体 RN / Metro 版本影响。  不要依赖多年以前的 Metro 配置片段  ；应使用当前 RN 官方建议的 Metro 配置基线，并在 iOS 与 Android 两个平台实际打包。旧工程升级时要检查 package exports 的优先级是否使  .ios.ts  /  .android.ts  路径不再按旧规则命中。\n\n   NestJS 边界\n\nNest CLI 自身有标准/Monorepo 两种组织模式，但与 pnpm Workspace 或 Rush 的职责不同；Nest Monorepo 模式处理 Nest 应用/库的布局和构建，并不会自动管理整个 React + RN + Nest 的统一构建策略。实际案例可以把 Nest 放在  apps/api ，将跨端契约作为独立 workspace package；Nest Controller 不应泄漏到  contracts 。\n\n   迁移顺序\n\n1. 先整理重复 DTO、领域规则和副作用调用。\n2. 抽纯协议为  contracts ；抽纯函数为  domain ，为两者分别运行 Node 与 bundler smoke test。\n3. 将 API 的数据装配和认证逻辑留在  api  adapter。\n4. React / RN 分别消费公开 API，尽量不共享具体 View 渲染实现。\n5. 再增加缓存与任务编排；  功能正确优先于缓存命中率  。\n\n   诊断题\n\n跨端类型库里有一个  import type  指向  @nestjs/common ，虽然 TS 可以擦除类型导入，但这条依赖是否真的没有成本？为什么？\n",
+    "href": "knowledge/monorepo/unit-09/"
+  },
+  {
+    "title": "从代码治理到 AI Agent 的单仓闭环",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "边界检查、Spec Drift、证据图与发布审计",
+    "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 从代码治理到 AI Agent 的单仓闭环",
+    "body": "   「项目健康」不是单一 lint 通过率\n\n复杂 Monorepo 的稳定性取决于多个契约是否一致： package.json  声明的依赖， tsconfig  引用的构建关系，源代码的 import，文档中的架构边界，实际 CI 的 task inputs，以及发布记录。任何两者漂移都可能产生「本地能跑，CI 失败」或「CI 全绿，线上错误」。\n\n用户此前提出的工程治理闭环可以直接落在 Monorepo：  Goal → Plan → Build → Verify → Audit → Continue/Complete  。重点在于验收的证据来自执行而非 Agent 自我宣称。\n\n   四类自动化检查\n\n-   依赖声明  ：每个跨包 import 必须映射到  package.json  声明的本地依赖，禁止无声明直接读另一个包的  src 。\n-   架构边界  ：低层库不能依赖上层应用；React Native 禁止引入 Node-only 模块； contracts  不依赖 UI 框架。\n-   编译与运行一致性  ： tsc -b  成功后，还应运行 Node 包入口 smoke test、Web bundler 构建和 Android/iOS 验证。\n-   发布证据  ：变更基线、受影响任务、缓存命中、版本差异、回滚步骤都应保存在 CI 输出中。\n\n   AGENTS.md 是约束入口，不是魔法权限\n\nAgent 可以通过  AGENTS.md  读取仓库规则，例如：「修改 contracts 时必须跑全端类型检查」「RN 代码不允许使用  node:fs 」「禁止直接改生成的  .d.ts 」。但文本规则本身不会自动阻止 Agent 产生不合法修改。只有将规则映射到可执行脚本、CI 和审计证据，约束才有工程效力。\n\n   Evidence Graph：连接主张与证据\n\n每个关键需求至少保留一条证据链：\n\n   text\n目标：跨端共享 StudyEvent 不出现类型漂移\n  → 代码：packages/contracts/src/index.ts\n  → 依赖：domain / mobile / api 的 package.json\n  → 类型校验：tsc -b\n  → 运行验证：Node API / RN Metro 打包\n  → CI 记录：commit SHA、环境与执行日志\n   \n\n这样既可诊断 Spec Drift，也可为未来的 Coding Agent 提供可追溯的变更上下文。自动修复任务应先检测不一致，再提出修改，最后通过同一验证门禁；不能把「Agent 说已完成」当成验收。\n\n   迁移里程碑与退出条件\n\n  M0  ：只有目录，没有明确依赖；记录幽灵依赖和跨包 import。  M1  ：所有依赖声明显式、基本包边界检查通过。  M2  ：TypeScript 构建图可靠；改变公共契约能让错误准确暴露。  M3  ：affected 与缓存加入，记录正确性和耗时。  M4  ：发布与审计闭环，能安全回滚。若 M1 未成立，直接上线 M3 可能把错误固化为“高命中缓存”。\n\n   诊断题\n\n当代码文档说  contracts  不应依赖  api ，但真实 import 已经出现这条边，应该相信谁？怎样组织 CI 才能及时让漂移失败？\n",
+    "href": "knowledge/monorepo/unit-10/"
+  },
+  {
+    "title": "依赖图与 Affected",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "点击包、切换源码/测试文件，比较项目级与任务级影响。",
+    "tags": "Monorepo interactive lab diagram affected cache",
+    "body": "点击包、切换源码/测试文件，比较项目级与任务级影响。",
+    "href": "knowledge/monorepo/labs/graph/"
+  },
+  {
+    "title": "缓存键失效实验",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "亲手移除环境变量输入，观察一次错误缓存命中。",
+    "tags": "Monorepo interactive lab diagram affected cache",
+    "body": "亲手移除环境变量输入，观察一次错误缓存命中。",
+    "href": "knowledge/monorepo/labs/cache/"
+  },
+  {
+    "title": "Project References 构建机",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "按步骤触发 contracts → domain → api 的类型编译与产物验证。",
+    "tags": "Monorepo interactive lab diagram affected cache",
+    "body": "按步骤触发 contracts → domain → api 的类型编译与产物验证。",
+    "href": "knowledge/monorepo/labs/build/"
+  },
+  {
+    "title": "Monorepo 真实参考工程",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "五包 TypeScript workspace，Node graph / affected / tsc -b",
+    "tags": "pnpm TypeScript starter source code download",
+    "body": "contracts domain web mobile api reference project and node tests",
+    "href": "knowledge/monorepo/starter/"
+  },
+  {
+    "title": "Monorepo 工程案例",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "四个故障驱动的迁移案例",
+    "tags": "Rush Nx24 pnpm React Native",
+    "body": "# 工程案例库\n\n> 下面是根据常见工程故障构造的教学案例，不是未经授权的真实企业事故记录。\n\n## Case 01 · 从多仓复制 DTO 到统一 contracts\n\n**故障场景**：三个应用分别定义 LessonState，后端将 fulfilled 改成 completed，RN 仍使用旧枚举。\n\n**处理方案**：抽出零平台依赖的 contracts；消费者只引用包入口；先在三端跑真实编译，再提交缓存优化。\n\n**验收证据**：记录三个端的旧字段引用；让编译在错误处失败；Node API、Web bundler、Metro 双平台打包均通过。\n\n**反模式**：只建立 types 包并不意味着运行时数据有校验。来自 HTTP 的不可信对象仍应经过运行时 schema 验证。\n\n## Case 02 · CI 从 42 分钟降到更短，先确保不错判\n\n**故障场景**：一个单测文件变更触发全仓 build，迁移团队试图引入 task-based affected。\n\n**处理方案**：先定义 build/test 的 inputs 与 outputs；用 source、test、lockfile 各三种变化测试 affected 的正确性，再测时间。\n\n**验收证据**：每种变更有执行任务列表、原因和缓存命中记录；对全局变化采取保守扩大策略。\n\n**反模式**：Nx 24 新仓库默认 task-based affected，旧仓迁移可能保留 affected.legacy=true；不能忽略。\n\n## Case 03 · 为什么早期不急着引入 Rush\n\n**故障场景**：团队仅 4 个包，没有公开 npm 发布；CI 低于 5 分钟，但想象中的未来扩张导致配置越来越复杂。\n\n**处理方案**：先 pnpm Workspace + 显式 package dependencies + TypeScript refs + boundary checks；等发布治理成为真实成本再评估 Rush。\n\n**验收证据**：两周内能读出跨包错误、构建图可预测，项目成员能独立解释依赖边界。\n\n**反模式**：工具在组织复杂度不成立时可能增加部署与培训负担；Rush 的适配条件不能被忽略。\n\n## Case 04 · React Native 看得到类型但设备启动失败\n\n**故障场景**：packages/domain 引入 Node-only API，通过 tsc -b，但 Metro 在 Android 打包失败。\n\n**处理方案**：将平台副作用移到 api adapter；domain 使用依赖注入纯接口。单测之外加入 Android/iOS bundling 和启动验证。\n\n**验收证据**：Node smoke test、Web build、RN 两个平台 bundle 均通过，包 exports 条件无歧义。\n\n**反模式**：Metro 的 symlink、exports 与平台文件选择取决于版本。用 Node 解析成功不能替代设备验证。\n\n",
+    "href": "knowledge/monorepo/cases/"
+  },
+  {
+    "title": "幽灵依赖取证：为什么本机能跑、CI 却失败",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "从 import → package.json → node_modules → lockfile → bundler 查找真正的依赖边界",
+    "tags": "pnpm Nx24 Rush TypeScript Metro NestJS troubleshooting",
+    "body": "# 幽灵依赖取证：为什么本机能跑、CI 却失败\n\n## 先确定故障不是一个问题，而是四种不同的问题\n\n**声明缺失**：`packages/domain` 从 `lodash` 导入工具函数，但自己的 `package.json` 没有声明这个包。由于根目录恰好安装过 lodash，本机解析成功，干净 CI 失败。**运行时分歧**：Node 能解析 `exports` 的 `default` 分支，Metro 却选择另一套条件，某端打包失败。**类型/运行时不一致**：TypeScript 找到了 `.d.ts`，最终 JS 入口却不提供某个符号。**构建顺序问题**：消费者先于提供者运行，声明产物尚未生成。\n\n把这四类混成「pnpm 有 bug」会把排查引到错误方向。每次排障先写下：错误发生在安装、类型检查、bundle 还是设备运行阶段？出现在哪个项目包？是否可在删除 node_modules 后复现？\n\n## 证据链 01：确认包所有权与声明\n\n打开报错文件，找到最小导入，例如：\n\n```ts\n// packages/domain/src/calc.ts\nimport { parseScore } from '@knowverse/contracts';\n```\n\n然后逐项检查：`packages/domain/package.json` 的 `dependencies` 是否包含 `@knowverse/contracts`；其版本是否使用明确的 `workspace:` 约束；工作区是否实际包含对应的包路径；名称是否与包 `name` 精确一致。`paths` 配置不能代替这一步，因为它只影响 TS 模块查找，不保证 Node 或 Metro 的可运行入口。\n\n## 证据链 02：用干净安装复现\n\n```bash\n# 保存必要文件后，在一个独立的临时工作树执行\npnpm install --frozen-lockfile\npnpm --filter @knowverse/domain exec node -p 'process.cwd()'\npnpm --filter @knowverse/domain run build\n```\n\n若当前仓库没有 lockfile，`--frozen-lockfile` 会失败，这正是输入不完整的信号；先在开发分支生成并审查锁文件，而不是在 CI 偷偷允许更新锁文件。还要核对团队配置的 linker、hoist、peer 处理策略，不能用肉眼看 `node_modules` 推断可靠性。\n\n## 证据链 03：TS、Node 和 Metro 分开验证\n\n`tsc -b` 正确说明类型编译图与声明产物成立；`node -e \"import('@knowverse/domain')\"` 才会验证 Node 条件导出；Web bundle 必须在项目 bundler 上跑；RN 还要运行当前 Metro 版本的 Android/iOS bundle。一次 TS 通过不是四次运行成功。\n\n如果报 `ERR_PACKAGE_PATH_NOT_EXPORTED`，重点检查消费者是否深度导入了未导出的子路径；不要靠修改 node_modules 内文件救火。如果某端找错入口，记录实际条件分支、扩展名和平台 resolver 的版本。\n\n## 自动化防复发\n\n在 PR 上添加一条 package boundary 检查：解析每个包的 import，检测外部依赖是否被当前包显式声明；内部依赖必须经过公开包名，不得跨越 `src/`；遇到动态加载或依赖生成器的边，输出需要人工审查的提示，不假装静态分析能覆盖所有调用。\n\n再加一条清洁构建：从新的 workspace 安装、构建、运行导出入口。失败日志必须打印 package、导入语句、预期依赖位置和实际解析结果。多端工程还需要单独报告 Metro / Web bundler 的产物验证结果。\n\n## 思考\n\n如果一个 `import type` 因编译擦除没有出现在 JS 里，它是否完全没有工程成本？考虑编辑器声明跳转、编译图、类型工具版本和 CodeGen 后再回答。\n\n## 参考\n\n- [pnpm Workspace](https://pnpm.io/workspaces)\n- [Node packages / exports](https://nodejs.org/api/packages.html)\n- [React Native Metro](https://reactnative.dev/docs/metro)\n",
+    "href": "knowledge/monorepo/guides/ghost-deps/"
+  },
+  {
+    "title": "Nx 24 任务级 Affected 迁移实战",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "区分图结构变化、输入命中、执行前置条件和迁移旧配置",
+    "tags": "pnpm Nx24 Rush TypeScript Metro NestJS troubleshooting",
+    "body": "# Nx 24 任务级 Affected 迁移实战\n\n## 先问：旧仓库是不是仍在 Legacy 模式？\n\nNx 24 在新项目里把 **task-based affected** 作为默认策略，但已有工作区通过升级迁移可能保留 `affected.legacy: true`。检查版本、迁移结果、工作区 `nx.json` 以及本次 CI 环境变量覆盖。不同机器如果一边是 legacy、一边是 task-based，得到不同结果并不令人意外。官方说明（2026-10-29）强调，新算法主要根据任务自己的 inputs 和所配置的上游输入判定，而不是仅按被修改的 package 扩散整个任务集合。\n\n## 为什么依赖存在却不一定运行任务\n\n设 `web:build` 需要先执行 `ui:build`，这个 `dependsOn` 表示调度约束。但是 UI 测试文件的变化不一定影响 web 构建产物；如果 `web:build` 的 `inputs` 仅包含 production files、上游 production files，则 UI 的测试变更可以被合理跳过。反之，如果 web 的 bundler 从 UI 目录读取生成的 `dist/`，但你没有把这项输出声明为 `outputs` 或对应输入，任务级精确性可能导致错误跳过。\n\n这是构建系统的本质：**正确的跳过比更快的跳过重要**。\n\n## 一套从粗到细的迁移步骤\n\n1. 固定一个可以复现的 Git baseline；确保 CI 能获取 merge-base，而不是只 checkout 一个提交。\n2. 保留旧 CI 运行日志和 job 时间，记录被选中的 project 和 task。\n3. 为关键目标明确 `inputs`、`outputs`：`build`、`test`、`lint` 最好按实际读取文件拆开。\n4. 用 source / test / generated output / root lockfile 四类变更重复执行 affected，逐项对照真实构建结果。\n5. 消除未声明的隐式输入（环境变量、配置继承、CodeGen、依赖二进制），再启用任务级策略。\n6. 对比两种模式运行任务列表和失败率；若节省时间但漏掉该重跑的任务，迁移应回滚。\n\n```bash\n# 以 Nx 官方文档和本仓 Nx 实际版本为准\nnx affected -t build test --graph\n# 观察为什么某项任务被选中（各版本支持的解释参数可能变化）\nnx affected -t build --explain\n```\n\n## 四个不可偷懒的检验场景\n\n**A：只修改 `domain/test`**。测试应该重跑，生产 build 可以跳过，前提是测试文件真的不参与 build。**B：修改 `contracts/src` 的公开 API**。所有读取它的消费者构建/测试应按声明输入受到影响。**C：修改工作区 lockfile 或 TypeScript 共享配置**。可能需要扩大选择范围，不能把它归属到单个包。**D：删除生成文件并从远端缓存恢复**。检查 artifacts 是否完整，尤其是 DTS、JS、map、静态资源。\n\n## 对比 Rush 与 pnpm\n\nRush 的项目选择、增量构建与远程缓存存在自己的配置约束；pnpm `--filter ...[origin/main]` 能筛出依赖者但不等于完整任务输入判定。用同一份故障样本比较，不要把它们的命令名字当成等价算法。\n\n## 验收\n\n任何一个受影响任务都应能回答：改变了哪个文件？属于哪个项目？被哪个 `inputs` 规则命中？需要哪个上游任务作为执行前置？命中/恢复缓存依据是什么？如果 CI 只能回答“因为 Nx 说需要”，工程证据仍不够充分。\n\n## 参考\n\n- [Nx 24 版本说明](https://nx.dev/blog/nx-24-release)\n- [Nx Affected 文档](https://nx.dev/docs/features/ci-features/affected)\n",
+    "href": "knowledge/monorepo/guides/nx24-affected/"
+  },
+  {
+    "title": "Rush 治理落地：什么时候值得引入",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "发布策略、变更文件、构建缓存、安全边界和退出机制",
+    "tags": "pnpm Nx24 Rush TypeScript Metro NestJS troubleshooting",
+    "body": "# Rush 治理落地：什么时候值得引入\n\n## 前提：不要把规模想象成需求\n\n一个 5 包仓库、所有包都不公开发布、CI 只需几分钟，直接引入 Rush 可能只会制造配置与学习负担。相反，当仓库已经达到几十到数百包、存在多个团队、统一锁定依赖版本、要求审计 change files 或分支发布，Rush 的集中治理才可能创造超过维护成本的收益。历史讨论中的倾向「Rush（有前提）」本来就应理解为这个条件句，而不是全体仓库的固定答案。\n\n## 第一阶段：只做可测量的治理\n\n在迁移 Rush 之前记录一个基线：跨包改动平均牵涉几个项目、每周幽灵依赖数量、单次冷构建与增量构建耗时、重复版本冲突数量、公开发包失败与回滚次数。首先保证每个 package 的依赖声明准确；没有准确依赖图时，任何编排器都会被迫补偿不一致的事实。\n\n## 第二阶段：版本一致性与发布策略\n\nRush 官方推荐的一致性检查可以帮助团队识别同一依赖被不同项目使用不兼容版本的情况，但这不意味着永远只能有一个版本；有些迁移必须采用受控的替代版本策略。对于公开包，先明确 lockstep / independent 等版本策略，配合 change files 和审核流程；对仅供仓库内使用的私有包，未必需要完整 npm 发布流程。\n\n```text\n代码和契约变更\n   ↓\n公共包变更文件（说明 major/minor/patch）\n   ↓\nCI 规则验证 + 影响分析 + 构建测试\n   ↓\n版本计划预览 / 审核\n   ↓\n正式发布 / 留存产物 / 可回滚\n```\n\n`rush change` 为变更提供结构化证据，`rush change --verify` 可检查需要变更文件的修改。`rush version`、`rush publish` 的行为应按仓库版本策略和实际命令文档配置；绝不能把只读预览与带发布开关的真正发布混为一谈。\n\n## 第三阶段：构建缓存\n\n把 `rush build` 在本机基于输入跳过任务，与从存储恢复历史产物的 build cache 分开测试。启用缓存前先检查 `outputs` 是否完整、是否包含平台特异产物、源码生成输入是否已声明以及缓存写入是否可信。不可信 PR 贡献者不应获得可以污染受保护分支缓存的权限；缓存档案不应含令牌、私钥和未脱敏个人数据。\n\n## 第四阶段：组织规则与 Agent\n\n将仓库规则写到 `AGENTS.md` 是好的入口，但它必须关联到可执行检查：禁止底层依赖顶层、公开 API 破坏时的版本更新、受影响端的真实 bundle、构建缓存验证。只有 CI 可以独立验证这些规则，Agent 才能依据同一验收契约完成任务；否则规则会变成仅供阅读的文档。\n\n## 引入失败的退出条件\n\n连续两个月开发者平均改动耗时明显增加，而构建时间、发包正确率、依赖冲突指标没有改善；或者工具更新频繁需要大量手动修改。这时应回到能力清单，保留有价值的边界规则与测试，将任务图编排恢复为较轻的 pnpm 或其它方案。避免为了证明选型正确而隐藏成本。\n\n## 参考\n\n- [Rush Build Cache](https://rushjs.io/pages/maintainer/build_cache/)\n- [Rush Publishing](https://rushjs.io/pages/maintainer/publishing/)\n- [Rush Recommended Settings](https://rushjs.io/pages/maintainer/recommended_settings/)\n",
+    "href": "knowledge/monorepo/guides/rush-rollout/"
+  },
+  {
+    "title": "跨端 Monorepo：React、RN 与 NestJS 排障清单",
+    "topic": "TypeScript Monorepo 深度课程",
+    "summary": "TypeScript 共享逻辑、Metro exports、Node 运行时与服务端独立验证",
+    "tags": "pnpm Nx24 Rush TypeScript Metro NestJS troubleshooting",
+    "body": "# 跨端 Monorepo：React、React Native 与 NestJS 排障清单\n\n## 共享类型，为什么仍可能无法运行\n\n一个类型纯净的 `contracts` 包可能被 React、React Native 和 NestJS 消费，但它的 JS 产物仍要面对三个不同的 resolver。Web bundler 可能把某些模块内联为浏览器代码；Metro 会考虑其自己的平台模块规则；Node.js 则依据 package `exports` 和实际 ESM/CJS 规则加载。能通过 `tsc -b` 只证明了类型编译图成立，不能替代 Web 与原生端的运行验证。\n\n## 第一步：把核心与平台适配分离\n\n推荐沿着依赖方向拆层：`contracts` → `domain` → `adapters`。在代码里代表的是**消费者到提供者**的导入方向（各端 adapter 依赖 domain 和 contracts），而不是让 contracts 向外调用组件。业务函数需要日期、随机数、文件系统等能力时，通过参数或接口从适配层注入；不要在纯逻辑包直接 import `node:fs`、React DOM 或原生 UI 模块。\n\n## 第二步：评估包公开入口\n\n```json\n{\n  \"name\": \"@knowverse/domain\",\n  \"type\": \"module\",\n  \"exports\": {\n    \".\": { \"types\": \"./dist/index.d.ts\", \"default\": \"./dist/index.js\" }\n  }\n}\n```\n\n这份基础入口适合示例中的 Node 运行环境。若真实包需要 `react-native`、`browser`、`import`、`require` 等条件，必须明确这些条件的选择顺序与目标文件，分别在 Node、Web、Metro 上验证。不要因为某篇旧文章提过 `unstable_enablePackageExports` 就在现在的项目中盲目使用同一开关；Metro 配置与版本演进已发生变化。\n\n## 第三步：React Native 的独立验收\n\n至少覆盖 iOS/Android 两个 bundle，检查 monorepo symlink、pnpm 实际 node linker、Hermes、Native Module 版本、平台扩展名和 CodeGen 输入。启动失败时按层排查：是否 package 无法解析？是否 Metro 选择了错误条件导出？是否 JS 运行时使用了 Node 专用 API？还是 Native 模块没有正确链接？这些不是同一个错误。\n\n对共享 UI 要区分三种诉求：统一样式 token、统一状态逻辑、统一具体组件。前两者通常成本较低；第三者可能需要跨平台组件抽象或分开实现。**“重复少一点”不是压倒所有平台限制的目标。**\n\n## 第四步：NestJS 的独立验收\n\nNest CLI 的 Monorepo 模式是一套围绕 Nest 应用和库的 CLI 组织模式，它不自动管理 pnpm Workspace 中 Web/RN 的整个任务图。可以把真正的 Nest 项目放在 `apps/api`，但 Controller、Provider、依赖注入装饰器等服务端实现必须留在适配层。公共 `contracts` 只定义跨端数据协议；对于网络请求数据还必须进行运行时校验，不能用 TypeScript interface 当作输入安全检查。\n\n## 第五步：CI 里的四段证据链\n\n1. **Node 参考工程**：`node --test` 验证纯逻辑依赖图和类型计算。\n2. **TypeScript Build**：`tsc -b` 验证 references、DTS 产物和消费者类型。\n3. **Web & API**：分别运行正式 bundler build 和 Nest 的真实启动烟雾测试。\n4. **React Native**：Android/iOS 都能 bundle，且最低支持设备可运行关键路径。\n\n只在前两步完成的仓库应声明「核心契约示例可运行」，而不应该标成「React/RN/Nest 三端生产工程已经完成」。这也是本专题 starter 严格区分教学适配器和真实框架项目的原因。\n\n## 参考\n\n- [React Native Metro](https://reactnative.dev/docs/metro)\n- [NestJS Monorepo](https://docs.nestjs.com/cli/monorepo)\n- [TypeScript Project References](https://www.typescriptlang.org/docs/handbook/project-references.html)\n",
+    "href": "knowledge/monorepo/guides/cross-platform/"
   }
 ]

@@ -1,59 +1,63 @@
-# 03 · TypeScript 项目引用
+# 03 · TypeScript Project References 的真正边界
 
-> 来源：结合历史 Monorepo 学习讨论整理的教学重构，不是聊天逐字备份。具体命令应以所采用工具的当前官方文档核实。
+> 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
 
-## 本章要解决什么
+## references 不是路径别名，也不是 npm dependencies
 
-分离源码依赖与类型编译依赖，让增量构建有清晰边界。
+一个常见误解是：在 `tsconfig.json` 写了 `paths`，两个包就已经形成可靠的构建依赖。实际上 `paths` 影响的是模块查找映射，**不会改写运行时导入路径**，也不能替你保证发布包的 `exports` 有效。Project References 的作用不同：它把多个 TypeScript 编译项目连接成有向图，使 `tsc -b` 按顺序检查并生成声明文件。
 
-## 核心概念
+```json
+// 根 tsconfig.json：solution 模式
+{
+  "files": [],
+  "references": [
+    {"path": "./packages/contracts"},
+    {"path": "./packages/domain"},
+    {"path": "./apps/api"}
+  ]
+}
+```
 
-### 1. tsconfig references
+```json
+// packages/domain/tsconfig.json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {"rootDir": "src", "outDir": "dist"},
+  "include": ["src/**/*.ts"],
+  "references": [{"path": "../contracts"}]
+}
+```
 
-**定义**：tsconfig references 是本章依赖关系与工程边界中的一个独立概念。学习时先定位它属于「包管理、编译、编排、治理」哪一层，再判断它与其它层的输入和输出。
+共享配置里要给引用目标启用 `composite` 和 `declaration`，并确保所有源文件明确落在 `include` 中。`declarationMap` 支持跨项目的编辑器跳转；`.tsbuildinfo` 能帮助 TypeScript 增量判断。官方文档明确：普通 `tsc -p` **不会**自动像 `tsc -b` 那样构建引用依赖。
 
-**检验方法**：建立一个最小双包仓库，记录该能力生效前后的构建日志、依赖路径和失败表现。不要仅根据 CLI 输出成功就断定依赖边界正确。
+## 四个具体阶段
 
-### 2. composite
+1. 读取根 solution references，得到构建入口。
+2. 递归加载每个项目引用，检测环与输出配置。
+3. 先编译 `contracts`，产生 `dist/index.d.ts` 和 `dist/index.js`。
+4. 后续 `domain` 使用依赖声明文件进行类型检查，`api` 再消费 `domain` 的类型产物。
 
-**定义**：composite 是本章依赖关系与工程边界中的一个独立概念。学习时先定位它属于「包管理、编译、编排、治理」哪一层，再判断它与其它层的输入和输出。
+这里存在**两种合同**：TypeScript 检查用的 `.d.ts` 和 Node/Metro 执行用的 `.js`。二者可能不一致，例如 `types` 指向新接口，但 `exports.default` 指向了旧实现。代码能在 IDE 里自动补全，不能证明 Node 运行就正确。
 
-**检验方法**：建立一个最小双包仓库，记录该能力生效前后的构建日志、依赖路径和失败表现。不要仅根据 CLI 输出成功就断定依赖边界正确。
+## 一次真实故障
 
-### 3. declaration
+把 `contracts` 里的 `StudyEvent.state` 改成 `state: 'done' | 'pending'`，不修改 `domain`。如果 `domain` 仍检查 `state === 'fulfilled'`，`tsc -b` 应在消费者发现类型错误。这才是**共享契约带来的受控破坏**：由 CI 及时失败，避免三个端在运行后才出现语义漂移。
 
-**定义**：declaration 是本章依赖关系与工程边界中的一个独立概念。学习时先定位它属于「包管理、编译、编排、治理」哪一层，再判断它与其它层的输入和输出。
+## ESM 与 NodeNext
 
-**检验方法**：建立一个最小双包仓库，记录该能力生效前后的构建日志、依赖路径和失败表现。不要仅根据 CLI 输出成功就断定依赖边界正确。
+TypeScript 项目在 `module: 'NodeNext'`、`type: 'module'` 的组合下，需要考虑最终 JS 的文件扩展名、条件导出和包入口。`export` 目录只暴露 `dist`，不要依赖 `src` 路径别名直接供运行时消费。Web bundler 和 Metro 可能支持不同的条件组合，必须按环境验证。
 
-### 4. tsc -b
+## 运行实验
 
-**定义**：tsc -b 是本章依赖关系与工程边界中的一个独立概念。学习时先定位它属于「包管理、编译、编排、治理」哪一层，再判断它与其它层的输入和输出。
+```bash
+pnpm install
+pnpm exec tsc -b --verbose
+pnpm exec tsc -b --dry
+pnpm exec tsc -b --clean
+```
 
-**检验方法**：建立一个最小双包仓库，记录该能力生效前后的构建日志、依赖路径和失败表现。不要仅根据 CLI 输出成功就断定依赖边界正确。
+参考工程在本地使用 TypeScript 5.8.3 做过实际编译验证。示例语法以兼容性为优先，不代表所有项目应停留在这个版本；升级 TS 大版本时需要对 Compiler API、eslint 插件、RN/Metro 和 Nest 构建链路单独做兼容矩阵。
 
-## 工程推演
+## 诊断题
 
-1. **问题定义**：写出当前仓库的包集合、运行环境和变更场景。
-2. **建立模型**：画出依赖方向，区分构建依赖与运行时依赖。
-3. **最小实验**：只修改一个包，观察安装、类型检查、测试和打包影响范围。
-4. **故障注入**：故意移除一个声明、改动一个公共接口或污染一个环境变量，检查系统是否能识别。
-5. **收敛决策**：记录约束、选型依据、成本和退出机制。
-
-## 必须警惕
-
-references 不是自动安装依赖，也不会自动建立运行时包边界。
-
-## 自测
-
-- 如果公共类型包改变，哪些消费者必须重新构建？为什么？
-- 当缓存命中但运行结果错误，你会检查哪些未纳入哈希的输入？
-- 当前方案在哪种仓库规模或团队组织下不再划算？
-
-## 延伸阅读
-
-- [pnpm Workspace](https://pnpm.io/workspaces)
-- [TypeScript Project References](https://www.typescriptlang.org/docs/handbook/project-references.html)
-- [Rush 官方文档](https://rushjs.io/)
-- [Nx 官方文档](https://nx.dev/)
-- [Turborepo 官方文档](https://turborepo.com/docs)
+如果根 `tsconfig.json` 有 references，但只执行 `tsc -p apps/api`，为什么不能假设上游包会自动重建？如果使用 `paths` 指向 `contracts/src`，又有什么隐患？

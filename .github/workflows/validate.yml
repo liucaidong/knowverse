@@ -18,3 +18,9 @@ jobs:
         run: python3 scripts/validate-promise.py
       - name: Check Promise semantic examples
         run: node scripts/verify-promise-model.mjs
+      - name: Validate Monorepo course and routes
+        run: python3 scripts/validate-monorepo-deep.py
+      - name: Test Monorepo reference graph and affected logic
+        run: cd knowledge/monorepo/starter && node --test tests/*.test.mjs
+      - name: Verify Monorepo browser lab mechanics offline
+        run: node --test scripts/verify-monorepo-labs.mjs

@@ -26,7 +26,7 @@ for f in root.rglob('*.html'):
   checked+=1
 pan=list((root/'assets/panoramas').glob('*.mmd'))
 svg=list((root/'assets/panoramas').glob('*.svg'))
-assert len(pan)==len(svg)==12,(len(pan),len(svg))
+assert len(pan)>=12 and {x.stem for x in pan}=={x.stem for x in svg},(len(pan),len(svg))
 for m in pan:assert m.read_text().startswith('flowchart LR'),m
 search=json.loads((root/'data/search.json').read_text())
 assert len(search)>=40,len(search)

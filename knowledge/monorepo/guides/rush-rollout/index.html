@@ -1,0 +1,31 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f4f8f7"><meta name="description" content="发布策略、变更文件、构建缓存、安全边界和退出机制"><title>Rush 治理落地：什么时候值得引入 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../../assets/css/monorepo-deep.css"></head><body><div class="topbar"></div><a class="skip" href="#main">跳过导航到正文</a><header class="sitehead"><div class="sitehead-inner"><a class="brand" href="../../../../">KNOW<span>VERSE</span></a><nav aria-label="网站导航"><a href="../../../../knowledge/">知识库</a><a href="../../../../lab/">原理实验室</a><a href="../../../../gallery/">知识展厅</a><a href="../../../../puzzles/">解谜世界</a><a href="../../../../timeline/">研究时间线</a></nav><a class="back-home" href="../../../../knowledge/monorepo/" aria-current="page">Monorepo 专题 ↗</a></div></header><main id="main"><div class="wide"><div class="breadcrumbs"><a href="../../">Monorepo 专题</a> / 实战手册</div><div class="reading"><div class="article-wrap"><div class="article-title"><div class="eyebrow">PRACTICE HANDBOOK / RUSH-ROLLOUT</div><h1>Rush 治理落地：什么时候值得引入</h1><p class="lead">发布策略、变更文件、构建缓存、安全边界和退出机制</p></div><article class="article"><h1>Rush 治理落地：什么时候值得引入</h1>
+<h2>前提：不要把规模想象成需求</h2>
+<p>一个 5 包仓库、所有包都不公开发布、CI 只需几分钟，直接引入 Rush 可能只会制造配置与学习负担。相反，当仓库已经达到几十到数百包、存在多个团队、统一锁定依赖版本、要求审计 change files 或分支发布，Rush 的集中治理才可能创造超过维护成本的收益。历史讨论中的倾向「Rush（有前提）」本来就应理解为这个条件句，而不是全体仓库的固定答案。</p>
+<h2>第一阶段：只做可测量的治理</h2>
+<p>在迁移 Rush 之前记录一个基线：跨包改动平均牵涉几个项目、每周幽灵依赖数量、单次冷构建与增量构建耗时、重复版本冲突数量、公开发包失败与回滚次数。首先保证每个 package 的依赖声明准确；没有准确依赖图时，任何编排器都会被迫补偿不一致的事实。</p>
+<h2>第二阶段：版本一致性与发布策略</h2>
+<p>Rush 官方推荐的一致性检查可以帮助团队识别同一依赖被不同项目使用不兼容版本的情况，但这不意味着永远只能有一个版本；有些迁移必须采用受控的替代版本策略。对于公开包，先明确 lockstep / independent 等版本策略，配合 change files 和审核流程；对仅供仓库内使用的私有包，未必需要完整 npm 发布流程。</p>
+<pre><code class="language-text">代码和契约变更
+   ↓
+公共包变更文件（说明 major/minor/patch）
+   ↓
+CI 规则验证 + 影响分析 + 构建测试
+   ↓
+版本计划预览 / 审核
+   ↓
+正式发布 / 留存产物 / 可回滚
+</code></pre>
+<p><code>rush change</code> 为变更提供结构化证据，<code>rush change --verify</code> 可检查需要变更文件的修改。<code>rush version</code>、<code>rush publish</code> 的行为应按仓库版本策略和实际命令文档配置；绝不能把只读预览与带发布开关的真正发布混为一谈。</p>
+<h2>第三阶段：构建缓存</h2>
+<p>把 <code>rush build</code> 在本机基于输入跳过任务，与从存储恢复历史产物的 build cache 分开测试。启用缓存前先检查 <code>outputs</code> 是否完整、是否包含平台特异产物、源码生成输入是否已声明以及缓存写入是否可信。不可信 PR 贡献者不应获得可以污染受保护分支缓存的权限；缓存档案不应含令牌、私钥和未脱敏个人数据。</p>
+<h2>第四阶段：组织规则与 Agent</h2>
+<p>将仓库规则写到 <code>AGENTS.md</code> 是好的入口，但它必须关联到可执行检查：禁止底层依赖顶层、公开 API 破坏时的版本更新、受影响端的真实 bundle、构建缓存验证。只有 CI 可以独立验证这些规则，Agent 才能依据同一验收契约完成任务；否则规则会变成仅供阅读的文档。</p>
+<h2>引入失败的退出条件</h2>
+<p>连续两个月开发者平均改动耗时明显增加，而构建时间、发包正确率、依赖冲突指标没有改善；或者工具更新频繁需要大量手动修改。这时应回到能力清单，保留有价值的边界规则与测试，将任务图编排恢复为较轻的 pnpm 或其它方案。避免为了证明选型正确而隐藏成本。</p>
+<h2>参考</h2>
+<ul>
+<li><a href="https://rushjs.io/pages/maintainer/build_cache/">Rush Build Cache</a></li>
+<li><a href="https://rushjs.io/pages/maintainer/publishing/">Rush Publishing</a></li>
+<li><a href="https://rushjs.io/pages/maintainer/recommended_settings/">Rush Recommended Settings</a></li>
+</ul>
+</article><div class="reader-nav"><a href="../../">← 返回专题</a><a href="../../starter/">查看参考工程 →</a></div></div><aside class="toc"><strong>进阶实战手册</strong><a href="../ghost-deps/">幽灵依赖取证：为什么本机能跑、CI 却失败</a><a href="../nx24-affected/">Nx 24 任务级 Affected 迁移实战</a><a href="../rush-rollout/">Rush 治理落地：什么时候值得引入</a><a href="../cross-platform/">跨端 Monorepo：React、RN 与 NestJS 排障清单</a></aside></div></div></main><footer class="footer">KNOWVERSE · Monorepo 系统学习 · 原理 → 实验 → 工程证据 · 资料校对：2026-10-30</footer></body></html>

@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';import { execFileSync } from 'node:child_process';
+test('contracts change affects dependents but not unrelated mobile consumer branching',()=>{const r=JSON.parse(execFileSync(process.execPath,['scripts/affected.mjs','packages/domain/src/index.ts'],{encoding:'utf8'}));assert.deepEqual(r.affected,['@knowverse/api','@knowverse/domain','@knowverse/web']);});
+test('root config change conservatively selects all packages',()=>{const r=JSON.parse(execFileSync(process.execPath,['scripts/affected.mjs','tsconfig.base.json'],{encoding:'utf8'}));assert.equal(r.affected.length,5)});
+test('graph has valid topological order',()=>{const out=execFileSync(process.execPath,['scripts/graph.mjs'],{encoding:'utf8'});assert.match(out,/Build order:/);assert.ok(out.indexOf('@knowverse/contracts')<out.lastIndexOf('@knowverse/api'))});
