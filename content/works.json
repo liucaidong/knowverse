@@ -1,0 +1,70 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-10-30",
+  "pillars": [
+    {
+      "id": "lab",
+      "title": "原理实验室",
+      "tagline": "理解知识",
+      "description": "精准模拟、单步运行、验证规律"
+    },
+    {
+      "id": "gallery",
+      "title": "沉浸式知识展厅",
+      "tagline": "感受知识",
+      "description": "三维探索、电影级镜头、空间叙事"
+    },
+    {
+      "id": "puzzles",
+      "title": "知识解谜世界",
+      "tagline": "运用知识",
+      "description": "探索未知、建立假设、解决机制谜题"
+    }
+  ],
+  "works": [
+    {
+      "id": "lab-microtasks",
+      "pillar": "lab",
+      "title": "微任务顺序观测站",
+      "subject": "JavaScript",
+      "level": "入门",
+      "kind": "experiment",
+      "status": "live",
+      "href": "./lab/",
+      "summary": "单步检查同步执行与微任务入队的区别"
+    },
+    {
+      "id": "gallery-promise",
+      "pillar": "gallery",
+      "title": "Promise · 运行宇宙",
+      "subject": "JavaScript",
+      "level": "入门",
+      "kind": "exhibition",
+      "status": "live",
+      "href": "./gallery/",
+      "summary": "可交互的视觉空间演示：状态、反应与时序"
+    },
+    {
+      "id": "puzzle-first",
+      "pillar": "puzzles",
+      "title": "异步时间线谜题",
+      "subject": "JavaScript",
+      "level": "入门",
+      "kind": "puzzle",
+      "status": "live",
+      "href": "./puzzles/",
+      "summary": "利用 Promise 调度机制推演正确事件顺序"
+    },
+    {
+      "id": "puzzle-world",
+      "pillar": "puzzles",
+      "title": "约定之境 · 3D 机制世界",
+      "subject": "JavaScript",
+      "level": "进阶",
+      "kind": "game",
+      "status": "live",
+      "href": "./puzzles/worlds/first-realm/",
+      "summary": "探索房间、激活装置，以机制推理开启出口"
+    }
+  ]
+}
