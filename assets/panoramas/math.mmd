@@ -1,0 +1,35 @@
+flowchart LR
+classDef hub fill:#10374a,color:#ffffff,stroke:#4a8b9a,stroke-width:2px;
+classDef node fill:#f0f7f6,color:#1b4452,stroke:#accfd0,stroke-width:1px;
+  subgraph G0["离散结构"]
+    N00["逻辑与集合"]
+    N01["关系与函数"]
+    N02["图论与证明"]
+  end
+  N00 --> N01
+  N01 --> N02
+  subgraph G1["线性代数"]
+    N10["向量 / 矩阵"]
+    N11["线性变换"]
+    N12["特征值 / SVD"]
+  end
+  N10 --> N11
+  N11 --> N12
+  subgraph G2["应用迁移"]
+    N20["计算机图形"]
+    N21["概率与金融"]
+    N22["机器学习"]
+  end
+  N20 --> N21
+  N21 --> N22
+  N02 ==> N10
+  N12 ==> N20
+  class N00 node
+  class N01 node
+  class N02 node
+  class N10 node
+  class N11 node
+  class N12 node
+  class N20 node
+  class N21 node
+  class N22 node

@@ -1,0 +1,38 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。"><title>历史会话笔记 · 主题总览 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../assets/css/v2.css"></head><body data-root="../../../" class="article"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/" >原理实验室</a><a href="../../../gallery/" >沉浸展厅</a><a href="../../../puzzles/" >解谜世界</a><a href="../../../timeline/" >会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">React Native · 新架构</a></div><div class="eyebrow">FROM JAVASCRIPT TO PIXELS / NOTE</div><h1>历史会话笔记 · 主题总览</h1><p class="lead">从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。</p><div class="stats"><span>专题：<strong>React Native · 新架构</strong></span><span>来源：<strong>既有知识库摘要</strong></span></div></div><div class="article-grid"><article class="reader"><h1>历史会话笔记 · 主题总览</h1>
+<blockquote>
+<p>来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。</p>
+</blockquote>
+<p>React Native 新架构：构建、启动与运行</p>
+<p>专题 03 / React Native 与移动端</p>
+<h1>主题定位</h1>
+<p>Build Time、App Startup、Runtime 三个阶段；JSI、TurboModules、Fabric 与调用/渲染/事件/资源四类数据流。</p>
+<h1>关键词</h1>
+<p>React Native · JSI · Fabric · TurboModules · Hermes · CodeGen · Yoga · Shadow Tree · Bridge · HostObject</p>
+<h1>当前状态</h1>
+<p>重点研究</p>
+<h1>目标与时间分层</h1>
+<p>把 React Native 新架构拆成 Build Time（构建）、App Startup（启动）和 Runtime（运行）三个阶段，不混淆代码生成、运行时绑定和渲染执行。</p>
+<h1>构建阶段</h1>
+<p>Hermes 的字节码/AOT 路线与 CodeGen 的类型驱动代码生成：关注哪些产物在编译期生成、哪些约束在 JS ↔ Native 两端落实。</p>
+<h1>启动阶段</h1>
+<p>JSI 运行时关联、TurboModule 注册/按需获取、Fabric 基础设施初始化；关注初始化顺序与线程上下文。</p>
+<h1>调用流 A</h1>
+<p>JavaScript 通过 JSI/TurboModule 进入 C++/Native 实现，同步和异步路径需单独分析；不能把「无需旧 JSON Bridge」误称为所有调用都是零成本或总是零拷贝。</p>
+<h1>渲染流 B</h1>
+<p>React 更新进入 Fabric Render → Commit → Mount 管线；Shadow Tree、Yoga 布局与 Native UI 更新分层理解，并注意具体线程调度与平台差异。</p>
+<h1>事件流 C</h1>
+<p>原生输入/事件经事件系统进入 JS 处理，再可能引起新一轮状态更新与渲染。</p>
+<h1>资源流 D</h1>
+<p>同时标注生命周期、线程协作、内存、异常边界和资源释放，避免只有「调用与渲染」的简化图。</p>
+<h1>比较与纠偏</h1>
+<p>旧 Bridge 与新 JSI 的差异不只是 JSON 换 C++：涉及模块接口、渲染系统、任务调度、同步能力与边界。需要持续对照 reactnative.dev 官方说明。</p>
+<h1>图示要求</h1>
+<p>可编辑思维导图提供三阶段主干；后续时序图应分别标出 JS、C++ 和 UI 线程并用四种颜色区分数据流。</p>
+<h1>原始资料与可信度</h1>
+<p>会话：2026-08 起，React Native 新架构全景图/源码解读</p>
+<p>Library：十六宫格 AI 技术知识地图.png</p>
+<p>Library：AI编程Agent全景实践图.png</p>
+<p>本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。</p>
+<h1>后续维护记录</h1>
+<p>最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。</p>
+<div class="source-note">本篇为可追溯知识整理，并非完整会话逐字稿。 <a href="./index.md">查看 Markdown 原文</a> · <a href="../">返回专题</a></div></article><aside class="sidelist"><strong>ON THIS PAGE</strong><a href="../">返回专题全景图</a><hr style="border:0;border-top:1px solid #d5e3e5;margin:22px 0"><a href="../">← 专题目录</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>把长期对话整理成可探索、可验证的知识系统 · V2 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、Rush、Fabric、金融、Agent…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script></body></html>

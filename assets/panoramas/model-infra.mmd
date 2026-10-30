@@ -1,0 +1,35 @@
+flowchart LR
+classDef hub fill:#10374a,color:#ffffff,stroke:#4a8b9a,stroke-width:2px;
+classDef node fill:#f0f7f6,color:#1b4452,stroke:#accfd0,stroke-width:1px;
+  subgraph G0["模型比较"]
+    N00["Qwen / GLM"]
+    N01["Nemotron / Muse"]
+    N02["准确率 / 成本 / 延迟"]
+  end
+  N00 --> N01
+  N01 --> N02
+  subgraph G1["访问与工具"]
+    N10["Grok CLI / NewAPI"]
+    N11["路由 / reasoning"]
+    N12["直连与配置"]
+  end
+  N10 --> N11
+  N11 --> N12
+  subgraph G2["算力资源"]
+    N20["T4 / P100 / V100"]
+    N21["A10 / A100 / L4"]
+    N22["H100 / 使用限制"]
+  end
+  N20 --> N21
+  N21 --> N22
+  N02 ==> N10
+  N12 ==> N20
+  class N00 node
+  class N01 node
+  class N02 node
+  class N10 node
+  class N11 node
+  class N12 node
+  class N20 node
+  class N21 node
+  class N22 node

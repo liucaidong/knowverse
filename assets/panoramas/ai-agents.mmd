@@ -1,0 +1,35 @@
+flowchart LR
+classDef hub fill:#10374a,color:#ffffff,stroke:#4a8b9a,stroke-width:2px;
+classDef node fill:#f0f7f6,color:#1b4452,stroke:#accfd0,stroke-width:1px;
+  subgraph G0["认知层"]
+    N00["LLM / Prompt"]
+    N01["RAG / 上下文"]
+    N02["Memory / State"]
+  end
+  N00 --> N01
+  N01 --> N02
+  subgraph G1["执行层"]
+    N10["MCP / Tool Registry"]
+    N11["Agent Loop"]
+    N12["Schema / Policy"]
+  end
+  N10 --> N11
+  N11 --> N12
+  subgraph G2["工程治理"]
+    N20["Human-in-the-loop"]
+    N21["评估与追踪"]
+    N22["权限 / 成本 / 质量"]
+  end
+  N20 --> N21
+  N21 --> N22
+  N02 ==> N10
+  N12 ==> N20
+  class N00 node
+  class N01 node
+  class N02 node
+  class N10 node
+  class N11 node
+  class N12 node
+  class N20 node
+  class N21 node
+  class N22 node

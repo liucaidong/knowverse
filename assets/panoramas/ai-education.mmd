@@ -1,0 +1,35 @@
+flowchart LR
+classDef hub fill:#10374a,color:#ffffff,stroke:#4a8b9a,stroke-width:2px;
+classDef node fill:#f0f7f6,color:#1b4452,stroke:#accfd0,stroke-width:1px;
+  subgraph G0["输入与理解"]
+    N00["Mac 阅读界面"]
+    N01["iPhone 实时画面"]
+    N02["OCR 与视觉理解"]
+  end
+  N00 --> N01
+  N01 --> N02
+  subgraph G1["教学代理"]
+    N10["Teacher / Tutor"]
+    N11["实时语音对话"]
+    N12["书本与题目解析"]
+  end
+  N10 --> N11
+  N11 --> N12
+  subgraph G2["反馈与演进"]
+    N20["作业 / 试卷批改"]
+    N21["学习状态追踪"]
+    N22["复习与反馈闭环"]
+  end
+  N20 --> N21
+  N21 --> N22
+  N02 ==> N10
+  N12 ==> N20
+  class N00 node
+  class N01 node
+  class N02 node
+  class N10 node
+  class N11 node
+  class N12 node
+  class N20 node
+  class N21 node
+  class N22 node

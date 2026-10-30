@@ -1,0 +1,370 @@
+[
+  {
+    "title": "AI Agent · 系统工程 · 全景图",
+    "topic": "AI 工程",
+    "summary": "模型、工具、上下文、权限、记忆与工作流的职责边界",
+    "tags": "MCP RAG Agent Loop AGENTS.md",
+    "body": "认知层 LLM / Prompt RAG / 上下文 Memory / State 执行层 MCP / Tool Registry Agent Loop Schema / Policy 工程治理 Human-in-the-loop 评估与追踪 权限 / 成本 / 质量",
+    "href": "knowledge/ai-agents/"
+  },
+  {
+    "title": "AI · 多模态教育 · 全景图",
+    "topic": "AI 产品",
+    "summary": "Mac × iPhone × 实时多模态 × 教育反馈闭环",
+    "tags": "Agent 实时音视频 StudyFetch Qwen Live",
+    "body": "输入与理解 Mac 阅读界面 iPhone 实时画面 OCR 与视觉理解 教学代理 Teacher / Tutor 实时语音对话 书本与题目解析 反馈与演进 作业 / 试卷批改 学习状态追踪 复习与反馈闭环",
+    "href": "knowledge/ai-education/"
+  },
+  {
+    "title": "AI 教育操作系统与多 Agent",
+    "topic": "AI Agent · 系统工程",
+    "summary": "曾讨论教育系统的九层：知识源、知识图谱、内容生成、多模态理解、片段搜索、多 Agent、学习引擎、反馈、生态。角色候选包括 Teacher、Mentor、Coach、Examiner、Socratic Tutor、Reviewer、Interviewer、Debater",
+    "tags": "MCP RAG Agent Loop AGENTS.md",
+    "body": "  AI 教育操作系统与多 Agent    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  曾讨论教育系统的九层：知识源、知识图谱、内容生成、多模态理解、片段搜索、多 Agent、学习引擎、反馈、生态。角色候选包括 Teacher、Mentor、Coach、Examiner、Socratic Tutor、Reviewer、Interviewer、Debater。  角色数量并不是质量指标。必须明确每个 Agent 的任务边界、共用学习状态、冲突处理、评估方式。适合先做闭环：资料 → 解释 → 学生作答 → 诊断 → 针对性复习，再扩展长时记忆与多角色协作。",
+    "href": "knowledge/ai-agents/chapter-02/"
+  },
+  {
+    "title": "Agent 记忆与数据库的关系",
+    "topic": "数据库 · 进化与内核",
+    "summary": "Agent 运行状态可以划分为工作记忆、情景记忆、语义记忆、程序性记忆；系统还需要事件日志、索引和可追踪的真相源。",
+    "tags": "SQLite SQL MVCC Raft",
+    "body": "  Agent 记忆与数据库的关系    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  Agent 运行状态可以划分为工作记忆、情景记忆、语义记忆、程序性记忆；系统还需要事件日志、索引和可追踪的真相源。  一个安全的抽象是：规范化状态或事务型数据库维护一致性；全文检索、向量检索与图查询作为派生索引支持召回。把向量相似度直接当作业务真相，容易产生不可审计的更新冲突。",
+    "href": "knowledge/database/chapter-03/"
+  },
+  {
+    "title": "JavaScript · Promise · 全景图",
+    "topic": "编程语言",
+    "summary": "从状态机到微任务调度，再到规范级解析与工程实践",
+    "tags": "ECMAScript Event Loop 单步动画 第14课",
+    "body": "状态与解析 pending / fulfilled / rejected resolve ≠ fulfill thenable / adoption 调度与链 Executor 同步 Promise reactions 事件循环与微任务 组合与应用 all / race any / allSettled 错误桥接与取消",
+    "href": "knowledge/promise/"
+  },
+  {
+    "title": "Mac × iPhone 多模态学习台需求",
+    "topic": "AI · 多模态教育",
+    "summary": "核心目标（2026-10-24）：Mac 大屏阅读，iPhone 支架作为实时摄像头，AI 能保持持续视频/语音沟通，讲解书本并审阅作业、试卷。",
+    "tags": "Agent 实时音视频 StudyFetch Qwen Live",
+    "body": "  Mac × iPhone 多模态学习台需求    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  核心目标（2026-10-24）：Mac 大屏阅读，iPhone 支架作为实时摄像头，AI 能保持持续视频/语音沟通，讲解书本并审阅作业、试卷。     mermaid flowchart LR  Phone[iPhone 摄像头] --  Stream[实时音视频通道]  Mac[Mac 阅读与标注] --  UI[学习台工作区]  Stream --  RT[实时多模态模型]  UI --  RT  RT --  Teacher[讲解 / 追问]  UI --  Scan[高清静态抓拍]  Scan --  Vision[视觉审阅 / OCR]  Vision --  Feedback[批改建议 / 学习档案]  Teacher --  Feedback      核心工程拆分：实时会话强调延迟和持续互动；高清作业批改强调细节、证据定位和可复查。两者可以共享学习档案，但不应为追求“全由单一模型承担”而牺牲输入质量。",
+    "href": "knowledge/ai-education/chapter-01/"
+  },
+  {
+    "title": "Promise 3D 游戏迭代档案",
+    "topic": "WebGL · 知识交互",
+    "summary": "历史探索经过《时序裂隙》《Async Laws · 双生因果》《星海回声》《光之约定》到《约定之境》。讨论焦点从“机制现实类比”与“执行机制图形化”过渡到“机制原生的 3D 规则世界”。",
+    "tags": "WebGL 3D 游戏设计 GitHub Pages",
+    "body": "  Promise 3D 游戏迭代档案    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  历史探索经过《时序裂隙》《Async Laws · 双生因果》《星海回声》《光之约定》到《约定之境》。讨论焦点从“机制现实类比”与“执行机制图形化”过渡到“机制原生的 3D 规则世界”。  产品评审反复指出：镜头流畅不等于玩家理解目标，界面应让玩家知道自己是谁、要做什么、如何操作和为什么机关生效。V1 已有两个 3D 入口并保存部分历史单文件作品；V2 重点是整理知识档案与作品链接，而非继续无边界重做游戏。",
+    "href": "knowledge/creative/chapter-03/"
+  },
+  {
+    "title": "RAG / MCP / Agent 三层职责",
+    "topic": "AI Agent · 系统工程",
+    "summary": "RAG 是检索证据进入模型上下文的机制，MCP 是标准化连接外部资源/工具的协议，Agent 则在目标约束下组织推理、工具调用、状态更新与验证。不能把三者当作互斥替代。",
+    "tags": "MCP RAG Agent Loop AGENTS.md",
+    "body": "  RAG / MCP / Agent 三层职责    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。    RAG   是检索证据进入模型上下文的机制，  MCP   是标准化连接外部资源/工具的协议，  Agent   则在目标约束下组织推理、工具调用、状态更新与验证。不能把三者当作互斥替代。     mermaid flowchart LR  User[用户目标] --  Agent[Agent / Planner]  Agent --  Model[LLM 推理]  Agent --  RAG[RAG 检索证据]  Agent --  Policy[Schema / Policy]  Policy --  MCP[MCP / Tool Adapter]  MCP --  Systems[外部系统]  Systems --  Audit[执行结果 / 审计]  Audit --  Agent      一个反复出现的工程准则是：  LLM 负责推理，Schema 负责约束，Policy 负责授权，Domain Logic 负责正确性，Database 负责一致性  。对外部输入和工具返回始终防范 Prompt Injection，关键写操作保留 human-in-the-loop。",
+    "href": "knowledge/ai-agents/chapter-01/"
+  },
+  {
+    "title": "React / React Native / NestJS 项目结构",
+    "topic": "TypeScript · Monorepo",
+    "summary": "场景为 React + React Native + NestJS + pnpm。根问题不是“选哪一个工具”，而是依赖关系不明确。",
+    "tags": "pnpm Rush Nx Turborepo",
+    "body": "  React / React Native / NestJS 项目结构    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  场景为  React + React Native + NestJS + pnpm 。根问题不是“选哪一个工具”，而是  依赖关系不明确  。     mermaid flowchart TD  subgraph Apps[应用层]   Web[apps/web · React]   Mobile[apps/mobile · React Native]   API[apps/api · NestJS]  end  subgraph Packages[共享包]   UI[packages/ui]   Types[packages/types]   Core[packages/core]  end  Web --  UI  Web --  Types  Mobile --  Types  API --  Core  API --  Types  Core --  Types      依赖应显式声明，包边界要有 lint/CI 校验。TypeScript  references  可加速多项目构建，但不能替代 workspace 的发布版本治理。建议先绘出真实依赖图再添加任务缓存，避免缓存掩盖错误依赖。",
+    "href": "knowledge/monorepo/chapter-02/"
+  },
+  {
+    "title": "React Native · 新架构 · 全景图",
+    "topic": "移动开发",
+    "summary": "Build → Startup → Runtime；JSI / TurboModules / Fabric 的系统全景",
+    "tags": "JSI Fabric CodeGen Hermes",
+    "body": "构建时 Hermes 编译 CodeGen 类型到胶水代码 启动时 JSI Runtime TurboModule 工厂 Fabric 初始化 运行时 JS ↔ C++ ↔ Native Render → Commit → Mount 事件与生命周期",
+    "href": "knowledge/react-native/"
+  },
+  {
+    "title": "TypeScript · Monorepo · 全景图",
+    "topic": "软件架构",
+    "summary": "严格依赖、受影响分析、任务缓存与发布治理",
+    "tags": "pnpm Rush Nx Turborepo",
+    "body": "基础结构 pnpm workspace 依赖图与边界 TypeScript 项目引用 编排与构建 Turborepo Nx / Nx Cloud Rush / Cobuild 工程治理 Affected analysis 缓存与发布 React / RN / NestJS",
+    "href": "knowledge/monorepo/"
+  },
+  {
+    "title": "WebGL · 知识交互 · 全景图",
+    "topic": "创意开发",
+    "summary": "电影级滚动叙事、Promise 空间游戏与三条产品主线",
+    "tags": "WebGL 3D 游戏设计 GitHub Pages",
+    "body": "可视化实验 代码执行驱动 时间线与单步 原理验证 沉浸展厅 Three.js / WebGL 空间叙事 镜头 / 粒子 / Bloom 机制解谜 现实类比 机制可视化 机制即世界规则",
+    "href": "knowledge/creative/"
+  },
+  {
+    "title": "三条产品主线的角色边界",
+    "topic": "WebGL · 知识交互",
+    "summary": "在 Promise 游戏的反复尝试中，清晰辨认了三种不同体验：",
+    "tags": "WebGL 3D 游戏设计 GitHub Pages",
+    "body": "  三条产品主线的角色边界    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  在 Promise 游戏的反复尝试中，清晰辨认了三种不同体验：  1.   原理实验室  ：知识等于可验证的运行轨迹。核心是准确性和可重复性。 2.   沉浸式知识展厅  ：知识等于有空间与时间组织的体验。核心是视听叙事和理解线索。 3.   知识解谜世界  ：知识等于可探索与利用的机制规则。核心是推理与可玩性。  早期实验将 Promise 类比现实运输或电路系统，用户认为隐喻门槛高、不易看懂；另一条路线直接把 Promise 内部调度图形化，又容易成为“带动画的笔记”。因此 V2 保持三条线彼此独立，知识库承担概念入口与链接，不再强迫游戏承载所有文字解释。",
+    "href": "knowledge/creative/chapter-01/"
+  },
+  {
+    "title": "东北话与英语语序对照",
+    "topic": "语言 · 英语与东北话",
+    "summary": "研究的焦点不是“哪种中国方言最像英语”，而是东北话在语义表达、信息结构、句子成分位置上与英语存在何种可迁移的规律。",
+    "tags": "东北话 英语语序 句法 时体",
+    "body": "  东北话与英语语序对照    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  研究的焦点不是“哪种中国方言最像英语”，而是东北话在语义表达、信息结构、句子成分位置上与英语存在何种可迁移的规律。  两个体系都经常呈现基本 SVO，但汉语强依赖语境与话题前置；英语对助动词、时体、冠词、介词、连词和定语从句的形式化要求更强。    转换训练  ：先识别角色与事件，再确定英文谓语与时态，随后安放宾语、地点、时间及附加信息；把字句常可回到主动 SVO，中文长前置定语通常改成英文后置从句。自然语言没有一一映射的绝对公式，需用真实语境检验。",
+    "href": "knowledge/language/chapter-01/"
+  },
+  {
+    "title": "从一条 SQL 追踪数据库内核",
+    "topic": "数据库 · 进化与内核",
+    "summary": "研究链条：Connection → Parser/AST → Catalog → Logical Plan → Optimizer → Physical Plan → Executor → Index/Page/Buffer Pool → MVCC/WAL → Comm",
+    "tags": "SQLite SQL MVCC Raft",
+    "body": "  从一条 SQL 追踪数据库内核    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  研究链条：Connection → Parser/AST → Catalog → Logical Plan → Optimizer → Physical Plan → Executor → Index/Page/Buffer Pool → MVCC/WAL → Commit。  存储内核重点包括页与 Buffer Pool、B-Tree/LSM、写前日志 WAL、事务隔离与 MVCC；分布式方向研究复制、分片、Raft/Paxos 与分布式 SQL；分析方向覆盖列存、向量索引与 Lakehouse。  建议以 SQLite / PostgreSQL 等公开实现观察概念落地，但不要把两个项目的具体架构混为同一个通用执行路径。",
+    "href": "knowledge/database/chapter-02/"
+  },
+  {
+    "title": "从存储到智能的进化链",
+    "topic": "数据库 · 进化与内核",
+    "summary": "讨论过的数据库进化主线：文件系统 → 层次/网状模型 → 关系模型与 SQL → 事务与 OLTP → NoSQL / 分布式 → NewSQL → 云、HTAP、Lakehouse → 向量数据库与 AI-Native 应用。",
+    "tags": "SQLite SQL MVCC Raft",
+    "body": "  从存储到智能的进化链    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  讨论过的数据库进化主线：文件系统 → 层次/网状模型 → 关系模型与 SQL → 事务与 OLTP → NoSQL / 分布式 → NewSQL → 云、HTAP、Lakehouse → 向量数据库与 AI-Native 应用。     mermaid flowchart LR  File[文件] --  Hier[层次 / 网状]  Hier --  Rel[关系 / SQL]  Rel --  Dist[分布式 / NoSQL]  Dist --  Cloud[NewSQL / Cloud]  Cloud --  AI[Vector / AI Native]      这是需求驱动的历史脉络，而不是每种系统已被下一种取代；现实中关系数据库、KV、列存、图与向量检索会长期共存。",
+    "href": "knowledge/database/chapter-01/"
+  },
+  {
+    "title": "免费 GPU 资源与评估原则",
+    "topic": "模型 · 算力与工具",
+    "summary": "研究方向为尽可能全面寻找免费 GPU：T4、P100、V100、A10、A100、L4、H100。“平台提供 GPU”不等于“任何人可长期免费使用指定型号”。",
+    "tags": "NewAPI GPU 推理成本 模型路由",
+    "body": "  免费 GPU 资源与评估原则    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  研究方向为尽可能全面寻找免费 GPU：T4、P100、V100、A10、A100、L4、H100。  “平台提供 GPU”不等于“任何人可长期免费使用指定型号”。    对每项资源记录：型号、真实免费额度、是否需要支付方式、会话时长、排队、地区、持久磁盘、休眠策略、模型部署难度和验证日期。不要把付费市场（如部分按量租赁服务）误记成无条件免费配额。",
+    "href": "knowledge/model-infra/chapter-02/"
+  },
+  {
+    "title": "千例金融学教材项目",
+    "topic": "金融学 · 案例与量化",
+    "summary": "2026 年 8 月开始构建“1000 个经典金融案例”的长篇教材，目标为几十万字的系统课程而非短摘要。设计包括基础金融学、资本市场、金融机构与危机、行为金融与新金融等册。既有 PDF 素材存于历史文件库；V2 只归档主题结构与已核实的总结，不声称原 1000 例全文已",
+    "tags": "1000案例 CPI 量化 风险",
+    "body": "  千例金融学教材项目    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  2026 年 8 月开始构建“1000 个经典金融案例”的长篇教材，目标为几十万字的系统课程而非短摘要。设计包括基础金融学、资本市场、金融机构与危机、行为金融与新金融等册。既有 PDF 素材存于历史文件库；V2 只归档主题结构与已核实的总结，不声称原 1000 例全文已发布。  案例模板：背景与问题 → 核心原理 → 变量/公式 → 计算 → 行为与激励 → 风险与反例 → 现实映射 → 复习题。典型案例是“今天的 100 元与明年的 100 元”，用于解释现值、终值、折现与复利。",
+    "href": "knowledge/finance/chapter-01/"
+  },
+  {
+    "title": "历史会话笔记 · 主题总览",
+    "topic": "JavaScript · Promise",
+    "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+    "tags": "ECMAScript Event Loop 单步动画 第14课",
+    "body": "  历史会话笔记 · 主题总览    来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。  ES Promise 从原理到工程实践  专题 01 / JavaScript 与 ECMAScript    主题定位  状态机、Promise Resolution Procedure、微任务队列、链式返回、组合 API 与边界案例；保留逐题诊断和待巩固项。    关键词  Promise · thenable · resolution · 微任务 · Event Loop · allSettled · race · finally · AggregateError · async/await    当前状态  进行中｜第14课后复习    学习目标  从原理解释 Promise 状态机、resolution procedure、任务调度和 API 行为；能用代码独立推导日志顺序、状态与错误传播。    核心概念：状态与解决过程  Promise 只有 pending / fulfilled / rejected 三种状态，状态落定后不可反转。resolve(x) 不等于立即 fulfilled；当 x 是 thenable 或 Promise 时，要经过采用与后续的解决流程。    核心概念：微任务  同步代码先执行；队列中的 Promise reaction jobs、queueMicrotask 回调按各自实际入队顺序执行。区分「注册 then」「Promise 落定」「任务入队」「任务执行」。    核心概念：链式调用  每次 then/catch/finally 一般返回新的 Promise。回调显式 return 值可决定下游兑现值；无 return 则返回 undefined；throw 会导致下游拒绝；返回 Promise/thenable 时下游跟随其最终结果。    组合 API 对照  all：全部兑现才兑现，遇拒绝则拒绝；allSettled：等待全部落定并按输入顺序给出状态；any：首个兑现胜出，全部拒绝时给 AggregateError，其 errors 保留输入顺序；race：首个落定结果胜出。    重点边界  thenable 的 then 属性读取与 then 方法调用并非同一时机；同一个解决流程一旦采用 resolve(inner)，晚到的 reject/throw 不可再改变结果；finally 可能通过返回拒绝 Promise 覆盖原链命运。    最新复习状态（2026-10-24）  课程已到第14课，并开始每周螺旋复习。用户对状态判断和组合 API 有积累，但对「resolved 与 fulfilled 区别」「采纳 inner 时机」「微任务实际入队时机」仍应反复验证；不能仅据选择题正确认定已掌握。    微任务例题：复盘顺序  复杂 thenable + inner + race + M1/M2 代码题中，需使用逐帧时间线而不是仅凭输出猜测。之前纠错版指出：get 同步、call 异步；inner fulfilled 后，p 并非必然同一时刻 fulfilled；race 的日志时间不等于 race 本体落定时间。    巩固策略  每轮题目只给一题，先不展示答案；用户回答后按「执行顺序 → 任务入队 → Promise 状态 → 错误传播 → 工程启示」分层诊断。建议为每道题记录选项、原始推理、漏洞和再测结果。    已有可复用资料  Library 已有 promise_a_b_microtasks_animation.html 与 promise_microtask_corrected_animation.html；是可检查的重要示例文件，但不代表整个课程已完整归档。    原始资料与可信度  会话：2026-10-12 至 10-24，《ES Promise 从原理到工程实践》与螺旋复习  Library：promise_a_b_microtasks_animation.html  Library：promise_microtask_corrected_animation.html  本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。    后续维护记录  最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。",
+    "href": "knowledge/promise/historical-overview/"
+  },
+  {
+    "title": "历史会话笔记 · 主题总览",
+    "topic": "TypeScript · Monorepo",
+    "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+    "tags": "pnpm Rush Nx Turborepo",
+    "body": "  历史会话笔记 · 主题总览    来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。  TypeScript Monorepo 与包管理治理  专题 02 / TypeScript 与工程架构    主题定位  pnpm workspace 基础、Rush/Nx/Turbo 的能力边界、受影响分析、任务缓存、发布与治理，核心痛点为依赖关系不清晰。    关键词  TypeScript · pnpm · Rush · Nx · Turborepo · affected · 缓存 · 发布编排 · 依赖关系 · repo graph    当前状态  持续研究    学习目标  让 pnpm workspace + React / React Native / NestJS 的代码库具备清晰依赖边界、可重复执行的任务编排和受影响分析。    工具分层  pnpm workspace：依赖安装与 workspace 基础；Turborepo / Nx / Rush：提供不同侧重的编排与治理能力。工具选型应依据仓库规模与治理要求，而不是单纯排名。    严格依赖与布局  pnpm 的严格布局减少隐式依赖；Rush 提供更集中、规范化的仓库安装/政策管理。是否选择 Rush 需要评估迁移成本、团队复杂度和治理收益。    受影响分析  pnpm --filter、turbo --affected、nx affected 和 rush --to/--from/--impacted-by 可从不同视角查询依赖关系；参数和行为要结合当前官方版本复核。    任务编排与缓存  Turborepo 注重任务图和缓存；Nx 注重项目图、affected 分析及任务编排；Rush 可结合其增量构建与协同构建能力。详细特性及云端能力以所用版本文档为准。    发布与边界  Rush 的 change/version/publish 流程、Nx release 与 Changesets 等有不同的发布治理模型；模块边界需结合 lint、路径限制、CODEOWNERS 或架构检查。    已形成的倾向（非最终决定）  此前用户倾向 Rush，但明确是「有前提的选择」。持续关注依赖关系不明确的问题，优先输出依赖图、边界规则和易于解释的受影响链路。    下一步学习/实践  建议用同一个示例仓库实施包分类、构建拓扑、跨包引用检查、affected 任务和 release 模拟，并记录工具版本。    原始资料与可信度  会话：2026-10-04/06，《Monorepo 工具选型对比》《精通 TypeScript Monorepo》  本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。    后续维护记录  最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。",
+    "href": "knowledge/monorepo/historical-overview/"
+  },
+  {
+    "title": "历史会话笔记 · 主题总览",
+    "topic": "React Native · 新架构",
+    "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+    "tags": "JSI Fabric CodeGen Hermes",
+    "body": "  历史会话笔记 · 主题总览    来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。  React Native 新架构：构建、启动与运行  专题 03 / React Native 与移动端    主题定位  Build Time、App Startup、Runtime 三个阶段；JSI、TurboModules、Fabric 与调用/渲染/事件/资源四类数据流。    关键词  React Native · JSI · Fabric · TurboModules · Hermes · CodeGen · Yoga · Shadow Tree · Bridge · HostObject    当前状态  重点研究    目标与时间分层  把 React Native 新架构拆成 Build Time（构建）、App Startup（启动）和 Runtime（运行）三个阶段，不混淆代码生成、运行时绑定和渲染执行。    构建阶段  Hermes 的字节码/AOT 路线与 CodeGen 的类型驱动代码生成：关注哪些产物在编译期生成、哪些约束在 JS ↔ Native 两端落实。    启动阶段  JSI 运行时关联、TurboModule 注册/按需获取、Fabric 基础设施初始化；关注初始化顺序与线程上下文。    调用流 A  JavaScript 通过 JSI/TurboModule 进入 C++/Native 实现，同步和异步路径需单独分析；不能把「无需旧 JSON Bridge」误称为所有调用都是零成本或总是零拷贝。    渲染流 B  React 更新进入 Fabric Render → Commit → Mount 管线；Shadow Tree、Yoga 布局与 Native UI 更新分层理解，并注意具体线程调度与平台差异。    事件流 C  原生输入/事件经事件系统进入 JS 处理，再可能引起新一轮状态更新与渲染。    资源流 D  同时标注生命周期、线程协作、内存、异常边界和资源释放，避免只有「调用与渲染」的简化图。    比较与纠偏  旧 Bridge 与新 JSI 的差异不只是 JSON 换 C++：涉及模块接口、渲染系统、任务调度、同步能力与边界。需要持续对照 reactnative.dev 官方说明。    图示要求  可编辑思维导图提供三阶段主干；后续时序图应分别标出 JS、C++ 和 UI 线程并用四种颜色区分数据流。    原始资料与可信度  会话：2026-08 起，React Native 新架构全景图/源码解读  Library：十六宫格 AI 技术知识地图.png  Library：AI编程Agent全景实践图.png  本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。    后续维护记录  最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。",
+    "href": "knowledge/react-native/historical-overview/"
+  },
+  {
+    "title": "历史会话笔记 · 主题总览",
+    "topic": "AI · 多模态教育",
+    "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+    "tags": "Agent 实时音视频 StudyFetch Qwen Live",
+    "body": "  历史会话笔记 · 主题总览    来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。  AI 学习台、Agent 与多模态教学  专题 04 / AI Agent 与教育产品    主题定位  Mac 阅读与 iPhone 摄像头结合、持续视频交互、讲解批改、开源 Agent 选型，以及角色音轨练习场景。    关键词  AI Agent · 教育工具 · Mac · iPhone · 实时视频 · 试卷批改 · DeepSeek harness · StudyFetch · 音轨分离    当前状态  方案研究    学习台场景  Mac 大屏阅读 + iPhone 支架摄像头实时输入 + AI 持续对话 + 书本讲解 / 作业批改 / 试卷审阅。    能力拆解  采集层：手机摄像头、音频、OCR/视觉理解；会话层：实时语音和多模态状态；工具层：笔记、检索、批改；端侧层：Mac 展示与 iPhone 采集。    候选路线  优先评估可调用摄像头流、支持低延迟会话及工具调用的方案，DeepSeek harness/桌面端的可扩展性不能直接等价于完整实时视觉教学系统。    产品扩展  英语口语角色替换练习需考虑影视音轨版权、角色分离质量、环境声音保真与可行的合法素材方案。    待验证  跨端实时音视频性能、可用 API、隐私、安全、试卷批改准确率与部署成本均需原型测试。    原始资料与可信度  会话：2026-10-24《搭建AI学习台方案》  会话：2026-10-26《介绍 StudyFetch 平台》  本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。    后续维护记录  最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。",
+    "href": "knowledge/ai-education/historical-overview/"
+  },
+  {
+    "title": "历史会话笔记 · 主题总览",
+    "topic": "模型 · 算力与工具",
+    "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+    "tags": "NewAPI GPU 推理成本 模型路由",
+    "body": "  历史会话笔记 · 主题总览    来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。  模型评测、API 工具与免费 GPU  专题 05 / 大模型与云端基础设施    主题定位  模型能力对照、CLI 代理和接入、新 API 部署记录、GPU 免费额度与平台条件。    关键词  Qwen · GLM · Nemotron · Muse · Grok CLI · NewAPI · GPU · T4 · A100 · H100 · 模型路由    当前状态  持续对比    模型评测  收集推理/编程/中文/速度/上下文/成本/可用性等维度；模型名称、规格及价格变化快，应附验证日期和官方来源。    CLI 与模型路由  曾研究 Grok CLI、newapi 私有部署、API 参数与 reasoning_effort；需区分历史尝试与当前有效配置，不在知识库保存密钥。    GPU 免费资源  候选 GPU 包括 T4、P100、V100、A10、A100、L4、H100；记录申请条件、持续额度、会话限制、存储、地域与风险。    待验证  免费额度与 API 能力波动大；本索引记录研究方向，不把历史快照当作 2026-10-30 的实时可用结论。    原始资料与可信度  会话：2026-09，多模型比较与免费 GPU 云资源  Library：Codex 多模型配置与 CC-SWITCH 路由全景图.png  本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。    后续维护记录  最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。",
+    "href": "knowledge/model-infra/historical-overview/"
+  },
+  {
+    "title": "历史会话笔记 · 主题总览",
+    "topic": "数据库 · 进化与内核",
+    "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+    "tags": "SQLite SQL MVCC Raft",
+    "body": "  历史会话笔记 · 主题总览    来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。  数据库进化史、SQLite 与计算机基础  专题 06 / 计算机基础与数据库    主题定位  数据库历史时间线、SQLite、工程基础及离散数学和线性代数学习入口。    关键词  数据库 · SQLite · 存储 · 关系模型 · 数据库进化史 · CocoaPods · CSRF · git bundle · 离散数学 · 线性代数    当前状态  系列学习    数据库学习主线  从文件与早期层级/网状数据库到关系模型、分布式/NoSQL、云原生与智能应用数据库。分清理论模型与具体产品世代。    SQLite  梳理事务、ACID、WAL、索引、嵌入式场景与移动端约束，未来可连到 React Native 本地数据层。    工程基础  CocoaPods、git bundle、CSRF/Ambient Authority 等独立主题以关键词检索，避免混入同一篇大杂烩。    数学  离散数学与线性代数曾提出系统学习需求；尚不将课程进度标成已完成。    已有资源  Library：数据库进化史：从存储到智能.png；数据库进化史信息图.png。    原始资料与可信度  会话：2026-10-01《数据库进化史》  Library：数据库进化史：从存储到智能.png  Library：数据库进化史信息图.png  本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。    后续维护记录  最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。",
+    "href": "knowledge/database/historical-overview/"
+  },
+  {
+    "title": "历史会话笔记 · 主题总览",
+    "topic": "金融学 · 案例与量化",
+    "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+    "tags": "1000案例 CPI 量化 风险",
+    "body": "  历史会话笔记 · 主题总览    来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。  金融学案例教材与投资研究  专题 07 / 金融、经济与量化    主题定位  金融基础、案例教材、资产风险与宏观因素、量化策略讨论；仅做知识组织，不代表投资建议。    关键词  金融学 · 1000案例 · 货币 · 资本市场 · 行为金融 · 利率 · 风险 · 量化 · 马丁 · 杠杆 · CPI    当前状态  教材与案例研究    金融案例结构  每个案例建议统一归档为「现象/背景—关键变量—金融原理—数据/计算—风险—反例—复习题」。    教材分类  基础金融学、资本市场、金融机构与危机、行为金融与新金融；已有对应四册 PDF（保留原文件，不在本包复制）。    研究主题  宏观利率、CPI 与 BTC、资产价格复利、杠杆与马丁类策略；必须区分学习案例与现实投资决策。    状态提醒  已有多个版本 PDF 和目录文件，先做去重核查再合并；文件名不能证明各卷内容完全独立或已经覆盖全部 1000 案例。    原始资料与可信度  Library：金融学案例教材_第一册_基础金融学.pdf  Library：金融学案例教材_第二册_资本市场.pdf  Library：金融学案例教材_第三册_金融机构与危机.pdf  Library：金融学案例教材_第四册_行为金融与新金融.pdf  Library：金融学案例教材_1000案例_第一卷样章与完整目录.pdf  本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。    后续维护记录  最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。",
+    "href": "knowledge/finance/historical-overview/"
+  },
+  {
+    "title": "历史会话笔记 · 主题总览",
+    "topic": "WebGL · 知识交互",
+    "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+    "tags": "WebGL 3D 游戏设计 GitHub Pages",
+    "body": "  历史会话笔记 · 主题总览    来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。  WebGL 叙事、前端工具及配置问题  专题 08 / 创意开发与实用工具    主题定位  单文件 WebGL/HTML 交互叙事、运行加载问题及工程工具路线。    关键词  WebGL · 滚动叙事 · Bloom · 3D · HTML · React Native vs Electron · Corepack · NestJS · Prompt Engineering    当前状态  实践与故障排查    WebGL 项目  主题为「一段提示词如何被大模型解析」，目标是单 HTML 的 3D 滚动叙事，电影级镜头/粒子/辉光。    排错记录  曾遇到打开 HTML 始终显示「正在加载」；优先检查外链模块可用性、CORS、本地 file:// 加载约束、GPU/浏览器支持及页面错误控制台。    复用资源  Library 已有 index.html 与 index-html-package.zip；具体是否成功运行需重新执行验证，不能据文件存在断言已修复。    相关研究  React Native vs Electron 桌面端、NestJS 与 Node 工具链、Corepack 等按工程实践问题分别追踪。    原始资料与可信度  会话：2026-10-21《HTML 制作提示词解析叙事页面》  Library：index.html  Library：index-html-package.zip  本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。    后续维护记录  最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。",
+    "href": "knowledge/creative/historical-overview/"
+  },
+  {
+    "title": "四类核心流与旧架构对照",
+    "topic": "React Native · 新架构",
+    "summary": "主要追踪四种流：A 调用流（JS → JSI/TurboModule → Native → 结果）；B 渲染流（state → Render → Commit → Mount → pixels）；C 事件流（Native event → C++/JSI → JS han",
+    "tags": "JSI Fabric CodeGen Hermes",
+    "body": "  四类核心流与旧架构对照    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  主要追踪四种流：A 调用流（JS → JSI/TurboModule → Native → 结果）；B 渲染流（state → Render → Commit → Mount → pixels）；C 事件流（Native event → C++/JSI → JS handler）；D 资源与生命周期（对象引用、线程、错误、GC）。    Fabric   的 Render/Commit/Mount 是理解渲染变化的主线；Yoga 负责布局计算，与实际 Mount 到平台视图是不同阶段。  TurboModules   通过 CodeGen 规格与 JSI 调用路径改善调用机制；JSI 并不意味着每种数据都“零拷贝”，具体行为取决于 HostObject/HostFunction 与接口设计。  旧 Bridge 常被概括为跨桥批量异步消息；新架构的 C++/JSI 路径减少了特定桥接开销，但“所有调用同步”“不存在任何序列化”都是过度概括。",
+    "href": "knowledge/react-native/chapter-02/"
+  },
+  {
+    "title": "工具能力矩阵与选型",
+    "topic": "TypeScript · Monorepo",
+    "summary": "本专题并不追求单一工具的绝对排名。讨论时先确定能力维度：依赖布局、受影响分析、任务图和缓存、发布编排、依赖边界导航、规模与治理。",
+    "tags": "pnpm Rush Nx Turborepo",
+    "body": "  工具能力矩阵与选型    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  本专题并不追求单一工具的绝对排名。讨论时先确定能力维度：依赖布局、受影响分析、任务图和缓存、发布编排、依赖边界导航、规模与治理。    维度   pnpm workspace   Turborepo   Nx   Rush    --- --- --- --- ---    严格依赖布局   核心能力   依赖包管理器   依赖包管理器   对安装和治理有强约束     Affected 分析   filter   affected   nx affected   to / from / impacted-by     任务图 / 缓存   脚本层实现   本地与远程缓存   图、缓存、云执行   分阶段构建与缓存     发布编排   常搭配 Changesets   常搭配 Changesets   Nx Release   Change→Version→Publish     依赖可视化   基础   较轻量   Graph / 边界规则   另需约束工具    原讨论倾向   Rush（有前提）  ：当仓库规模、严格性和发布治理的收益超过初始学习成本时选 Rush；若首要目标是可视化依赖边界与云端分布式执行，可考虑 Nx。以上为讨论形成的工程观点，具体 API 与当前支持情况仍需以各家官方文档为准。",
+    "href": "knowledge/monorepo/chapter-01/"
+  },
+  {
+    "title": "工程治理 · 开发工作流 · 全景图",
+    "topic": "软件工程",
+    "summary": "架构健康检查、文档与代码双向认证、Agent 工作流与交付质量",
+    "tags": "AGENTS.md Spec 治理闭环 质量",
+    "body": "规范与目标 AGENTS.md GOAL / Spec 文档结构与边界 执行与验证 依赖分析 测试 / 静态分析 Bug 修复与回归 交付闭环 版本 / 发布 配置 / 权限 可追溯与审计",
+    "href": "knowledge/engineering/"
+  },
+  {
+    "title": "工程治理闭环与 Spec 漂移",
+    "topic": "工程治理 · 开发工作流",
+    "summary": "既有讨论集中在项目健康体检、BUG 修复、文档与代码双向认证、测试完善、AGENTS.md 分类网关、Spec 漂移等。",
+    "tags": "AGENTS.md Spec 治理闭环 质量",
+    "body": "  工程治理闭环与 Spec 漂移    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  既有讨论集中在项目健康体检、BUG 修复、文档与代码双向认证、测试完善、AGENTS.md 分类网关、Spec 漂移等。     mermaid flowchart LR  Goal[目标与验收标准] --  Design[设计与依赖图]  Design --  Code[实现]  Code --  Test[测试 / 静态验证]  Test --  Docs[文档双向核对]  Docs --  Review[Review / 回归]  Review --  Goal      一个完整闭环应保留每项约束如何对应到代码、测试、文档与发布记录。AGENTS.md 适合约定 Agent 工作习惯与边界，但不能替代可靠的构建/测试和人类审批。",
+    "href": "knowledge/engineering/chapter-01/"
+  },
+  {
+    "title": "平台与 Agent 候选研究",
+    "topic": "AI · 多模态教育",
+    "summary": "讨论过 DeepSeek harness 桌面定制、Qwen 实时多模态、LiveKit Agents、Pipecat、Open-LLM-VTuber、Vision Agents、OpenMAIC、StudyFetch 等方向。GitHub 星数、产品支持和授权会变化，",
+    "tags": "Agent 实时音视频 StudyFetch Qwen Live",
+    "body": "  平台与 Agent 候选研究    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  讨论过 DeepSeek harness 桌面定制、Qwen 实时多模态、LiveKit Agents、Pipecat、Open-LLM-VTuber、Vision Agents、OpenMAIC、StudyFetch 等方向。  GitHub 星数、产品支持和授权会变化，不在此写成当前实时排名。    已形成的方向性结论是：harness 可作为  开发/调试工具  ，但不一定适合作为终端教学体验的运行宿主；更稳妥的方案是独立学习台前端与实时音视频层、课程层、批改层解耦。  另外研究过影视英语口语练习：用户扮演一个角色、该角色音轨静音、其他角色保留。原始多轨母带通常难以取得，源分离会产生泄漏或环境声损伤，因此需要明确音质目标与版权许可。",
+    "href": "knowledge/ai-education/chapter-02/"
+  },
+  {
+    "title": "开发工具与环境问题索引",
+    "topic": "工程治理 · 开发工作流",
+    "summary": "历史研究包括 React Native vs Electron 的 macOS 桌面端路径、CocoaPods、SQLite、Corepack、NestJS 源码、React Native 新架构，以及 Zed 的 Agent 线程导入和命令行代理工具。",
+    "tags": "AGENTS.md Spec 治理闭环 质量",
+    "body": "  开发工具与环境问题索引    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  历史研究包括 React Native vs Electron 的 macOS 桌面端路径、CocoaPods、SQLite、Corepack、NestJS 源码、React Native 新架构，以及 Zed 的 Agent 线程导入和命令行代理工具。  这些素材按“架构决策 / 环境搭建 / 故障排查 / 工程化”建立标签，而非将不同时点工具版本混写成统一的当前解决方案。",
+    "href": "knowledge/engineering/chapter-02/"
+  },
+  {
+    "title": "数学 · 离散与线代 · 全景图",
+    "topic": "基础学科",
+    "summary": "用结构、向量与概率刻画软件、图形和金融问题",
+    "tags": "线性代数 离散数学 图论 SVD",
+    "body": "离散结构 逻辑与集合 关系与函数 图论与证明 线性代数 向量 / 矩阵 线性变换 特征值 / SVD 应用迁移 计算机图形 概率与金融 机器学习",
+    "href": "knowledge/math/"
+  },
+  {
+    "title": "数据库 · 进化与内核 · 全景图",
+    "topic": "计算机基础",
+    "summary": "从文件系统与关系模型，到分布式一致性、向量检索与 Agent 记忆",
+    "tags": "SQLite SQL MVCC Raft",
+    "body": "模型演进 文件 / 层次 / 网状 关系 / SQL NoSQL / NewSQL 引擎内核 Page / Buffer Pool B-Tree / LSM / WAL MVCC / Optimizer 分布式与智能 Replication / Raft OLAP / Lakehouse Vector / AI Native",
+    "href": "knowledge/database/"
+  },
+  {
+    "title": "构建、启动、运行三阶段",
+    "topic": "React Native · 新架构",
+    "summary": "将新架构分为 Build Time / App Startup / Runtime：构建阶段产生 Hermes 字节码与 CodeGen 生成代码；启动阶段初始化 JS Runtime、JSI 绑定、TurboModule 注册、Fabric；运行阶段贯通 JavaSc",
+    "tags": "JSI Fabric CodeGen Hermes",
+    "body": "  构建、启动、运行三阶段    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  将新架构分为   Build Time / App Startup / Runtime  ：构建阶段产生 Hermes 字节码与 CodeGen 生成代码；启动阶段初始化 JS Runtime、JSI 绑定、TurboModule 注册、Fabric；运行阶段贯通 JavaScript、C++ 与平台 Native。     mermaid flowchart TD  subgraph Build[Build Time]  H[Hermes 编译] --  Bundle[字节码或包]  Schema[类型规格] --  CG[CodeGen] --  Glue[原生胶水代码]  end  subgraph Start[App Startup]  JSRT[JS Runtime / JSI] --  TReg[TurboModule 注册]  JSRT --  Fabric[Fabric 初始化]  end  subgraph Run[Runtime]  JS[JS 调用与状态] --  CPP[C++ 核心]  CPP --  Native[原生实现与 UI]  Native --  事件  JS  end  Bundle --  JSRT  Glue --  TReg  Fabric --  CPP      这是概念级全景，不意味着每一步在所有平台上都是线性和同步的。它服务于诊断问题：哪个操作发生在编译期、哪一层持有运行时对象、哪些跨线程边界会引入等待。",
+    "href": "knowledge/react-native/chapter-01/"
+  },
+  {
+    "title": "核心机制与状态机",
+    "topic": "JavaScript · Promise",
+    "summary": "Promise 的三个状态是 pending、fulfilled、rejected。一旦落定不可逆，但调用 resolve(x) 不等同于立即进入 fulfilled：当 x 是 thenable 或另一个 Promise 时，当前 Promise 可能进入已解决但尚未",
+    "tags": "ECMAScript Event Loop 单步动画 第14课",
+    "body": "  核心机制与状态机    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  Promise 的三个状态是  pending 、 fulfilled 、 rejected 。一旦落定不可逆，但调用  resolve(x)  不等同于立即进入 fulfilled：当  x  是 thenable 或另一个 Promise 时，当前 Promise 可能进入已解决但尚未落定的跟随过程。这个差别是课程第 14 课最重要的诊断点之一。     mermaid flowchart LR  P[pending] --  fulfill  F[fulfilled]  P --  reject  R[rejected]  P --  resolve thenable / Promise  A[采用其最终结果]  A --  F  A --  R      Executor 在构造  new Promise(executor)  时同步调用； .then  处理器并不会同步执行。即使来源已落定，反应也要通过 Promise jobs 调度。不要把“状态已变化”“reaction 已入队”“处理器开始执行”合并为同一瞬间。     js const inner = Promise.resolve(42); const a = Promise.resolve(inner); const b = new Promise(resolve =  resolve(inner)); console.log(a === inner, b === inner); // true false        学习诊断  ：先写出每个对象何时创建、何时绑定 reaction、何时入队，再做输出顺序预测；不要单凭最终打印结果倒推同步关系。",
+    "href": "knowledge/promise/chapter-01/"
+  },
+  {
+    "title": "模型 · 算力与工具 · 全景图",
+    "topic": "基础设施",
+    "summary": "大模型对照、CLI 接入、模型路由与 GPU 资源研究",
+    "tags": "NewAPI GPU 推理成本 模型路由",
+    "body": "模型比较 Qwen / GLM Nemotron / Muse 准确率 / 成本 / 延迟 访问与工具 Grok CLI / NewAPI 路由 / reasoning 直连与配置 算力资源 T4 / P100 / V100 A10 / A100 / L4 H100 / 使用限制",
+    "href": "knowledge/model-infra/"
+  },
+  {
+    "title": "模型路由与 CLI 研究记录",
+    "topic": "模型 · 算力与工具",
+    "summary": "讨论对象包括 Qwen、GLM、Nemotron、Muse 等模型，评估维度为推理、编程、中文、上下文、成本、延迟和模型可用性。型号与免费额度变化快，需要按“查询日期 + 官方来源 + 当前限制”保存快照。",
+    "tags": "NewAPI GPU 推理成本 模型路由",
+    "body": "  模型路由与 CLI 研究记录    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  讨论对象包括 Qwen、GLM、Nemotron、Muse 等模型，评估维度为推理、编程、中文、上下文、成本、延迟和模型可用性。型号与免费额度变化快，需要按“查询日期 + 官方来源 + 当前限制”保存快照。  曾实际使用 Grok CLI 接入私有部署的 NewAPI 兼容接口，并确认  grok inspect  读取成功。历史上研究过  reasoning_effort 、 extra_body 、TUI 配置和 yolo 等参数。切勿将访问令牌、私有域名与敏感配置直接提交到公开仓库。",
+    "href": "knowledge/model-infra/chapter-01/"
+  },
+  {
+    "title": "电影级 WebGL 滚动叙事",
+    "topic": "WebGL · 知识交互",
+    "summary": "2026-10-21 的创作目标为“提示词如何被大模型解析”的单 HTML 三维滚动页面。希望呈现 Apple 发布页 / Awwwards 电影级视觉：深色背景、体积光与 Bloom、曲线路径镜头、粒子生长、结构从底部搭建。",
+    "tags": "WebGL 3D 游戏设计 GitHub Pages",
+    "body": "  电影级 WebGL 滚动叙事    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  2026-10-21 的创作目标为“提示词如何被大模型解析”的单 HTML 三维滚动页面。希望呈现 Apple 发布页 / Awwwards 电影级视觉：深色背景、体积光与 Bloom、曲线路径镜头、粒子生长、结构从底部搭建。  曾遇到 HTML 打开一直“正在加载”与黑屏问题，说明交付需提供可运行离线/在线双路径，明确 CDN 依赖和 WebGL 不支持时的降级 UI；首页应避免以 3D 资源加载作为唯一的可见内容。",
+    "href": "knowledge/creative/chapter-02/"
+  },
+  {
+    "title": "离散数学学习路线",
+    "topic": "数学 · 离散与线代",
+    "summary": "面向编程与系统设计，建议从命题逻辑、集合、关系、函数、组合计数、图论与证明方法逐层推进。与 Monorepo 依赖图、状态机、数据库关系模型和 Agent 工作流之间建立示例关联。",
+    "tags": "线性代数 离散数学 图论 SVD",
+    "body": "  离散数学学习路线    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  面向编程与系统设计，建议从命题逻辑、集合、关系、函数、组合计数、图论与证明方法逐层推进。与 Monorepo 依赖图、状态机、数据库关系模型和 Agent 工作流之间建立示例关联。     mermaid flowchart LR  Logic[逻辑] --  Sets[集合与关系]  Sets --  Graph[图与树]  Graph --  Algo[算法 / 状态机]    ",
+    "href": "knowledge/math/chapter-01/"
+  },
+  {
+    "title": "第 1—14 课课程轨迹与待巩固项",
+    "topic": "JavaScript · Promise",
+    "summary": "2026-10-12 开始《ES Promise 从原理到工程实践》，学习环境同时包含 Browser 与 Node.js。训练采取逐题诊断：先作答、先评价推理，再推进到下一题。",
+    "tags": "ECMAScript Event Loop 单步动画 第14课",
+    "body": "  第 1—14 课课程轨迹与待巩固项    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  2026-10-12 开始《ES Promise 从原理到工程实践》，学习环境同时包含 Browser 与 Node.js。训练采取逐题诊断：先作答、先评价推理，再推进到下一题。    阶段   已讨论内容   目前记录状态    --- --- ---    第 1—3 课   状态机、executor 同步、微任务   已讨论、有答题记录     第 4—6 课   错误传播、timer throw、async/await   已讨论     第 7—9 课   组合 API 入门、顺序预测   已讨论     第 10—12 课   race / any / allSettled 边界、螺旋诊断   大量练习     第 13 课   链式 Promise、隐式 undefined、self-resolution   已练习     第 14 课   thenable getter、采用关系、解决权锁定   已练习，后续复习      不能误判为已掌握  ：一些题只给出选项未写推理。后续复习应优先检查 thenable getter 同步读取 vs then 调用异步调度、 resolve(inner)  的采用机制、 finally  返回/抛错语义、 p 42  与  M2  的入队时机。  相关原始动画已保存在原理实验室：Promise 同一性与微任务解析两个演示版本。",
+    "href": "knowledge/promise/chapter-03/"
+  },
+  {
+    "title": "线性代数的直觉优先路线",
+    "topic": "数学 · 离散与线代",
+    "summary": "历史学习请求明确偏好：从零基础、原理优先、多模态互动。合理学习顺序：向量 → 矩阵 → 线性变换 → 线性方程组 → 特征值与特征向量 → SVD。",
+    "tags": "线性代数 离散数学 图论 SVD",
+    "body": "  线性代数的直觉优先路线    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  历史学习请求明确偏好：从零基础、原理优先、多模态互动。合理学习顺序：向量 → 矩阵 → 线性变换 → 线性方程组 → 特征值与特征向量 → SVD。  每章采用“直觉图像 → 数学表达 → 运行实验 → 自主判断 → 复盘”，并通过 3D 图形变换、机器学习 embedding 和量化风险模型建立联系。",
+    "href": "knowledge/math/chapter-02/"
+  },
+  {
+    "title": "组合 API 与边界矩阵",
+    "topic": "JavaScript · Promise",
+    "summary": "四种组合 API 不是简单的“先后执行”变体。all 要求全部成功，可以提前拒绝；any 要求至少一个成功，全部拒绝时返回 AggregateError；race 取最先落定者，无论成功或失败；allSettled 等待全部落定并记录每项结果。",
+    "tags": "ECMAScript Event Loop 单步动画 第14课",
+    "body": "  组合 API 与边界矩阵    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  四种组合 API 不是简单的“先后执行”变体。 all  要求全部成功，可以提前拒绝； any  要求至少一个成功，全部拒绝时返回  AggregateError ； race  取最先落定者，无论成功或失败； allSettled  等待全部落定并记录每项结果。    API   何时 fulfilled   何时 rejected   空数组    --- --- --- ---    all   所有输入兑现   任意输入拒绝   fulfilled([])     any   任意输入兑现   全部拒绝   rejected(AggregateError)     race   首个落定结果为兑现   首个落定结果为拒绝   永久 pending     allSettled   全部落定后汇总   正常情况下不因某成员拒绝而拒绝   fulfilled([])     all  与  allSettled  的结果顺序、 any.errors  的顺序按  输入位置  记录； race  的结局受状态与 reaction 调度影响。四个组合方法均不会自动取消未胜出的任务。    历史练习脉络  ：第 10—12 课反复训练  race 、 any.errors 、空数组和已落定输入顺序；复习时要用“状态落定 → reaction 排队 → 微任务执行”说明原因。",
+    "href": "knowledge/promise/chapter-02/"
+  },
+  {
+    "title": "语言 · 英语与东北话 · 全景图",
+    "topic": "语言学习",
+    "summary": "从语义角色、信息结构比较英语与东北话的语序差异",
+    "tags": "东北话 英语语序 句法 时体",
+    "body": "语义与意图 谁做了什么 事件参与者 语境与重点 句法线性化 SVO 与时体 助动词 / 疑问 介词 / 从句 迁移练习 把字句还原 修饰语后置 东北话↔英语对照",
+    "href": "knowledge/language/"
+  },
+  {
+    "title": "量化研究与杠杆风险",
+    "topic": "金融学 · 案例与量化",
+    "summary": "量化研究的流程是：数据获取与清洗 → 假设形成 → 策略 → 回测 → 交易成本/滑点 → 风控 → 实盘监控。此前讨论策略类型包括趋势、均值回归、动量、网格、因子与机器学习。",
+    "tags": "1000案例 CPI 量化 风险",
+    "body": "  量化研究与杠杆风险    来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。  量化研究的流程是：数据获取与清洗 → 假设形成 → 策略 → 回测 → 交易成本/滑点 → 风控 → 实盘监控。此前讨论策略类型包括趋势、均值回归、动量、网格、因子与机器学习。  关于马丁加仓策略，历史讨论的关键判断是：有限本金、连续逆势与无限递增加仓不可能保证永不爆仓。1 倍杠杆也不意味着不会亏光。仓位上限、最大亏损、保证金、强平机制、跳空和流动性约束必须进入模拟。此处属于金融风险教育，不构成交易建议。",
+    "href": "knowledge/finance/chapter-02/"
+  },
+  {
+    "title": "金融学 · 案例与量化 · 全景图",
+    "topic": "金融研究",
+    "summary": "以案例理解货币时间价值、金融市场、风险、量化策略与杠杆约束",
+    "tags": "1000案例 CPI 量化 风险",
+    "body": "基础理论 货币时间价值 利率与现金流 信用 / 流动性 市场与案例 资本市场 金融机构与危机 行为金融 量化与风险 数据→回测→风控 趋势 / 均值回归 杠杆 / 马丁风险",
+    "href": "knowledge/finance/"
+  }
+]

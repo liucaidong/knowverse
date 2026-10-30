@@ -10,5 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Validate content registry and routes
+      - name: Validate V1 content registry and routes
         run: python3 scripts/validate-content.py
+      - name: Validate V2 knowledge pages and Mermaid panoramas
+        run: python3 scripts/validate-v2.py

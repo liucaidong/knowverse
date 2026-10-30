@@ -1,0 +1,55 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="本专题并不追求单一工具的绝对排名。讨论时先确定能力维度：依赖布局、受影响分析、任务图和缓存、发布编排、依赖边界导航、规模与治理。"><title>工具能力矩阵与选型 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../assets/css/v2.css"></head><body data-root="../../../" class="article"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/" >原理实验室</a><a href="../../../gallery/" >沉浸展厅</a><a href="../../../puzzles/" >解谜世界</a><a href="../../../timeline/" >会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">TypeScript · Monorepo</a></div><div class="eyebrow">ENGINEERING AT SCALE / NOTE</div><h1>工具能力矩阵与选型</h1><p class="lead">本专题并不追求单一工具的绝对排名。讨论时先确定能力维度：依赖布局、受影响分析、任务图和缓存、发布编排、依赖边界导航、规模与治理。</p><div class="stats"><span>专题：<strong>TypeScript · Monorepo</strong></span><span>来源：<strong>历史会话整理</strong></span></div></div><div class="article-grid"><article class="reader"><h1>工具能力矩阵与选型</h1>
+<blockquote>
+<p>来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。</p>
+</blockquote>
+<p>本专题并不追求单一工具的绝对排名。讨论时先确定能力维度：依赖布局、受影响分析、任务图和缓存、发布编排、依赖边界导航、规模与治理。</p>
+<table>
+<thead>
+<tr>
+  <th>维度</th>
+  <th>pnpm workspace</th>
+  <th>Turborepo</th>
+  <th>Nx</th>
+  <th>Rush</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>严格依赖布局</td>
+  <td>核心能力</td>
+  <td>依赖包管理器</td>
+  <td>依赖包管理器</td>
+  <td>对安装和治理有强约束</td>
+</tr>
+<tr>
+  <td>Affected 分析</td>
+  <td>filter</td>
+  <td>affected</td>
+  <td>nx affected</td>
+  <td>to / from / impacted-by</td>
+</tr>
+<tr>
+  <td>任务图 / 缓存</td>
+  <td>脚本层实现</td>
+  <td>本地与远程缓存</td>
+  <td>图、缓存、云执行</td>
+  <td>分阶段构建与缓存</td>
+</tr>
+<tr>
+  <td>发布编排</td>
+  <td>常搭配 Changesets</td>
+  <td>常搭配 Changesets</td>
+  <td>Nx Release</td>
+  <td>Change→Version→Publish</td>
+</tr>
+<tr>
+  <td>依赖可视化</td>
+  <td>基础</td>
+  <td>较轻量</td>
+  <td>Graph / 边界规则</td>
+  <td>另需约束工具</td>
+</tr>
+</tbody>
+</table>
+<p>原讨论倾向 <strong>Rush（有前提）</strong>：当仓库规模、严格性和发布治理的收益超过初始学习成本时选 Rush；若首要目标是可视化依赖边界与云端分布式执行，可考虑 Nx。以上为讨论形成的工程观点，具体 API 与当前支持情况仍需以各家官方文档为准。</p>
+<div class="source-note">本篇为可追溯知识整理，并非完整会话逐字稿。 <a href="./index.md">查看 Markdown 原文</a> · <a href="../">返回专题</a></div></article><aside class="sidelist"><strong>ON THIS PAGE</strong><a href="../">返回专题全景图</a><hr style="border:0;border-top:1px solid #d5e3e5;margin:22px 0"><a href="../">← 专题目录</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>把长期对话整理成可探索、可验证的知识系统 · V2 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、Rush、Fabric、金融、Agent…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script></body></html>

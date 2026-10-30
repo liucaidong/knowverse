@@ -1,0 +1,17 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="RAG 是检索证据进入模型上下文的机制，MCP 是标准化连接外部资源/工具的协议，Agent 则在目标约束下组织推理、工具调用、状态更新与验证。不能把三者当作互斥替代。"><title>RAG / MCP / Agent 三层职责 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../assets/css/v2.css"></head><body data-root="../../../" class="article"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/" >原理实验室</a><a href="../../../gallery/" >沉浸展厅</a><a href="../../../puzzles/" >解谜世界</a><a href="../../../timeline/" >会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">AI Agent · 系统工程</a></div><div class="eyebrow">INTELLIGENCE MEETS TOOLS / NOTE</div><h1>RAG / MCP / Agent 三层职责</h1><p class="lead">RAG 是检索证据进入模型上下文的机制，MCP 是标准化连接外部资源/工具的协议，Agent 则在目标约束下组织推理、工具调用、状态更新与验证。不能把三者当作互斥替代。</p><div class="stats"><span>专题：<strong>AI Agent · 系统工程</strong></span><span>来源：<strong>历史会话整理</strong></span></div></div><div class="article-grid"><article class="reader"><h1>RAG / MCP / Agent 三层职责</h1>
+<blockquote>
+<p>来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。</p>
+</blockquote>
+<p><strong>RAG</strong> 是检索证据进入模型上下文的机制，<strong>MCP</strong> 是标准化连接外部资源/工具的协议，<strong>Agent</strong> 则在目标约束下组织推理、工具调用、状态更新与验证。不能把三者当作互斥替代。</p>
+<pre class="mermaid">flowchart LR
+ User[用户目标] --> Agent[Agent / Planner]
+ Agent --> Model[LLM 推理]
+ Agent --> RAG[RAG 检索证据]
+ Agent --> Policy[Schema / Policy]
+ Policy --> MCP[MCP / Tool Adapter]
+ MCP --> Systems[外部系统]
+ Systems --> Audit[执行结果 / 审计]
+ Audit --> Agent
+</pre>
+<p>一个反复出现的工程准则是：<strong>LLM 负责推理，Schema 负责约束，Policy 负责授权，Domain Logic 负责正确性，Database 负责一致性</strong>。对外部输入和工具返回始终防范 Prompt Injection，关键写操作保留 human-in-the-loop。</p>
+<div class="source-note">本篇为可追溯知识整理，并非完整会话逐字稿。 <a href="./index.md">查看 Markdown 原文</a> · <a href="../">返回专题</a></div></article><aside class="sidelist"><strong>ON THIS PAGE</strong><a href="../">返回专题全景图</a><hr style="border:0;border-top:1px solid #d5e3e5;margin:22px 0"><a href="../">← 专题目录</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>把长期对话整理成可探索、可验证的知识系统 · V2 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、Rush、Fabric、金融、Agent…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script></body></html>

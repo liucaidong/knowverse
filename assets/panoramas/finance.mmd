@@ -1,0 +1,35 @@
+flowchart LR
+classDef hub fill:#10374a,color:#ffffff,stroke:#4a8b9a,stroke-width:2px;
+classDef node fill:#f0f7f6,color:#1b4452,stroke:#accfd0,stroke-width:1px;
+  subgraph G0["基础理论"]
+    N00["货币时间价值"]
+    N01["利率与现金流"]
+    N02["信用 / 流动性"]
+  end
+  N00 --> N01
+  N01 --> N02
+  subgraph G1["市场与案例"]
+    N10["资本市场"]
+    N11["金融机构与危机"]
+    N12["行为金融"]
+  end
+  N10 --> N11
+  N11 --> N12
+  subgraph G2["量化与风险"]
+    N20["数据→回测→风控"]
+    N21["趋势 / 均值回归"]
+    N22["杠杆 / 马丁风险"]
+  end
+  N20 --> N21
+  N21 --> N22
+  N02 ==> N10
+  N12 ==> N20
+  class N00 node
+  class N01 node
+  class N02 node
+  class N10 node
+  class N11 node
+  class N12 node
+  class N20 node
+  class N21 node
+  class N22 node

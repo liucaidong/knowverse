@@ -1,0 +1,40 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。"><title>历史会话笔记 · 主题总览 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../assets/css/v2.css"></head><body data-root="../../../" class="article"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/" >原理实验室</a><a href="../../../gallery/" >沉浸展厅</a><a href="../../../puzzles/" >解谜世界</a><a href="../../../timeline/" >会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">JavaScript · Promise</a></div><div class="eyebrow">THE ASYNCHRONOUS ENGINE / NOTE</div><h1>历史会话笔记 · 主题总览</h1><p class="lead">从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。</p><div class="stats"><span>专题：<strong>JavaScript · Promise</strong></span><span>来源：<strong>既有知识库摘要</strong></span></div></div><div class="article-grid"><article class="reader"><h1>历史会话笔记 · 主题总览</h1>
+<blockquote>
+<p>来源：2026-10-30 已恢复的个人知识库 v1 DOCX 内容摘录；这是一份既有摘要，不是原始对话逐字稿。</p>
+</blockquote>
+<p>ES Promise 从原理到工程实践</p>
+<p>专题 01 / JavaScript 与 ECMAScript</p>
+<h1>主题定位</h1>
+<p>状态机、Promise Resolution Procedure、微任务队列、链式返回、组合 API 与边界案例；保留逐题诊断和待巩固项。</p>
+<h1>关键词</h1>
+<p>Promise · thenable · resolution · 微任务 · Event Loop · allSettled · race · finally · AggregateError · async/await</p>
+<h1>当前状态</h1>
+<p>进行中｜第14课后复习</p>
+<h1>学习目标</h1>
+<p>从原理解释 Promise 状态机、resolution procedure、任务调度和 API 行为；能用代码独立推导日志顺序、状态与错误传播。</p>
+<h1>核心概念：状态与解决过程</h1>
+<p>Promise 只有 pending / fulfilled / rejected 三种状态，状态落定后不可反转。resolve(x) 不等于立即 fulfilled；当 x 是 thenable 或 Promise 时，要经过采用与后续的解决流程。</p>
+<h1>核心概念：微任务</h1>
+<p>同步代码先执行；队列中的 Promise reaction jobs、queueMicrotask 回调按各自实际入队顺序执行。区分「注册 then」「Promise 落定」「任务入队」「任务执行」。</p>
+<h1>核心概念：链式调用</h1>
+<p>每次 then/catch/finally 一般返回新的 Promise。回调显式 return 值可决定下游兑现值；无 return 则返回 undefined；throw 会导致下游拒绝；返回 Promise/thenable 时下游跟随其最终结果。</p>
+<h1>组合 API 对照</h1>
+<p>all：全部兑现才兑现，遇拒绝则拒绝；allSettled：等待全部落定并按输入顺序给出状态；any：首个兑现胜出，全部拒绝时给 AggregateError，其 errors 保留输入顺序；race：首个落定结果胜出。</p>
+<h1>重点边界</h1>
+<p>thenable 的 then 属性读取与 then 方法调用并非同一时机；同一个解决流程一旦采用 resolve(inner)，晚到的 reject/throw 不可再改变结果；finally 可能通过返回拒绝 Promise 覆盖原链命运。</p>
+<h1>最新复习状态（2026-10-24）</h1>
+<p>课程已到第14课，并开始每周螺旋复习。用户对状态判断和组合 API 有积累，但对「resolved 与 fulfilled 区别」「采纳 inner 时机」「微任务实际入队时机」仍应反复验证；不能仅据选择题正确认定已掌握。</p>
+<h1>微任务例题：复盘顺序</h1>
+<p>复杂 thenable + inner + race + M1/M2 代码题中，需使用逐帧时间线而不是仅凭输出猜测。之前纠错版指出：get 同步、call 异步；inner fulfilled 后，p 并非必然同一时刻 fulfilled；race 的日志时间不等于 race 本体落定时间。</p>
+<h1>巩固策略</h1>
+<p>每轮题目只给一题，先不展示答案；用户回答后按「执行顺序 → 任务入队 → Promise 状态 → 错误传播 → 工程启示」分层诊断。建议为每道题记录选项、原始推理、漏洞和再测结果。</p>
+<h1>已有可复用资料</h1>
+<p>Library 已有 promise_a_b_microtasks_animation.html 与 promise_microtask_corrected_animation.html；是可检查的重要示例文件，但不代表整个课程已完整归档。</p>
+<h1>原始资料与可信度</h1>
+<p>会话：2026-10-12 至 10-24，《ES Promise 从原理到工程实践》与螺旋复习</p>
+<p>Library：promise_a_b_microtasks_animation.html</p>
+<p>Library：promise_microtask_corrected_animation.html</p>
+<p>本专题由可恢复历史对话线索组织而成；未读取的原始聊天/文件正文不作完整性声明。</p>
+<h1>后续维护记录</h1>
+<p>最后整理：2026-10-30 ｜待补充：原始链接、复习结果、新增案例、验证日期。</p>
+<div class="source-note">本篇为可追溯知识整理，并非完整会话逐字稿。 <a href="./index.md">查看 Markdown 原文</a> · <a href="../">返回专题</a></div></article><aside class="sidelist"><strong>ON THIS PAGE</strong><a href="../">返回专题全景图</a><hr style="border:0;border-top:1px solid #d5e3e5;margin:22px 0"><a href="../">← 专题目录</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>把长期对话整理成可探索、可验证的知识系统 · V2 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、Rush、Fabric、金融、Agent…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script></body></html>

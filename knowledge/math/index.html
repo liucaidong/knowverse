@@ -1,0 +1,36 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="用结构、向量与概率刻画软件、图形和金融问题"><title>数学 · 离散与线代 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../assets/css/v2.css"></head><body data-root="../../" class=""><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../knowledge/" aria-current="page">知识库</a><a href="../../lab/" >原理实验室</a><a href="../../gallery/" >沉浸展厅</a><a href="../../puzzles/" >解谜世界</a><a href="../../timeline/" >会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../">首页</a> / <a href="../">知识库</a> / 基础学科</div><div class="eyebrow">THE LANGUAGE OF STRUCTURE / KNOWLEDGE ATLAS</div><h1>数学 · 离散与线代</h1><p class="lead">用结构、向量与概率刻画软件、图形和金融问题</p><div class="stats"><span>知识模块 <strong>3</strong></span><span>专题文章 <strong>2</strong></span><span>讨论时段 <strong>2026-09—10</strong></span></div></div><div class="atlas"><div class="atlas-h"><strong>专题全景图 / THE LANGUAGE OF STRUCTURE</strong><a download href="../../assets/panoramas/math.mmd">下载 Mermaid 源文件 ↓</a></div><figure class="atlas-figure"><a href="../../assets/panoramas/math.svg" target="_blank" aria-label="放大全景图"><img src="../../assets/panoramas/math.svg" alt="数学 · 离散与线代 知识全景图：'+', '.join(esc(g[0]) for g in t['nodes'])+'"></a></figure><details><summary>查看可编辑 Mermaid 全景图源码</summary><pre>flowchart LR
+classDef hub fill:#10374a,color:#ffffff,stroke:#4a8b9a,stroke-width:2px;
+classDef node fill:#f0f7f6,color:#1b4452,stroke:#accfd0,stroke-width:1px;
+  subgraph G0[&quot;离散结构&quot;]
+    N00[&quot;逻辑与集合&quot;]
+    N01[&quot;关系与函数&quot;]
+    N02[&quot;图论与证明&quot;]
+  end
+  N00 --&gt; N01
+  N01 --&gt; N02
+  subgraph G1[&quot;线性代数&quot;]
+    N10[&quot;向量 / 矩阵&quot;]
+    N11[&quot;线性变换&quot;]
+    N12[&quot;特征值 / SVD&quot;]
+  end
+  N10 --&gt; N11
+  N11 --&gt; N12
+  subgraph G2[&quot;应用迁移&quot;]
+    N20[&quot;计算机图形&quot;]
+    N21[&quot;概率与金融&quot;]
+    N22[&quot;机器学习&quot;]
+  end
+  N20 --&gt; N21
+  N21 --&gt; N22
+  N02 ==&gt; N10
+  N12 ==&gt; N20
+  class N00 node
+  class N01 node
+  class N02 node
+  class N10 node
+  class N11 node
+  class N12 node
+  class N20 node
+  class N21 node
+  class N22 node
+</pre></details></div><div class="sectionhead"><div><div class="eyebrow">CURATED RESEARCH</div><h2>阅读路径</h2></div><p>按知识结构组织，不以原始聊天倒序堆积。</p></div><section style="padding-bottom:45px"><a class="article-card" href="./chapter-01/"><span class="count">01</span><div><h3>离散数学学习路线</h3><p>面向编程与系统设计，建议从命题逻辑、集合、关系、函数、组合计数、图论与证明方法逐层推进。与 Monorepo 依赖图、状态机、数据库关系模型和 Agent 工作流之间建立示例关联。</p><span class="chip">历史会话整理</span></div><span class="arrow">↗</span></a><a class="article-card" href="./chapter-02/"><span class="count">02</span><div><h3>线性代数的直觉优先路线</h3><p>历史学习请求明确偏好：从零基础、原理优先、多模态互动。合理学习顺序：向量 → 矩阵 → 线性变换 → 线性方程组 → 特征值与特征向量 → SVD。</p><span class="chip">历史会话整理</span></div><span class="arrow">↗</span></a></section><section class="source-note"><strong>资料说明</strong><br>本专题是已恢复聊天线索与既有笔记的整理，不等于全部聊天原文逐条备份。原文可取回的部分会清楚注明。<br><strong>继续校对：</strong><br>本主题以历史学习记录和基础知识归纳为主。</section></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>把长期对话整理成可探索、可验证的知识系统 · V2 / 2026-10-30</p></div><div class="footerlinks"><a href="../../knowledge/">所有专题</a><a href="../../timeline/">历史时间线</a><a href="../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、Rush、Fabric、金融、Agent…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../assets/js/v2.js"></script></body></html>
