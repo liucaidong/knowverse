@@ -42,6 +42,8 @@ jobs:
         run: |
           pnpm build:shared
           pnpm --filter @kv/mobile typecheck
+      - name: Compile NestJS API for real device HTTP smoke test
+        run: pnpm --filter @kv/api build
       - name: Generate iOS native project
         run: pnpm --filter @kv/mobile exec expo prebuild --platform ios --no-install
       - name: CocoaPods install
@@ -73,4 +75,14 @@ jobs:
           name: knowverse-ios-simulator-${{ github.run_number }}
           path: ${{ runner.temp }}/knowverse-ios-simulator.zip
           if-no-files-found: error
+          retention-days: 7
+      - name: Boot iPhone Simulator and verify app launch + NestJS API
+        run: bash tools/device-smoke/ios.sh
+      - name: Archive iOS simulator evidence (screenshot and logs)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: knowverse-ios-device-evidence-${{ github.run_number }}
+          path: ${{ runner.temp }}/knowverse-device-smoke/
+          if-no-files-found: warn
           retention-days: 7

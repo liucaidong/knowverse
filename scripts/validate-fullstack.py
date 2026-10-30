@@ -47,3 +47,35 @@ print('Three searchable tutorials, lockfile content, native IDs and downloadable
 
 android_workflow=(root/'.github/workflows/monorepo-android.yml').read_text()
 assert 'platforms;android-37.0' in android_workflow and '--channel=3' in android_workflow, 'Android 37.0 SDK identifier must match sdkmanager repository'
+
+# Device smoke: source code and every linked guide must ship with the downloadable project.
+smoke=p/'guides/simulator-smoke/index.html'
+assert smoke.is_file() and 'UIAutomator' in smoke.read_text()
+assert (p/'docs/08-automated-simulator-smoke.md').is_file()
+assert (p/'simulator-smoke.mmd').read_text().startswith('flowchart LR')
+assert (p/'simulator-smoke.svg').is_file()
+assert sum(x.get('href')=='knowledge/monorepo/fullstack/guides/simulator-smoke/' for x in found)==1
+for step in ['android.sh','ios.sh','common.sh','api-proxy.mjs','tap-android.py']:
+    source=q/'tools/device-smoke'/step
+    assert source.is_file()
+    with zipfile.ZipFile(p/'fullstack-project.zip') as archive:
+        assert archive.read('project/tools/device-smoke/'+step)==source.read_bytes(), f'ZIP missing current test source {step}'
+for platform in ['android','ios']:
+    workflow=(root/f'.github/workflows/monorepo-{platform}.yml').read_text()
+    assert f'bash tools/device-smoke/{platform}.sh' in workflow
+    assert 'if: always()' in workflow and 'actions/upload-artifact' in workflow
+    assert 'pnpm --filter @kv/api build' in workflow
+with zipfile.ZipFile(p/'fullstack-project.zip') as archive:
+    assert archive.read('project/apps/mobile/src/App.tsx')==(q/'apps/mobile/src/App.tsx').read_bytes()
+    assert archive.read('project/tests/device-proxy.test.mjs')==(q/'tests/device-proxy.test.mjs').read_bytes()
+print('Simulator smoke checks: Android UIAutomator, iOS simctl, NestJS proxy, evidence archive and project ZIP OK')
+
+assert 'kv-api-refresh' in (q/'apps/mobile/src/App.tsx').read_text()
+assert 'tap-android.py' in (q/'tools/device-smoke/android.sh').read_text()
+print('Device interaction coverage: accessible refresh button and second valid API request wired')
+
+for name in ['android-emulator.png','ios-simulator.png']:
+ evidence=p/'evidence'/name
+ assert evidence.is_file() and evidence.stat().st_size>20000,name
+ assert evidence.read_bytes().startswith(b'\x89PNG\r\n\x1a\n'),name
+print('Actual Android and iOS simulator screenshot evidence is retained in GitHub source tree')

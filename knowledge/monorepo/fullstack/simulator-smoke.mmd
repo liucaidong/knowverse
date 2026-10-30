@@ -1,0 +1,11 @@
+flowchart LR
+  Build["Android APK / iOS .app"] --> Boot["模拟器开机"]
+  Boot --> Install["安装与启动"]
+  Metro["Metro :8081"] --> Install
+  Install --> Proxy["HTTP :3001"]
+  Proxy --> Nest["NestJS :3000"]
+  Proxy --> Gate{ "有效课程 JSON?" }
+  Gate -->|Android| UI["UIAutomator 文本"]
+  Gate -->|iOS| Shot["simctl 截图"]
+  UI --> Evidence["截图 + 日志 + UI XML"]
+  Shot --> Evidence

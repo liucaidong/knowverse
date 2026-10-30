@@ -31,3 +31,5 @@ jobs:
           cd knowledge/monorepo/fullstack/project
           node tools/verify-lockfile.mjs
           node tools/verify-native-config.mjs
+      - name: Unit-test device HTTP telemetry proxy (no emulator needed)
+        run: node --test knowledge/monorepo/fullstack/project/tests/device-proxy.test.mjs

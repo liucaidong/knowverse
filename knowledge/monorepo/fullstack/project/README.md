@@ -80,3 +80,12 @@ pnpm verify:native-config
 
 GitHub Actions 的 `setup-node` pnpm 缓存命中键依据 `project/pnpm-lock.yaml`，不直接缓存 node_modules。
 更多请参见 `../docs/05-dependency-lock-and-cache.md` 和 `../docs/06-native-build-ci.md`。
+
+## 模拟器自动化冒烟测试（独立于编译）
+
+当前 Android 和 iOS 原生 CI 在编译产物之后运行设备烟雾测试，见 `tools/device-smoke/` 和 `../docs/08-automated-simulator-smoke.md`。
+
+- Android 使用 API 35 模拟器运行 SDK 37 编译的 Debug APK，要求 ADB UIAutomator 看到**实际 React Native 文本**和**API 成功状态**。
+- iOS 使用 Runner 已安装的模拟器安装、启动无签名 `.app`，检查客户端真实访问 NestJS 并保存截图；不声称 XCTest UI 断言。
+- 调试构建运行时依赖 Expo Metro；Android 使用 `adb reverse`，与真实手机的 LAN API 连接方式不同。
+- 以上步骤不替代真实 Android 手机/iPhone 的网络、权限、相机、音频、VoiceOver 或性能回归。

@@ -718,5 +718,13 @@
     "tags": "pnpm 锁文件 缓存 原生构建 Android iOS GitHub Actions Expo",
     "body": "用设备验收矩阵区分构建、安装、网络与用户体验。",
     "href": "knowledge/monorepo/fullstack/guides/device-testing/"
+  },
+  {
+    "title": "Android / iOS 模拟器真实启动与联网验证",
+    "topic": "TypeScript Monorepo",
+    "summary": "Debug APK 和 iOS Simulator App 安装、Expo Metro、UIAutomator、simctl、NestJS 契约与日志证据",
+    "tags": "Android emulator iOS Simulator Expo React Native device smoke adb reverse simctl UIAutomator",
+    "body": "编译成功不等于实际启动。Android 模拟器 UI 树断言，iOS 模拟器安装和启动，API 真实 HTTP，截图与日志。",
+    "href": "knowledge/monorepo/fullstack/guides/simulator-smoke/"
   }
 ]
