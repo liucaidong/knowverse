@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
+  "version": "1.0.2",
   "updated": "2026-10-30",
   "pillars": [
     {
@@ -98,6 +98,17 @@
       "status": "live",
       "href": "./puzzles/worlds/promise-realm/",
       "summary": "此前制作的原版独立 HTML 游戏，已原样迁入作品目录"
+    },
+    {
+      "id": "promise-cosmos",
+      "pillar": "gallery",
+      "title": "Promise 宇宙 · WebGL 空间展览",
+      "subject": "JavaScript",
+      "level": "进阶",
+      "kind": "exhibition",
+      "status": "live",
+      "href": "./gallery/exhibits/promise-cosmos/",
+      "summary": "WebGL 实时 3D 渲染，四幕电影式知识叙事，可拖动镜头与切换场景"
     }
   ]
 }
