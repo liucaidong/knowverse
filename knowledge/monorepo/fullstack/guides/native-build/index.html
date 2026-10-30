@@ -1,0 +1,59 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="从 TypeScript 到 Gradle 与 Xcode 的证据分层。"><title>06 · Android / iOS 原生构建 · KNOWVERSE</title><style>:root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC",sans-serif;color:#233c4c;background:#f5f9f7}*{box-sizing:border-box}body{margin:0}a{color:#087f75;text-decoration:none}a:hover{text-decoration:underline}header{position:sticky;top:0;z-index:3;background:#ffffffed;backdrop-filter:blur(15px);border-bottom:1px solid #d6e5e4}header .nav{max-width:1120px;margin:auto;display:flex;justify-content:space-between;gap:14px;padding:18px 25px}.brand{font-size:21px;letter-spacing:-.06em;font-weight:900}.brand b{color:#008f83}main{max-width:1120px;margin:auto;padding:45px 25px 95px}.label{font-size:12px;letter-spacing:.18em;color:#078477;font-weight:750}.lede{color:#647c8b;font-size:18px;line-height:1.75}.reader{display:grid;grid-template-columns:minmax(0,780px) 230px;gap:34px;align-items:start}.article{background:white;border:1px solid #d8e7e4;border-radius:22px;padding:clamp(24px,4vw,48px);font-size:15px;line-height:1.95;min-width:0}.article h1{font-size:clamp(29px,4vw,39px);line-height:1.2;letter-spacing:-.045em;margin:0 0 22px}.article h2{font-size:24px;margin:42px 0 17px;border-top:1px solid #e5edeb;padding-top:18px}.article h3{font-size:18px;margin-top:30px}.article p,.article li{color:#445c69}.article a{text-decoration:underline;text-underline-offset:3px}.article blockquote{padding:10px 20px;margin:25px 0;background:#edf7f4;border-left:4px solid #1a9e8d}.article pre{background:#102535;color:#e4fff8;padding:20px;border-radius:13px;overflow:auto;line-height:1.65;font-size:12.5px}.article pre code{color:inherit}.article :not(pre)>code{background:#edf3f4;padding:2px 5px;border-radius:5px;color:#135a65}.article table{display:block;overflow:auto;border-collapse:collapse;max-width:100%;font-size:13px}.article td,.article th{border:1px solid #d5e4e4;padding:9px 12px;white-space:normal;min-width:100px}.article th{background:#e8f5f1}.side{position:sticky;top:108px;background:#fff;border:1px solid #d8e7e4;padding:19px;border-radius:15px;display:flex;flex-direction:column;gap:13px}.side a{font-size:14px}.side span{font-size:11px;letter-spacing:.1em;color:#69808a}.bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:20px}.bottom a{padding:12px 16px;border:1px solid #badbd4;border-radius:10px;background:white}.hint{font-size:13px;color:#687c8b;margin:25px 0}@media(max-width:800px){.reader{grid-template-columns:1fr}.side{position:static;order:-1;flex-direction:row;flex-wrap:wrap}.article{padding:24px}main{padding:28px 17px 60px}.side a{font-size:12px}}</style></head><body><header><div class="nav"><a class="brand" href="../../../../../">KNOW<b>VERSE</b></a><a href="../../">← 多端工程专题</a></div></header><main><div class="label">MONOREPO · NATIVE BUILD ENGINEERING</div><p class="lede">从 TypeScript 到 Gradle 与 Xcode 的证据分层。</p><div class="reader"><article class="article"><h1>06 · 从 RN 类型检查到 Android / iOS 真正编译</h1>
+<h2>不同验收的证据等级</h2>
+<table>
+<thead>
+<tr>
+  <th>级别</th>
+  <th>能证明什么</th>
+  <th>不能证明什么</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td><code>tsc --noEmit</code></td>
+  <td>TypeScript 接口与类型检查</td>
+  <td>Metro bundle / 原生 Gradle / CocoaPods</td>
+</tr>
+<tr>
+  <td><code>expo prebuild</code></td>
+  <td>Expo 配置能够生成原生目录</td>
+  <td>C++/Kotlin/Swift/ObjC 能编译</td>
+</tr>
+<tr>
+  <td><code>gradlew :app:assembleDebug</code></td>
+  <td>Android 原生调试 APK 编译</td>
+  <td>真机安装、网络、商店签名</td>
+</tr>
+<tr>
+  <td><code>pod install + xcodebuild</code></td>
+  <td>iOS 模拟器 App 编译（若 CI 通过）</td>
+  <td>iPhone 真机签名、App Store 发布</td>
+</tr>
+<tr>
+  <td>模拟器 / 真机回归</td>
+  <td>设备实际渲染与行为</td>
+  <td>所有性能、安全和网络状态</td>
+</tr>
+</tbody>
+</table>
+<h2>工具链版本</h2>
+<ul>
+<li>Expo SDK 58 → React Native 0.88, React 19.3；Node 22.13+。</li>
+<li>Android SDK：<code>compileSdkVersion 37</code>，<code>targetSdkVersion 36</code>，JDK 17。</li>
+<li>iOS：Xcode 26.4 及更新版本。CI 使用 macOS 26 + Xcode 26.4.1，<code>CODE_SIGNING_ALLOWED=NO</code>，仅针对模拟器。</li>
+<li>主工程根目录：<code>knowledge/monorepo/fullstack/project</code>，不是仓库根目录。</li>
+</ul>
+<h2>自动化流水线</h2>
+<p><a href="../../native-pipeline.mmd" download>下载完整原生 CI 流程的 Mermaid 源码 ↓</a></p>
+<h2>构建与签名分离</h2>
+<p>Android Debug APK 通常会用 Android SDK 自动生成的开发调试密钥签名，但<strong>不能</strong>把这种调试签名等同于正式商店发布签名。Android 发布版需要独立签名密钥；iOS 真机/分发需要 Apple Developer Team、Provisioning Profile、Certificates（或 EAS Build 提供签名服务）。<strong>绝对不要把密钥或证书提交到 GitHub</strong>。本专题只演示无敏感密钥的基础构建。</p>
+<h2>调试手册</h2>
+<ul>
+<li><strong>预构建失败</strong>：检查 app.json 中 Android 包名和 iOS bundleIdentifier、原生模块版本、Expo config plugins。</li>
+<li><strong>Gradle 失败</strong>：确认 Android API 37、JDK 17、NDK、磁盘空间；比较 <code>expo prebuild</code> 的生成输出。注意 pnpm 默认孤立布局不是所有原生库都兼容，必要时才切换 hoisted，并在锁文件中重新验证。</li>
+<li><strong>CocoaPods 失败</strong>：确认 <code>pod</code> 命令、Ruby 环境和 Xcode 26.4+；核对 CocoaPods 错误与 Expo autolinking。</li>
+<li><strong>Xcode 构建失败</strong>：先确保 simulator 与设备目标一致、禁止签名、当前 scheme 存在；从日志中区分 Swift/ObjC/C++ 源码错误与平台环境故障。</li>
+</ul>
+<p>CI 的实际成功与失败必须以 GitHub Actions 为准；仅提交工作流不代表编译已经成功。</p>
+<p><strong>参考</strong>：<a href="https://docs.expo.dev/guides/local-app-development/">Expo local builds</a> · <a href="https://docs.expo.dev/versions/v58.0.0/">Expo SDK 58</a> · <a href="https://docs.expo.dev/guides/monorepos/">Expo Monorepos</a></p>
+<section><h2>实际 CI 案例：Android SDK 37.0</h2><p>首次任务在安装 SDK 时失败，错误是 <code>Failed to find package 'platforms;android-37'</code>，尚未进入 Gradle 编译。</p><p>正确的 SDK Manager 包坐标为 <code>platforms;android-37.0</code>，可通过 <code>--channel=3</code> 安装。修正 SDK 安装不代表 APK 编译已通过，必须继续检查完整流水线。</p><pre><code>sdkmanager --channel=3 'platforms;android-37.0' 'build-tools;37.0.0'</code></pre></section><p class="hint">文章来源：KNOWVERSE 原创工程教学整理；版本相关行为应以构建记录与官方文档核查。</p></article><aside class="side"><span>工程课程 · 阅读顺序</span><a href="../lockfile/">05 · 可复现安装与缓存</a><a href="../native-build/">06 · Android / iOS 原生构建</a><a href="../device-testing/">07 · 模拟器与真机验证</a><a href="../../native-pipeline.mmd" download>Mermaid 流程图 ↓</a><a href="../../docs/06-native-build-ci.md" download>Markdown 原文 ↓</a></aside></div><div class="bottom"><a href="../lockfile/">← 上一章</a><a href="../device-testing/">下一章 →</a></div></main></body></html>

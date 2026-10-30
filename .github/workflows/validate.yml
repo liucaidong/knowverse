@@ -26,3 +26,8 @@ jobs:
         run: node --test scripts/verify-monorepo-labs.mjs
       - name: Verify fullstack tutorial and source links
         run: python3 scripts/validate-fullstack.py
+      - name: Validate native build reproducibility metadata
+        run: |
+          cd knowledge/monorepo/fullstack/project
+          node tools/verify-lockfile.mjs
+          node tools/verify-native-config.mjs

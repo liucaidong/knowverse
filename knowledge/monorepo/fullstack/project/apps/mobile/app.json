@@ -8,10 +8,14 @@
     "userInterfaceStyle": "automatic",
     "plugins": [],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.knowverse.learninglab",
+      "buildNumber": "1"
     },
     "android": {
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.knowverse.learninglab",
+      "versionCode": 1
     }
   }
 }

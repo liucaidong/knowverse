@@ -1,0 +1,28 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="锁文件是供应链证据，缓存不是版本约束。"><title>05 · 可复现安装与缓存 · KNOWVERSE</title><style>:root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC",sans-serif;color:#233c4c;background:#f5f9f7}*{box-sizing:border-box}body{margin:0}a{color:#087f75;text-decoration:none}a:hover{text-decoration:underline}header{position:sticky;top:0;z-index:3;background:#ffffffed;backdrop-filter:blur(15px);border-bottom:1px solid #d6e5e4}header .nav{max-width:1120px;margin:auto;display:flex;justify-content:space-between;gap:14px;padding:18px 25px}.brand{font-size:21px;letter-spacing:-.06em;font-weight:900}.brand b{color:#008f83}main{max-width:1120px;margin:auto;padding:45px 25px 95px}.label{font-size:12px;letter-spacing:.18em;color:#078477;font-weight:750}.lede{color:#647c8b;font-size:18px;line-height:1.75}.reader{display:grid;grid-template-columns:minmax(0,780px) 230px;gap:34px;align-items:start}.article{background:white;border:1px solid #d8e7e4;border-radius:22px;padding:clamp(24px,4vw,48px);font-size:15px;line-height:1.95;min-width:0}.article h1{font-size:clamp(29px,4vw,39px);line-height:1.2;letter-spacing:-.045em;margin:0 0 22px}.article h2{font-size:24px;margin:42px 0 17px;border-top:1px solid #e5edeb;padding-top:18px}.article h3{font-size:18px;margin-top:30px}.article p,.article li{color:#445c69}.article a{text-decoration:underline;text-underline-offset:3px}.article blockquote{padding:10px 20px;margin:25px 0;background:#edf7f4;border-left:4px solid #1a9e8d}.article pre{background:#102535;color:#e4fff8;padding:20px;border-radius:13px;overflow:auto;line-height:1.65;font-size:12.5px}.article pre code{color:inherit}.article :not(pre)>code{background:#edf3f4;padding:2px 5px;border-radius:5px;color:#135a65}.article table{display:block;overflow:auto;border-collapse:collapse;max-width:100%;font-size:13px}.article td,.article th{border:1px solid #d5e4e4;padding:9px 12px;white-space:normal;min-width:100px}.article th{background:#e8f5f1}.side{position:sticky;top:108px;background:#fff;border:1px solid #d8e7e4;padding:19px;border-radius:15px;display:flex;flex-direction:column;gap:13px}.side a{font-size:14px}.side span{font-size:11px;letter-spacing:.1em;color:#69808a}.bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:20px}.bottom a{padding:12px 16px;border:1px solid #badbd4;border-radius:10px;background:white}.hint{font-size:13px;color:#687c8b;margin:25px 0}@media(max-width:800px){.reader{grid-template-columns:1fr}.side{position:static;order:-1;flex-direction:row;flex-wrap:wrap}.article{padding:24px}main{padding:28px 17px 60px}.side a{font-size:12px}}</style></head><body><header><div class="nav"><a class="brand" href="../../../../../">KNOW<b>VERSE</b></a><a href="../../">← 多端工程专题</a></div></header><main><div class="label">MONOREPO · NATIVE BUILD ENGINEERING</div><p class="lede">锁文件是供应链证据，缓存不是版本约束。</p><div class="reader"><article class="article"><h1>05 · 为什么必须提交 pnpm-lock.yaml（以及如何缓存）</h1>
+<h2>本章目标</h2>
+<p>同一份 <code>package.json</code> <strong>不意味着</strong>重装会得到完全相同的依赖图。<code>^</code>、<code>~</code> 和间接依赖的范围匹配可能在不同日期解析到不同包。将所有直接/间接依赖的具体解析结果与完整性校验放入 <code>pnpm-lock.yaml</code>，才能对可复现安装做出有意义的承诺。</p>
+<p>本专题的实际项目放在 <code>knowledge/monorepo/fullstack/project/</code>，锁文件位于其工作区根目录，而不是 GitHub 仓库根目录。所有 CI 任务必须在该目录执行 <code>pnpm install --frozen-lockfile</code>。</p>
+<h2>正确的三层模型</h2>
+<p><a href="../../native-pipeline.mmd" download>下载完整原生 CI 流程的 Mermaid 源码 ↓</a></p>
+<ol>
+<li><strong>一致性</strong>：依赖清单变化而锁文件未更新，<code>--frozen-lockfile</code> 应失败，不应悄悄重新解析。</li>
+<li><strong>缓存</strong>：GitHub <code>setup-node</code> 的 <code>cache: pnpm</code> 缓存下载仓库，不是 <code>node_modules</code>。<code>cache-dependency-path</code> 指向内层工作区锁文件。</li>
+<li><strong>完整性</strong>：pnpm 校验远程包完整性信息。锁住版本仍不等于审计、SBOM、漏洞扫描和软件供应链全流程治理。</li>
+</ol>
+<h2>本地复现实验</h2>
+<pre><code class="language-bash">cd knowledge/monorepo/fullstack/project
+corepack enable
+pnpm install --frozen-lockfile
+pnpm build &amp;&amp; pnpm typecheck &amp;&amp; pnpm test
+# 演示拒绝漂移：临时修改一个依赖版本后再执行
+pnpm install --frozen-lockfile  # 应拒绝不同步的 manifest
+# 撤销 package.json 修改，千万不要把演示修改提交
+</code></pre>
+<h2>pnpm 12 的双文档锁文件（重要）</h2>
+<p>pnpm 12 可能把 <code>pnpm-lock.yaml</code> 写成 <strong>两份 YAML 文档</strong>：第一份保存 pnpm 本身及配置依赖，第二份才是业务工作区依赖图。不能用只接受单文档的 YAML 解析器读取第一份后就宣称「没有依赖」。进行 SBOM / 依赖关系分析时，要读取最后一份项目依赖图；进行全量供应链扫描时需考虑两份文档。项目 <code>tools/verify-lockfile.mjs</code> 特意验证最后一份项目文档。详见 <a href="https://pnpm.io/lockfile">pnpm 官方 Lockfile 文档</a>。</p>
+<h2>缓存为何不应替代锁文件</h2>
+<p>缓存中即使存在包，也不能证明这次构建使用的依赖正确；缓存 key 应包含锁文件内容哈希。不要直接缓存整个 <code>node_modules</code>（可能包含平台二进制和不可移植符号链接）。在不同 OS 的 Android/macOS 工作流里允许不同缓存，避免交叉污染。</p>
+<h2>维护建议</h2>
+<p>升级依赖时，在开发分支进行 <code>pnpm update</code>，核对锁文件 diff，确保最小变更、完成测试再合并。每次 pnpm 版本升级要视为基础设施变更，并在 CI 中锁定包管理器版本。生产发布还应使用依赖审计、签名和供应链权限隔离。</p>
+<p><strong>参考</strong>：<a href="https://pnpm.io/cli/install">pnpm install</a> · <a href="https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md">GitHub actions/setup-node</a></p>
+<p class="hint">文章来源：KNOWVERSE 原创工程教学整理；版本相关行为应以构建记录与官方文档核查。</p></article><aside class="side"><span>工程课程 · 阅读顺序</span><a href="../lockfile/">05 · 可复现安装与缓存</a><a href="../native-build/">06 · Android / iOS 原生构建</a><a href="../device-testing/">07 · 模拟器与真机验证</a><a href="../../native-pipeline.mmd" download>Mermaid 流程图 ↓</a><a href="../../docs/05-dependency-lock-and-cache.md" download>Markdown 原文 ↓</a></aside></div><div class="bottom"><a href="../../">← 返回工程首页</a><a href="../native-build/">下一章 →</a></div></main></body></html>

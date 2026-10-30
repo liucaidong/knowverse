@@ -1,0 +1,12 @@
+import { readFileSync } from 'node:fs';
+import { strict as assert } from 'node:assert';
+const root = new URL('../', import.meta.url);
+const config = JSON.parse(readFileSync(new URL('../apps/mobile/app.json', import.meta.url),'utf8')).expo;
+assert.match(config.ios.bundleIdentifier, /^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)+$/);
+assert.match(config.android.package, /^[a-zA-Z][a-zA-Z0-9]*(\.[a-zA-Z][a-zA-Z0-9]*)+$/);
+assert.ok(config.ios.supportsTablet);
+assert.ok(config.android.edgeToEdgeEnabled);
+const mobile = JSON.parse(readFileSync(new URL('../apps/mobile/package.json', import.meta.url),'utf8'));
+assert.match(mobile.dependencies.expo, /^~58\./);
+assert.match(mobile.dependencies['react-native'], /^0\.88\./);
+console.log('Android package, iOS bundle id and Expo SDK 58/RN 0.88 compatibility config OK');

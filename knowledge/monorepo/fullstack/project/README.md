@@ -12,7 +12,7 @@
 
 ```bash
 corepack enable
-pnpm install
+pnpm install --frozen-lockfile
 pnpm build:shared
 pnpm check:boundaries
 pnpm test
@@ -40,7 +40,7 @@ apps/mobile         -> React Native 0.88 + Expo SDK 58，依赖 domain 和 contr
 ## 验证层级
 
 1. 本地无需 npm 联网：静态边界、依赖闭包、shared TypeScript 编译与运行时契约测试。
-2. 网络可用后：`pnpm install && pnpm build && pnpm typecheck && pnpm test`。
+2. 网络可用后：`pnpm install --frozen-lockfile && pnpm build && pnpm typecheck && pnpm test`。
 3. 设备层：`pnpm dev:mobile` 后分别用 Android/iOS 模拟器和真机验证。需要 Xcode/Android SDK/真机，不能凭 TypeScript 编译成功代替。
 
 ## 设计注意
@@ -49,7 +49,7 @@ apps/mobile         -> React Native 0.88 + Expo SDK 58，依赖 domain 和 contr
 - TypeScript Project References 只用于 `contracts` / `domain` / API。Web 和 Metro 不直接消费根级 tsconfig references，读取经过 build 的 package exports。
 - 契约检查接收 `unknown` 后进行验证，TS 静态类型不代表网络返回安全。
 - React Web 和 RN 不引入 NestJS；`packages/*` 不引入 `node:`、`expo` 或 React Native。
-- 为方便教学使用未锁定的兼容次版本；**正式用于产品前要 `pnpm install` 生成并提交 pnpm-lock.yaml**，在 CI 改成 frozen-lockfile。
+- 依赖版本由已提交的 `pnpm-lock.yaml` 锁定；本项目的 CI 始终执行 `pnpm install --frozen-lockfile`，避免不同时间解析到不同 transitive 版本。
 - API 默认 CORS 仅为 localhost:5173，生产中设置 WEB_ORIGIN 与鉴权。
 - 第三方依赖的安装、Expo SDK 专属版本和原生打包仍需要真实 CI/设备检验；不要把本地离线模拟误认成已验证的原生安装。
 
@@ -61,3 +61,22 @@ apps/mobile         -> React Native 0.88 + Expo SDK 58，依赖 domain 和 contr
 - https://www.typescriptlang.org/docs/handbook/project-references.html
 - https://pnpm.io/workspaces
 - https://vite.dev/guide/
+
+## 原生构建验证与签名边界
+
+- `.github/workflows/monorepo-android.yml`：Android SDK API 37 + JDK17；Expo Prebuild → Gradle Debug APK。
+- `.github/workflows/monorepo-ios.yml`：macOS 26 + Xcode26.4.1；Expo Prebuild → CocoaPods → 无签名的 iOS Simulator App。
+- **这些 CI 工作流的状态不等于真实 iPhone/Android 真机回归**。参见 `../docs/07-device-validation.md`。
+- 实际下载与安装之前，不要将 APK / `.app` 当成商店可发布版本。
+- 安全准则：仓库不存储任何 Apple 签名证书、Android 上传密钥或设备私钥。
+
+## 可复现安装
+
+```bash
+pnpm install --frozen-lockfile
+pnpm verify:lockfile
+pnpm verify:native-config
+```
+
+GitHub Actions 的 `setup-node` pnpm 缓存命中键依据 `project/pnpm-lock.yaml`，不直接缓存 node_modules。
+更多请参见 `../docs/05-dependency-lock-and-cache.md` 和 `../docs/06-native-build-ci.md`。

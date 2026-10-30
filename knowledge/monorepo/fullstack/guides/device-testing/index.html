@@ -1,0 +1,86 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="用设备验收矩阵区分构建、安装、网络与用户体验。"><title>07 · 模拟器与真机验证 · KNOWVERSE</title><style>:root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC",sans-serif;color:#233c4c;background:#f5f9f7}*{box-sizing:border-box}body{margin:0}a{color:#087f75;text-decoration:none}a:hover{text-decoration:underline}header{position:sticky;top:0;z-index:3;background:#ffffffed;backdrop-filter:blur(15px);border-bottom:1px solid #d6e5e4}header .nav{max-width:1120px;margin:auto;display:flex;justify-content:space-between;gap:14px;padding:18px 25px}.brand{font-size:21px;letter-spacing:-.06em;font-weight:900}.brand b{color:#008f83}main{max-width:1120px;margin:auto;padding:45px 25px 95px}.label{font-size:12px;letter-spacing:.18em;color:#078477;font-weight:750}.lede{color:#647c8b;font-size:18px;line-height:1.75}.reader{display:grid;grid-template-columns:minmax(0,780px) 230px;gap:34px;align-items:start}.article{background:white;border:1px solid #d8e7e4;border-radius:22px;padding:clamp(24px,4vw,48px);font-size:15px;line-height:1.95;min-width:0}.article h1{font-size:clamp(29px,4vw,39px);line-height:1.2;letter-spacing:-.045em;margin:0 0 22px}.article h2{font-size:24px;margin:42px 0 17px;border-top:1px solid #e5edeb;padding-top:18px}.article h3{font-size:18px;margin-top:30px}.article p,.article li{color:#445c69}.article a{text-decoration:underline;text-underline-offset:3px}.article blockquote{padding:10px 20px;margin:25px 0;background:#edf7f4;border-left:4px solid #1a9e8d}.article pre{background:#102535;color:#e4fff8;padding:20px;border-radius:13px;overflow:auto;line-height:1.65;font-size:12.5px}.article pre code{color:inherit}.article :not(pre)>code{background:#edf3f4;padding:2px 5px;border-radius:5px;color:#135a65}.article table{display:block;overflow:auto;border-collapse:collapse;max-width:100%;font-size:13px}.article td,.article th{border:1px solid #d5e4e4;padding:9px 12px;white-space:normal;min-width:100px}.article th{background:#e8f5f1}.side{position:sticky;top:108px;background:#fff;border:1px solid #d8e7e4;padding:19px;border-radius:15px;display:flex;flex-direction:column;gap:13px}.side a{font-size:14px}.side span{font-size:11px;letter-spacing:.1em;color:#69808a}.bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:20px}.bottom a{padding:12px 16px;border:1px solid #badbd4;border-radius:10px;background:white}.hint{font-size:13px;color:#687c8b;margin:25px 0}@media(max-width:800px){.reader{grid-template-columns:1fr}.side{position:static;order:-1;flex-direction:row;flex-wrap:wrap}.article{padding:24px}main{padding:28px 17px 60px}.side a{font-size:12px}}</style></head><body><header><div class="nav"><a class="brand" href="../../../../../">KNOW<b>VERSE</b></a><a href="../../">← 多端工程专题</a></div></header><main><div class="label">MONOREPO · NATIVE BUILD ENGINEERING</div><p class="lede">用设备验收矩阵区分构建、安装、网络与用户体验。</p><div class="reader"><article class="article"><h1>07 · 设备验收矩阵与上线门槛</h1>
+<p>原生编译产出只表示程序可被打包，不表示用户在设备上正常使用。为 KNOWVERSE 教育客户端准备以下手工验收矩阵。</p>
+<table>
+<thead>
+<tr>
+  <th>检查项</th>
+  <th>Android 模拟器</th>
+  <th>Android 真机</th>
+  <th>iOS 模拟器</th>
+  <th>iPhone 真机</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>启动与首帧</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+</tr>
+<tr>
+  <td>学习列表与字体缩放</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+</tr>
+<tr>
+  <td>弱网 / 飞行模式离线数据回退</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+</tr>
+<tr>
+  <td>LAN API 连接 / 契约校验</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+</tr>
+<tr>
+  <td>后台恢复 / 生命周期</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+</tr>
+<tr>
+  <td>VoiceOver / TalkBack</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+</tr>
+<tr>
+  <td>温度 / 内存 / 续航</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+  <td>待验证</td>
+</tr>
+</tbody>
+</table>
+<h2>测试步骤</h2>
+<ol>
+<li>从对应 CI 工作流下载 Android Debug APK 或 iOS Simulator App；不要从仓库复制本机的 <code>node_modules</code>。</li>
+<li>连接测试 API 时用所在计算机的局域网 IP，不要误用 <code>localhost</code>。确保服务端 CORS/网络、防火墙和 HTTP/HTTPS 策略合规。</li>
+<li>验证服务端断网：客户端应显示离线样例数据，不崩溃；恢复联网后再运行一轮。</li>
+<li>做至少三轮冷启动测量，记录机型、OS 版本、构建 SHA、启动耗时与异常日志。</li>
+<li>出现原生崩溃时必须保存 <code>adb logcat</code> 或 Xcode Console 日志，并关联构建 SHA。</li>
+</ol>
+<h2>发布门禁</h2>
+<ul>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>锁文件随代码提交，CI <code>--frozen-lockfile</code> 通过</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Web/API、RN 类型检查通过</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Android <code>assembleDebug</code> 完整通过且上传 APK</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>iOS <code>xcodebuild ... iphonesimulator</code> 完整通过且上传 App</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Android 与 iOS 模拟器均完成设备回归</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>Android/iPhone 真机完成关键链路回归</li>
+<li class="task-list-item"><input class="task-list-item-checkbox" type="checkbox" disabled/>正式签名和凭据只在受保护的密钥仓库/服务中管理</li>
+</ul>
+<blockquote>
+<p>未完成的条目绝不能写成“已验证”。可重现性是持续的工程纪律，不是一次成功截图。</p>
+</blockquote>
+<p class="hint">文章来源：KNOWVERSE 原创工程教学整理；版本相关行为应以构建记录与官方文档核查。</p></article><aside class="side"><span>工程课程 · 阅读顺序</span><a href="../lockfile/">05 · 可复现安装与缓存</a><a href="../native-build/">06 · Android / iOS 原生构建</a><a href="../device-testing/">07 · 模拟器与真机验证</a><a href="../../native-pipeline.mmd" download>Mermaid 流程图 ↓</a><a href="../../docs/07-device-validation.md" download>Markdown 原文 ↓</a></aside></div><div class="bottom"><a href="../native-build/">← 上一章</a><a href="../../">返回工程首页 →</a></div></main></body></html>

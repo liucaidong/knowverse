@@ -694,5 +694,29 @@
     "tags": "React Expo NestJS pnpm fullstack 多端 工作区",
     "body": "真实框架、DTO JSON 验证、TypeScript、Metro、跨端模块边界、CI 与原生编译",
     "href": "knowledge/monorepo/fullstack/"
+  },
+  {
+    "title": "05 · 可复现安装与缓存",
+    "topic": "TypeScript Monorepo",
+    "summary": "锁文件是供应链证据，缓存不是版本约束。",
+    "tags": "pnpm 锁文件 缓存 原生构建 Android iOS GitHub Actions Expo",
+    "body": "锁文件是供应链证据，缓存不是版本约束。",
+    "href": "knowledge/monorepo/fullstack/guides/lockfile/"
+  },
+  {
+    "title": "06 · Android / iOS 原生构建",
+    "topic": "TypeScript Monorepo",
+    "summary": "从 TypeScript 到 Gradle 与 Xcode 的证据分层。",
+    "tags": "pnpm 锁文件 缓存 原生构建 Android iOS GitHub Actions Expo",
+    "body": "从 TypeScript 到 Gradle 与 Xcode 的证据分层。",
+    "href": "knowledge/monorepo/fullstack/guides/native-build/"
+  },
+  {
+    "title": "07 · 模拟器与真机验证",
+    "topic": "TypeScript Monorepo",
+    "summary": "用设备验收矩阵区分构建、安装、网络与用户体验。",
+    "tags": "pnpm 锁文件 缓存 原生构建 Android iOS GitHub Actions Expo",
+    "body": "用设备验收矩阵区分构建、安装、网络与用户体验。",
+    "href": "knowledge/monorepo/fullstack/guides/device-testing/"
   }
 ]

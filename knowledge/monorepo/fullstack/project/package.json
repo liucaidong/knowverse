@@ -18,7 +18,9 @@
     "affected": "node tools/affected.mjs",
     "dev:api": "pnpm build:shared && pnpm --filter @kv/api dev",
     "dev:web": "pnpm build:shared && pnpm --filter @kv/web dev",
-    "dev:mobile": "pnpm build:shared && pnpm --filter @kv/mobile start"
+    "dev:mobile": "pnpm build:shared && pnpm --filter @kv/mobile start",
+    "verify:lockfile": "node tools/verify-lockfile.mjs",
+    "verify:native-config": "node tools/verify-native-config.mjs"
   },
   "devDependencies": {
     "typescript": "~5.9.3",

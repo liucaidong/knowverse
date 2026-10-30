@@ -8,3 +8,12 @@
 - 框架安装与移动端设备打包验证：由 GitHub CI / 实际设备进行；不可将离线 TypeScript 单测视为 iOS/Android 构建证明。
 
 详细说明：[project/README.md](project/README.md)
+
+## 后续验证：锁文件与原生 CI
+
+- [05 锁文件与缓存](./docs/05-dependency-lock-and-cache.md)
+- [06 原生构建流水线](./docs/06-native-build-ci.md)
+- [07 真机验收矩阵](./docs/07-device-validation.md)
+- [Android/iOS 构建图 Mermaid](./native-pipeline.mmd)
+
+真实验证状态需以 GitHub Actions 各项构建结论为准，尤其是 Android Gradle、iOS Xcode 和未完成的真机测试。

@@ -1,0 +1,65 @@
+name: Android Native Compile · KNOWVERSE
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'knowledge/monorepo/fullstack/project/**'
+      - '.github/workflows/monorepo-android.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: knowverse-android-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  android-debug:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    defaults:
+      run:
+        working-directory: knowledge/monorepo/fullstack/project
+    env:
+      CI: '1'
+      EXPO_NO_TELEMETRY: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '12.16.1'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+          cache: pnpm
+          cache-dependency-path: knowledge/monorepo/fullstack/project/pnpm-lock.yaml
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools'
+      - name: Install exact Android 37.0 platform and build tools
+        run: |
+          sdkmanager --channel=3 'platforms;android-37.0' 'build-tools;37.0.0'
+          test -f "${ANDROID_HOME}/platforms/android-37.0/android.jar"
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Frozen dependency install
+        run: pnpm install --frozen-lockfile
+      - name: Verify the shared packages and RN types
+        run: |
+          pnpm build:shared
+          pnpm --filter @kv/mobile typecheck
+      - name: Generate reproducible Android native project
+        run: pnpm --filter @kv/mobile exec expo prebuild --platform android --no-install
+      - name: Compile Android debug APK (debug key only)
+        run: |
+          chmod +x apps/mobile/android/gradlew
+          (cd apps/mobile/android && ./gradlew :app:assembleDebug --no-daemon --stacktrace)
+      - name: Upload debug APK for emulator/device verification
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: knowverse-android-debug-${{ github.run_number }}
+          path: knowledge/monorepo/fullstack/project/apps/mobile/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 7

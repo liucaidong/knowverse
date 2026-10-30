@@ -1,0 +1,14 @@
+flowchart LR
+  M["Changes + pnpm-lock.yaml"] --> S["Frozen install"]
+  S --> T["Shared TS + mobile typecheck"]
+  T --> A["Android API 37 / JDK 17"]
+  T --> I["macOS 26 / Xcode 26.4.1"]
+  A --> AP["Expo prebuild Android"]
+  AP --> GD["Gradle assembleDebug"]
+  GD --> AA["Debug APK artifact"]
+  I --> IP["Expo prebuild iOS"]
+  IP --> PO["CocoaPods install"]
+  PO --> XB["Xcode simulator build"]
+  XB --> IA["Unsigned .app artifact"]
+  AA --> D["Device validation · pending"]
+  IA --> D

@@ -1,4 +1,4 @@
-name: Verify Fullstack Monorepo (real dependencies)
+name: Verify Fullstack Monorepo (frozen lockfile)
 on:
   push:
     branches: [main]
@@ -11,7 +11,7 @@ permissions:
 jobs:
   integration:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     defaults:
       run:
         working-directory: knowledge/monorepo/fullstack/project
@@ -23,22 +23,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
-      - name: Install real framework dependencies (first run generates lockfile)
-        run: pnpm install --no-frozen-lockfile
-      - name: Run workspace dependency guard
+          cache: pnpm
+          cache-dependency-path: knowledge/monorepo/fullstack/project/pnpm-lock.yaml
+      - name: Validate lockfile and native identifiers
+        run: |
+          node tools/verify-lockfile.mjs
+          node tools/verify-native-config.mjs
+      - name: Install exactly locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify dependency isolation
         run: pnpm check:boundaries
-      - name: Build TypeScript shared packages, Nest API, React Web
+      - name: Build shared packages, NestJS API, and React Web
         run: pnpm build
-      - name: Typecheck React Native source (not a native device build)
+      - name: Typecheck Expo React Native
         run: pnpm --filter @kv/mobile typecheck
-      - name: Run wire contract and affected tests
+      - name: Run runtime contract and affected tests
         run: pnpm test
       - name: Validate API HTTP response
         run: |
           pnpm --filter @kv/api start > /tmp/kv-api.log 2>&1 &
           pid=$!
           trap 'kill $pid 2>/dev/null || true' EXIT
-          for i in $(seq 1 30); do if curl -fsS http://localhost:3000/api/health; then break; fi; sleep 1; done
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/api/health; then break; fi
+            sleep 1
+          done
           node -e "fetch('http://localhost:3000/api/lessons').then(x=>x.json()).then(x=>{if(x.revision!==1||x.lessons.length!==3)process.exit(1);console.log('HTTP contract OK')}).catch(()=>process.exit(1))"
-      - name: Report native-device verification boundary
-        run: echo 'RN TypeScript only; Android/iOS builds must run on appropriate native runners.'
