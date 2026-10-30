@@ -1,0 +1,12 @@
+flowchart LR
+  C["@kv/contracts\nJSON schema + types"]
+  D["@kv/domain\nPure business logic"]
+  A["NestJS 12\nREST / Node runtime"]
+  W["React Web\nVite / Browser runtime"]
+  M["React Native 0.88\nExpo 58 / Native runtime"]
+  D -->|workspace:*| C
+  A -->|workspace:*| D
+  W -->|workspace:*| D
+  M -->|workspace:*| D
+  A -.->|HTTP JSON| W
+  A -.->|HTTP JSON| M

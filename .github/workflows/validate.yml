@@ -24,3 +24,5 @@ jobs:
         run: cd knowledge/monorepo/starter && node --test tests/*.test.mjs
       - name: Verify Monorepo browser lab mechanics offline
         run: node --test scripts/verify-monorepo-labs.mjs
+      - name: Verify fullstack tutorial and source links
+        run: python3 scripts/validate-fullstack.py

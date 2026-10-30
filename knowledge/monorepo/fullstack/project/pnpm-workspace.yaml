@@ -1,0 +1,5 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+# Expo SDK 58 accepts isolated installs; fall back to hoisted only if a dependency requires it.
+nodeLinker: isolated

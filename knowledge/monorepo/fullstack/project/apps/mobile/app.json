@@ -1,0 +1,17 @@
+{
+  "expo": {
+    "name": "Knowverse Learning Lab",
+    "slug": "knowverse-learning-lab",
+    "scheme": "knowverselab",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "plugins": [],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "edgeToEdgeEnabled": true
+    }
+  }
+}

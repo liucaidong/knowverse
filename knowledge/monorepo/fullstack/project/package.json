@@ -1,0 +1,27 @@
+{
+  "name": "@kv/fullstack-workspace",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "packageManager": "pnpm@12.16.1",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "scripts": {
+    "build:shared": "pnpm --filter @kv/contracts build && pnpm --filter @kv/domain build",
+    "build:web": "pnpm build:shared && pnpm --filter @kv/web build",
+    "build:api": "pnpm build:shared && pnpm --filter @kv/api build",
+    "build": "pnpm build:shared && pnpm --filter @kv/api build && pnpm --filter @kv/web build",
+    "typecheck": "pnpm build:shared && pnpm --filter @kv/mobile typecheck && pnpm --filter @kv/web typecheck && pnpm --filter @kv/api typecheck",
+    "test": "pnpm build:shared && node --test tests/*.test.mjs",
+    "check:boundaries": "node tools/check-boundaries.mjs",
+    "affected": "node tools/affected.mjs",
+    "dev:api": "pnpm build:shared && pnpm --filter @kv/api dev",
+    "dev:web": "pnpm build:shared && pnpm --filter @kv/web dev",
+    "dev:mobile": "pnpm build:shared && pnpm --filter @kv/mobile start"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "@types/node": "^22.15.0"
+  }
+}

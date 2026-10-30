@@ -1,0 +1,44 @@
+name: Verify Fullstack Monorepo (real dependencies)
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'knowledge/monorepo/fullstack/project/**'
+      - '.github/workflows/monorepo-fullstack.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: knowledge/monorepo/fullstack/project
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '12.16.1'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Install real framework dependencies (first run generates lockfile)
+        run: pnpm install --no-frozen-lockfile
+      - name: Run workspace dependency guard
+        run: pnpm check:boundaries
+      - name: Build TypeScript shared packages, Nest API, React Web
+        run: pnpm build
+      - name: Typecheck React Native source (not a native device build)
+        run: pnpm --filter @kv/mobile typecheck
+      - name: Run wire contract and affected tests
+        run: pnpm test
+      - name: Validate API HTTP response
+        run: |
+          pnpm --filter @kv/api start > /tmp/kv-api.log 2>&1 &
+          pid=$!
+          trap 'kill $pid 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do if curl -fsS http://localhost:3000/api/health; then break; fi; sleep 1; done
+          node -e "fetch('http://localhost:3000/api/lessons').then(x=>x.json()).then(x=>{if(x.revision!==1||x.lessons.length!==3)process.exit(1);console.log('HTTP contract OK')}).catch(()=>process.exit(1))"
+      - name: Report native-device verification boundary
+        run: echo 'RN TypeScript only; Android/iOS builds must run on appropriate native runners.'

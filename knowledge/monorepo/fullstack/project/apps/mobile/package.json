@@ -1,0 +1,23 @@
+{
+  "name": "@kv/mobile",
+  "private": true,
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start --clear",
+    "ios": "expo start --ios",
+    "android": "expo start --android",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kv/contracts": "workspace:*",
+    "@kv/domain": "workspace:*",
+    "expo": "~58.0.0",
+    "expo-status-bar": "~58.0.4",
+    "react": "19.3.0",
+    "react-native": "0.88.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0"
+  }
+}
