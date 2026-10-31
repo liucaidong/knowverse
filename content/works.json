@@ -1,5 +1,5 @@
 {
-  "version": "1.3.0",
+  "version": "1.4.0",
   "updated": "2026-10-31",
   "pillars": [
     {
@@ -144,6 +144,78 @@
       "summary": "在 3D 机制世界中探索 Promise 规则，通过推理激活装置并推进关卡",
       "knowledge_ids": [
         "promise",
+        "creative"
+      ]
+    },
+    {
+      "id": "monorepo-dependency-graph",
+      "pillar": "lab",
+      "title": "Monorepo · 依赖图与 Affected 实验器",
+      "subject": "TypeScript / pnpm",
+      "level": "进阶",
+      "kind": "experiment",
+      "status": "live",
+      "href": "./knowledge/monorepo/labs/graph/",
+      "summary": "从真实五包工作区 package.json 自动生成依赖图，选择变更包并观察消费者反向依赖闭包与任务目标映射",
+      "knowledge_ids": [
+        "monorepo"
+      ]
+    },
+    {
+      "id": "monorepo-cache-key",
+      "pillar": "lab",
+      "title": "Monorepo · 缓存键完整性实验",
+      "subject": "TypeScript / 构建缓存",
+      "level": "进阶",
+      "kind": "experiment",
+      "status": "live",
+      "href": "./knowledge/monorepo/labs/cache/",
+      "summary": "切换源码与环境变量，检验构建缓存键是否覆盖所有影响产物的输入，观察错误缓存命中",
+      "knowledge_ids": [
+        "monorepo"
+      ]
+    },
+    {
+      "id": "monorepo-build-order",
+      "pillar": "lab",
+      "title": "Monorepo · 工作区构建顺序观测器",
+      "subject": "TypeScript / Project References",
+      "level": "进阶",
+      "kind": "experiment",
+      "status": "live",
+      "href": "./knowledge/monorepo/labs/build/",
+      "summary": "从真实依赖图逐层推进构建，识别上游声明产物、可构建节点与同层并行批次",
+      "knowledge_ids": [
+        "monorepo"
+      ]
+    },
+    {
+      "id": "monorepo-architecture-exhibition",
+      "pillar": "gallery",
+      "title": "依赖星系 · Monorepo 3D 架构展厅",
+      "subject": "TypeScript / pnpm",
+      "level": "进阶",
+      "kind": "exhibition",
+      "status": "live",
+      "href": "./gallery/exhibits/monorepo-architecture/",
+      "summary": "以 WebGL 三维展示真实 React、React Native、NestJS 五包工作区；交互切换依赖结构、构建分层和变更影响",
+      "knowledge_ids": [
+        "monorepo",
+        "creative"
+      ]
+    },
+    {
+      "id": "monorepo-dependency-quest",
+      "pillar": "puzzles",
+      "title": "依赖星门 · Monorepo 3D 解谜世界",
+      "subject": "TypeScript / pnpm",
+      "level": "进阶",
+      "kind": "puzzle",
+      "status": "live",
+      "href": "./puzzles/worlds/monorepo-quest/",
+      "summary": "挑战 workspace:* 依赖声明、真实拓扑构建顺序和 contracts 变化的 Affected 反向依赖闭包",
+      "knowledge_ids": [
+        "monorepo",
         "creative"
       ]
     }

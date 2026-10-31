@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="在 3D Monorepo 依赖星门中挑战 workspace 协议、正确构建顺序和 Affected 反向依赖闭包。">
+  <title>依赖星门 · Monorepo 3D 解谜世界 · KNOWVERSE</title>
+  <link rel="stylesheet" href="../../../assets/css/monorepo-quest.css">
+</head>
+<body class="monorepo-world-page">
+  <header class="world-topbar">
+    <a class="world-brand" href="../../../">KNOW<b>VERSE</b> / APPLY</a>
+    <nav class="world-nav" aria-label="知识与体验导航">
+      <a href="../../../knowledge/monorepo/">Monorepo 原理</a>
+      <a href="../../../lab/">原理实验室</a>
+      <a href="../../../gallery/exhibits/monorepo-architecture/">3D 架构展厅</a>
+    </nav>
+  </header>
+  <section class="world-hero">
+    <div class="world-kicker">03 / APPLY · DEPENDENCY GATE CHALLENGE</div>
+    <h1>依赖星门</h1>
+    <p>三道机制挑战，验证你是否真正理解 workspace 依赖声明、构建先后关系，以及底层包变化如何沿反向依赖图传播。所有节点都来自真实参考工程。</p>
+  </section>
+  <main class="world-layout">
+    <section class="world-stage" data-world-container aria-label="Monorepo 三维解谜场景">
+      <canvas id="monorepo-world-canvas" aria-label="可拖动旋转的 Monorepo 3D 包依赖场景" tabindex="0"></canvas><div class="world-labels" data-world-labels aria-hidden="true"></div>
+      <div class="world-stage-badge">MONOREPO / GATE SYSTEM</div>
+      <div class="world-drag-hint">拖动旋转 · 点击节点观察依赖方向</div>
+      <p data-webgl-notice aria-live="polite">正在初始化 3D 解谜场景…</p>
+    </section>
+    <aside class="world-panel quest-panel">
+      <h2>通关任务</h2>
+      <p class="quest-subtitle">不是猜答案。每道门都要求你根据真实 package.json 和生成的依赖图作出判断。</p>
+      <div class="quest-progress" aria-label="挑战进度">
+        <span data-progress="0" class="done"></span>
+        <span data-progress="1"></span>
+        <span data-progress="2"></span>
+      </div>
+      <section class="quest-stage" data-quest-stage="0">
+        <div class="quest-step-label">GATE 01 / WORKSPACE CONTRACT</div>
+        <h3>如何声明本地包依赖？</h3>
+        <p><code>@kv/web</code> 直接使用 <code>@kv/domain</code>。要确保 pnpm 使用仓库中的工作区包，应在 <code>apps/web/package.json</code> 中采用哪一种版本声明？</p>
+        <div class="quest-options">
+          <button class="quest-option" type="button" data-protocol="workspace:*"><span>◈</span><span><strong>workspace:*</strong><small>明确要求解析到当前工作区中的匹配包</small></span></button>
+          <button class="quest-option" type="button" data-protocol="^0.1.0"><span>◇</span><span><strong>^0.1.0</strong><small>普通 semver 范围，不强制工作区链接</small></span></button>
+          <button class="quest-option" type="button" data-protocol="relative"><span>⌁</span><span><strong>../../packages/domain/src</strong><small>绕过包公开入口，直接耦合源码路径</small></span></button>
+          <button class="quest-option" type="button" data-protocol="hoist"><span>⇧</span><span><strong>依赖提升后直接 import</strong><small>不在消费者自己的 manifest 声明依赖</small></span></button>
+        </div>
+        <div class="quest-feedback" id="protocol-feedback" role="status" aria-live="polite">选择后，系统会同时核对真实工作区是否声明了这条直接依赖。</div>
+      </section>
+      <section class="quest-stage" data-quest-stage="1" hidden>
+        <div class="quest-step-label">GATE 02 / BUILD ORDER</div>
+        <h3>按依赖顺序点亮构建节点</h3>
+        <p>选择当前所有依赖都已构建完成的包。错误顺序会告诉你还缺少哪些上游产物。独立 App 在最后一层可以任意顺序构建。</p>
+        <div class="quest-build-list" id="quest-build-list"></div>
+        <div class="quest-feedback" id="build-feedback" role="status" aria-live="polite">先找到没有工作区依赖的起点。</div>
+        <div class="quest-choice-footer"><span class="quest-small" id="build-count">已完成 0 / 5</span><button class="quest-primary" id="build-reset" type="button">重置本关</button></div>
+      </section>
+      <section class="quest-stage" data-quest-stage="2" hidden>
+        <div class="quest-step-label">GATE 03 / AFFECTED CLOSURE</div>
+        <h3>底层契约改变，影响会传播到哪里？</h3>
+        <p>假设 <code>packages/contracts</code> 的生产源码发生变化。根据消费者 → 依赖提供者的边，选择需要纳入项目级检查的完整反向依赖闭包（包含变更包自身）。</p>
+        <div class="quest-options">
+          <button class="quest-option" type="button" data-affected="source"><span>01</span><span><strong>只检查 contracts</strong><small>忽略了所有依赖它的消费者</small></span></button>
+          <button class="quest-option" type="button" data-affected="core"><span>02</span><span><strong>contracts + domain</strong><small>只包含一层共享包</small></span></button>
+          <button class="quest-option" type="button" data-affected="all"><span>03</span><span><strong>contracts + domain + 三个 App</strong><small>沿反向依赖边递归传播到所有消费者</small></span></button>
+        </div>
+        <div class="quest-feedback" id="affected-feedback" role="status" aria-live="polite">注意：这里验证的是项目依赖闭包；真实 Nx/Turbo 任务选择还取决于目标与 inputs 配置。</div>
+      </section>
+      <section class="quest-stage" data-quest-stage="complete" hidden>
+        <div class="quest-complete">
+          <div class="seal">✦</div>
+          <div class="quest-step-label">ALL GATES UNLOCKED</div>
+          <h3>依赖星门已开启</h3>
+          <p>你已经通过工作区协议、构建顺序和 Affected 传播三道挑战。下一步可以进入实验室改变依赖，再观察 3D 展厅中的结构。</p>
+        </div>
+        <div class="quest-links">
+          <a href="../../../knowledge/monorepo/">回到 Monorepo 原理课程 ↗</a>
+          <a href="../../../knowledge/monorepo/labs/graph/">亲手操作依赖图与 Affected ↗</a>
+          <a href="../../../knowledge/monorepo/labs/cache/">挑战缓存键完整性 ↗</a>
+          <a href="../../../gallery/exhibits/monorepo-architecture/">再次探索 3D 依赖星系 ↗</a>
+        </div>
+      </section>
+    </aside>
+  </main>
+  <footer class="world-footer">
+    <a href="../../../knowledge/monorepo/">Monorepo 知识专题</a>
+    <span>·</span>
+    <a href="../../../works/">全部互动作品</a>
+    <span>·</span>
+    <a href="../../../">KNOWVERSE 首页</a>
+  </footer>
+  <script type="module" src="../../../assets/js/monorepo-quest.js"></script>
+</body>
+</html>

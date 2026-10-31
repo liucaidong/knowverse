@@ -23,6 +23,10 @@ jobs:
         run: python3 scripts/build-search-index.py
       - name: Verify generated search index is reproducible
         run: python3 scripts/build-search-index.py --check
+      - name: Build manifest-derived Monorepo workspace graph
+        run: python3 scripts/build-monorepo-graph.py
+      - name: Verify Monorepo graph is reproducible from package manifests
+        run: python3 scripts/build-monorepo-graph.py --check
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

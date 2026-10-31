@@ -68,8 +68,8 @@
     {
       "title": "TypeScript · Monorepo · 全景图",
       "topic": "软件架构",
-      "summary": "严格依赖、受影响分析、任务缓存与发布治理",
-      "tags": "pnpm Rush Nx Turborepo",
+      "summary": "严格工作区依赖、真实包依赖图、Project References 构建层、Affected 反向依赖传播、缓存输入与发布治理；配套原理实验、WebGL 3D 展厅和机制解谜",
+      "tags": "pnpm Rush Nx Turborepo workspace:* dependency graph Project References build order Affected cache",
       "href": "knowledge/monorepo/"
     },
     {

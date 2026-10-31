@@ -1,0 +1,42 @@
+@import url("./monorepo-world.css");
+.quest-panel{padding:18px}
+.quest-panel h2{font-size:18px;margin:0 0 5px}
+.quest-subtitle{color:#9eb5c1;font-size:11px;line-height:1.65;margin:0 0 14px}
+.quest-progress{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
+.quest-progress span{height:4px;border-radius:99px;background:#294653}
+.quest-progress span.done{background:#78e5cc;box-shadow:0 0 10px #78e5cc66}
+.quest-step-label{font-size:9px;letter-spacing:.16em;color:#83e4d0;font-weight:850}
+.quest-stage h3{font-size:17px;line-height:1.45;margin:8px 0;color:#f0fcf8}
+.quest-stage>p{color:#a9c0ca;font-size:11px;line-height:1.8;margin:0 0 13px}
+.quest-options{display:grid;gap:8px}
+.quest-option{display:flex;align-items:flex-start;gap:10px;width:100%;text-align:left;padding:12px;border-radius:12px;border:1px solid #315362;background:#0a202e;color:#d9e8ed;font-size:11px;line-height:1.6}
+.quest-option:hover{border-color:#72e4ce;background:#103342}
+.quest-option strong{display:block;color:#eafff8;font-size:12px}
+.quest-option small{display:block;color:#8eaab7;font-size:10px;margin-top:3px}
+.quest-option:focus-visible{outline:3px solid #8debd9;outline-offset:2px}
+.quest-option.correct{border-color:#70e1bd;background:#103a39}
+.quest-option.wrong{border-color:#e5a578;background:#3c2927}
+.quest-feedback{min-height:54px;margin-top:12px;padding:11px 12px;border:1px solid #2e5361;border-radius:11px;background:#091b29;color:#bfd3dc;font-size:10px;line-height:1.75}
+.quest-feedback.good{border-color:#418f7d;color:#b9f3de}
+.quest-feedback.bad{border-color:#9a654f;color:#ffd8b5}
+.quest-build-list{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.quest-build-list button{padding:10px;border:1px solid #315362;border-radius:10px;background:#0a202e;color:#dcebef;text-align:left}
+.quest-build-list button .build-name{display:block;font-size:11px;font-weight:800}
+.quest-build-list button .build-state{display:block;font-size:9px;color:#88a4b2;margin-top:4px}
+.quest-build-list button.is-ready{border-color:#5dbda9;background:#10343a}
+.quest-build-list button.is-done{border-color:#7be5c8;background:#123e39;opacity:.75}
+.quest-build-list button:disabled{cursor:default}
+.quest-choice-footer{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px}
+.quest-small{font-size:9px;color:#819eac;line-height:1.65}
+.quest-primary{border:1px solid #89e8d4;background:#a8f0df;color:#09232c;border-radius:999px;padding:10px 15px;font-size:11px;font-weight:850}
+.quest-primary:disabled{opacity:.4;cursor:not-allowed}
+.quest-complete{padding:20px 14px;text-align:center;border:1px solid #4b927f;border-radius:15px;background:linear-gradient(145deg,#123d3c,#0b2432)}
+.quest-complete .seal{font-size:26px}
+.quest-complete h3{font-size:23px;margin:8px 0;color:#baf5e3}
+.quest-complete p{font-size:11px;line-height:1.8;color:#c5dedc}
+.quest-links{display:grid;gap:7px;margin-top:13px}
+.quest-links a{padding:10px 12px;border:1px solid #426b76;border-radius:10px;color:#bde9e0;font-size:10px;text-decoration:none;background:#0a2432}
+.quest-links a:hover{border-color:#8fead7;color:#fff}
+[hidden]{display:none!important}
+@media(max-width:1050px){.quest-panel{display:block}.quest-panel>h2,.quest-panel>.quest-subtitle{grid-column:auto}.quest-panel{max-width:none}}
+@media(max-width:680px){.quest-panel{padding:14px}.quest-build-list{grid-template-columns:1fr 1fr}.quest-option{padding:11px}}

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#07111f">
+  <meta name="description" content="以真实 React、React Native、NestJS 工作区包依赖构建的 3D Monorepo 架构展览。">
+  <title>依赖星系 · Monorepo 3D 架构展厅 · KNOWVERSE</title>
+  <link rel="stylesheet" href="../../../assets/css/monorepo-world.css">
+</head>
+<body class="monorepo-world-page">
+  <header class="world-topbar">
+    <a class="world-brand" href="../../../">KNOW<b>VERSE</b> / EXPERIENCE</a>
+    <nav class="world-nav" aria-label="知识与体验导航">
+      <a href="../../../knowledge/monorepo/">Monorepo 原理</a>
+      <a href="../../../lab/">原理实验室</a>
+      <a href="../../../puzzles/">知识解谜</a>
+    </nav>
+  </header>
+  <section class="world-hero">
+    <div class="world-kicker">02 / EXPERIENCE · THREE-DIMENSIONAL ARCHITECTURE</div>
+    <h1>依赖星系</h1>
+    <p>把一个真实的 React Web、React Native、NestJS 五包工作区放进三维空间。每个立方体都是一个 package，每条连线都来自实际 package.json 的 workspace 依赖，不是手绘示意图。</p>
+  </section>
+  <main class="world-layout">
+    <section class="world-stage" data-world-container aria-label="三维工作区依赖图">
+      <canvas id="monorepo-world-canvas" aria-label="可拖动旋转的 Monorepo 三维依赖图" tabindex="0"></canvas><div class="world-labels" data-world-labels aria-hidden="true"></div>
+      <div class="world-stage-badge">LIVE WORKSPACE GRAPH / WEBGL</div>
+      <div class="world-drag-hint">拖动旋转 · 点击节点查看包边界</div>
+      <p data-webgl-notice aria-live="polite">正在初始化 WebGL 场景…</p>
+    </section>
+    <aside class="world-panel">
+      <h2>探索工作区</h2>
+      <p class="world-panel-intro">选择视角，再点击立方体或节点名称。箭头方向为消费者 → 依赖提供者。</p>
+      <div class="world-mode-list" role="group" aria-label="场景视角">
+        <button type="button" data-world-mode="dependencies" aria-pressed="true">依赖关系</button>
+        <button type="button" data-world-mode="build" aria-pressed="false">构建分层</button>
+        <button type="button" data-world-mode="affected" aria-pressed="false">变更影响</button>
+      </div>
+      <section class="world-selection" aria-live="polite">
+        <small id="world-node-path">WORKSPACE NODE</small>
+        <h3 id="world-node-name">加载工作区…</h3>
+        <p id="world-node-summary">读取真实 package.json 依赖关系。</p>
+        <div class="world-facts">
+          <div class="world-fact"><strong>直接依赖</strong><span id="world-node-deps">—</span></div>
+          <div class="world-fact"><strong>被哪些包使用</strong><span id="world-node-consumers">—</span></div>
+        </div>
+      </section>
+      <div class="world-node-list" id="world-node-list" aria-label="工作区节点"></div>
+      <section class="world-plan">
+        <strong id="world-plan-title">真实工程构建分层</strong>
+        <ol id="world-plan-list"><li>等待 graph 数据</li></ol>
+      </section>
+    </aside>
+  </main>
+  <footer class="world-footer">
+    <a href="../../../knowledge/monorepo/">回到 Monorepo 完整课程</a>
+    <span>·</span>
+    <a href="../../../knowledge/monorepo/labs/graph/">操作依赖图实验</a>
+    <span>·</span>
+    <a href="../../../knowledge/monorepo/labs/build/">操作构建机</a>
+    <span>·</span>
+    <a href="../../../puzzles/worlds/monorepo-quest/">进入依赖星门挑战 ↗</a>
+  </footer>
+  <script type="module" src="../../../assets/js/monorepo-exhibition.js"></script>
+</body>
+</html>

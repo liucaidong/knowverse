@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "source": "knowledge/monorepo/fullstack/project",
+  "package_manager": "pnpm@12.16.1",
+  "nodes": [
+    {
+      "id": "api",
+      "name": "@kv/api",
+      "path": "apps/api",
+      "kind": "app",
+      "dependencies": [
+        "contracts",
+        "domain"
+      ],
+      "scripts": [
+        "build",
+        "dev",
+        "start",
+        "typecheck"
+      ]
+    },
+    {
+      "id": "contracts",
+      "name": "@kv/contracts",
+      "path": "packages/contracts",
+      "kind": "package",
+      "dependencies": [],
+      "scripts": [
+        "build",
+        "typecheck"
+      ]
+    },
+    {
+      "id": "domain",
+      "name": "@kv/domain",
+      "path": "packages/domain",
+      "kind": "package",
+      "dependencies": [
+        "contracts"
+      ],
+      "scripts": [
+        "build",
+        "typecheck"
+      ]
+    },
+    {
+      "id": "mobile",
+      "name": "@kv/mobile",
+      "path": "apps/mobile",
+      "kind": "app",
+      "dependencies": [
+        "contracts",
+        "domain"
+      ],
+      "scripts": [
+        "android",
+        "ios",
+        "start",
+        "typecheck"
+      ]
+    },
+    {
+      "id": "web",
+      "name": "@kv/web",
+      "path": "apps/web",
+      "kind": "app",
+      "dependencies": [
+        "contracts",
+        "domain"
+      ],
+      "scripts": [
+        "build",
+        "dev",
+        "preview",
+        "typecheck"
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "consumer": "api",
+      "dependency": "contracts"
+    },
+    {
+      "consumer": "api",
+      "dependency": "domain"
+    },
+    {
+      "consumer": "domain",
+      "dependency": "contracts"
+    },
+    {
+      "consumer": "mobile",
+      "dependency": "contracts"
+    },
+    {
+      "consumer": "mobile",
+      "dependency": "domain"
+    },
+    {
+      "consumer": "web",
+      "dependency": "contracts"
+    },
+    {
+      "consumer": "web",
+      "dependency": "domain"
+    }
+  ],
+  "build_layers": [
+    [
+      "contracts"
+    ],
+    [
+      "domain"
+    ],
+    [
+      "api",
+      "mobile",
+      "web"
+    ]
+  ],
+  "build_order": [
+    "contracts",
+    "domain",
+    "api",
+    "mobile",
+    "web"
+  ]
+}

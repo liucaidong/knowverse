@@ -8,6 +8,7 @@ KNOWVERSE 使用静态 JSON 注册表，不依赖 CMS 或服务端数据库。�
 - `content/works.json`：三条产品主线和全部互动作品；每件作品通过 `knowledge_ids` 关联一个或多个知识专题。
 - `content/search-metadata.json`：人工策划的搜索标题、主题标签、摘要和目标路由，不存放重复的正文。
 - `data/search.json`：生成文件。正文从对应的 `index.md` 优先提取；没有 Markdown 源时从页面 HTML 正文提取。
+- `data/monorepo-graph.json`：生成文件。扫描真实全栈参考工程的 `apps/*/package.json` 与 `packages/*/package.json`，生成节点、依赖边和可并行构建层。
 
 ## 字段约定
 
@@ -22,13 +23,17 @@ KNOWVERSE 使用静态 JSON 注册表，不依赖 CMS 或服务端数据库。�
 
 ## 构建与验证
 
-本地更新搜索内容后执行：
+本地更新专题搜索内容后执行：
 
     python3 scripts/build-search-index.py
+
+从真实 Monorepo 参考工程重建依赖图：
+
+    python3 scripts/build-monorepo-graph.py
 
 验证生成结果与页面引用：
 
     python3 scripts/validate-content.py
     python3 scripts/validate-v2.py
 
-GitHub Actions 的内容验证与 Pages 部署都会先运行搜索索引生成器。新增/修改文章时更新 Markdown 或 HTML 源；只有需要策划搜索标题、摘要、主题标签时才更新 `search-metadata.json`。
+GitHub Actions 的内容验证与 Pages 部署都会先运行搜索索引及 Monorepo 依赖图生成器，并检查生成结果是否可复现。新增/修改文章时更新 Markdown 或 HTML 源；只有需要策划搜索标题、摘要、主题标签时才更新 `search-metadata.json`。

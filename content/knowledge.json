@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "updated": "2026-10-31",
   "topics": [
     {
@@ -24,7 +24,7 @@
       "title": "TypeScript · Monorepo",
       "short_title": "Monorepo",
       "category": "软件架构",
-      "summary": "严格依赖、受影响分析、任务缓存与发布治理",
+      "summary": "从显式依赖、构建图、Affected 传播到缓存与发布治理，并通过实验、3D 展厅和解谜挑战验证工程机制",
       "href": "./knowledge/monorepo/",
       "accent": "#6088ef",
       "featured": true,
@@ -34,7 +34,12 @@
         "Workspace",
         "Nx",
         "Rush",
-        "Turborepo"
+        "Turborepo",
+        "依赖图",
+        "Affected",
+        "Project References",
+        "构建顺序",
+        "构建缓存"
       ]
     },
     {

@@ -14,6 +14,10 @@ jobs:
         run: python3 scripts/build-search-index.py
       - name: Verify generated search index is reproducible
         run: python3 scripts/build-search-index.py --check
+      - name: Build manifest-derived Monorepo workspace graph
+        run: python3 scripts/build-monorepo-graph.py
+      - name: Verify Monorepo graph is reproducible from package manifests
+        run: python3 scripts/build-monorepo-graph.py --check
       - name: Validate V1 content registry and routes
         run: python3 scripts/validate-content.py
       - name: Validate V2 knowledge pages and Mermaid panoramas
@@ -26,6 +30,17 @@ jobs:
         run: node scripts/verify-promise-workbench-layout.mjs
       - name: Validate Monorepo course and routes
         run: python3 scripts/validate-monorepo-deep.py
+      - name: Validate the three-pillar Monorepo product
+        run: python3 scripts/validate-monorepo-product.py
+      - name: Test Monorepo graph, affected closure and puzzle gates
+        run: node scripts/verify-monorepo-product.mjs
+      - name: Parse Monorepo browser modules
+        run: |
+          node --input-type=module --check < assets/js/monorepo-world.js
+          node --input-type=module --check < assets/js/monorepo-exhibition.js
+          node --input-type=module --check < assets/js/monorepo-quest.js
+          node --check assets/js/monorepo-graph-model.mjs
+          node --check assets/js/monorepo-quest-core.mjs
       - name: Test Monorepo reference graph and affected logic
         run: cd knowledge/monorepo/starter && node --test tests/*.test.mjs
       - name: Verify Monorepo browser lab mechanics offline
