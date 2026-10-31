@@ -783,7 +783,8 @@ body.hide-inspector .inspector-column{display:none}
 }
 .workbench-stage:fullscreen,
 .workbench-stage.is-expanded {
-  position: relative;
+  position: fixed;
+  inset: 0;
   z-index: 1000;
   display: flex;
   flex-direction: column;
@@ -850,4 +851,87 @@ body.hide-inspector .inspector-column{display:none}
 .workbench-stage.is-expanded {
   position: fixed;
   inset: 0;
+}
+
+
+/* Fullscreen alignment: the scenario sidebar shares the exact first row and
+   full height of the main workspace, with no implicit top offset. */
+.workbench-stage:fullscreen,
+.workbench-stage.is-expanded {
+  align-items: stretch;
+  justify-content: flex-start;
+}
+.workbench-stage:fullscreen > .workbench-layout,
+.workbench-stage.is-expanded > .workbench-layout {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  align-content: stretch;
+  align-self: stretch;
+  margin-block: 0;
+}
+.workbench-stage:fullscreen > .workbench-layout > .sidebar,
+.workbench-stage.is-expanded > .workbench-layout > .sidebar {
+  grid-column: 1;
+  grid-row: 1;
+  align-self: stretch;
+  justify-self: stretch;
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  margin: 0;
+  transform: none;
+}
+.workbench-stage:fullscreen > .workbench-layout > .main-workspace,
+.workbench-stage.is-expanded > .workbench-layout > .main-workspace {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: stretch;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Minimal icon-only expansion control, placed at the far right of toolbar. */
+.toolbar-meta .workbench-fullscreen-toggle {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  min-width: 32px;
+  height: 30px;
+  padding: 0;
+  margin-left: 4px;
+  border-color: #347a73;
+  background: #102925;
+  color: #a9eee0;
+}
+.toolbar-meta .workbench-fullscreen-toggle:hover {
+  border-color: #62e4ce;
+  color: #d7fff5;
+}
+.toolbar-meta .workbench-fullscreen-toggle svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.toolbar-meta .workbench-fullscreen-toggle[aria-pressed="true"] {
+  border-color: #62e4ce;
+  background: #16403a;
+  color: #d7fff5;
+}
+@media (max-width: 980px) {
+  .workbench-stage:fullscreen > .workbench-layout,
+  .workbench-stage.is-expanded > .workbench-layout {
+    display: block;
+  }
+  .workbench-stage:fullscreen > .workbench-layout > .sidebar,
+  .workbench-stage.is-expanded > .workbench-layout > .sidebar {
+    display: none;
+  }
 }
