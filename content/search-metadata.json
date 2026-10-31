@@ -3,13 +3,6 @@
   "source": "Curated search metadata; body text is generated from the linked knowledge page source.",
   "records": [
     {
-      "title": "Promise 机制挑战 · 时序裂隙",
-      "topic": "JavaScript · Promise",
-      "summary": "五道递进式机制挑战：thenable getter 与采用、微任务 FIFO、then 链错误恢复、Promise.all/race、inner Promise 综合时序；根据错题定位薄弱概念并返回原理课。",
-      "tags": "Promise Resolution Procedure thenable NewPromiseResolveThenableJob microtask PromiseReactionJob then catch all race any",
-      "href": "puzzles/worlds/promise-mechanism-quest/"
-    },
-    {
       "title": "AI Agent · 系统工程 · 全景图",
       "topic": "AI 工程",
       "summary": "模型、工具、上下文、权限、记忆与工作流的职责边界",
