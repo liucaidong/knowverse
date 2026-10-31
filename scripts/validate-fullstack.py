@@ -79,3 +79,59 @@ for name in ['android-emulator.png','ios-simulator.png']:
  assert evidence.is_file() and evidence.stat().st_size>20000,name
  assert evidence.read_bytes().startswith(b'\x89PNG\r\n\x1a\n'),name
 print('Actual Android and iOS simulator screenshot evidence is retained in GitHub source tree')
+
+# Regression suite: real UI taps, fault injection, and protected loopback control.
+assert (p/'docs/09-fault-injection-and-maestro.md').is_file()
+for name in ['device-faults.test.mjs']:
+    assert (q/'tests'/name).is_file()
+for mode in ['refresh','unavailable','malformed','recovered']:
+    f=q/'tools/device-smoke/maestro'/f'{mode}.yaml'
+    assert f.is_file() and 'tapOn' in f.read_text() and 'extendedWaitUntil' in f.read_text()
+assert 'KV_DEVICE_TEST_MODE' in (q/'tools/device-smoke/api-proxy.mjs').read_text()
+assert 'injected-http-503' in (q/'tools/device-smoke/android.sh').read_text()
+android_script=(q/'tools/device-smoke/android.sh').read_text()
+assert 'ui_wait_quick' not in android_script, 'Avoid flaky transient loading checks'
+assert "ui_contains 'HTTP 503'" in android_script and "ui_contains 'SyntaxError'" in android_script
+assert 'wait_event injected-http-503 1' in android_script and 'wait_event injected-malformed-json 1' in android_script
+assert 'maestro' in (q/'tools/device-smoke/ios.sh').read_text()
+assert 'MAESTRO_VERSION' in (root/'.github/workflows/monorepo-ios.yml').read_text()
+with zipfile.ZipFile(p/'fullstack-project.zip') as archive:
+    for f in ['tools/device-smoke/api-proxy.mjs','tools/device-smoke/ios.sh','tools/device-smoke/android.sh',
+       'tests/device-proxy.test.mjs','tests/device-faults.test.mjs','tools/device-smoke/maestro/refresh.yaml',
+       'tools/device-smoke/maestro/unavailable.yaml','tools/device-smoke/maestro/malformed.yaml',
+       'tools/device-smoke/maestro/recovered.yaml','tools/device-smoke/run-maestro.py']:
+        assert archive.read('project/'+f)==(q/f).read_bytes(),f
+print('E2E regression scenarios: Android accessibility actions, iOS Maestro flows, safe localhost faults and bundled files OK')
+
+assert "subprocess.TimeoutExpired" in (q/"tools/device-smoke/run-maestro.py").read_text()
+print("iOS Maestro invocation has a bounded deadline and persistent failure logs")
+
+# E2E false-positive regression guard.
+proxy_text=(q/'tools/device-smoke/api-proxy.mjs').read_text()
+proxy_test=(q/'tests/device-proxy.test.mjs').read_text()
+assert "writeFileSync(logPath, '', { flag: 'a' })" in proxy_text, 'Proxy evidence file must exist before first request'
+assert "record('invalid-api-contract')" in proxy_text, 'Invalid upstream schema must be explicitly recorded'
+assert 'invalid-api-contract' in proxy_test and 'valid-api-hit' in proxy_test
+assert 'HTTP 503' in (q/'tools/device-smoke/maestro/unavailable.yaml').read_text(), 'Maestro must assert the injected 503 signature'
+assert 'SyntaxError' in (q/'tools/device-smoke/maestro/malformed.yaml').read_text(), 'Maestro must assert malformed JSON separately'
+for mode in ['refresh','unavailable','malformed','recovered']:
+    flow=(q/'tools/device-smoke/maestro'/f'{mode}.yaml').read_text()
+    assert 'id: kv-api-refresh' in flow and 'extendedWaitUntil' in flow
+assert 'ios-malformed.png' in (q/'tools/device-smoke/ios.sh').read_text()
+assert (p/'fault-injection.mmd').read_text().startswith('flowchart LR')
+assert (p/'fault-injection.svg').is_file()
+assert (p/'guides/fault-injection/index.html').is_file()
+assert sum(x.get('href')=='knowledge/monorepo/fullstack/guides/fault-injection/' for x in found)==1
+with zipfile.ZipFile(p/'fullstack-project.zip') as archive:
+    for f in ['tools/device-smoke/api-proxy.mjs','tests/device-proxy.test.mjs',
+              'tools/device-smoke/maestro/malformed.yaml','tools/device-smoke/maestro/unavailable.yaml']:
+        assert archive.read('project/'+f)==(q/f).read_bytes(), f'ZIP missing updated regression source {f}'
+print('False-positive regression guard: proxy event counts, scenario-specific HTTP 503/SyntaxError assertions and searchable tutorial OK')
+
+# Shared runner must expose only CI loopback scenario controls.
+proxySource=(q/'tools/device-smoke/api-proxy.mjs').read_text()
+commonSource=(q/'tools/device-smoke/common.sh').read_text()
+assert 'KV_DEVICE_TEST_MODE' in proxySource and '127.0.0.1' in proxySource
+assert 'export KV_DEVICE_TEST_MODE=1' in commonSource
+assert 'scenario()' in commonSource and 'wait_event()' in commonSource
+print('Device proxy control and scenario/event helpers wired into shared runner OK')

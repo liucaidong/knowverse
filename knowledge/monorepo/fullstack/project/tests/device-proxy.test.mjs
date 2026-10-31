@@ -43,9 +43,11 @@ test('Device proxy logs only valid API responses, not arbitrary HTTP 200 bodies'
     assert.equal((await good.json()).lessons.length, 3);
     assert.match(await readFile(log, 'utf-8'), /valid-api-hit/);
     response = { revision: 99, lessons: [] };
-    await fetch(`http://127.0.0.1:${proxyPort}/api/lessons`);
-    const hits = (await readFile(log, 'utf-8')).trim().split('\n');
-    assert.equal(hits.length, 1);
+    const invalid = await fetch(`http://127.0.0.1:${proxyPort}/api/lessons`);
+    assert.equal(invalid.status, 200); // Transport success is not contract success.
+    const hits = await readFile(log, 'utf-8');
+    assert.equal((hits.match(/valid-api-hit/g) || []).length, 1);
+    assert.equal((hits.match(/invalid-api-contract/g) || []).length, 1);
     assert.equal((await fetch(`http://127.0.0.1:${proxyPort}/wrong`)).status, 404);
   } finally {
     child.kill('SIGTERM');

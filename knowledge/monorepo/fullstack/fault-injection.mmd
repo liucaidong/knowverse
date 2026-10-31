@@ -1,0 +1,12 @@
+flowchart LR
+  Tap["测试机器人点击刷新"] --> Loading["正在重新验证 API"]
+  Loading --> Proxy["CI loopback proxy"]
+  Proxy --> Normal["合法 NestJS JSON"]
+  Proxy --> Down["HTTP 503"]
+  Proxy --> Bad["HTTP 200 / 非法 JSON"]
+  Down --> Offline["保留离线课程"]
+  Bad --> Offline
+  Normal --> Success["更新课程与成功状态"]
+  Offline --> Recover["切回 ok 并再次点击"]
+  Recover --> Success
+  Success --> Evidence["设备截图 / 服务器事件 / UI 日志"]

@@ -1,0 +1,9 @@
+appId: com.knowverse.learninglab
+---
+- assertVisible: "KNOWVERSE / NATIVE RUNTIME"
+- assertVisible: "重新验证 API"
+- tapOn:
+    id: kv-api-refresh
+- extendedWaitUntil:
+    visible: ".*NestJS API 连通.*"
+    timeout: 30000

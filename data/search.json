@@ -726,5 +726,13 @@
     "tags": "Android emulator iOS Simulator Expo React Native device smoke adb reverse simctl UIAutomator",
     "body": "编译成功不等于实际启动。Android 模拟器 UI 树断言，iOS 模拟器安装和启动，API 真实 HTTP，截图与日志。",
     "href": "knowledge/monorepo/fullstack/guides/simulator-smoke/"
+  },
+  {
+    "title": "09 · 跨端故障注入与 E2E 回归",
+    "topic": "TypeScript Monorepo",
+    "summary": "Android UIAutomator、iOS Maestro、HTTP 503、非法 JSON、离线回退、恢复和反假阳性验证。",
+    "tags": "E2E Android iOS Maestro UIAutomator HTTP 503 invalid JSON 网络异常 故障注入 离线回退",
+    "body": "真实用户点击后必须产生新的服务端事件，并看到与故障场景匹配的终态；503 验证 HTTP 503，非法 JSON 验证 SyntaxError，恢复验证合法 JSON。CI loopback proxy 检查契约、记录非法响应，并保存截图与设备日志。",
+    "href": "knowledge/monorepo/fullstack/guides/fault-injection/"
   }
 ]
