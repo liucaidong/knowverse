@@ -1,6 +1,6 @@
 {
-  "version": "1.0.0",
-  "updated": "2026-10-31",
+  "version": "1.1.0",
+  "updated": "2026-11-01",
   "challenges": [
     {
       "id": "monorepo-dependency-quest",
@@ -40,6 +40,269 @@
             "图中的边表示“消费者 → 依赖提供者”。依赖包变化时，要沿边的反方向寻找消费者。",
             "从 contracts 开始，先找到直接消费者 domain，再继续查找依赖 domain 的 App。",
             "完整闭包包含 contracts、domain、api、mobile、web 五个节点。"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "promise-mechanism-quest",
+      "topic": "promise",
+      "title": "时序裂隙",
+      "summary": "从 thenable 采用到微任务 FIFO、链式错误传播、组合 API，再到综合时序推演；每道题都能回到对应原理课和实验。",
+      "scoring": {
+        "attemptPenalty": 8,
+        "hintPenalty": 15
+      },
+      "steps": [
+        {
+          "id": "thenable-adoption",
+          "title": "第一关 · 解决权与 thenable",
+          "points": 100,
+          "focus": [
+            "thenable getter",
+            "NewPromiseResolveThenableJob",
+            "resolve 锁定",
+            "Promise adoption"
+          ],
+          "lessonHref": "../../../knowledge/promise/lesson-03/",
+          "labHref": "../../../lab/experiments/promise-debugger/",
+          "labLabel": "打开 Promise 调试工作台",
+          "intro": "一个对象拥有可调用的 then。Promise 在采用它时，属性读取与函数调用并不发生在同一个阶段。",
+          "prompt": "哪一项准确描述了下面代码的执行边界与最终结果？",
+          "code": "const inner = Promise.resolve(42);\\nconst thenable = {\\n  get then() {\\n    console.log('get');\\n    return (resolve, reject) => {\\n      console.log('call');\\n      resolve(inner);\\n      reject(new Error('late'));\\n      throw new Error('thenable-throw');\\n    };\\n  }\\n};\\nconsole.log('start');\\nconst outer = Promise.resolve(thenable);\\nouter.then(value => console.log('value', value));\\nconsole.log('end');",
+          "answer": "getter-sync-call-job",
+          "successFeedback": "正确。Get(thenable, 'then') 在当前同步流程中发生；可调用 then 被安排到后续 PromiseResolveThenableJob。thenable 第一次调用 resolve 后，后续 reject 与 throw 不能再改变解决结果；outer 继续采用 inner。",
+          "options": [
+            {
+              "id": "both-sync",
+              "label": "getter 与 then 函数都会在 Promise.resolve 调用期间同步执行。",
+              "diagnosis": "你把“读取 then 属性”和“调用 then 函数”合并成一个动作了。规范会先同步读取属性，再安排 thenable Job。",
+              "gap": "thenable 的属性读取与 Job 调用阶段混淆"
+            },
+            {
+              "id": "getter-sync-call-job",
+              "label": "getter 同步执行，then 函数在后续 Job 中调用；第一次 resolve(inner) 锁定后，late reject 和 throw 无法覆盖，outer 最终采用 42。",
+              "diagnosis": "",
+              "gap": ""
+            },
+            {
+              "id": "immediate-fulfill",
+              "label": "resolve(inner) 会立即让 outer fulfilled，结果就是 inner 这个 Promise 对象；后续 reject 可能再改写状态。",
+              "diagnosis": "resolved 不等于 settled。outer 的解决权已经锁定，但它还要采用 inner 的最终状态和值；已调用 resolving function 后，后续 reject 也不能改写。",
+              "gap": "resolved 与 settled、Promise adoption 区分不清"
+            },
+            {
+              "id": "getter-async",
+              "label": "getter 会等到微任务检查点才执行，then 函数反而在 end 之前同步执行。",
+              "diagnosis": "then 属性读取本身不是 thenable Job；Job 中发生的是对已取得的 then 函数进行调用。",
+              "gap": "PromiseResolveThenableJob 的执行边界混淆"
+            }
+          ],
+          "hints": [
+            "先把 thenable 的两个动作拆开：Get(thenable, 'then') 与 Call(then, ...)，它们不是同一阶段。",
+            "Get 属性发生在 resolve 流程中；若读到可调用函数，会安排 NewPromiseResolveThenableJob。",
+            "resolve(inner) 是第一次调用 resolving function：解决权被占有；outer 仍需采用 inner 的结果，后续 reject/throw 不会覆盖它。"
+          ]
+        },
+        {
+          "id": "microtask-fifo",
+          "title": "第二关 · 微任务 FIFO 与嵌套入队",
+          "points": 100,
+          "focus": [
+            "PromiseReactionJob",
+            "queueMicrotask",
+            "FIFO",
+            "嵌套微任务"
+          ],
+          "lessonHref": "../../../knowledge/promise/lesson-04/",
+          "labHref": "../../../lab/experiments/queue-observatory/",
+          "labLabel": "打开微任务队列观测站",
+          "intro": "不要按代码块的视觉顺序猜测。要在每一次入队发生时更新 FIFO 队列。",
+          "prompt": "这段代码的日志顺序是什么？",
+          "code": "console.log('A');\\nPromise.resolve().then(() => {\\n  console.log('B');\\n  queueMicrotask(() => console.log('D'));\\n});\\nqueueMicrotask(() => console.log('C'));\\nconsole.log('E');",
+          "answer": "a-e-b-c-d",
+          "successFeedback": "正确。同步阶段先输出 A、E；then 的 reaction 在 C 之前入队；执行 B 时才把 D 放到队尾，因此 C 先于 D。",
+          "options": [
+            {
+              "id": "a-b-c-d-e",
+              "label": "A → B → C → D → E",
+              "diagnosis": "你把 fulfilled Promise 的 then 回调当成同步执行了。then 只是注册 reaction，并安排异步 Job。",
+              "gap": "then 注册与 reaction Job 执行时机混淆"
+            },
+            {
+              "id": "a-e-c-b-d",
+              "label": "A → E → C → B → D",
+              "diagnosis": "当前 then 注册发生在 queueMicrotask(C) 之前；已经入队的 reaction B 会排在 C 前面。",
+              "gap": "微任务入队时刻与 FIFO 顺序混淆"
+            },
+            {
+              "id": "a-e-b-c-d",
+              "label": "A → E → B → C → D",
+              "diagnosis": "",
+              "gap": ""
+            },
+            {
+              "id": "a-e-b-d-c",
+              "label": "A → E → B → D → C",
+              "diagnosis": "D 不是在同步阶段入队。只有执行 B 时才调用 queueMicrotask，因此此时 C 已经在队列中。",
+              "gap": "嵌套微任务入队时机混淆"
+            }
+          ],
+          "hints": [
+            "先完整执行同步代码，因此先确定 A 和 E；此时两个微任务已经按注册先后进入队列。",
+            "Promise.resolve() 已兑现，调用 then 会安排 reaction；它写在 queueMicrotask(C) 之前。",
+            "B 执行时才安排 D。FIFO 队列里 C 已经等候，所以 C 必须先于 D。"
+          ]
+        },
+        {
+          "id": "chain-error-recovery",
+          "title": "第三关 · 链式传播与错误恢复",
+          "points": 100,
+          "focus": [
+            "then 返回新 Promise",
+            "onRejected 边界",
+            "throw 传播",
+            "catch 恢复"
+          ],
+          "lessonHref": "../../../knowledge/promise/lesson-05/",
+          "labHref": "../../../lab/experiments/promise-debugger/",
+          "labLabel": "打开 Promise 调试工作台",
+          "intro": "then 的两个处理器并不是互相捕获对方异常的 try/catch。每次 then 都创建新的 Promise。",
+          "prompt": "哪一项准确描述了这段链的控制流？",
+          "code": "Promise.resolve('origin')\\n  .then(\\n    () => { throw new Error('boom'); },\\n    () => console.log('wrong branch')\\n  )\\n  .then(() => console.log('never'))\\n  .catch(error => {\\n    console.log('recover:', error.message);\\n    return 'ok';\\n  })\\n  .then(value => console.log('done:', value));",
+          "answer": "new-promise-rejected-catch-recovers",
+          "successFeedback": "正确。成功处理器抛出的异常会拒绝 then 返回的新 Promise；同一次 then 的 onRejected 不会捕获它。后续 catch 收到 boom，返回 ok 后链恢复为 fulfilled。",
+          "options": [
+            {
+              "id": "same-then-catches",
+              "label": "同一个 then 的第二个参数会捕获第一个成功处理器内部抛出的 boom。",
+              "diagnosis": "onRejected 处理的是源 Promise 的拒绝，不是同一次 then 的 onFulfilled 内部异常。异常会拒绝 then 创建的新 Promise。",
+              "gap": "then 的 onRejected 与处理器自身 throw 的边界混淆"
+            },
+            {
+              "id": "new-promise-rejected-catch-recovers",
+              "label": "第一个处理器抛错会拒绝 then 返回的新 Promise；后续 catch 捕获并返回 ok，最终 done 输出 ok。",
+              "diagnosis": "",
+              "gap": ""
+            },
+            {
+              "id": "rejection-permanent",
+              "label": "Promise 一旦进入 rejected，后续 catch 即使返回普通值，也不能恢复链。",
+              "diagnosis": "单个 Promise 的状态不可逆，但链上的 catch 处理器会创建新的 Promise；它返回普通值时，新 Promise 可以 fulfilled。",
+              "gap": "Promise 状态不可逆与链式新 Promise 区分不清"
+            },
+            {
+              "id": "then-same-object",
+              "label": "每次 then 都在原 Promise 上追加回调，不会创建新的 Promise 对象。",
+              "diagnosis": "then 返回一个新的 Promise。下游状态取决于处理器返回普通值、返回 Promise/thenable，或抛出异常。",
+              "gap": "then 链对象身份与下游解析规则不清"
+            }
+          ],
+          "hints": [
+            "先问清第二个参数 onRejected 监听的是谁：它监听当前 then 的源 Promise。",
+            "第一个 onFulfilled 抛错时，拒绝的是这次 then 返回的新 Promise，不会回头调用同一 then 的 onRejected。",
+            "后续 catch 返回普通字符串会兑现它自己的返回 Promise，因此链可以从 rejected 恢复到 fulfilled。"
+          ]
+        },
+        {
+          "id": "combinator-semantics",
+          "title": "第四关 · 组合 API 的真实边界",
+          "points": 100,
+          "focus": [
+            "Promise.all 输入顺序",
+            "Promise.race 首个落定",
+            "fail-fast",
+            "取消不是 Promise.all 的职责"
+          ],
+          "lessonHref": "../../../knowledge/promise/lesson-08/",
+          "labHref": "../../../lab/experiments/promise-debugger/",
+          "labLabel": "打开 Promise 调试工作台",
+          "intro": "组合 API 决定的是外层 Promise 的落定规则，不等于一个取消器或并发调度器。",
+          "prompt": "假设 slow 在 30ms 后兑现，fast 在创建时已经 fulfilled。哪一项正确？",
+          "code": "const slow = new Promise(resolve =>\\n  setTimeout(() => resolve('slow'), 30)\\n);\\nconst fast = Promise.resolve('fast');\\nPromise.all([slow, fast]).then(console.log);\\nPromise.race([slow, fast]).then(console.log);",
+          "answer": "all-input-order-race-fast",
+          "successFeedback": "正确。race 由 fast 的 reaction 先让外层落定；all 必须等 slow 也兑现，最终数组仍按输入顺序 ['slow', 'fast']。all 的早拒绝也不会自动取消其它底层操作。",
+          "options": [
+            {
+              "id": "completion-order",
+              "label": "all 按完成顺序输出 ['fast', 'slow']；race 按数组中的第一个元素选择 slow。",
+              "diagnosis": "all 的结果数组按输入索引组织，不按完成时间；race 观察的是第一个落定的输入，不是数组第一个输入。",
+              "gap": "all 输入顺序与 race 首个落定规则混淆"
+            },
+            {
+              "id": "all-input-order-race-fast",
+              "label": "race 最终为 fast；all 等 slow 完成后输出 ['slow', 'fast']，按输入顺序排列。",
+              "diagnosis": "",
+              "gap": ""
+            },
+            {
+              "id": "all-fast",
+              "label": "因为 fast 已经 fulfilled，all 会立即输出 ['fast']，不再等待 slow。",
+              "diagnosis": "all 的成功条件是所有输入都 fulfilled；某个输入先 fulfilled 并不代表组合结果已经完成。",
+              "gap": "Promise.all 的全部成功条件混淆"
+            },
+            {
+              "id": "all-cancels",
+              "label": "若 all 中任何一个输入 rejected，其他输入会被 Promise.all 自动取消。",
+              "diagnosis": "Promise.all 的 reject 只决定外层组合 Promise；网络请求、计时器等底层操作不会自动停止，取消需要 AbortController 等机制配合。",
+              "gap": "组合 Promise 的结果与底层任务取消混淆"
+            }
+          ],
+          "hints": [
+            "把 all 和 race 分开分析：前者关注全部输入，后者关注第一个落定输入。",
+            "all 的结果槽位由输入索引决定，因此慢的第一个元素仍然排在数组第一位。",
+            "Promise.race 不偏好 fulfilled 或 rejected，也不看数组位置；哪个输入先落定，外层就采用哪个结果。"
+          ]
+        },
+        {
+          "id": "integrated-timeline",
+          "title": "最终关 · thenable × inner × 微任务综合推演",
+          "points": 100,
+          "focus": [
+            "Get(then) 同步",
+            "ThenableJob",
+            "resolved but pending",
+            "嵌套 Promise adoption",
+            "reaction 入队顺序"
+          ],
+          "lessonHref": "../../../knowledge/promise/lesson-14/",
+          "labHref": "../../../lab/experiments/promise-debugger/",
+          "labLabel": "在 Promise 调试工作台复现完整时序",
+          "intro": "最后一关把 getter、thenable Job、inner 采用和嵌套微任务放进同一条时间线。这里考的是机制，不是背诵口诀。",
+          "prompt": "下面代码的日志序列是哪一个？",
+          "code": "let finish;\\nconst inner = new Promise(resolve => { finish = resolve; });\\nconst thenable = {\\n  get then() {\\n    console.log('get');\\n    return (resolve, reject) => {\\n      console.log('call');\\n      resolve(inner);\\n      reject(new Error('late'));\\n      throw new Error('thenable-throw');\\n    };\\n  }\\n};\\nconsole.log('start');\\nconst outer = Promise.resolve(thenable);\\nouter.then(value => console.log('value', value));\\nqueueMicrotask(() => {\\n  console.log('M1');\\n  finish(42);\\n  queueMicrotask(() => console.log('M2'));\\n});\\nconsole.log('end');",
+          "answer": "start-get-end-call-m1-m2-value",
+          "successFeedback": "完全正确。执行顺序是 start、get、end、call、M1、M2、value 42。outer 先锁定解决权，但还要采用 pending 的 inner；内部采用过程继续排入 Job，因此 M1 与 M2 都先于 outer 的最终 reaction。",
+          "options": [
+            {
+              "id": "getter-after-end",
+              "label": "start → end → get → call → M1 → value 42 → M2",
+              "diagnosis": "get 是同步读取 then 属性的结果，应发生在 Promise.resolve(thenable) 返回之前；end 不可能先于 get。",
+              "gap": "then getter 的同步读取时机混淆"
+            },
+            {
+              "id": "start-get-end-call-m1-m2-value",
+              "label": "start → get → end → call → M1 → M2 → value 42",
+              "diagnosis": "",
+              "gap": ""
+            },
+            {
+              "id": "value-before-microtasks",
+              "label": "start → get → end → call → value 42 → M1 → M2",
+              "diagnosis": "resolve(inner) 锁定解决权不等于 outer 立即 fulfilled。outer 必须采用 inner；这条采用链还需要后续 Job，因此 M1、M2 会先发生。",
+              "gap": "resolved-but-pending 与 Promise adoption 的时序混淆"
+            },
+            {
+              "id": "call-before-end",
+              "label": "start → get → call → end → M1 → M2 → value 42",
+              "diagnosis": "get 同步，但 then 函数调用被安排到 NewPromiseResolveThenableJob；因此 call 在同步代码 end 之后。",
+              "gap": "thenable Job 的入队与执行时机混淆"
+            }
+          ],
+          "hints": [
+            "先只写同步阶段：start、读取 then 的 getter、注册 outer reaction 与 M1、最后 end。",
+            "微任务队列中 thenable Job 先于 M1；所以 call 在 M1 前，但仍在 end 后。",
+            "call 中 resolve(inner) 让 outer 采用一个仍 pending 的 Promise。M1 才兑现 inner，并额外排入 M2；内部采用 Job / reaction 链完成后，value 42 才能输出。"
           ]
         }
       ]
