@@ -1,0 +1,48 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-10-31",
+  "challenges": [
+    {
+      "id": "monorepo-dependency-quest",
+      "topic": "monorepo",
+      "title": "依赖星门",
+      "summary": "基于真实五包工作区图，验证 workspace 协议、构建拓扑和 Affected 反向依赖闭包。",
+      "scoring": {
+        "attemptPenalty": 8,
+        "hintPenalty": 15
+      },
+      "steps": [
+        {
+          "id": "workspace-protocol",
+          "title": "工作区协议",
+          "points": 100,
+          "hints": [
+            "先区分两件事：普通 semver 允许版本匹配，workspace 协议则明确表达“必须使用当前仓库中的工作区包”。",
+            "声明依赖的位置应该是消费者自己的 manifest，也就是 apps/web/package.json，而不是依赖提升后的偶然可见性。",
+            "pnpm 的工作区协议写法是 workspace:*。"
+          ]
+        },
+        {
+          "id": "build-order",
+          "title": "构建顺序",
+          "points": 100,
+          "hints": [
+            "拓扑排序从没有尚未完成的工作区依赖的节点开始。先找入度为零的起点。",
+            "当前图的层次是 contracts → domain → api、mobile、web。最后三个 App 处于同一层。",
+            "contracts 必须先于 domain；domain 必须先于三个 App。api、mobile、web 之间没有依赖边，因此可以并行。"
+          ]
+        },
+        {
+          "id": "affected-closure",
+          "title": "Affected 反向依赖闭包",
+          "points": 100,
+          "hints": [
+            "图中的边表示“消费者 → 依赖提供者”。依赖包变化时，要沿边的反方向寻找消费者。",
+            "从 contracts 开始，先找到直接消费者 domain，再继续查找依赖 domain 的 App。",
+            "完整闭包包含 contracts、domain、api、mobile、web 五个节点。"
+          ]
+        }
+      ]
+    }
+  ]
+}
