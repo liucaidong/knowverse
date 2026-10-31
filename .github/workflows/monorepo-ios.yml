@@ -22,12 +22,17 @@ jobs:
       CI: '1'
       EXPO_NO_TELEMETRY: '1'
       COCOAPODS_DISABLE_STATS: 'true'
+      MAESTRO_VERSION: '2.11.0'
     steps:
       - uses: actions/checkout@v4
       - name: Select Expo SDK 58-compatible Xcode
         run: |
           sudo xcode-select --switch /Applications/Xcode_26.4.1.app/Contents/Developer
           xcodebuild -version
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
       - uses: pnpm/action-setup@v4
         with:
           version: '12.16.1'
@@ -36,6 +41,14 @@ jobs:
           node-version: '22.16.0'
           cache: pnpm
           cache-dependency-path: knowledge/monorepo/fullstack/project/pnpm-lock.yaml
+      - name: Install pinned Maestro CLI
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+          export PATH="$HOME/.maestro/bin:$PATH"
+          maestro_version="$(maestro --version)"
+          printf 'Expected Maestro %s; installed: %s\n' "$MAESTRO_VERSION" "$maestro_version"
+          [[ "$maestro_version" == *"$MAESTRO_VERSION"* ]]
       - name: Frozen dependency install
         run: pnpm install --frozen-lockfile
       - name: Build shared packages and check RN types

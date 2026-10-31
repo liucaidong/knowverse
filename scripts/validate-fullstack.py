@@ -94,7 +94,12 @@ assert 'ui_wait_quick' not in android_script, 'Avoid flaky transient loading che
 assert "ui_contains 'HTTP 503'" in android_script and "ui_contains 'SyntaxError'" in android_script
 assert 'wait_event injected-http-503 1' in android_script and 'wait_event injected-malformed-json 1' in android_script
 assert 'maestro' in (q/'tools/device-smoke/ios.sh').read_text()
-assert 'MAESTRO_VERSION' in (root/'.github/workflows/monorepo-ios.yml').read_text()
+ios_workflow=(root/'.github/workflows/monorepo-ios.yml').read_text()
+assert "MAESTRO_VERSION: '2.11.0'" in ios_workflow
+assert 'actions/setup-java@v4' in ios_workflow and "java-version: '17'" in ios_workflow
+assert 'https://get.maestro.mobile.dev' in ios_workflow
+assert 'echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"' in ios_workflow
+assert 'maestro --version' in ios_workflow and '[[ "$maestro_version" == *"$MAESTRO_VERSION"* ]]' in ios_workflow
 with zipfile.ZipFile(p/'fullstack-project.zip') as archive:
     for f in ['tools/device-smoke/api-proxy.mjs','tools/device-smoke/ios.sh','tools/device-smoke/android.sh',
        'tests/device-proxy.test.mjs','tests/device-faults.test.mjs','tools/device-smoke/maestro/refresh.yaml',
