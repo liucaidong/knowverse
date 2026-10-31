@@ -20,6 +20,15 @@ async function bootPromiseWorkbench() {
     style.textContent = bundle.css;
     document.head.append(style);
 
+    await new Promise(resolve => {
+      const layout = document.createElement("link");
+      layout.rel = "stylesheet";
+      layout.href = new URL("./workspace-layout.css", import.meta.url).href;
+      layout.onload = resolve;
+      layout.onerror = resolve;
+      document.head.append(layout);
+    });
+
     const runtimeUrl = URL.createObjectURL(new Blob([bundle.runtime], { type: "text/javascript" }));
     const scenariosUrl = URL.createObjectURL(new Blob([bundle.scenarios], { type: "text/javascript" }));
     const workerSource = bundle.worker.replace('from "./runtime.mjs"', 'from "' + runtimeUrl + '"');
@@ -29,6 +38,7 @@ async function bootPromiseWorkbench() {
       .replace('new URL("./worker.mjs", import.meta.url)', 'new URL("' + workerUrl + '")');
     const debuggerUrl = URL.createObjectURL(new Blob([debuggerSource], { type: "text/javascript" }));
     await import(debuggerUrl);
+    await import(new URL("./workspace-enhancements.js", import.meta.url).href);
     window.addEventListener("pagehide", () => {
       [runtimeUrl, scenariosUrl, workerUrl, debuggerUrl].forEach(url => URL.revokeObjectURL(url));
     }, { once: true });

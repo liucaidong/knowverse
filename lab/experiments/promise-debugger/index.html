@@ -5,95 +5,163 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
   <meta name="theme-color" content="#080d16">
-  <meta name="description" content="KNOWVERSE Promise 运行时观测工作台：编辑代码、逐事件调试 Promise 状态、thenable 采用、reaction、微任务 FIFO、组合 API，并与浏览器原生 Promise 差分验证。">
-  <title>Promise 运行时观测工作台 · KNOWVERSE</title>
+  <meta name="description" content="KNOWVERSE Promise 调试工作台：代码、逐事件时间线、Promise 对象、微任务 FIFO、调用栈与本步变化并行观测。">
+  <title>Promise 调试工作台 · KNOWVERSE</title>
   <link rel="stylesheet" href="./debugger.css">
 </head>
 <body>
   <header class="topbar">
     <a class="brand" href="../../../"><span class="brand-mark">◈</span><span class="brand-name">KNOWVERSE</span><span class="brand-divider"></span><span class="brand-section">原理实验室</span></a>
-    <div class="topbar-right"><span class="runtime-pill"><i></i> TRACE RUNTIME</span><a href="../../../works/">全部作品</a><a href="../../../knowledge/promise/">Promise 课程</a></div>
+    <div class="topbar-right">
+      <button class="layout-toggle" id="toggle-scenarios" type="button" aria-pressed="false" title="收起或展开场景库">收起场景库</button>
+      <button class="layout-toggle" id="toggle-inspector" type="button" aria-pressed="false" title="收起或展开右侧检查器">收起检查器</button>
+      <button class="layout-toggle" id="fullscreen-toggle" type="button" title="切换全屏">全屏</button>
+      <span class="runtime-pill"><i></i> TRACE RUNTIME</span>
+      <a href="../../../works/">全部作品</a><a href="../../../knowledge/promise/">Promise 课程</a>
+    </div>
   </header>
 
   <main class="page-shell">
     <section class="hero">
       <div class="eyebrow">JAVASCRIPT ASYNC RUNTIME · INSPECT EVERY TRANSITION</div>
       <div class="hero-row">
-        <div><h1>Promise <em>调试工作台</em></h1><p>不再回放写死的动画。编辑一段使用可观测 Promise 的代码，运行后逐事件检查解析流程、对象状态、reaction 链、微任务 FIFO 与计时器任务。</p></div>
-        <div class="hero-stats"><div><strong>13</strong><span>机制实验</span></div><div><strong>4</strong><span>组合 API</span></div><div><strong>2-way</strong><span>原生差分</span></div></div>
+        <div class="hero-copy">
+          <h1>Promise <em>调试工作台</em></h1>
+          <p>编辑代码并逐事件运行。中间观察代码与时间线，右侧固定检查 Promise、微任务 FIFO 和调用栈；每一步的变化会汇总在右侧顶部。</p>
+        </div>
+        <div class="hero-stats">
+          <div><strong>13</strong><span>机制实验</span></div>
+          <div><strong>4</strong><span>组合 API</span></div>
+          <div><strong>2-way</strong><span>原生差分</span></div>
+        </div>
       </div>
-      <div class="capability-row"><span>可编辑代码</span><span>单步 / 连续 / 跳转</span><span>Promise 对象关系</span><span>ThenableJob / ReactionJob</span><span>原生 Promise 对照</span></div>
+      <div class="capability-row"><span>可编辑代码</span><span>单步 / 连续 / 跳转</span><span>对象状态与关系</span><span>ThenableJob / ReactionJob</span><span>原生 Promise 对照</span></div>
     </section>
 
-    <div class="workbench-layout">
-      <aside class="sidebar panel">
-        <div class="sidebar-heading"><div><span class="kicker">SCENARIO LIBRARY</span><h2>机制实验</h2></div><span class="scenario-count" id="scenario-count">13</span></div>
+    <div class="workbench-layout" id="workbench-layout">
+      <aside class="sidebar panel" id="scenario-sidebar">
+        <div class="sidebar-heading">
+          <div><span class="kicker">SCENARIO LIBRARY</span><h2>机制实验</h2></div>
+          <span class="scenario-count" id="scenario-count">13</span>
+        </div>
         <label class="search-box"><span>⌕</span><input id="scenario-search" type="search" placeholder="搜索 API / 机制 / 案例" autocomplete="off"></label>
         <div class="scenario-list" id="scenario-list"></div>
-        <div class="sidebar-note"><strong>运行边界</strong><p>代码在隔离 Worker 中运行。工作台提供可观测 Promise 模型；原生浏览器 Promise 的私有队列不会被伪装成可读取数据。</p></div>
+        <details class="sidebar-note">
+          <summary>运行边界与模型说明</summary>
+          <p>代码在隔离 Worker 中运行。工作台提供可观测 Promise 模型；浏览器原生 Promise 的私有 reaction 与微任务队列不会被伪装成可读取数据。</p>
+        </details>
       </aside>
 
       <section class="main-workspace">
         <section class="toolbar panel">
           <div class="toolbar-main">
             <button class="btn btn-run" id="run-code" type="button"><span>▶</span> 运行代码</button>
-            <button class="btn" id="step-back" type="button" disabled>← 单步后退</button>
-            <button class="btn" id="step-forward" type="button" disabled>单步前进 →</button>
+            <button class="btn" id="step-back" type="button" disabled>← 上一步</button>
+            <button class="btn" id="step-forward" type="button" disabled>下一步 →</button>
             <button class="btn" id="play-trace" type="button" disabled>▷ 连续播放</button>
-            <button class="btn" id="reset-trace" type="button" disabled>↺ 重置视图</button>
+            <button class="btn" id="reset-trace" type="button" disabled>↺ 重置</button>
           </div>
-          <div class="toolbar-meta"><label for="play-speed">速度</label><select id="play-speed"><option value="1200">慢</option><option value="650" selected>正常</option><option value="240">快</option></select><span class="frame-counter" id="frame-counter">等待运行</span></div>
+          <div class="toolbar-meta">
+            <label for="play-speed">速度</label>
+            <select id="play-speed"><option value="1200">慢</option><option value="650" selected>正常</option><option value="240">快</option></select>
+            <span class="frame-counter" id="frame-counter">等待运行</span>
+          </div>
         </section>
 
-        <div class="editor-trace-grid">
-          <section class="panel editor-panel">
-            <div class="panel-titlebar"><div><span class="panel-index">01</span><div><h2>代码实验区</h2><p id="scenario-summary">选择一个机制实验，或直接修改代码。</p></div></div><button class="text-button" id="restore-code" type="button">恢复示例</button></div>
-            <div class="editor-meta"><span id="scenario-group">基础与链式</span><span>Promise 已替换为 TracePromise</span><span>支持 Promise / queueMicrotask / setTimeout</span></div>
-            <textarea id="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="可编辑的 JavaScript 实验代码" placeholder="选择左侧实验，或输入代码…"></textarea>
-            <div class="editor-footer"><span><i class="dot dot-teal"></i> 可编辑 JavaScript</span><span>Ctrl / ⌘ + Enter 运行</span><span id="code-line-count">0 行</span></div>
-          </section>
+        <div class="workspace-grid">
+          <div class="primary-column">
+            <div class="editor-trace-grid">
+              <section class="panel editor-panel">
+                <div class="panel-titlebar">
+                  <div><span class="panel-index">01</span><div><h2>代码实验区</h2><p id="scenario-summary">选择一个机制实验，或直接修改代码。</p></div></div>
+                  <button class="text-button" id="restore-code" type="button">恢复示例</button>
+                </div>
+                <div class="editor-meta"><span id="scenario-group">基础与链式</span><span>Promise 已替换为 TracePromise</span><span>支持 Promise / queueMicrotask / setTimeout</span></div>
+                <textarea id="code-editor" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="可编辑的 JavaScript 实验代码" placeholder="选择左侧实验，或输入代码…"></textarea>
+                <div class="editor-footer"><span><i class="dot dot-teal"></i> 可编辑 JavaScript</span><span>Ctrl / ⌘ + Enter 运行</span><span id="code-line-count">0 行</span></div>
+              </section>
 
-          <section class="panel trace-panel">
-            <div class="panel-titlebar"><div><span class="panel-index">02</span><div><h2>执行事件时间线</h2><p>每个节点是一条运行时事件，点击即可定位。</p></div></div><span class="trace-total" id="trace-total">0 events</span></div>
-            <div class="current-event" id="current-event"><div class="event-placeholder"><span>STEP 0</span><strong>等待执行</strong><p>点击“运行代码”生成完整轨迹，然后逐事件检查。</p></div></div>
-            <div class="timeline-toolbar"><span>事件进度</span><span id="timeline-position">0 / 0</span></div>
-            <input id="timeline-range" class="timeline-range" type="range" min="0" max="0" value="0" disabled aria-label="执行事件进度">
-            <div class="timeline-strip" id="timeline-strip"><span class="timeline-empty">运行后显示事件节点</span></div>
-          </section>
+              <section class="panel trace-panel">
+                <div class="panel-titlebar">
+                  <div><span class="panel-index">02</span><div><h2>执行事件时间线</h2><p>每个节点是一条运行时事件，点击即可定位。</p></div></div>
+                  <span class="trace-total" id="trace-total">0 events</span>
+                </div>
+                <div class="current-event" id="current-event"><div class="event-placeholder"><span>STEP 0</span><strong>等待执行</strong><p>点击“运行代码”生成完整轨迹，然后逐事件检查。</p></div></div>
+                <div class="timeline-toolbar"><span>事件进度</span><span id="timeline-position">0 / 0</span></div>
+                <input id="timeline-range" class="timeline-range" type="range" min="0" max="0" value="0" disabled aria-label="执行事件进度">
+                <div class="timeline-strip" id="timeline-strip"><span class="timeline-empty">运行后显示事件节点</span></div>
+              </section>
+            </div>
+
+            <section class="panel console-panel">
+              <div class="panel-titlebar">
+                <div><span class="panel-index">06</span><div><h2>控制台</h2><p>随时间线位置变化，只显示截至当前事件的日志。</p></div></div>
+                <span class="live-label">TRACE OUTPUT</span>
+              </div>
+              <div class="console-output" id="console-output"><div class="empty-state">尚无输出</div></div>
+            </section>
+
+            <details class="panel native-panel">
+              <summary class="native-summary">
+                <span><b>07</b> 浏览器原生 Promise 差分验证</span>
+                <span>展开原生对照</span>
+              </summary>
+              <div class="native-body">
+                <div class="panel-titlebar">
+                  <div><span class="panel-index">07</span><div><h2>浏览器原生 Promise 差分验证</h2><p>对同一份当前编辑代码，分别运行 TracePromise 与浏览器原生 Promise，逐条比较 console 输出。</p></div></div>
+                  <button class="btn btn-verify" id="verify-native" type="button" disabled>运行原生对照 ↗</button>
+                </div>
+                <div class="native-result" id="native-result"><div class="empty-state">先运行代码，再启动原生对照验证。</div></div>
+              </div>
+            </details>
+          </div>
+
+          <aside class="inspector-column" id="inspector-column">
+            <section class="panel step-diff-panel" aria-live="polite">
+              <div class="panel-titlebar diff-titlebar">
+                <div><span class="panel-index">Δ</span><div><h2>本步变化</h2><p>每次前进、后退或跳转后，自动对比上一帧。</p></div></div>
+                <span class="diff-status" id="step-diff-status">WAITING</span>
+              </div>
+              <div class="step-diff-content" id="step-diff-content">
+                <div class="diff-empty"><strong>等待运行</strong><span>这里会解释本步哪些 Promise 状态、队列任务、调用栈、计时器或日志发生了变化。</span></div>
+              </div>
+            </section>
+
+            <section class="panel promise-panel">
+              <div class="panel-titlebar">
+                <div><span class="panel-index">03</span><div><h2>Promise 对象图</h2><p>选择对象，检查状态、锁定与父子链。</p></div></div>
+                <span class="object-count" id="object-count">0 objects</span>
+              </div>
+              <div class="promise-graph" id="promise-graph"><div class="empty-state">运行后显示 Promise 对象</div></div>
+              <div class="selected-promise" id="selected-promise">尚未选择 Promise 对象</div>
+            </section>
+
+            <section class="panel queue-panel">
+              <div class="panel-titlebar">
+                <div><span class="panel-index">04</span><div><h2>微任务队列 · FIFO</h2><p>队首位于最上方；入队与出队均形成事件。</p></div></div>
+                <span class="queue-count" id="queue-count">0 jobs</span>
+              </div>
+              <div class="queue-content" id="queue-content"><div class="empty-state">当前没有待执行微任务</div></div>
+            </section>
+
+            <section class="panel stack-panel">
+              <div class="panel-titlebar">
+                <div><span class="panel-index">05</span><div><h2>调用栈与计时器</h2><p>当前执行上下文及等待进入任务队列的计时器。</p></div></div>
+              </div>
+              <div class="runtime-lanes">
+                <div><h3>CALL STACK <span id="stack-count">0</span></h3><div id="stack-content" class="stack-content"><div class="empty-state">调用栈为空</div></div></div>
+                <div><h3>TIMER TASKS <span id="timer-count">0</span></h3><div id="timer-content" class="timer-content"><div class="empty-state">无等待中的计时器</div></div></div>
+              </div>
+            </section>
+          </aside>
         </div>
-
-        <div class="inspect-grid">
-          <section class="panel console-panel">
-            <div class="panel-titlebar"><div><span class="panel-index">03</span><div><h2>控制台</h2><p>随事件位置变化，显示当时已输出日志。</p></div></div><span class="live-label">TRACE OUTPUT</span></div>
-            <div class="console-output" id="console-output"><div class="empty-state">尚无输出</div></div>
-          </section>
-
-          <section class="panel promise-panel">
-            <div class="panel-titlebar"><div><span class="panel-index">04</span><div><h2>Promise 对象图</h2><p>选择对象，检查状态、锁定与父子链。</p></div></div><span class="object-count" id="object-count">0 objects</span></div>
-            <div class="promise-graph" id="promise-graph"><div class="empty-state">运行后显示 Promise 对象</div></div>
-            <div class="selected-promise" id="selected-promise">尚未选择 Promise 对象</div>
-          </section>
-        </div>
-
-        <div class="inspect-grid lower-grid">
-          <section class="panel queue-panel">
-            <div class="panel-titlebar"><div><span class="panel-index">05</span><div><h2>微任务队列 · FIFO</h2><p>队首位于最上方；入队与出队均形成事件。</p></div></div><span class="queue-count" id="queue-count">0 jobs</span></div>
-            <div class="queue-content" id="queue-content"><div class="empty-state">当前没有待执行微任务</div></div>
-          </section>
-          <section class="panel stack-panel">
-            <div class="panel-titlebar"><div><span class="panel-index">06</span><div><h2>调用栈与计时器</h2><p>当前执行上下文，以及等待进入任务队列的计时器。</p></div></div></div>
-            <div class="runtime-lanes"><div><h3>CALL STACK <span id="stack-count">0</span></h3><div id="stack-content" class="stack-content"><div class="empty-state">调用栈为空</div></div></div><div><h3>TIMER TASKS <span id="timer-count">0</span></h3><div id="timer-content" class="timer-content"><div class="empty-state">无等待中的计时器</div></div></div></div>
-          </section>
-        </div>
-
-        <section class="panel native-panel">
-          <div class="panel-titlebar"><div><span class="panel-index">07</span><div><h2>浏览器原生 Promise 差分验证</h2><p>对同一份当前编辑代码，分别运行 TracePromise 与浏览器原生 Promise，逐条比较 console 输出。</p></div></div><button class="btn btn-verify" id="verify-native" type="button" disabled>运行原生对照 ↗</button></div>
-          <div class="native-result" id="native-result"><div class="empty-state">先运行代码，再启动原生对照验证。</div></div>
-        </section>
-
-        <section class="boundary-note panel"><div class="boundary-icon">i</div><div><strong>关于“真正调试”的准确边界</strong><p>本工作台执行的是独立、可观测的 Promise 模型运行时，因此能够真实运行编辑区中的受支持代码，并完整记录它自己的状态转移和调度队列；它不是 V8 / JavaScriptCore 的内部调试器，不能读取浏览器原生 Promise 的私有 reaction 或微任务队列。原生差分验证会用真实浏览器运行时核对外部可见输出。模型不支持原生 async / await 的内部挂起点追踪，也不应把非标准 Promise 子类行为视为完整规范实现。</p></div></section>
       </section>
     </div>
+
+    <details class="boundary-note panel">
+      <summary><span class="boundary-icon">i</span><strong>关于“真正调试”的准确边界</strong><span>查看模型与浏览器原生运行时的区别</span></summary>
+      <p>本工作台执行独立、可观测的 Promise 模型运行时，因此能够记录它自己的状态转移和调度队列；它不是 V8 / JavaScriptCore 的内部调试器，不能读取浏览器原生 Promise 的私有 reaction 或微任务队列。原生差分验证会用真实浏览器运行时核对外部可见输出。模型不支持原生 async / await 的内部挂起点追踪，也不应把非标准 Promise 子类行为视为完整规范实现。</p>
+    </details>
 
     <footer class="page-footer"><a href="../../../lab/">← 返回原理实验室</a><span>KNOWVERSE · PROMISE RUNTIME WORKBENCH</span><a href="../../../knowledge/promise/lesson-14/">继续 Promise 第 14 课 →</a></footer>
   </main>
