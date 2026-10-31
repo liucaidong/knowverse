@@ -105,6 +105,7 @@ test("unlocks every step in order and marks the challenge completed", () => {
   const summary = summarizeChallenge(challenge, progress);
   assert.equal(progress.status, "completed");
   assert.equal(summary.completionRate, 1);
+  assert.equal(summary.status, "completed");
   assert.equal(summary.completedSteps, 3);
   assert.equal(summary.earnedPoints, 240);
 });
