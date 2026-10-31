@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#07111f">
-  <meta name="description" content="在 3D Monorepo 依赖星门中挑战 workspace 协议、正确构建顺序和 Affected 反向依赖闭包。">
+  <meta name="description" content="在 3D Monorepo 依赖星门中挑战 workspace 协议、构建顺序和 Affected 闭包；提供渐进提示、得分与断点续玩。">
   <title>依赖星门 · Monorepo 3D 解谜世界 · KNOWVERSE</title>
   <link rel="stylesheet" href="../../../assets/css/monorepo-quest.css">
 </head>
@@ -30,37 +30,69 @@
       <p data-webgl-notice aria-live="polite">正在初始化 3D 解谜场景…</p>
     </section>
     <aside class="world-panel quest-panel">
-      <h2>通关任务</h2>
-      <p class="quest-subtitle">不是猜答案。每道门都要求你根据真实 package.json 和生成的依赖图作出判断。</p>
+      <div class="quest-heading-row">
+        <div>
+          <h2>通关任务</h2>
+          <p class="quest-subtitle">不是猜答案。每道门都要求你根据真实 package.json 和生成的依赖图作出判断。</p>
+        </div>
+        <button class="quest-reset-link" id="quest-reset" type="button">重置进度</button>
+      </div>
       <div class="quest-progress" aria-label="挑战进度">
-        <span data-progress="0" class="done"></span>
+        <span data-progress="0"></span>
         <span data-progress="1"></span>
         <span data-progress="2"></span>
       </div>
+      <div class="quest-dashboard" aria-label="挑战统计">
+        <div><small>关卡</small><strong id="quest-progress-count">0 / 3</strong></div>
+        <div><small>尝试</small><strong id="quest-attempt-count">0</strong></div>
+        <div><small>提示</small><strong id="quest-hint-count">0</strong></div>
+        <div><small>得分</small><strong id="quest-score-count">0 / 300</strong></div>
+        <p id="quest-save-note" aria-live="polite">进度会自动保存在本设备。</p>
+      </div>
+
       <section class="quest-stage" data-quest-stage="0">
         <div class="quest-step-label">GATE 01 / WORKSPACE CONTRACT</div>
         <h3>如何声明本地包依赖？</h3>
         <p><code>@kv/web</code> 直接使用 <code>@kv/domain</code>。要确保 pnpm 使用仓库中的工作区包，应在 <code>apps/web/package.json</code> 中采用哪一种版本声明？</p>
+        <div class="quest-hint-box">
+          <button class="quest-hint-button" id="hint-workspace-protocol" type="button" data-hint-step="workspace-protocol">获取下一条提示 (0/3)</button>
+          <p id="hint-workspace-protocol-output" aria-live="polite">卡住时再展开提示。每次只揭示下一层线索。</p>
+        </div>
         <div class="quest-options">
           <button class="quest-option" type="button" data-protocol="workspace:*"><span>◈</span><span><strong>workspace:*</strong><small>明确要求解析到当前工作区中的匹配包</small></span></button>
           <button class="quest-option" type="button" data-protocol="^0.1.0"><span>◇</span><span><strong>^0.1.0</strong><small>普通 semver 范围，不强制工作区链接</small></span></button>
           <button class="quest-option" type="button" data-protocol="relative"><span>⌁</span><span><strong>../../packages/domain/src</strong><small>绕过包公开入口，直接耦合源码路径</small></span></button>
           <button class="quest-option" type="button" data-protocol="hoist"><span>⇧</span><span><strong>依赖提升后直接 import</strong><small>不在消费者自己的 manifest 声明依赖</small></span></button>
         </div>
-        <div class="quest-feedback" id="protocol-feedback" role="status" aria-live="polite">选择后，系统会同时核对真实工作区是否声明了这条直接依赖。</div>
+        <div class="quest-feedback" id="protocol-feedback" role="status" aria-live="polite">选择后，系统会核对真实工作区依赖。</div>
+        <button class="quest-primary quest-next" id="stage-protocol-next" type="button" hidden>继续下一关 →</button>
       </section>
+
       <section class="quest-stage" data-quest-stage="1" hidden>
         <div class="quest-step-label">GATE 02 / BUILD ORDER</div>
         <h3>按依赖顺序点亮构建节点</h3>
         <p>选择当前所有依赖都已构建完成的包。错误顺序会告诉你还缺少哪些上游产物。独立 App 在最后一层可以任意顺序构建。</p>
+        <div class="quest-hint-box">
+          <button class="quest-hint-button" id="hint-build-order" type="button" data-hint-step="build-order">获取下一条提示 (0/3)</button>
+          <p id="hint-build-order-output" aria-live="polite">从依赖图中寻找可最先构建的节点。</p>
+        </div>
         <div class="quest-build-list" id="quest-build-list"></div>
         <div class="quest-feedback" id="build-feedback" role="status" aria-live="polite">先找到没有工作区依赖的起点。</div>
-        <div class="quest-choice-footer"><span class="quest-small" id="build-count">已完成 0 / 5</span><button class="quest-primary" id="build-reset" type="button">重置本关</button></div>
+        <div class="quest-choice-footer">
+          <span class="quest-small" id="build-count">已完成 0 / 5</span>
+          <button class="quest-primary" id="build-reset" type="button">重置本关</button>
+        </div>
+        <button class="quest-primary quest-next" id="stage-build-next" type="button" hidden>继续下一关 →</button>
       </section>
+
       <section class="quest-stage" data-quest-stage="2" hidden>
         <div class="quest-step-label">GATE 03 / AFFECTED CLOSURE</div>
         <h3>底层契约改变，影响会传播到哪里？</h3>
         <p>假设 <code>packages/contracts</code> 的生产源码发生变化。根据消费者 → 依赖提供者的边，选择需要纳入项目级检查的完整反向依赖闭包（包含变更包自身）。</p>
+        <div class="quest-hint-box">
+          <button class="quest-hint-button" id="hint-affected-closure" type="button" data-hint-step="affected-closure">获取下一条提示 (0/3)</button>
+          <p id="hint-affected-closure-output" aria-live="polite">先辨认依赖边的方向，再沿反方向寻找消费者。</p>
+        </div>
         <div class="quest-options">
           <button class="quest-option" type="button" data-affected="source"><span>01</span><span><strong>只检查 contracts</strong><small>忽略了所有依赖它的消费者</small></span></button>
           <button class="quest-option" type="button" data-affected="core"><span>02</span><span><strong>contracts + domain</strong><small>只包含一层共享包</small></span></button>
@@ -68,18 +100,21 @@
         </div>
         <div class="quest-feedback" id="affected-feedback" role="status" aria-live="polite">注意：这里验证的是项目依赖闭包；真实 Nx/Turbo 任务选择还取决于目标与 inputs 配置。</div>
       </section>
+
       <section class="quest-stage" data-quest-stage="complete" hidden>
         <div class="quest-complete">
           <div class="seal">✦</div>
           <div class="quest-step-label">ALL GATES UNLOCKED</div>
           <h3>依赖星门已开启</h3>
           <p>你已经通过工作区协议、构建顺序和 Affected 传播三道挑战。下一步可以进入实验室改变依赖，再观察 3D 展厅中的结构。</p>
+          <p id="quest-final-summary" class="quest-final-summary">挑战统计正在整理…</p>
         </div>
         <div class="quest-links">
           <a href="../../../knowledge/monorepo/">回到 Monorepo 原理课程 ↗</a>
           <a href="../../../knowledge/monorepo/labs/graph/">亲手操作依赖图与 Affected ↗</a>
           <a href="../../../knowledge/monorepo/labs/cache/">挑战缓存键完整性 ↗</a>
           <a href="../../../gallery/exhibits/monorepo-architecture/">再次探索 3D 依赖星系 ↗</a>
+          <button class="quest-primary" id="quest-restart-complete" type="button">再挑战一次</button>
         </div>
       </section>
     </aside>

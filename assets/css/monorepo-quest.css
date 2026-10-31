@@ -40,3 +40,24 @@
 [hidden]{display:none!important}
 @media(max-width:1050px){.quest-panel{display:block}.quest-panel>h2,.quest-panel>.quest-subtitle{grid-column:auto}.quest-panel{max-width:none}}
 @media(max-width:680px){.quest-panel{padding:14px}.quest-build-list{grid-template-columns:1fr 1fr}.quest-option{padding:11px}}
+
+/* Shared challenge runtime UI */
+.quest-heading-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.quest-heading-row h2{margin-bottom:5px}
+.quest-heading-row .quest-subtitle{margin-bottom:0}
+.quest-reset-link{flex:0 0 auto;border:1px solid #365564;border-radius:999px;background:#0a1c2a;color:#a8c2ca;padding:7px 10px;font-size:9px}
+.quest-reset-link:hover{border-color:#80dcca;color:#e8fff8}
+.quest-dashboard{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin:13px 0 17px;padding:10px;border:1px solid #294a5a;border-radius:12px;background:#091b28}
+.quest-dashboard>div{min-width:0;display:grid;gap:3px}
+.quest-dashboard small{font-size:9px;color:#86a5b3}
+.quest-dashboard strong{font-size:14px;color:#e1f6f2;font-variant-numeric:tabular-nums}
+.quest-dashboard p{grid-column:1/-1;margin:2px 0 0;color:#88a8b4;font-size:9px;line-height:1.6}
+.quest-hint-box{display:grid;gap:7px;margin:0 0 12px;padding:10px;border:1px solid #304e5d;border-radius:11px;background:#091b29}
+.quest-hint-button{justify-self:start;border:1px solid #557b83;border-radius:999px;padding:7px 11px;background:#102d37;color:#baf2e5;font-size:10px;font-weight:750}
+.quest-hint-button:hover:not(:disabled){border-color:#91e9d6;background:#153d43}
+.quest-hint-button:disabled{opacity:.55;cursor:default}
+.quest-hint-box p{margin:0;color:#a9c5cb;font-size:10px;line-height:1.75;white-space:pre-line}
+.quest-next{display:block;margin:12px 0 0 0}
+.quest-final-summary{margin-top:10px!important;padding:9px 10px;border:1px solid #3f7b70;border-radius:10px;background:#0b2c31;color:#c6f5e8!important}
+.quest-links .quest-primary{justify-self:center;margin-top:3px}
+@media(max-width:420px){.quest-dashboard{grid-template-columns:repeat(2,minmax(0,1fr))}.quest-heading-row{gap:6px}.quest-reset-link{padding:7px 8px;font-size:8px}}

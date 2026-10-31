@@ -1,4 +1,14 @@
 import {
+  completeStep,
+  createChallengeProgressStore,
+  getStepProgress,
+  recordAttempt,
+  revealNextHint,
+  resetChallengeProgress,
+  setStepData,
+  summarizeChallenge,
+} from "./challenge-engine.mjs";
+import {
   applyBuildChoice,
   validateAffectedSelection,
   validatePackageDependency,
@@ -10,8 +20,17 @@ import { mountMonorepoWorld } from "./monorepo-world.js";
 const root = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
 const names = new Map();
+const STEP = {
+  protocol: "workspace-protocol",
+  build: "build-order",
+  affected: "affected-closure",
+};
+
 let graph;
 let world;
+let challenge;
+let progress;
+let progressStore;
 let selectedNode = "contracts";
 let completed = [];
 let stage = 0;
@@ -24,16 +43,21 @@ function selectNode(id) {
   });
 }
 
-function showStage(next) {
-  stage = next;
-  document.querySelectorAll("[data-quest-stage]").forEach(section => {
-    section.hidden = section.dataset.questStage !== (next === 3 ? "complete" : String(next));
-  });
-  document.querySelectorAll("[data-progress]").forEach(item => {
-    const index = Number(item.dataset.progress);
-    item.classList.toggle("done", index < next || next === 3);
-  });
-  world?.setMode(next === 1 ? "build" : next === 2 ? "affected" : "dependencies");
+function persistProgress() {
+  const saved = progressStore?.save(progress) ?? false;
+  updateDashboard(saved);
+}
+
+function updateDashboard(saved = progressStore?.available ?? false) {
+  if (!progress || !challenge) return;
+  const summary = summarizeChallenge(challenge, progress);
+  $("quest-progress-count").textContent = summary.completedSteps + " / " + summary.totalSteps;
+  $("quest-attempt-count").textContent = String(summary.attempts);
+  $("quest-hint-count").textContent = String(summary.hintsUsed);
+  $("quest-score-count").textContent = summary.earnedPoints + " / " + summary.maxPoints;
+  $("quest-save-note").textContent = saved
+    ? "进度已自动保存在本设备；重新打开页面可继续挑战。"
+    : "当前浏览器未开放本地存储；本次会话仍可完整挑战，但刷新后不会保留进度。";
 }
 
 function setFeedback(id, message, kind) {
@@ -41,6 +65,71 @@ function setFeedback(id, message, kind) {
   node.textContent = message;
   node.classList.toggle("good", kind === "good");
   node.classList.toggle("bad", kind === "bad");
+}
+
+function showStage(next) {
+  stage = next;
+  document.querySelectorAll("[data-quest-stage]").forEach(section => {
+    section.hidden = section.dataset.questStage !== (next === 3 ? "complete" : String(next));
+  });
+  document.querySelectorAll("[data-progress]").forEach(item => {
+    const step = challenge.steps[Number(item.dataset.progress)];
+    const state = getStepProgress(progress, step.id);
+    item.classList.toggle("done", state.status === "completed");
+  });
+  world?.setMode(next === 1 ? "build" : next === 2 ? "affected" : "dependencies");
+  if (next === 3) {
+    const summary = summarizeChallenge(challenge, progress);
+    $("quest-final-summary").textContent =
+      "三道关卡全部完成 · 得分 " + summary.earnedPoints + " / " + summary.maxPoints +
+      " · 作答 " + summary.attempts + " 次 · 使用提示 " + summary.hintsUsed + " 条。";
+  }
+  updateDashboard();
+}
+
+function nextUnfinishedStage() {
+  const index = challenge.steps.findIndex(step => getStepProgress(progress, step.id).status !== "completed");
+  return index === -1 ? 3 : index;
+}
+
+function renderHint(stepId) {
+  const definition = challenge.steps.find(step => step.id === stepId);
+  const state = getStepProgress(progress, stepId);
+  const output = $("hint-" + stepId + "-output");
+  const button = $("hint-" + stepId);
+  const revealed = (definition.hints || []).slice(0, state.hintsUsed);
+  output.textContent = revealed.length
+    ? revealed.map((hint, index) => "提示 " + (index + 1) + "： " + hint).join("\n")
+    : "卡住时再展开提示。每次只揭示下一层线索，不会直接跳过推理过程。";
+  const total = definition.hints?.length || 0;
+  button.textContent = state.hintsUsed >= total ? "提示已全部展开" : "获取下一条提示 (" + state.hintsUsed + "/" + total + ")";
+  button.disabled = state.status !== "active" || state.hintsUsed >= total;
+}
+
+function revealHint(stepId) {
+  const result = revealNextHint(progress, challenge, stepId);
+  if (result.exhausted) return;
+  progress = result.progress;
+  persistProgress();
+  renderHint(stepId);
+}
+
+function updateBuildStates() {
+  if (!graph) return;
+  const completedSet = new Set(completed);
+  const ready = new Set(getReadyBuildNodes(graph, completed).map(node => node.id));
+  document.querySelectorAll("[data-build-node]").forEach(button => {
+    const id = button.dataset.buildNode;
+    const state = button.querySelector(".build-state");
+    const node = graph.nodes.find(item => item.id === id);
+    const isDone = completedSet.has(id);
+    button.disabled = isDone;
+    button.classList.toggle("is-done", isDone);
+    button.classList.toggle("is-ready", ready.has(id));
+    state.textContent = isDone ? "已构建 ✓" : ready.has(id) ? "已就绪 · 可以构建" : "等待上游依赖";
+    button.setAttribute("aria-label", node.name + (isDone ? "，已构建" : ready.has(id) ? "，已就绪" : "，等待依赖"));
+  });
+  $("build-count").textContent = "已完成 " + completed.length + " / " + graph.nodes.length;
 }
 
 function renderBuildOptions() {
@@ -62,46 +151,40 @@ function renderBuildOptions() {
   updateBuildStates();
 }
 
-function updateBuildStates() {
-  const completedSet = new Set(completed);
-  const ready = new Set(getReadyBuildNodes(graph, completed).map(node => node.id));
-  document.querySelectorAll("[data-build-node]").forEach(button => {
-    const id = button.dataset.buildNode;
-    const state = button.querySelector(".build-state");
-    const node = graph.nodes.find(item => item.id === id);
-    const isDone = completedSet.has(id);
-    button.disabled = isDone;
-    button.classList.toggle("is-done", isDone);
-    button.classList.toggle("is-ready", ready.has(id));
-    state.textContent = isDone ? "已构建 ✓" : ready.has(id) ? "已就绪 · 可以构建" : "等待上游依赖";
-    button.setAttribute("aria-label", node.name + (isDone ? "，已构建" : ready.has(id) ? "，已就绪" : "，等待依赖"));
-  });
-  $("build-count").textContent = "已完成 " + completed.length + " / " + graph.nodes.length;
-}
-
 function chooseBuildNode(id) {
   const result = applyBuildChoice(graph, completed, id);
   const node = graph.nodes.find(item => item.id === id);
   selectNode(id);
+
   if (!result.ok) {
+    progress = recordAttempt(progress, STEP.build);
     const missing = result.missing.map(value => names.get(value)).join("、");
     const message = result.reason === "dependencies-not-built"
       ? "现在不能构建 " + node.name + "。请先完成上游依赖：" + missing + "。"
       : "这个节点目前不能再次构建。";
-    setFeedback("build-feedback", message, "bad");
+    persistProgress();
+    setFeedback("build-feedback", message + " 这次错误选择已计入尝试记录。", "bad");
     return;
   }
+
   completed = result.completed;
-  setFeedback(
-    "build-feedback",
-    "构建顺序有效：" + node.name + " 已就绪。" +
-      (result.ready.length ? " 下一批可选：" + result.ready.map(value => names.get(value)).join("、") : " 所有节点已完成。"),
-    "good"
-  );
+  progress = setStepData(progress, STEP.build, { completedNodeIds: completed });
   updateBuildStates();
+
   if (result.finished) {
-    setFeedback("build-feedback", "五个工作区包均在其依赖完成后构建。构建图已验证。", "good");
-    window.setTimeout(() => showStage(2), 650);
+    progress = recordAttempt(progress, STEP.build);
+    progress = completeStep(progress, challenge, STEP.build);
+    persistProgress();
+    setFeedback("build-feedback", "构建顺序有效：五个工作区包都在其依赖完成后构建。三层拓扑已验证。", "good");
+    $("stage-build-next").hidden = false;
+  } else {
+    persistProgress();
+    setFeedback(
+      "build-feedback",
+      node.name + " 已完成。" +
+        (result.ready.length ? " 下一批可构建：" + result.ready.map(value => names.get(value)).join("、") + "。" : "继续检查依赖图。"),
+      "good"
+    );
   }
 }
 
@@ -128,23 +211,37 @@ function renderNodeButtons() {
 function wireChoices() {
   document.querySelectorAll("[data-protocol]").forEach(button => {
     button.addEventListener("click", () => {
+      progress = recordAttempt(progress, STEP.protocol);
       const value = button.dataset.protocol;
       const protocolOK = validateWorkspaceProtocol(value);
       const dependencyOK = validatePackageDependency(graph, "web", "domain");
+
       if (protocolOK && dependencyOK) {
         button.classList.add("correct");
         document.querySelectorAll("[data-protocol]").forEach(item => { item.disabled = true; });
-        setFeedback("protocol-feedback", "正确。真实 apps/web/package.json 声明了 @kv/domain: workspace:*。直接依赖应由消费者自己声明，不能依赖幽灵依赖或提升布局。", "good");
-        window.setTimeout(() => { completed = []; renderBuildOptions(); showStage(1); }, 700);
+        progress = completeStep(progress, challenge, STEP.protocol);
+        persistProgress();
+        setFeedback(
+          "protocol-feedback",
+          "正确。真实 apps/web/package.json 声明了 @kv/domain: workspace:*。直接依赖应由消费者自己声明，不能依赖幽灵依赖或提升布局。",
+          "good"
+        );
+        $("stage-protocol-next").hidden = false;
       } else {
         button.classList.add("wrong");
-        setFeedback("protocol-feedback", "还不对。问题要求的是明确的工作区链接协议，不是普通 semver、相对源码路径或依赖提升。", "bad");
+        persistProgress();
+        setFeedback(
+          "protocol-feedback",
+          "还不对。请回到“消费者显式声明依赖”这个原则，再试一次。错误选择已计入尝试记录。",
+          "bad"
+        );
       }
     });
   });
 
   document.querySelectorAll("[data-affected]").forEach(button => {
     button.addEventListener("click", () => {
+      progress = recordAttempt(progress, STEP.affected);
       const choices = {
         source: ["contracts"],
         core: ["contracts", "domain"],
@@ -154,40 +251,97 @@ function wireChoices() {
       if (result.ok) {
         button.classList.add("correct");
         document.querySelectorAll("[data-affected]").forEach(item => { item.disabled = true; });
+        progress = completeStep(progress, challenge, STEP.affected);
+        persistProgress();
         setFeedback(
           "affected-feedback",
           "正确。contracts 改变会影响：" + result.expected.map(id => names.get(id)).join(" → ") +
-            "。这验证了完整反向依赖闭包；具体任务是否执行仍由 task inputs、outputs 和 runner 配置决定。",
+            "。这是完整反向依赖闭包；具体任务是否执行仍由 task inputs、outputs 和 runner 配置决定。",
           "good"
         );
-        window.setTimeout(() => showStage(3), 650);
+        showStage(3);
       } else {
         button.classList.add("wrong");
-        setFeedback("affected-feedback", "范围不完整。完整闭包必须包含变更包自身，并沿消费者方向递归检查每一层依赖。", "bad");
+        persistProgress();
+        setFeedback(
+          "affected-feedback",
+          "范围不完整。完整闭包必须包含变更包自身，并沿消费者方向递归检查每一层。错误选择已计入尝试记录。",
+          "bad"
+        );
       }
     });
   });
 
   $("build-reset").addEventListener("click", () => {
     completed = [];
+    progress = setStepData(progress, STEP.build, { completedNodeIds: [] });
+    persistProgress();
     updateBuildStates();
-    setFeedback("build-feedback", "构建序列已重置。先完成 contracts，再解锁其下游包。");
+    setFeedback("build-feedback", "当前构建序列已重置。先完成 contracts，再解锁其下游包。");
   });
+
+  $("stage-protocol-next").addEventListener("click", () => showStage(1));
+  $("stage-build-next").addEventListener("click", () => showStage(2));
+}
+
+function resetQuest() {
+  if (!window.confirm("确定要清空这次挑战的全部进度、提示和得分吗？")) return;
+  progress = resetChallengeProgress(challenge);
+  completed = [];
+  document.querySelectorAll(".quest-option").forEach(button => {
+    button.disabled = false;
+    button.classList.remove("correct", "wrong");
+  });
+  $("stage-protocol-next").hidden = true;
+  $("stage-build-next").hidden = true;
+  setFeedback("protocol-feedback", "选择后，系统会核对真实工作区依赖。");
+  setFeedback("build-feedback", "先找到没有工作区依赖的起点。");
+  setFeedback("affected-feedback", "注意边的方向：消费者 → 依赖提供者；变更影响沿反方向传播。");
+  $("build-reset").disabled = false;
+  renderBuildOptions();
+  challenge.steps.forEach(step => renderHint(step.id));
+  persistProgress();
+  showStage(0);
 }
 
 async function boot() {
-  const response = await fetch(new URL("data/monorepo-graph.json", root), { headers: { Accept: "application/json" } });
-  if (!response.ok) throw new Error("Monorepo graph HTTP " + response.status);
-  graph = await response.json();
+  const [graphResponse, challengeResponse] = await Promise.all([
+    fetch(new URL("data/monorepo-graph.json", root), { headers: { Accept: "application/json" } }),
+    fetch(new URL("content/challenges.json", root), { headers: { Accept: "application/json" } }),
+  ]);
+  if (!graphResponse.ok) throw new Error("Monorepo graph HTTP " + graphResponse.status);
+  if (!challengeResponse.ok) throw new Error("Challenge registry HTTP " + challengeResponse.status);
+
+  graph = await graphResponse.json();
+  const registry = await challengeResponse.json();
+  challenge = registry.challenges.find(item => item.id === "monorepo-dependency-quest");
+  if (!challenge || challenge.steps.length !== 3) throw new Error("Monorepo challenge definition is missing or incomplete.");
+
   graph.nodes.forEach(node => names.set(node.id, node.name));
+  progressStore = createChallengeProgressStore();
+  progress = progressStore.load(challenge);
+  completed = (getStepProgress(progress, STEP.build).data.completedNodeIds || [])
+    .filter(id => graph.nodes.some(node => node.id === id));
 
   const scene = document.querySelector("[data-world-container]");
   world = mountMonorepoWorld(scene, graph, {
     selected: selectedNode,
     onSelect(id) { selectNode(id); },
   });
+
   renderNodeButtons();
+  renderBuildOptions();
   wireChoices();
+  document.querySelectorAll("[data-hint-step]").forEach(button => {
+    button.addEventListener("click", () => revealHint(button.dataset.hintStep));
+  });
+  $("quest-reset").addEventListener("click", resetQuest);
+  $("quest-restart-complete").addEventListener("click", resetQuest);
+
+  challenge.steps.forEach(step => renderHint(step.id));
+  updateDashboard(progressStore.save(progress));
+  showStage(nextUnfinishedStage());
+
   const notice = scene.querySelector("[data-webgl-notice]");
   if (notice) notice.textContent = world.supported
     ? "WebGL 场景已启动 · 拖动旋转"
@@ -195,7 +349,8 @@ async function boot() {
 }
 
 boot().catch(error => {
-  setFeedback("protocol-feedback", "挑战数据加载失败：" + error.message, "bad");
+  const feedback = $("protocol-feedback");
+  if (feedback) setFeedback("protocol-feedback", "挑战初始化失败：" + error.message, "bad");
   const notice = document.querySelector("[data-webgl-notice]");
-  if (notice) notice.textContent = "依赖图数据不可用";
+  if (notice) notice.textContent = "依赖图或挑战定义不可用";
 });
