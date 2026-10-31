@@ -60,7 +60,7 @@ const toolbarMeta = html.slice(toolbarMetaStart, toolbarMetaEnd);
 assert.ok(toolbarMeta.indexOf('id="workbench-fullscreen"') > toolbarMeta.indexOf('id="frame-counter"'), "workbench expand icon must be the last item at the far right of toolbar");
 assert.match(html, /id="workbench-fullscreen"[^>]*aria-label="放大工作区"/, "icon-only expand control must have an accessible label");
 assert.match(html, /<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24">/, "expand control must use inline SVG icon artwork");
-assert.match(js, /button\.innerHTML = expanded[\s\S]*?button\.setAttribute\("aria-label", expanded \? "还原工作区" : "放大工作区"\)/, "expand/minimize icons and accessible labels must sync with state");
+assert.match(enhancement, /button\.innerHTML = expanded[\s\S]*?button\.setAttribute\("aria-label", expanded \? "还原工作区" : "放大工作区"\)/, "expand/minimize icons and accessible labels must sync with state");
 assert.match(css, /\.workbench-stage:fullscreen,\s*\.workbench-stage\.is-expanded\s*\{[^}]*position:\s*fixed;\s*inset:\s*0/s, "fullscreen stage must be pinned to viewport origin");
 assert.match(css, /\.workbench-stage:fullscreen > \.workbench-layout > \.sidebar,[\s\S]*?grid-row:\s*1;[\s\S]*?height:\s*100%/s, "scenario sidebar must stretch from the top in fullscreen");
 console.log("PASS: fullscreen sidebar top alignment and far-right icon-only maximize/minimize control");
