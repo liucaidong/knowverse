@@ -17,4 +17,5 @@ urls={x['href'] for x in search}
 assert len(urls)==len(search),'duplicate search entries'
 assert all(f'knowledge/promise/lesson-{i:02d}/' in urls for i in range(20))
 assert 'knowledge/promise/observatory/' in urls
-assert any(x['id']=='promise-mechanism-debugger' and x['href']=='./lab/experiments/promise-debugger/' for x in json.loads((root/'content/works.json').read_text())['works'])\nprint('PASS: 20 lessons / 30k+ prose / Mermaid panorama / Promise debugger / search')
+assert any(x['id']=='promise-mechanism-debugger' and x['href']=='./lab/experiments/promise-debugger/' for x in json.loads((root/'content/works.json').read_text())['works'])
+print('PASS: 20 lessons / 30k+ prose / Mermaid panorama / Promise debugger / search')
