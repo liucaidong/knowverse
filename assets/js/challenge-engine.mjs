@@ -71,7 +71,7 @@ export function createChallengeProgress(challenge, saved = null) {
   return {
     engineVersion: ENGINE_VERSION,
     challengeId: challenge.id,
-    status: isComplete ? "completed" : steps.some(step => step.attempts || step.hintsUsed) ? "in-progress" : "not-started",
+    status: isComplete ? "completed" : steps.some(step => step.status === "completed" || step.attempts || step.hintsUsed) ? "in-progress" : "not-started",
     createdAt: savedIsCompatible && typeof saved.createdAt === "string" ? saved.createdAt : timestamp(),
     updatedAt: savedIsCompatible && typeof saved.updatedAt === "string" ? saved.updatedAt : timestamp(),
     steps,
