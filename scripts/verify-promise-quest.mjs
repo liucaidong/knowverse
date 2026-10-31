@@ -90,7 +90,8 @@ test("the combinator example distinguishes race settlement from all result order
   const step = challenge.steps.find(item => item.id === "combinator-semantics");
   assert.deepEqual(await runSnippet(step.code, 50), ["fast", "[slow,fast]"]);
 });
-\ntest("the shared challenge engine scores Promise stages and unlocks them sequentially", () => {
+
+test("the shared challenge engine scores Promise stages and unlocks them sequentially", () => {
   let progress = createChallengeProgress(challenge);
   assert.deepEqual(progress.steps.map(step => step.status), [
     "active", "locked", "locked", "locked", "locked",
