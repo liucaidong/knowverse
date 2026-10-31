@@ -197,3 +197,456 @@ body.hide-inspector .inspector-column{display:none}
   .panel-titlebar{min-height:39px;padding:5px 8px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+
+/* ------------------------------------------------------------------
+   Layout hardening: every grid track is shrinkable; content scrolls
+   inside panels instead of expanding rows and pushing output offscreen.
+   ------------------------------------------------------------------ */
+.workbench-layout,
+.main-workspace,
+.workspace-grid,
+.primary-column,
+.editor-trace-grid,
+.inspector-column,
+.output-dock {
+  min-width: 0;
+  min-height: 0;
+}
+
+.primary-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr) clamp(112px, 17vh, 146px);
+  gap: 9px;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.editor-trace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, .87fr) minmax(0, 1.13fr);
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-trace-grid > .editor-panel,
+.editor-trace-grid > .trace-panel {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.editor-panel,
+.trace-panel,
+.console-panel,
+.native-panel,
+.promise-panel,
+.queue-panel,
+.stack-panel,
+.step-diff-panel {
+  min-width: 0;
+  min-height: 0;
+}
+
+.editor-panel #code-editor {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+}
+
+.editor-panel .editor-meta {
+  max-height: 46px;
+  overflow: auto;
+}
+
+.trace-panel .current-event {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.trace-panel .timeline-strip {
+  flex: 0 0 auto;
+  min-height: 0;
+  max-height: 42px;
+  overflow: auto hidden;
+}
+
+.output-dock {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(220px, .88fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 9px;
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.output-dock > .console-panel,
+.output-dock > .native-panel {
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+}
+
+.output-dock > .console-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.console-panel .panel-titlebar {
+  flex: 0 0 auto;
+  min-height: 38px;
+}
+
+.console-panel .console-output {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+/* Details is a grid container: opening panel 07 uses its own bounded body
+   and never changes the height of panel 06 or the editor/timeline row. */
+.output-dock > .native-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-content: stretch;
+  flex: none;
+  max-height: 100%;
+  transition: none;
+}
+
+.native-panel > .native-summary {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  overflow: hidden;
+  line-height: 1.45;
+}
+
+.native-panel[open] {
+  grid-template-rows: 34px minmax(0, 1fr);
+  max-height: 100%;
+}
+
+.native-panel[open] > .native-summary {
+  height: 34px;
+  min-height: 34px;
+  border-bottom: 1px solid #26394f;
+}
+
+.native-panel .native-summary > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.native-panel .native-summary > span:last-child {
+  flex: none;
+  white-space: nowrap;
+}
+
+.native-panel .native-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border-top: 0;
+}
+
+.native-panel .native-body .panel-titlebar {
+  flex: 0 0 auto;
+  min-width: 0;
+  min-height: 42px;
+  padding: 5px 8px;
+  border: 0;
+}
+
+.native-panel .native-body .panel-titlebar p {
+  display: none;
+}
+
+.native-panel .native-body .panel-titlebar > div {
+  min-width: 0;
+}
+
+.native-panel .native-body .panel-titlebar h2 {
+  overflow-wrap: anywhere;
+}
+
+.native-panel .native-body .native-result {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+  padding: 5px 9px 8px;
+  overflow-wrap: anywhere;
+}
+
+/* Inspector: fixed four-row grid; each content region is independently
+   scrollable and has min-height:0 so large snapshots cannot stretch cards. */
+.inspector-column {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows:
+    minmax(96px, .82fr)
+    minmax(0, 1.18fr)
+    minmax(0, .9fr)
+    minmax(0, .9fr);
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.inspector-column > .panel {
+  width: 100%;
+  height: 100%;
+  max-height: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.inspector-column > .panel > .panel-titlebar {
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+.step-diff-panel .step-diff-content,
+.promise-panel .promise-graph,
+.queue-panel .queue-content,
+.stack-panel .runtime-lanes {
+  flex: 1 1 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.promise-panel .promise-graph {
+  align-content: start;
+  grid-auto-rows: max-content;
+  overflow-wrap: anywhere;
+}
+
+.promise-panel .selected-promise {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 54px;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.stack-panel .runtime-lanes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.stack-panel .runtime-lanes > div,
+.stack-panel .stack-content,
+.stack-panel .timer-content {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+.panel-titlebar {
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+.panel-titlebar > div,
+.panel-titlebar > div > div {
+  min-width: 0;
+}
+
+.panel-titlebar h2,
+.panel-titlebar p,
+.panel-titlebar span {
+  overflow-wrap: anywhere;
+}
+
+/* Tablet: keep the output dock together, but allow the full document to scroll. */
+@media (max-width: 980px) {
+  .primary-column {
+    grid-template-rows: minmax(520px, auto) 150px;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .editor-trace-grid {
+    height: 100%;
+    max-height: 100%;
+  }
+
+  .output-dock {
+    height: 150px;
+    max-height: 150px;
+    grid-template-columns: minmax(0, 1.12fr) minmax(220px, .88fr);
+  }
+
+  .inspector-column {
+    max-height: none;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: repeat(2, minmax(170px, auto));
+    overflow: visible;
+  }
+
+  .inspector-column > .panel {
+    height: auto;
+    max-height: 360px;
+    min-height: 170px;
+  }
+}
+
+/* Mobile: use document flow; every card has an explicit height or min-height. */
+@media (max-width: 720px) {
+  .primary-column {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 9px;
+    height: auto;
+    max-height: none;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .editor-trace-grid {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .editor-trace-grid > .editor-panel {
+    height: 440px;
+    max-height: none;
+  }
+
+  .editor-trace-grid > .trace-panel {
+    height: auto;
+    min-height: 390px;
+    max-height: none;
+  }
+
+  .output-dock {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: 170px 150px;
+    height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .output-dock > .console-panel {
+    height: 170px;
+    max-height: 170px;
+  }
+
+  .output-dock > .native-panel {
+    height: 150px;
+    max-height: 150px;
+  }
+
+  .output-dock > .native-panel[open] {
+    height: 210px;
+    max-height: 210px;
+    grid-template-rows: 34px minmax(0, 1fr);
+  }
+
+  .inspector-column {
+    display: flex;
+    flex-direction: column;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .inspector-column > .panel {
+    width: 100%;
+    height: auto;
+    max-height: none;
+    min-height: 170px;
+  }
+
+  .inspector-column > .promise-panel {
+    min-height: 250px;
+  }
+}
+
+/* Very short desktop viewports: preserve every panel by switching to page
+   scroll instead of clipping the lower dock or forcing the top cards to grow. */
+@media (max-height: 660px) and (min-width: 981px) {
+  html,
+  body {
+    height: auto;
+    min-height: 100%;
+    overflow: auto;
+  }
+
+  .page-shell {
+    height: auto;
+    min-height: calc(100dvh - 54px);
+    overflow: visible;
+  }
+
+  .workbench-layout {
+    flex: none;
+    min-height: 680px;
+    overflow: visible;
+  }
+
+  .main-workspace,
+  .workspace-grid {
+    overflow: visible;
+  }
+
+  .primary-column {
+    grid-template-rows: minmax(310px, 1fr) 132px;
+    height: 100%;
+    max-height: none;
+    min-height: 620px;
+    overflow: visible;
+  }
+
+  .output-dock {
+    height: 132px;
+    max-height: 132px;
+  }
+
+  .inspector-column {
+    max-height: none;
+    overflow: visible;
+    grid-template-rows: 110px repeat(3, minmax(150px, 1fr));
+  }
+}
