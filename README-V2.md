@@ -13,7 +13,7 @@
 - `assets/panoramas/*.svg`：离线可见的静态矢量备份（自动从同一知识节点生成）
 - `data/search.json`：按文章内容生成的全文索引
 - `content/works.json`：三条产品主线的统一作品注册表
-- `works/index.html`：全部互动作品总览，支持主线筛选与关键词搜索\n- `lab/experiments/promise-debugger/`：Promise 机制调试器，逐帧显示状态、调用栈、微任务队列并提供原生验证
+- `works/index.html`：全部互动作品总览，支持主线筛选与关键词搜索\n- `lab/experiments/promise-debugger/`：Promise 机制调试器，逐帧显示状态、调用栈、微任务队列并提供原生验证；支持方向键单步、空格播放
 - `provenance/`：来源与覆盖边界
 
 ## 产品主线
