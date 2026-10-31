@@ -64,3 +64,8 @@ assert.match(enhancement, /button\.innerHTML = expanded[\s\S]*?button\.setAttrib
 assert.match(css, /\.workbench-stage:fullscreen,\s*\.workbench-stage\.is-expanded\s*\{[^}]*position:\s*fixed;\s*inset:\s*0/s, "fullscreen stage must be pinned to viewport origin");
 assert.match(css, /\.workbench-stage:fullscreen > \.workbench-layout > \.sidebar,[\s\S]*?grid-row:\s*1;[\s\S]*?height:\s*100%/s, "scenario sidebar must stretch from the top in fullscreen");
 console.log("PASS: fullscreen sidebar top alignment and far-right icon-only maximize/minimize control");
+
+assert.match(html, /data-icon="maximize"/, "initial fullscreen button must use Lucide maximize icon");
+assert.match(enhancement, /data-icon="maximize"/, "expanded-state toggle must restore Lucide maximize icon");
+assert.match(enhancement, /data-icon="minimize"/, "fullscreen-state toggle must use Lucide minimize icon");
+console.log("PASS: current Lucide maximize/minimize icon pair wired for both view states");

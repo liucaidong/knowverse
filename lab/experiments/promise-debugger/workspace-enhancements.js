@@ -188,8 +188,8 @@ function syncWorkbenchFullscreenControls() {
     button.title = expanded ? "恢复普通页面布局" : "将场景库、工具栏和全部调试面板放大到全屏";
     if (button.id === "workbench-fullscreen") {
       button.innerHTML = expanded
-        ? '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><polyline points="4 14 10 14 10 20"></polyline><polyline points="20 10 14 10 14 4"></polyline><line x1="10" y1="14" x2="3" y2="21"></line><line x1="14" y1="10" x2="21" y2="3"></line></svg>'
-        : '<svg aria-hidden="true" focusable="false" viewBox="0 0 24 24"><polyline points="15 3 21 3 21 9"></polyline><polyline points="9 21 3 21 3 15"></polyline><line x1="21" y1="3" x2="14" y2="10"></line><line x1="3" y1="21" x2="10" y2="14"></line></svg>';
+        ? '<svg data-icon="minimize" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3"></path><path d="M21 8h-3a2 2 0 0 1-2-2V3"></path><path d="M3 16h3a2 2 0 0 1 2 2v3"></path><path d="M16 21v-3a2 2 0 0 1 2-2h3"></path></svg>'
+        : '<svg data-icon="maximize" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>';
       button.setAttribute("aria-label", expanded ? "还原工作区" : "放大工作区");
       button.classList.toggle("is-active", expanded);
     } else {
