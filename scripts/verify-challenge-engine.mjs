@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
 import {
   completeStep,
@@ -21,6 +22,21 @@ const challenge = {
     { id: "third", points: 60, hints: [] },
   ],
 };
+
+const registry = JSON.parse(readFileSync(new URL("../content/challenges.json", import.meta.url), "utf8"));
+const monorepoChallenge = registry.challenges.find(item => item.id === "monorepo-dependency-quest");
+
+test("the published Monorepo challenge is data-driven and has progressive hints for every gate", () => {
+  assert.ok(monorepoChallenge);
+  assert.deepEqual(monorepoChallenge.steps.map(step => step.id), [
+    "workspace-protocol",
+    "build-order",
+    "affected-closure",
+  ]);
+  assert.ok(monorepoChallenge.steps.every(step => step.hints.length === 3));
+  assert.equal(monorepoChallenge.scoring.attemptPenalty, 8);
+  assert.equal(monorepoChallenge.scoring.hintPenalty, 15);
+});
 
 test("creates a sequential challenge: only the first step is active", () => {
   const progress = createChallengeProgress(challenge);
