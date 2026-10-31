@@ -845,3 +845,9 @@ body.hide-inspector .inspector-column{display:none}
     padding: 8px;
   }
 }
+
+/* Fixed-position fallback is required when the browser denies Fullscreen API. */
+.workbench-stage.is-expanded {
+  position: fixed;
+  inset: 0;
+}

@@ -50,3 +50,5 @@ assert.match(enhancement, /document\.addEventListener\("fullscreenchange", syncW
 assert.match(css, /\.workbench-stage:fullscreen/, "workbench fullscreen layout rules must exist");
 assert.match(css, /\.hero-title-row\s*\{[^}]*display:\s*flex/s, "title and capability chips must share a responsive title row");
 console.log("PASS: capability chips in hero title row and workbench-only fullscreen/restore controls");
+
+assert.match(css, /\.workbench-stage\.is-expanded\s*\{[^}]*position:\s*fixed[^}]*inset:\s*0/s, "fullscreen fallback must overlay the viewport");
