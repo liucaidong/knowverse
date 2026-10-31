@@ -172,7 +172,7 @@ bindLayoutToggle("toggle-scenarios", "hide-scenarios", "收起场景库", "展�
 bindLayoutToggle("toggle-inspector", "hide-inspector", "收起检查器", "展开检查器");
 
 const workbenchStage = $("#workbench-stage");
-const fullscreenButtons = [$("#fullscreen-toggle"), $("#workbench-fullscreen")].filter(Boolean);
+const workbenchFullscreenButton = $("#workbench-fullscreen");
 
 function workbenchIsExpanded() {
   return Boolean(workbenchStage && (
@@ -182,20 +182,16 @@ function workbenchIsExpanded() {
 }
 
 function syncWorkbenchFullscreenControls() {
+  const button = workbenchFullscreenButton;
+  if (!button) return;
   const expanded = workbenchIsExpanded();
-  fullscreenButtons.forEach(button => {
-    button.setAttribute("aria-pressed", String(expanded));
-    button.title = expanded ? "恢复普通页面布局" : "将场景库、工具栏和全部调试面板放大到全屏";
-    if (button.id === "workbench-fullscreen") {
-      button.innerHTML = expanded
-        ? '<svg data-icon="minimize" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3"></path><path d="M21 8h-3a2 2 0 0 1-2-2V3"></path><path d="M3 16h3a2 2 0 0 1 2 2v3"></path><path d="M16 21v-3a2 2 0 0 1 2-2h3"></path></svg>'
-        : '<svg data-icon="maximize" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>';
-      button.setAttribute("aria-label", expanded ? "还原工作区" : "放大工作区");
-      button.classList.toggle("is-active", expanded);
-    } else {
-      button.textContent = expanded ? "退出全屏" : "全屏";
-    }
-  });
+  button.setAttribute("aria-pressed", String(expanded));
+  button.title = expanded ? "恢复普通页面布局" : "将场景库、工具栏和全部调试面板放大到全屏";
+  button.innerHTML = expanded
+    ? '<svg data-icon="minimize" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M8 3v3a2 2 0 0 1-2 2H3"></path><path d="M21 8h-3a2 2 0 0 1-2-2V3"></path><path d="M3 16h3a2 2 0 0 1 2 2v3"></path><path d="M16 21v-3a2 2 0 0 1 2-2h3"></path></svg>'
+    : '<svg data-icon="maximize" aria-hidden="true" focusable="false" viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 0 0-2 2v3"></path><path d="M21 8V5a2 2 0 0 0-2-2h-3"></path><path d="M3 16v3a2 2 0 0 0 2 2h3"></path><path d="M16 21h3a2 2 0 0 0 2-2v-3"></path></svg>';
+  button.setAttribute("aria-label", expanded ? "还原工作区" : "放大工作区");
+  button.classList.toggle("is-active", expanded);
 }
 
 async function toggleWorkbenchFullscreen() {
@@ -220,12 +216,12 @@ async function toggleWorkbenchFullscreen() {
     // with a fixed-position fallback instead of leaving a dead control.
     workbenchStage.classList.add("is-expanded");
     const message = error && error.message ? error.message : String(error);
-    fullscreenButtons.forEach(button => { button.title = "浏览器全屏 API 不可用，已切换为页面放大模式：" + message; });
+    if (workbenchFullscreenButton) workbenchFullscreenButton.title = "浏览器全屏 API 不可用，已切换为页面放大模式：" + message;
   }
   syncWorkbenchFullscreenControls();
 }
 
-fullscreenButtons.forEach(button => button.addEventListener("click", toggleWorkbenchFullscreen));
+workbenchFullscreenButton?.addEventListener("click", toggleWorkbenchFullscreen);
 document.addEventListener("fullscreenchange", syncWorkbenchFullscreenControls);
 syncWorkbenchFullscreenControls();
 
