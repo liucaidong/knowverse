@@ -22,3 +22,11 @@ assert.match(css, /@media\s*\(max-width:\s*720px\)/, "mobile layout override mus
 assert.match(css, /@media\s*\(max-height:\s*660px\)/, "short desktop viewport fallback must exist");
 
 console.log("PASS: Promise workbench layout — bounded 01/02, isolated 06/07 dock, internally scrollable inspector, tablet/mobile/short-viewport rules");
+
+assert.match(css, /\.workbench-layout\s*\{[^}]*grid-template-rows:\s*minmax\(0,\s*1fr\)/s, "workbench grid must define a full-height row");
+assert.match(css, /\.workbench-layout\s*>\s*\.main-workspace\s*\{[^}]*height:\s*100%/s, "main workspace must stretch to the sidebar's full height");
+assert.match(css, /\.main-workspace\s*>\s*\.workspace-grid\s*\{[^}]*flex:\s*1\s+1\s+0/si, "workspace grid must consume remaining main-workspace height");
+assert.match(css, /\.primary-column\s*\{[^}]*clamp\(132px,\s*21vh,\s*200px\)/s, "output dock must have a useful responsive minimum and maximum");
+assert.match(html, /rel="icon" href="\.\.\/\.\.\/\.\.\/favicon\.ico"/, "workbench must declare its site-relative favicon");
+assert.match(html, /rel="icon" href="\.\.\/\.\.\/\.\.\/favicon\.svg"/, "workbench must declare its SVG favicon");
+console.log("PASS: full-height parent sizing and site-relative favicons");

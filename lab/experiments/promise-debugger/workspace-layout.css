@@ -650,3 +650,85 @@ body.hide-inspector .inspector-column{display:none}
     grid-template-rows: 110px repeat(3, minmax(150px, 1fr));
   }
 }
+
+/* Final viewport sizing: make the grid's implicit row and each nested flex
+   region explicitly consume the available height. This prevents the
+   workspace from collapsing to its content height inside a tall sidebar. */
+.workbench-layout {
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+}
+.workbench-layout > .sidebar,
+.workbench-layout > .main-workspace {
+  grid-row: 1;
+  align-self: stretch;
+  min-height: 0;
+}
+.workbench-layout > .main-workspace {
+  height: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+.main-workspace > .workspace-grid {
+  height: 0;
+  min-height: 0;
+  flex: 1 1 0;
+  align-self: stretch;
+  grid-template-rows: minmax(0, 1fr);
+}
+.workspace-grid > .primary-column,
+.workspace-grid > .inspector-column {
+  height: 100%;
+  min-height: 0;
+  align-self: stretch;
+}
+.primary-column {
+  grid-template-rows: minmax(0, 1fr) clamp(132px, 21vh, 200px);
+  min-height: 0;
+}
+.inspector-column {
+  height: 100%;
+  min-height: 0;
+}
+.output-dock {
+  min-height: 0;
+}
+.editor-trace-grid > *,
+.output-dock > *,
+.inspector-column > * {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Scroll-based tablet/mobile layouts must not inherit desktop fixed heights. */
+@media (max-width: 980px) {
+  .workbench-layout {
+    grid-template-rows: auto;
+    min-height: 760px;
+  }
+  .workbench-layout > .main-workspace {
+    height: auto;
+    min-height: 0;
+    flex: none;
+  }
+  .main-workspace > .workspace-grid {
+    height: auto;
+    min-height: 0;
+    flex: none;
+  }
+  .workspace-grid > .primary-column,
+  .workspace-grid > .inspector-column {
+    height: auto;
+  }
+}
+@media (max-width: 720px) {
+  .workbench-layout {
+    min-height: 0;
+  }
+  .workbench-layout > .main-workspace,
+  .main-workspace > .workspace-grid,
+  .workspace-grid > .primary-column,
+  .workspace-grid > .inspector-column {
+    height: auto;
+  }
+}
