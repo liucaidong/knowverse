@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#061222">
+  <meta name="description" content="Promise 时序裂隙：通过五道渐进挑战理解 thenable 采用、微任务 FIFO、链式错误传播和组合 API。">
+  <title>时序裂隙 · Promise 机制挑战世界 · KNOWVERSE</title>
+  <link rel="stylesheet" href="../../../assets/css/promise-quest.css">
+</head>
+<body class="promise-quest-page">
+  <header class="pq-topbar">
+    <a class="pq-brand" href="../../../">KNOW<b>VERSE</b><span>/ APPLY</span></a>
+    <nav aria-label="Promise 专题导航">
+      <a href="../../../knowledge/promise/">Promise 课程</a>
+      <a href="../../../lab/experiments/promise-debugger/">机制调试台</a>
+      <a href="../../../lab/experiments/queue-observatory/">微任务观测站</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="pq-hero">
+      <div class="pq-overline">03 / APPLY · PROMISE MECHANISM QUEST</div>
+      <h1>时序<span>裂隙</span></h1>
+      <p>进入 Promise 的内部时间线。你将依次穿越 thenable 采用、微任务 FIFO、链式错误传播、组合 API 与最终综合推演。每次错误都会标记具体概念，并连接回对应原理课。</p>
+      <div class="pq-hero-meta"><span>5 个机制关卡</span><span>500 基础分</span><span>渐进提示 / 自动保存</span></div>
+    </section>
+
+    <section class="pq-layout" aria-label="Promise 机制挑战">
+      <div class="pq-scene-column">
+        <div class="pq-scene" id="promise-scene">
+          <canvas id="promise-world" aria-label="Promise 机制的三维星图，可拖动旋转"></canvas>
+          <div class="pq-scene-overlay">
+            <span class="pq-live-dot"></span>
+            <span id="scene-mode">PROMISE MECHANISM MAP</span>
+            <span class="pq-scene-help">拖动旋转 · 点击节点聚焦</span>
+          </div>
+          <p class="pq-scene-fallback" id="scene-fallback" hidden>当前设备无法启动 Canvas 3D 视图，但仍可完成全部机制挑战。</p>
+        </div>
+
+        <div class="pq-route-card">
+          <div>
+            <span class="pq-small-label">YOUR KNOWLEDGE ROUTE</span>
+            <strong>State → Resolution → Jobs → Chain → Composition</strong>
+          </div>
+          <a href="../../../knowledge/promise/">查看 Promise 全景图 ↗</a>
+        </div>
+
+        <div class="pq-reference-card">
+          <span class="pq-small-label">REAL EXPERIMENTS</span>
+          <a href="../../../lab/experiments/promise-debugger/">Promise 调试工作台 <span>代码 / 对象 / 事件轨迹 ↗</span></a>
+          <a href="../../../lab/experiments/queue-observatory/">微任务队列观测站 <span>单步执行 / FIFO ↗</span></a>
+        </div>
+      </div>
+
+      <section class="pq-panel" aria-live="polite">
+        <div class="pq-panel-top">
+          <div>
+            <span class="pq-small-label">MECHANISM GATE</span>
+            <h2>挑战控制台</h2>
+          </div>
+          <button id="reset-quest" class="pq-reset" type="button">重置进度</button>
+        </div>
+
+        <div class="pq-progress-track" id="progress-track" aria-label="关卡进度">
+          <span data-progress-step="0"></span><span data-progress-step="1"></span><span data-progress-step="2"></span><span data-progress-step="3"></span><span data-progress-step="4"></span>
+        </div>
+
+        <div class="pq-dashboard" aria-label="挑战统计">
+          <div><small>关卡</small><strong id="stat-progress">0 / 5</strong></div>
+          <div><small>尝试</small><strong id="stat-attempts">0</strong></div>
+          <div><small>提示</small><strong id="stat-hints">0</strong></div>
+          <div><small>得分</small><strong id="stat-score">0 / 500</strong></div>
+          <p id="save-status">进度自动保存在当前设备。</p>
+        </div>
+
+        <div id="question-view">
+          <div class="pq-step-top">
+            <span id="step-eyebrow">GATE 01</span>
+            <span id="step-counter">01 / 05</span>
+          </div>
+          <h3 id="step-title">正在载入挑战…</h3>
+          <p id="step-intro" class="pq-step-intro"></p>
+          <div class="pq-focus-list" id="step-focus"></div>
+          <p id="step-prompt" class="pq-prompt"></p>
+          <pre id="step-code" class="pq-code"></pre>
+
+          <div class="pq-options" id="step-options"></div>
+          <div class="pq-feedback" id="step-feedback" role="status" aria-live="polite">选择一个答案。系统会检查你的判断，并指出具体概念边界。</div>
+
+          <div class="pq-hints">
+            <div class="pq-hints-head">
+              <div><strong>渐进提示</strong><small>从机制线索逐层走向答案</small></div>
+              <button id="hint-next" type="button">展开下一条提示</button>
+            </div>
+            <ol id="hint-list"><li>先独立分析；遇到阻碍时再展开提示。</li></ol>
+          </div>
+
+          <div class="pq-step-links" id="step-links"></div>
+          <button id="step-continue" class="pq-continue" type="button" hidden>继续下一关 →</button>
+        </div>
+
+        <div id="complete-view" hidden>
+          <div class="pq-complete-mark">✦</div>
+          <span class="pq-small-label">ALL MECHANISM GATES CLEARED</span>
+          <h3>你穿越了时序裂隙。</h3>
+          <p id="final-summary"></p>
+          <div class="pq-score-meter"><span id="score-meter-fill"></span></div>
+          <h4>本次挑战暴露的知识薄弱点</h4>
+          <div id="gap-report" class="pq-gap-report"></div>
+          <div class="pq-complete-actions">
+            <a href="../../../knowledge/promise/">返回 Promise 原理课程 ↗</a>
+            <a href="../../../lab/experiments/promise-debugger/">在调试工作台复现实验 ↗</a>
+            <button type="button" id="restart-quest">重新挑战</button>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <footer class="pq-footer">
+    <a href="../../../">KNOWVERSE 首页</a><span>·</span>
+    <a href="../../../knowledge/promise/">Promise 专题</a><span>·</span>
+    <a href="../../../puzzles/">全部解谜世界</a>
+  </footer>
+  <script type="module" src="../../../assets/js/promise-quest.mjs"></script>
+</body>
+</html>
