@@ -22,3 +22,6 @@ Promise.race([p,Promise.resolve('fast')]).then(v=>log('race',v));Promise.allSett
 queueMicrotask(()=>{log('M1');resolveInner(42);queueMicrotask(()=>log('M2'))});log('end');await wait();
 assert.deepEqual(big,['start','get','end','call','M1','race fast','M2','p 42','catch chain','all rejected,fulfilled']);
 console.log('PASS: Promise model and integrated microtask order, Node '+process.version);
+
+// Keep the interactive debugger's curated trace aligned with native Promise semantics.
+await import('./verify-promise-debugger.mjs');

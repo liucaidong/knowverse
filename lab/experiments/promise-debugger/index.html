@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#080b12">
+  <meta name="description" content="逐帧调试 Promise Resolution Procedure：同步 then getter、thenable job、inner Promise 采用、微任务 FIFO 与 reaction 顺序。">
+  <title>Promise 机制调试器 · KNOWVERSE 原理实验室</title>
+  <link rel="stylesheet" href="./debugger.css">
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <header class="topbar">
+    <a class="brand" href="../../../">◈ <span>KNOWVERSE</span><small>原理实验室</small></a>
+    <nav><a href="../../../lab/">实验室总览</a><a href="../../../knowledge/promise/">Promise 课程</a><a href="../../../works/">全部作品</a></nav>
+    <span class="edition">LAB 004 / INTERACTIVE DEBUGGER</span>
+  </header>
+
+  <main class="page">
+    <section class="hero">
+      <div class="eyebrow">PROMISE RUNTIME · TRACE THE REAL ORDER</div>
+      <h1>Promise <em>机制调试器</em></h1>
+      <p>不要只看动画。逐帧检查代码位置、调用栈、Promise 状态、微任务队列与输出日志；最后让当前浏览器的原生 Promise 再跑一次，核对真实结果。</p>
+      <div class="hero-meta"><span>案例 01 · thenable → inner Promise</span><span>14 个执行阶段</span><span>浏览器原生验证</span></div>
+    </section>
+
+    <section class="toolbar panel">
+      <div class="toolbar-left">
+        <button class="control primary" id="step-prev" type="button">← 上一步</button>
+        <button class="control primary" id="step-next" type="button">下一步 →</button>
+        <button class="control" id="play" type="button">▶ 自动播放</button>
+        <button class="control" id="reset" type="button">↺ 重置</button>
+      </div>
+      <div class="toolbar-right">
+        <span class="frame-count" id="frame-count">阶段 1 / 14</span>
+        <span class="keyboard-help">← → 单步 · 空格播放 · Home 重置</span>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="column left-column">
+        <section class="panel code-panel">
+          <div class="panel-heading"><div><span class="section-no">01</span><h2>源代码</h2></div><span class="panel-hint">当前帧高亮正在观察的语句</span></div>
+          <div class="code-wrap"><pre id="source-code" aria-label="Promise 实验源代码"></pre></div>
+          <div class="code-legend"><span><i class="legend-dot current"></i>当前语句</span><span><i class="legend-dot related"></i>异步来源 / reaction 来源</span></div>
+        </section>
+
+        <section class="panel output-panel">
+          <div class="panel-heading"><div><span class="section-no">02</span><h2>控制台输出</h2></div><span class="panel-hint">只显示截至当前帧已发生的日志</span></div>
+          <div class="console" id="console-output" aria-live="polite"></div>
+        </section>
+
+        <section class="panel verify-panel">
+          <div class="panel-heading"><div><span class="section-no">06</span><h2>原生运行验证</h2></div><span class="native-badge">REAL BROWSER PROMISE</span></div>
+          <p>这不是模拟输出。点击后会在当前浏览器真实执行同一段 Promise / queueMicrotask 逻辑，并与预期日志逐项比对。</p>
+          <button class="control verify-button" id="verify-native" type="button">在当前浏览器运行原生代码 ↗</button>
+          <div class="verify-result" id="verify-result" aria-live="polite">尚未运行原生验证。</div>
+        </section>
+      </div>
+
+      <div class="column right-column">
+        <section class="panel stage-panel">
+          <div class="panel-heading"><div><span class="section-no">FRAME</span><h2 id="stage-title">全局代码尚未开始</h2></div><span class="phase-badge" id="phase-badge">READY</span></div>
+          <div class="stage-content">
+            <div class="stage-action" id="stage-action"></div>
+            <p id="stage-explain"></p>
+            <div class="tag-row" id="stage-tags"></div>
+          </div>
+          <div class="scrubber" id="scrubber" aria-label="执行阶段跳转"></div>
+        </section>
+
+        <section class="panel state-panel">
+          <div class="panel-heading"><div><span class="section-no">03</span><h2>Promise 状态</h2></div><span class="panel-hint">resolved ≠ fulfilled</span></div>
+          <div class="promise-grid" id="promise-states"></div>
+        </section>
+
+        <div class="two-panels">
+          <section class="panel queue-panel">
+            <div class="panel-heading"><div><span class="section-no">04</span><h2>微任务 FIFO</h2></div><span class="panel-hint">左侧先执行</span></div>
+            <div class="queue-list" id="microtask-queue"></div>
+            <div class="queue-foot">ThenableJob / PromiseReactionJob / queueMicrotask 回调遵循实际入队先后。</div>
+          </section>
+          <section class="panel stack-panel">
+            <div class="panel-heading"><div><span class="section-no">05</span><h2>当前调用栈</h2></div><span class="panel-hint">栈顶在上</span></div>
+            <div class="stack-list" id="call-stack"></div>
+            <div class="stack-foot" id="reaction-state"></div>
+          </section>
+        </div>
+
+        <section class="panel timer-panel">
+          <div class="panel-heading"><div><span class="section-no">07</span><h2>后续任务候选</h2></div><span class="panel-hint">与微任务队列分开观察</span></div>
+          <div class="timer-lane" id="timer-queue"></div>
+          <p>本案例没有注册 timer。浏览器会在当前任务结束、微任务检查点清空后，才选择后续任务执行。</p>
+        </section>
+      </div>
+    </section>
+
+    <section class="insight panel">
+      <div class="insight-mark">i</div>
+      <div><strong>模型边界说明</strong><p>逐帧视图是按本案例实际 Promise 语义构造的可检查执行轨迹，不读取 JavaScript 引擎私有队列。原生验证按钮则运行浏览器本身的 Promise、thenable 和 queueMicrotask API。两者日志一致，才算本案例通过核对。</p></div>
+    </section>
+
+    <footer class="page-footer"><a href="../../../lab/">← 返回原理实验室</a><span>KNOWVERSE · PROMISE MECHANISM DEBUGGER</span><a href="../../../knowledge/promise/lesson-14/">继续第 14 课 →</a></footer>
+  </main>
+  <script type="module" src="./debugger.js"></script>
+</body>
+</html>
