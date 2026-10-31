@@ -69,7 +69,7 @@
           "labLabel": "打开 Promise 调试工作台",
           "intro": "一个对象拥有可调用的 then。Promise 在采用它时，属性读取与函数调用并不发生在同一个阶段。",
           "prompt": "哪一项准确描述了下面代码的执行边界与最终结果？",
-          "code": "const inner = Promise.resolve(42);\\nconst thenable = {\\n  get then() {\\n    console.log('get');\\n    return (resolve, reject) => {\\n      console.log('call');\\n      resolve(inner);\\n      reject(new Error('late'));\\n      throw new Error('thenable-throw');\\n    };\\n  }\\n};\\nconsole.log('start');\\nconst outer = Promise.resolve(thenable);\\nouter.then(value => console.log('value', value));\\nconsole.log('end');",
+          "code": "const inner = Promise.resolve(42);\nconst thenable = {\n  get then() {\n    console.log('get');\n    return (resolve, reject) => {\n      console.log('call');\n      resolve(inner);\n      reject(new Error('late'));\n      throw new Error('thenable-throw');\n    };\n  }\n};\nconsole.log('start');\nconst outer = Promise.resolve(thenable);\nouter.then(value => console.log('value', value));\nconsole.log('end');",
           "answer": "getter-sync-call-job",
           "successFeedback": "正确。Get(thenable, 'then') 在当前同步流程中发生；可调用 then 被安排到后续 PromiseResolveThenableJob。thenable 第一次调用 resolve 后，后续 reject 与 throw 不能再改变解决结果；outer 继续采用 inner。",
           "options": [
@@ -119,7 +119,7 @@
           "labLabel": "打开微任务队列观测站",
           "intro": "不要按代码块的视觉顺序猜测。要在每一次入队发生时更新 FIFO 队列。",
           "prompt": "这段代码的日志顺序是什么？",
-          "code": "console.log('A');\\nPromise.resolve().then(() => {\\n  console.log('B');\\n  queueMicrotask(() => console.log('D'));\\n});\\nqueueMicrotask(() => console.log('C'));\\nconsole.log('E');",
+          "code": "console.log('A');\nPromise.resolve().then(() => {\n  console.log('B');\n  queueMicrotask(() => console.log('D'));\n});\nqueueMicrotask(() => console.log('C'));\nconsole.log('E');",
           "answer": "a-e-b-c-d",
           "successFeedback": "正确。同步阶段先输出 A、E；then 的 reaction 在 C 之前入队；执行 B 时才把 D 放到队尾，因此 C 先于 D。",
           "options": [
@@ -169,7 +169,7 @@
           "labLabel": "打开 Promise 调试工作台",
           "intro": "then 的两个处理器并不是互相捕获对方异常的 try/catch。每次 then 都创建新的 Promise。",
           "prompt": "哪一项准确描述了这段链的控制流？",
-          "code": "Promise.resolve('origin')\\n  .then(\\n    () => { throw new Error('boom'); },\\n    () => console.log('wrong branch')\\n  )\\n  .then(() => console.log('never'))\\n  .catch(error => {\\n    console.log('recover:', error.message);\\n    return 'ok';\\n  })\\n  .then(value => console.log('done:', value));",
+          "code": "Promise.resolve('origin')\n  .then(\n    () => { throw new Error('boom'); },\n    () => console.log('wrong branch')\n  )\n  .then(() => console.log('never'))\n  .catch(error => {\n    console.log('recover:', error.message);\n    return 'ok';\n  })\n  .then(value => console.log('done:', value));",
           "answer": "new-promise-rejected-catch-recovers",
           "successFeedback": "正确。成功处理器抛出的异常会拒绝 then 返回的新 Promise；同一次 then 的 onRejected 不会捕获它。后续 catch 收到 boom，返回 ok 后链恢复为 fulfilled。",
           "options": [
@@ -219,7 +219,7 @@
           "labLabel": "打开 Promise 调试工作台",
           "intro": "组合 API 决定的是外层 Promise 的落定规则，不等于一个取消器或并发调度器。",
           "prompt": "假设 slow 在 30ms 后兑现，fast 在创建时已经 fulfilled。哪一项正确？",
-          "code": "const slow = new Promise(resolve =>\\n  setTimeout(() => resolve('slow'), 30)\\n);\\nconst fast = Promise.resolve('fast');\\nPromise.all([slow, fast]).then(console.log);\\nPromise.race([slow, fast]).then(console.log);",
+          "code": "const slow = new Promise(resolve =>\n  setTimeout(() => resolve('slow'), 30)\n);\nconst fast = Promise.resolve('fast');\nPromise.all([slow, fast]).then(console.log);\nPromise.race([slow, fast]).then(console.log);",
           "answer": "all-input-order-race-fast",
           "successFeedback": "正确。race 由 fast 的 reaction 先让外层落定；all 必须等 slow 也兑现，最终数组仍按输入顺序 ['slow', 'fast']。all 的早拒绝也不会自动取消其它底层操作。",
           "options": [
@@ -270,7 +270,7 @@
           "labLabel": "在 Promise 调试工作台复现完整时序",
           "intro": "最后一关把 getter、thenable Job、inner 采用和嵌套微任务放进同一条时间线。这里考的是机制，不是背诵口诀。",
           "prompt": "下面代码的日志序列是哪一个？",
-          "code": "let finish;\\nconst inner = new Promise(resolve => { finish = resolve; });\\nconst thenable = {\\n  get then() {\\n    console.log('get');\\n    return (resolve, reject) => {\\n      console.log('call');\\n      resolve(inner);\\n      reject(new Error('late'));\\n      throw new Error('thenable-throw');\\n    };\\n  }\\n};\\nconsole.log('start');\\nconst outer = Promise.resolve(thenable);\\nouter.then(value => console.log('value', value));\\nqueueMicrotask(() => {\\n  console.log('M1');\\n  finish(42);\\n  queueMicrotask(() => console.log('M2'));\\n});\\nconsole.log('end');",
+          "code": "let finish;\nconst inner = new Promise(resolve => { finish = resolve; });\nconst thenable = {\n  get then() {\n    console.log('get');\n    return (resolve, reject) => {\n      console.log('call');\n      resolve(inner);\n      reject(new Error('late'));\n      throw new Error('thenable-throw');\n    };\n  }\n};\nconsole.log('start');\nconst outer = Promise.resolve(thenable);\nouter.then(value => console.log('value', value));\nqueueMicrotask(() => {\n  console.log('M1');\n  finish(42);\n  queueMicrotask(() => console.log('M2'));\n});\nconsole.log('end');",
           "answer": "start-get-end-call-m1-m2-value",
           "successFeedback": "完全正确。执行顺序是 start、get、end、call、M1、M2、value 42。outer 先锁定解决权，但还要采用 pending 的 inner；内部采用过程继续排入 Job，因此 M1 与 M2 都先于 outer 的最终 reaction。",
           "options": [
