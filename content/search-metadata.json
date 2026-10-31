@@ -1,0 +1,650 @@
+{
+  "version": "1.0.0",
+  "source": "Curated search metadata; body text is generated from the linked knowledge page source.",
+  "records": [
+    {
+      "title": "AI Agent · 系统工程 · 全景图",
+      "topic": "AI 工程",
+      "summary": "模型、工具、上下文、权限、记忆与工作流的职责边界",
+      "tags": "MCP RAG Agent Loop AGENTS.md",
+      "href": "knowledge/ai-agents/"
+    },
+    {
+      "title": "AI · 多模态教育 · 全景图",
+      "topic": "AI 产品",
+      "summary": "Mac × iPhone × 实时多模态 × 教育反馈闭环",
+      "tags": "Agent 实时音视频 StudyFetch Qwen Live",
+      "href": "knowledge/ai-education/"
+    },
+    {
+      "title": "AI 教育操作系统与多 Agent",
+      "topic": "AI Agent · 系统工程",
+      "summary": "曾讨论教育系统的九层：知识源、知识图谱、内容生成、多模态理解、片段搜索、多 Agent、学习引擎、反馈、生态。角色候选包括 Teacher、Mentor、Coach、Examiner、Socratic Tutor、Reviewer、Interviewer、Debater",
+      "tags": "MCP RAG Agent Loop AGENTS.md",
+      "href": "knowledge/ai-agents/chapter-02/"
+    },
+    {
+      "title": "Agent 记忆与数据库的关系",
+      "topic": "数据库 · 进化与内核",
+      "summary": "Agent 运行状态可以划分为工作记忆、情景记忆、语义记忆、程序性记忆；系统还需要事件日志、索引和可追踪的真相源。",
+      "tags": "SQLite SQL MVCC Raft",
+      "href": "knowledge/database/chapter-03/"
+    },
+    {
+      "title": "Mac × iPhone 多模态学习台需求",
+      "topic": "AI · 多模态教育",
+      "summary": "核心目标（2026-10-24）：Mac 大屏阅读，iPhone 支架作为实时摄像头，AI 能保持持续视频/语音沟通，讲解书本并审阅作业、试卷。",
+      "tags": "Agent 实时音视频 StudyFetch Qwen Live",
+      "href": "knowledge/ai-education/chapter-01/"
+    },
+    {
+      "title": "Promise 3D 游戏迭代档案",
+      "topic": "WebGL · 知识交互",
+      "summary": "历史探索经过《时序裂隙》《Async Laws · 双生因果》《星海回声》《光之约定》到《约定之境》。讨论焦点从“机制现实类比”与“执行机制图形化”过渡到“机制原生的 3D 规则世界”。",
+      "tags": "WebGL 3D 游戏设计 GitHub Pages",
+      "href": "knowledge/creative/chapter-03/"
+    },
+    {
+      "title": "RAG / MCP / Agent 三层职责",
+      "topic": "AI Agent · 系统工程",
+      "summary": "RAG 是检索证据进入模型上下文的机制，MCP 是标准化连接外部资源/工具的协议，Agent 则在目标约束下组织推理、工具调用、状态更新与验证。不能把三者当作互斥替代。",
+      "tags": "MCP RAG Agent Loop AGENTS.md",
+      "href": "knowledge/ai-agents/chapter-01/"
+    },
+    {
+      "title": "React / React Native / NestJS 项目结构",
+      "topic": "TypeScript · Monorepo",
+      "summary": "场景为 React + React Native + NestJS + pnpm。根问题不是“选哪一个工具”，而是依赖关系不明确。",
+      "tags": "pnpm Rush Nx Turborepo",
+      "href": "knowledge/monorepo/chapter-02/"
+    },
+    {
+      "title": "React Native · 新架构 · 全景图",
+      "topic": "移动开发",
+      "summary": "Build → Startup → Runtime；JSI / TurboModules / Fabric 的系统全景",
+      "tags": "JSI Fabric CodeGen Hermes",
+      "href": "knowledge/react-native/"
+    },
+    {
+      "title": "TypeScript · Monorepo · 全景图",
+      "topic": "软件架构",
+      "summary": "严格依赖、受影响分析、任务缓存与发布治理",
+      "tags": "pnpm Rush Nx Turborepo",
+      "href": "knowledge/monorepo/"
+    },
+    {
+      "title": "WebGL · 知识交互 · 全景图",
+      "topic": "创意开发",
+      "summary": "电影级滚动叙事、Promise 空间游戏与三条产品主线",
+      "tags": "WebGL 3D 游戏设计 GitHub Pages",
+      "href": "knowledge/creative/"
+    },
+    {
+      "title": "三条产品主线的角色边界",
+      "topic": "WebGL · 知识交互",
+      "summary": "在 Promise 游戏的反复尝试中，清晰辨认了三种不同体验：",
+      "tags": "WebGL 3D 游戏设计 GitHub Pages",
+      "href": "knowledge/creative/chapter-01/"
+    },
+    {
+      "title": "东北话与英语语序对照",
+      "topic": "语言 · 英语与东北话",
+      "summary": "研究的焦点不是“哪种中国方言最像英语”，而是东北话在语义表达、信息结构、句子成分位置上与英语存在何种可迁移的规律。",
+      "tags": "东北话 英语语序 句法 时体",
+      "href": "knowledge/language/chapter-01/"
+    },
+    {
+      "title": "从一条 SQL 追踪数据库内核",
+      "topic": "数据库 · 进化与内核",
+      "summary": "研究链条：Connection → Parser/AST → Catalog → Logical Plan → Optimizer → Physical Plan → Executor → Index/Page/Buffer Pool → MVCC/WAL → Comm",
+      "tags": "SQLite SQL MVCC Raft",
+      "href": "knowledge/database/chapter-02/"
+    },
+    {
+      "title": "从存储到智能的进化链",
+      "topic": "数据库 · 进化与内核",
+      "summary": "讨论过的数据库进化主线：文件系统 → 层次/网状模型 → 关系模型与 SQL → 事务与 OLTP → NoSQL / 分布式 → NewSQL → 云、HTAP、Lakehouse → 向量数据库与 AI-Native 应用。",
+      "tags": "SQLite SQL MVCC Raft",
+      "href": "knowledge/database/chapter-01/"
+    },
+    {
+      "title": "免费 GPU 资源与评估原则",
+      "topic": "模型 · 算力与工具",
+      "summary": "研究方向为尽可能全面寻找免费 GPU：T4、P100、V100、A10、A100、L4、H100。“平台提供 GPU”不等于“任何人可长期免费使用指定型号”。",
+      "tags": "NewAPI GPU 推理成本 模型路由",
+      "href": "knowledge/model-infra/chapter-02/"
+    },
+    {
+      "title": "千例金融学教材项目",
+      "topic": "金融学 · 案例与量化",
+      "summary": "2026 年 8 月开始构建“1000 个经典金融案例”的长篇教材，目标为几十万字的系统课程而非短摘要。设计包括基础金融学、资本市场、金融机构与危机、行为金融与新金融等册。既有 PDF 素材存于历史文件库；V2 只归档主题结构与已核实的总结，不声称原 1000 例全文已",
+      "tags": "1000案例 CPI 量化 风险",
+      "href": "knowledge/finance/chapter-01/"
+    },
+    {
+      "title": "历史会话笔记 · 主题总览",
+      "topic": "JavaScript · Promise",
+      "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+      "tags": "ECMAScript Event Loop 单步动画 第14课",
+      "href": "knowledge/promise/historical-overview/"
+    },
+    {
+      "title": "历史会话笔记 · 主题总览",
+      "topic": "TypeScript · Monorepo",
+      "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+      "tags": "pnpm Rush Nx Turborepo",
+      "href": "knowledge/monorepo/historical-overview/"
+    },
+    {
+      "title": "历史会话笔记 · 主题总览",
+      "topic": "React Native · 新架构",
+      "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+      "tags": "JSI Fabric CodeGen Hermes",
+      "href": "knowledge/react-native/historical-overview/"
+    },
+    {
+      "title": "历史会话笔记 · 主题总览",
+      "topic": "AI · 多模态教育",
+      "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+      "tags": "Agent 实时音视频 StudyFetch Qwen Live",
+      "href": "knowledge/ai-education/historical-overview/"
+    },
+    {
+      "title": "历史会话笔记 · 主题总览",
+      "topic": "模型 · 算力与工具",
+      "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+      "tags": "NewAPI GPU 推理成本 模型路由",
+      "href": "knowledge/model-infra/historical-overview/"
+    },
+    {
+      "title": "历史会话笔记 · 主题总览",
+      "topic": "数据库 · 进化与内核",
+      "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+      "tags": "SQLite SQL MVCC Raft",
+      "href": "knowledge/database/historical-overview/"
+    },
+    {
+      "title": "历史会话笔记 · 主题总览",
+      "topic": "金融学 · 案例与量化",
+      "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+      "tags": "1000案例 CPI 量化 风险",
+      "href": "knowledge/finance/historical-overview/"
+    },
+    {
+      "title": "历史会话笔记 · 主题总览",
+      "topic": "WebGL · 知识交互",
+      "summary": "从之前的专题知识库整理而来，保留已记录的主题、状态、文件入口与下一步。",
+      "tags": "WebGL 3D 游戏设计 GitHub Pages",
+      "href": "knowledge/creative/historical-overview/"
+    },
+    {
+      "title": "四类核心流与旧架构对照",
+      "topic": "React Native · 新架构",
+      "summary": "主要追踪四种流：A 调用流（JS → JSI/TurboModule → Native → 结果）；B 渲染流（state → Render → Commit → Mount → pixels）；C 事件流（Native event → C++/JSI → JS han",
+      "tags": "JSI Fabric CodeGen Hermes",
+      "href": "knowledge/react-native/chapter-02/"
+    },
+    {
+      "title": "工具能力矩阵与选型",
+      "topic": "TypeScript · Monorepo",
+      "summary": "本专题并不追求单一工具的绝对排名。讨论时先确定能力维度：依赖布局、受影响分析、任务图和缓存、发布编排、依赖边界导航、规模与治理。",
+      "tags": "pnpm Rush Nx Turborepo",
+      "href": "knowledge/monorepo/chapter-01/"
+    },
+    {
+      "title": "工程治理 · 开发工作流 · 全景图",
+      "topic": "软件工程",
+      "summary": "架构健康检查、文档与代码双向认证、Agent 工作流与交付质量",
+      "tags": "AGENTS.md Spec 治理闭环 质量",
+      "href": "knowledge/engineering/"
+    },
+    {
+      "title": "工程治理闭环与 Spec 漂移",
+      "topic": "工程治理 · 开发工作流",
+      "summary": "既有讨论集中在项目健康体检、BUG 修复、文档与代码双向认证、测试完善、AGENTS.md 分类网关、Spec 漂移等。",
+      "tags": "AGENTS.md Spec 治理闭环 质量",
+      "href": "knowledge/engineering/chapter-01/"
+    },
+    {
+      "title": "平台与 Agent 候选研究",
+      "topic": "AI · 多模态教育",
+      "summary": "讨论过 DeepSeek harness 桌面定制、Qwen 实时多模态、LiveKit Agents、Pipecat、Open-LLM-VTuber、Vision Agents、OpenMAIC、StudyFetch 等方向。GitHub 星数、产品支持和授权会变化，",
+      "tags": "Agent 实时音视频 StudyFetch Qwen Live",
+      "href": "knowledge/ai-education/chapter-02/"
+    },
+    {
+      "title": "开发工具与环境问题索引",
+      "topic": "工程治理 · 开发工作流",
+      "summary": "历史研究包括 React Native vs Electron 的 macOS 桌面端路径、CocoaPods、SQLite、Corepack、NestJS 源码、React Native 新架构，以及 Zed 的 Agent 线程导入和命令行代理工具。",
+      "tags": "AGENTS.md Spec 治理闭环 质量",
+      "href": "knowledge/engineering/chapter-02/"
+    },
+    {
+      "title": "数学 · 离散与线代 · 全景图",
+      "topic": "基础学科",
+      "summary": "用结构、向量与概率刻画软件、图形和金融问题",
+      "tags": "线性代数 离散数学 图论 SVD",
+      "href": "knowledge/math/"
+    },
+    {
+      "title": "数据库 · 进化与内核 · 全景图",
+      "topic": "计算机基础",
+      "summary": "从文件系统与关系模型，到分布式一致性、向量检索与 Agent 记忆",
+      "tags": "SQLite SQL MVCC Raft",
+      "href": "knowledge/database/"
+    },
+    {
+      "title": "构建、启动、运行三阶段",
+      "topic": "React Native · 新架构",
+      "summary": "将新架构分为 Build Time / App Startup / Runtime：构建阶段产生 Hermes 字节码与 CodeGen 生成代码；启动阶段初始化 JS Runtime、JSI 绑定、TurboModule 注册、Fabric；运行阶段贯通 JavaSc",
+      "tags": "JSI Fabric CodeGen Hermes",
+      "href": "knowledge/react-native/chapter-01/"
+    },
+    {
+      "title": "核心机制与状态机",
+      "topic": "JavaScript · Promise",
+      "summary": "Promise 的三个状态是 pending、fulfilled、rejected。一旦落定不可逆，但调用 resolve(x) 不等同于立即进入 fulfilled：当 x 是 thenable 或另一个 Promise 时，当前 Promise 可能进入已解决但尚未",
+      "tags": "ECMAScript Event Loop 单步动画 第14课",
+      "href": "knowledge/promise/chapter-01/"
+    },
+    {
+      "title": "模型 · 算力与工具 · 全景图",
+      "topic": "基础设施",
+      "summary": "大模型对照、CLI 接入、模型路由与 GPU 资源研究",
+      "tags": "NewAPI GPU 推理成本 模型路由",
+      "href": "knowledge/model-infra/"
+    },
+    {
+      "title": "模型路由与 CLI 研究记录",
+      "topic": "模型 · 算力与工具",
+      "summary": "讨论对象包括 Qwen、GLM、Nemotron、Muse 等模型，评估维度为推理、编程、中文、上下文、成本、延迟和模型可用性。型号与免费额度变化快，需要按“查询日期 + 官方来源 + 当前限制”保存快照。",
+      "tags": "NewAPI GPU 推理成本 模型路由",
+      "href": "knowledge/model-infra/chapter-01/"
+    },
+    {
+      "title": "电影级 WebGL 滚动叙事",
+      "topic": "WebGL · 知识交互",
+      "summary": "2026-10-21 的创作目标为“提示词如何被大模型解析”的单 HTML 三维滚动页面。希望呈现 Apple 发布页 / Awwwards 电影级视觉：深色背景、体积光与 Bloom、曲线路径镜头、粒子生长、结构从底部搭建。",
+      "tags": "WebGL 3D 游戏设计 GitHub Pages",
+      "href": "knowledge/creative/chapter-02/"
+    },
+    {
+      "title": "离散数学学习路线",
+      "topic": "数学 · 离散与线代",
+      "summary": "面向编程与系统设计，建议从命题逻辑、集合、关系、函数、组合计数、图论与证明方法逐层推进。与 Monorepo 依赖图、状态机、数据库关系模型和 Agent 工作流之间建立示例关联。",
+      "tags": "线性代数 离散数学 图论 SVD",
+      "href": "knowledge/math/chapter-01/"
+    },
+    {
+      "title": "第 1—14 课课程轨迹与待巩固项",
+      "topic": "JavaScript · Promise",
+      "summary": "2026-10-12 开始《ES Promise 从原理到工程实践》，学习环境同时包含 Browser 与 Node.js。训练采取逐题诊断：先作答、先评价推理，再推进到下一题。",
+      "tags": "ECMAScript Event Loop 单步动画 第14课",
+      "href": "knowledge/promise/chapter-03/"
+    },
+    {
+      "title": "线性代数的直觉优先路线",
+      "topic": "数学 · 离散与线代",
+      "summary": "历史学习请求明确偏好：从零基础、原理优先、多模态互动。合理学习顺序：向量 → 矩阵 → 线性变换 → 线性方程组 → 特征值与特征向量 → SVD。",
+      "tags": "线性代数 离散数学 图论 SVD",
+      "href": "knowledge/math/chapter-02/"
+    },
+    {
+      "title": "组合 API 与边界矩阵",
+      "topic": "JavaScript · Promise",
+      "summary": "四种组合 API 不是简单的“先后执行”变体。all 要求全部成功，可以提前拒绝；any 要求至少一个成功，全部拒绝时返回 AggregateError；race 取最先落定者，无论成功或失败；allSettled 等待全部落定并记录每项结果。",
+      "tags": "ECMAScript Event Loop 单步动画 第14课",
+      "href": "knowledge/promise/chapter-02/"
+    },
+    {
+      "title": "语言 · 英语与东北话 · 全景图",
+      "topic": "语言学习",
+      "summary": "从语义角色、信息结构比较英语与东北话的语序差异",
+      "tags": "东北话 英语语序 句法 时体",
+      "href": "knowledge/language/"
+    },
+    {
+      "title": "量化研究与杠杆风险",
+      "topic": "金融学 · 案例与量化",
+      "summary": "量化研究的流程是：数据获取与清洗 → 假设形成 → 策略 → 回测 → 交易成本/滑点 → 风控 → 实盘监控。此前讨论策略类型包括趋势、均值回归、动量、网格、因子与机器学习。",
+      "tags": "1000案例 CPI 量化 风险",
+      "href": "knowledge/finance/chapter-02/"
+    },
+    {
+      "title": "金融学 · 案例与量化 · 全景图",
+      "topic": "金融研究",
+      "summary": "以案例理解货币时间价值、金融市场、风险、量化策略与杠杆约束",
+      "tags": "1000案例 CPI 量化 风险",
+      "href": "knowledge/finance/"
+    },
+    {
+      "title": "Promise 从原理到工程实践 · 全景教材",
+      "topic": "JavaScript Promise",
+      "summary": "20 个原理单元 · 16 道诊断 · Mermaid 全景图 · 微任务观察台",
+      "tags": "Promise ECMAScript thenable resolution microtask all any race allSettled",
+      "href": "knowledge/promise/"
+    },
+    {
+      "title": "导学与机制地图",
+      "topic": "JavaScript Promise",
+      "summary": "把 Promise 拆成五层观察：对象状态、解决权、反应注册、Jobs 入队与宿主调度。",
+      "tags": "Promise ECMAScript 第1单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-00/"
+    },
+    {
+      "title": "Promise 状态机与解决权",
+      "topic": "JavaScript Promise",
+      "summary": "三种状态之外，理解 resolved、settled、adoption 与不可逆。",
+      "tags": "Promise ECMAScript 第2单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-01/"
+    },
+    {
+      "title": "构造器、then 与作业模型",
+      "topic": "JavaScript Promise",
+      "summary": "分清 executor、注册反应、入队与运行四个独立事件。",
+      "tags": "Promise ECMAScript 第3单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-02/"
+    },
+    {
+      "title": "Promise Resolution Procedure",
+      "topic": "JavaScript Promise",
+      "summary": "then 属性读取同步，thenable 执行异步；首次调用锁定结果。",
+      "tags": "Promise ECMAScript 第4单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-03/"
+    },
+    {
+      "title": "微任务、队列与时间线",
+      "topic": "JavaScript Promise",
+      "summary": "按实际入队时刻追踪，不以代码外观排序。",
+      "tags": "Promise ECMAScript 第5单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-04/"
+    },
+    {
+      "title": "then 链、返回值与错误传播",
+      "topic": "JavaScript Promise",
+      "summary": "每次 then 都生成新 Promise；值、throw、thenable 决定下游。",
+      "tags": "Promise ECMAScript 第6单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-05/"
+    },
+    {
+      "title": "catch、finally 与异常边界",
+      "topic": "JavaScript Promise",
+      "summary": "finally 保留结果有条件；异步 timer 抛错不属于外层 Promise。",
+      "tags": "Promise ECMAScript 第7单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-06/"
+    },
+    {
+      "title": "async / await 的解糖模型",
+      "topic": "JavaScript Promise",
+      "summary": "async 总返回 Promise，await 让函数暂停而不是阻塞线程。",
+      "tags": "Promise ECMAScript 第8单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-07/"
+    },
+    {
+      "title": "Promise.all：全成功或早拒绝",
+      "topic": "JavaScript Promise",
+      "summary": "输入迭代与任务启动的边界；拒绝不等于取消其他操作。",
+      "tags": "Promise ECMAScript 第9单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-08/"
+    },
+    {
+      "title": "Promise.race：先落定者胜出",
+      "topic": "JavaScript Promise",
+      "summary": "race 对 fulfilled/rejected 没有偏好，空迭代永不落定。",
+      "tags": "Promise ECMAScript 第10单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-09/"
+    },
+    {
+      "title": "Promise.any：至少一个兑现",
+      "topic": "JavaScript Promise",
+      "summary": "AggregateError.errors 的顺序由输入索引决定，而不是拒绝时间。",
+      "tags": "Promise ECMAScript 第11单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-10/"
+    },
+    {
+      "title": "Promise.allSettled：全局快照",
+      "topic": "JavaScript Promise",
+      "summary": "每项状态结果按输入序排列，不因为失败而提前结束。",
+      "tags": "Promise ECMAScript 第12单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-11/"
+    },
+    {
+      "title": "Browser 与 Node.js 的宿主调度",
+      "topic": "JavaScript Promise",
+      "summary": "区分 ECMAScript Jobs、浏览器微任务与 Node nextTick；不要跨环境套公式。",
+      "tags": "Promise ECMAScript 第13单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-12/"
+    },
+    {
+      "title": "工程实践：取消、超时与失败恢复",
+      "topic": "JavaScript Promise",
+      "summary": "Promise 的取消不是内建能力；把底层资源控制与组合结果分开。",
+      "tags": "Promise ECMAScript 第14单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-13/"
+    },
+    {
+      "title": "综合推演：thenable × inner × race",
+      "topic": "JavaScript Promise",
+      "summary": "复现历史重点难题，分离 getter、采用、微任务和日志。",
+      "tags": "Promise ECMAScript 第15单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-14/"
+    },
+    {
+      "title": "历史课程诊断档案",
+      "topic": "JavaScript Promise",
+      "summary": "按第 1—14 课重建可核实进度、错误直觉和待复习点，不虚构逐字原题。",
+      "tags": "Promise ECMAScript 第16单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-15/"
+    },
+    {
+      "title": "诊断题库：先作答，再看解析",
+      "topic": "JavaScript Promise",
+      "summary": "16 道新编可验证题，围绕状态、采用、组合 API 和错误传播。",
+      "tags": "Promise ECMAScript 第17单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-16/"
+    },
+    {
+      "title": "ECMAScript 规范解剖：内部槽与抽象操作",
+      "topic": "JavaScript Promise",
+      "summary": "从 Promise Objects、Reaction Records 到 NewPromiseResolveThenableJob 的规范路径。",
+      "tags": "Promise ECMAScript 第18单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-17/"
+    },
+    {
+      "title": "并发测试与错误监控",
+      "topic": "JavaScript Promise",
+      "summary": "从可重复的日志实验走向受控延迟、Fake Timers 与拒绝链诊断。",
+      "tags": "Promise ECMAScript 第19单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-18/"
+    },
+    {
+      "title": "迁移到真实业务：任务生命周期",
+      "topic": "JavaScript Promise",
+      "summary": "为 UI、请求、批量执行设计可取消、可观测、可维护的异步边界。",
+      "tags": "Promise ECMAScript 第20单元 resolved settle jobs",
+      "href": "knowledge/promise/lesson-19/"
+    },
+    {
+      "title": "Promise 执行观察台",
+      "topic": "JavaScript Promise",
+      "summary": "逐帧运行和真实浏览器输出校验",
+      "tags": "微任务 jobs 单步 动画 浏览器",
+      "href": "knowledge/promise/observatory/"
+    },
+    {
+      "title": "先有依赖图，才有 Monorepo",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "从单仓目录堆砌到可验证的架构图",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 先有依赖图，才有 Monorepo",
+      "href": "knowledge/monorepo/unit-01/"
+    },
+    {
+      "title": "pnpm Workspace：严格依赖是怎么形成的",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "workspace:、幽灵依赖、符号链接与安装布局",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected pnpm Workspace：严格依赖是怎么形成的",
+      "href": "knowledge/monorepo/unit-02/"
+    },
+    {
+      "title": "TypeScript Project References 的真正边界",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "声明产物、复合项目、增量构建与编辑器体验",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected TypeScript Project References 的真正边界",
+      "href": "knowledge/monorepo/unit-03/"
+    },
+    {
+      "title": "包入口：types、exports 与跨端条件导出",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "把公共 API 做成可执行边界，而不是文件夹约定",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 包入口：types、exports 与跨端条件导出",
+      "href": "knowledge/monorepo/unit-04/"
+    },
+    {
+      "title": "任务图、增量构建与缓存键",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "什么可以缓存，什么必须重新执行",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 任务图、增量构建与缓存键",
+      "href": "knowledge/monorepo/unit-05/"
+    },
+    {
+      "title": "Affected：从文件变更到任务的精确传播",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "反向依赖闭包、Git 基准和 Nx 24 任务级判定",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected Affected：从文件变更到任务的精确传播",
+      "href": "knowledge/monorepo/unit-06/"
+    },
+    {
+      "title": "Rush 治理：从单仓编排到组织契约",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "发布变更文件、严格版本策略与构建缓存",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected Rush 治理：从单仓编排到组织契约",
+      "href": "knowledge/monorepo/unit-07/"
+    },
+    {
+      "title": "工具选型：pnpm、Turbo、Nx、Rush",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "把宣传指标转成可验证的决策矩阵",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 工具选型：pnpm、Turbo、Nx、Rush",
+      "href": "knowledge/monorepo/unit-08/"
+    },
+    {
+      "title": "React + React Native + NestJS 的跨端边界",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "共享模型不等于共享运行时",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected React + React Native + NestJS 的跨端边界",
+      "href": "knowledge/monorepo/unit-09/"
+    },
+    {
+      "title": "从代码治理到 AI Agent 的单仓闭环",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "边界检查、Spec Drift、证据图与发布审计",
+      "tags": "pnpm workspace Rush Nx24 Turborepo TypeScript references affected 从代码治理到 AI Agent 的单仓闭环",
+      "href": "knowledge/monorepo/unit-10/"
+    },
+    {
+      "title": "依赖图与 Affected",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "点击包、切换源码/测试文件，比较项目级与任务级影响。",
+      "tags": "Monorepo interactive lab diagram affected cache",
+      "href": "knowledge/monorepo/labs/graph/"
+    },
+    {
+      "title": "缓存键失效实验",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "亲手移除环境变量输入，观察一次错误缓存命中。",
+      "tags": "Monorepo interactive lab diagram affected cache",
+      "href": "knowledge/monorepo/labs/cache/"
+    },
+    {
+      "title": "Project References 构建机",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "按步骤触发 contracts → domain → api 的类型编译与产物验证。",
+      "tags": "Monorepo interactive lab diagram affected cache",
+      "href": "knowledge/monorepo/labs/build/"
+    },
+    {
+      "title": "Monorepo 真实参考工程",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "五包 TypeScript workspace，Node graph / affected / tsc -b",
+      "tags": "pnpm TypeScript starter source code download",
+      "href": "knowledge/monorepo/starter/"
+    },
+    {
+      "title": "Monorepo 工程案例",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "四个故障驱动的迁移案例",
+      "tags": "Rush Nx24 pnpm React Native",
+      "href": "knowledge/monorepo/cases/"
+    },
+    {
+      "title": "幽灵依赖取证：为什么本机能跑、CI 却失败",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "从 import → package.json → node_modules → lockfile → bundler 查找真正的依赖边界",
+      "tags": "pnpm Nx24 Rush TypeScript Metro NestJS troubleshooting",
+      "href": "knowledge/monorepo/guides/ghost-deps/"
+    },
+    {
+      "title": "Nx 24 任务级 Affected 迁移实战",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "区分图结构变化、输入命中、执行前置条件和迁移旧配置",
+      "tags": "pnpm Nx24 Rush TypeScript Metro NestJS troubleshooting",
+      "href": "knowledge/monorepo/guides/nx24-affected/"
+    },
+    {
+      "title": "Rush 治理落地：什么时候值得引入",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "发布策略、变更文件、构建缓存、安全边界和退出机制",
+      "tags": "pnpm Nx24 Rush TypeScript Metro NestJS troubleshooting",
+      "href": "knowledge/monorepo/guides/rush-rollout/"
+    },
+    {
+      "title": "跨端 Monorepo：React、RN 与 NestJS 排障清单",
+      "topic": "TypeScript Monorepo 深度课程",
+      "summary": "TypeScript 共享逻辑、Metro exports、Node 运行时与服务端独立验证",
+      "tags": "pnpm Nx24 Rush TypeScript Metro NestJS troubleshooting",
+      "href": "knowledge/monorepo/guides/cross-platform/"
+    },
+    {
+      "title": "React + React Native + NestJS · 真实多端工程",
+      "topic": "TypeScript Monorepo",
+      "summary": "真正的 Expo SDK 58、React 19、NestJS 12、共享类型与 CI 参考源码",
+      "tags": "React Expo NestJS pnpm fullstack 多端 工作区",
+      "href": "knowledge/monorepo/fullstack/"
+    },
+    {
+      "title": "05 · 可复现安装与缓存",
+      "topic": "TypeScript Monorepo",
+      "summary": "锁文件是供应链证据，缓存不是版本约束。",
+      "tags": "pnpm 锁文件 缓存 原生构建 Android iOS GitHub Actions Expo",
+      "href": "knowledge/monorepo/fullstack/guides/lockfile/"
+    },
+    {
+      "title": "06 · Android / iOS 原生构建",
+      "topic": "TypeScript Monorepo",
+      "summary": "从 TypeScript 到 Gradle 与 Xcode 的证据分层。",
+      "tags": "pnpm 锁文件 缓存 原生构建 Android iOS GitHub Actions Expo",
+      "href": "knowledge/monorepo/fullstack/guides/native-build/"
+    },
+    {
+      "title": "07 · 模拟器与真机验证",
+      "topic": "TypeScript Monorepo",
+      "summary": "用设备验收矩阵区分构建、安装、网络与用户体验。",
+      "tags": "pnpm 锁文件 缓存 原生构建 Android iOS GitHub Actions Expo",
+      "href": "knowledge/monorepo/fullstack/guides/device-testing/"
+    },
+    {
+      "title": "Android / iOS 模拟器真实启动与联网验证",
+      "topic": "TypeScript Monorepo",
+      "summary": "Debug APK 和 iOS Simulator App 安装、Expo Metro、UIAutomator、simctl、NestJS 契约与日志证据",
+      "tags": "Android emulator iOS Simulator Expo React Native device smoke adb reverse simctl UIAutomator",
+      "href": "knowledge/monorepo/fullstack/guides/simulator-smoke/"
+    },
+    {
+      "title": "09 · 跨端故障注入与 E2E 回归",
+      "topic": "TypeScript Monorepo",
+      "summary": "Android UIAutomator、iOS Maestro、HTTP 503、非法 JSON、离线回退、恢复和反假阳性验证。",
+      "tags": "E2E Android iOS Maestro UIAutomator HTTP 503 invalid JSON 网络异常 故障注入 离线回退",
+      "href": "knowledge/monorepo/fullstack/guides/fault-injection/"
+    }
+  ]
+}

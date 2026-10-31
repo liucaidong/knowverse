@@ -1,21 +1,48 @@
 #!/usr/bin/env python3
-"""Validate KNOWVERSE static-site routes and the shared work registry."""
+"""Validate KNOWVERSE knowledge, work, pillar and local route relationships."""
 import json
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 root = Path(__file__).resolve().parents[1]
-manifest = json.loads((root / "content/works.json").read_text(encoding="utf-8"))
-works = manifest["works"]
-pillars = {pillar["id"]: pillar for pillar in manifest["pillars"]}
+work_manifest = json.loads((root / "content/works.json").read_text(encoding="utf-8"))
+knowledge_manifest = json.loads((root / "content/knowledge.json").read_text(encoding="utf-8"))
+works = work_manifest["works"]
+pillars = {pillar["id"]: pillar for pillar in work_manifest["pillars"]}
+topics = knowledge_manifest["topics"]
+topic_map = {topic["id"]: topic for topic in topics}
 
-ids = [work["id"] for work in works]
-assert len(ids) == len(set(ids)), "Duplicate work IDs"
+assert len(pillars) == 3, "KNOWVERSE must keep its three product pillars"
+assert len(topic_map) == len(topics), "Duplicate knowledge topic IDs"
+assert len(pillars) == len(work_manifest["pillars"]), "Duplicate pillar IDs"
+assert len({work["id"] for work in works}) == len(works), "Duplicate work IDs"
+
+for topic in topics:
+    assert topic["href"].startswith("./knowledge/"), topic
+    assert isinstance(topic.get("featured"), bool), topic
+    assert isinstance(topic.get("tags"), list), topic
+    href = unquote(urlsplit(topic["href"]).path)
+    page = (root / href[2:]).resolve()
+    assert page.is_relative_to((root / "knowledge").resolve()), topic
+    target = page / "index.html" if href.endswith("/") else page
+    assert target.is_file(), f"Missing knowledge topic page: {topic['id']}"
+    landing = page / "index.html"
+    html = landing.read_text(encoding="utf-8")
+    assert "knowledge-graph.js" in html, f"Topic page is not connected to the knowledge graph: {topic['id']}"
+    assert "knowledge-graph.css" in html, f"Missing relationship styles: {topic['id']}"
 
 live_routes = []
+reverse_links = {topic_id: [] for topic_id in topic_map}
 for work in works:
     assert work["pillar"] in pillars, work
     assert work["status"] in ("live", "planned", "archived"), work
+    knowledge_ids = work.get("knowledge_ids")
+    assert isinstance(knowledge_ids, list) and knowledge_ids, f"Work must declare its knowledge relationship: {work['id']}"
+    assert len(knowledge_ids) == len(set(knowledge_ids)), f"Duplicate knowledge relationships: {work['id']}"
+    for topic_id in knowledge_ids:
+        assert topic_id in topic_map, f"Unknown topic {topic_id} in work {work['id']}"
+        reverse_links[topic_id].append(work["id"])
+
     href = unquote(urlsplit(work["href"]).path)
     assert href.startswith("./"), href
     page = (root / href[2:]).resolve()
@@ -29,7 +56,8 @@ for work in works:
         live_routes.append(href)
 
 assert len(live_routes) == len(set(live_routes)), "Two live works share the same route"
-for pillar_id in pillars:
+for pillar_id, pillar in pillars.items():
+    assert pillar.get("href") == f"./{pillar_id}/", f"Missing canonical pillar route: {pillar_id}"
     assert any(work["pillar"] == pillar_id and work["status"] == "live" for work in works), (
         f"No live work registered for pillar: {pillar_id}"
     )
@@ -40,14 +68,23 @@ for pillar_id in pillars:
     assert "assets/js/catalog.js" in html, f"Missing shared catalog script: {pillar_id}"
 
 for path in [
-    "index.html", "works/index.html", "lab/index.html", "gallery/index.html",
-    "puzzles/index.html", "puzzles/worlds/first-realm/index.html"
+    "index.html", "knowledge/index.html", "works/index.html",
+    "lab/index.html", "gallery/index.html", "puzzles/index.html",
+    "puzzles/worlds/first-realm/index.html"
 ]:
     assert (root / path).is_file(), f"Missing page: {path}"
 
 home = (root / "index.html").read_text(encoding="utf-8")
-assert 'href="./works/"' in home, "Homepage must link to the full work catalogue"
+assert 'data-pillar-catalog' in home, "Homepage pillar cards must use the shared pillar registry"
+assert 'data-knowledge-catalog="featured"' in home, "Homepage featured topics must use the knowledge registry"
+knowledge_home = (root / "knowledge/index.html").read_text(encoding="utf-8")
+assert 'data-knowledge-catalog="all"' in knowledge_home, "Knowledge directory must use the shared knowledge registry"
+assert "knowledge-graph.js" in home and "knowledge-graph.js" in knowledge_home
+
+metadata = json.loads((root / "content/search-metadata.json").read_text(encoding="utf-8"))
+assert len(metadata["records"]) >= 40, "Curated search metadata is unexpectedly small"
 print(
-    f"OK: {len(works)} registered works, {len(live_routes)} unique live routes, "
-    f"{len(pillars)} product pillars"
+    f"OK: {len(topics)} knowledge topics, {len(works)} registered works, "
+    f"{len(live_routes)} unique live routes, {len(pillars)} pillars, "
+    f"{sum(bool(ids) for ids in reverse_links.values())} topics with linked experiences"
 )

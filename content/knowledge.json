@@ -1,0 +1,204 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-10-31",
+  "topics": [
+    {
+      "id": "promise",
+      "title": "JavaScript · Promise",
+      "short_title": "Promise",
+      "category": "编程语言",
+      "summary": "从状态机到微任务调度，再到规范级解析与工程实践",
+      "href": "./knowledge/promise/",
+      "accent": "#34b4a1",
+      "featured": true,
+      "tags": [
+        "JavaScript",
+        "Promise",
+        "异步",
+        "微任务",
+        "thenable"
+      ]
+    },
+    {
+      "id": "monorepo",
+      "title": "TypeScript · Monorepo",
+      "short_title": "Monorepo",
+      "category": "软件架构",
+      "summary": "严格依赖、受影响分析、任务缓存与发布治理",
+      "href": "./knowledge/monorepo/",
+      "accent": "#6088ef",
+      "featured": true,
+      "tags": [
+        "TypeScript",
+        "pnpm",
+        "Workspace",
+        "Nx",
+        "Rush",
+        "Turborepo"
+      ]
+    },
+    {
+      "id": "react-native",
+      "title": "React Native · 新架构",
+      "short_title": "React Native",
+      "category": "移动开发",
+      "summary": "Build → Startup → Runtime；JSI / TurboModules / Fabric 的系统全景",
+      "href": "./knowledge/react-native/",
+      "accent": "#7c88ed",
+      "featured": true,
+      "tags": [
+        "React Native",
+        "JSI",
+        "TurboModules",
+        "Fabric",
+        "Hermes"
+      ]
+    },
+    {
+      "id": "ai-education",
+      "title": "AI · 多模态教育",
+      "short_title": "AI 教育",
+      "category": "AI 产品",
+      "summary": "Mac × iPhone × 实时多模态 × 教育反馈闭环",
+      "href": "./knowledge/ai-education/",
+      "accent": "#d07ba6",
+      "featured": true,
+      "tags": [
+        "AI 教育",
+        "多模态",
+        "实时音视频",
+        "学习反馈"
+      ]
+    },
+    {
+      "id": "ai-agents",
+      "title": "AI Agent · 系统工程",
+      "short_title": "AI Agent",
+      "category": "AI 工程",
+      "summary": "模型、工具、上下文、权限、记忆与工作流的职责边界",
+      "href": "./knowledge/ai-agents/",
+      "accent": "#b78ce7",
+      "featured": true,
+      "tags": [
+        "Agent",
+        "MCP",
+        "RAG",
+        "上下文",
+        "工作流"
+      ]
+    },
+    {
+      "id": "model-infra",
+      "title": "模型 · 算力与工具",
+      "short_title": "模型基础设施",
+      "category": "基础设施",
+      "summary": "大模型对照、CLI 接入、模型路由与 GPU 资源研究",
+      "href": "./knowledge/model-infra/",
+      "accent": "#a77bd5",
+      "featured": true,
+      "tags": [
+        "LLM",
+        "GPU",
+        "DeepSeek",
+        "模型路由",
+        "CLI"
+      ]
+    },
+    {
+      "id": "database",
+      "title": "数据库 · 进化与内核",
+      "short_title": "数据库",
+      "category": "计算机基础",
+      "summary": "从文件系统与关系模型，到分布式一致性、向量检索与 Agent 记忆",
+      "href": "./knowledge/database/",
+      "accent": "#c8895b",
+      "featured": false,
+      "tags": [
+        "数据库",
+        "关系模型",
+        "分布式",
+        "向量检索"
+      ]
+    },
+    {
+      "id": "finance",
+      "title": "金融学 · 案例与量化",
+      "short_title": "金融学",
+      "category": "金融研究",
+      "summary": "以案例理解货币时间价值、金融市场、风险、量化策略与杠杆约束",
+      "href": "./knowledge/finance/",
+      "accent": "#d1a45c",
+      "featured": false,
+      "tags": [
+        "金融",
+        "量化",
+        "风险",
+        "货币时间价值"
+      ]
+    },
+    {
+      "id": "creative",
+      "title": "WebGL · 知识交互",
+      "short_title": "WebGL 创意开发",
+      "category": "创意开发",
+      "summary": "电影级滚动叙事、Promise 空间游戏与三条产品主线",
+      "href": "./knowledge/creative/",
+      "accent": "#e39b69",
+      "featured": false,
+      "tags": [
+        "WebGL",
+        "Canvas",
+        "3D",
+        "知识交互"
+      ]
+    },
+    {
+      "id": "math",
+      "title": "数学 · 离散与线代",
+      "short_title": "数学",
+      "category": "基础学科",
+      "summary": "用结构、向量与概率刻画软件、图形和金融问题",
+      "href": "./knowledge/math/",
+      "accent": "#55a5bf",
+      "featured": false,
+      "tags": [
+        "离散数学",
+        "线性代数",
+        "向量",
+        "概率"
+      ]
+    },
+    {
+      "id": "language",
+      "title": "语言 · 英语与东北话",
+      "short_title": "语言学习",
+      "category": "语言学习",
+      "summary": "从语义角色、信息结构比较英语与东北话的语序差异",
+      "href": "./knowledge/language/",
+      "accent": "#5ea99c",
+      "featured": false,
+      "tags": [
+        "英语",
+        "东北话",
+        "语义",
+        "语序"
+      ]
+    },
+    {
+      "id": "engineering",
+      "title": "工程治理 · 开发工作流",
+      "short_title": "工程治理",
+      "category": "软件工程",
+      "summary": "架构健康检查、文档与代码双向认证、Agent 工作流与交付质量",
+      "href": "./knowledge/engineering/",
+      "accent": "#7895b0",
+      "featured": false,
+      "tags": [
+        "软件工程",
+        "CI",
+        "架构治理",
+        "Agent 工作流"
+      ]
+    }
+  ]
+}

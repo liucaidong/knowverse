@@ -1,24 +1,33 @@
 {
-  "version": "1.2.0",
+  "version": "1.3.0",
   "updated": "2026-10-31",
   "pillars": [
     {
       "id": "lab",
       "title": "原理实验室",
       "tagline": "理解知识",
-      "description": "精准模拟、单步运行、验证规律"
+      "description": "精准模拟、单步运行、验证规律",
+      "href": "./lab/",
+      "accent": "#199f94",
+      "order": 1
     },
     {
       "id": "gallery",
       "title": "沉浸式知识展厅",
       "tagline": "感受知识",
-      "description": "三维探索、电影级镜头、空间叙事"
+      "description": "三维探索、电影级镜头、空间叙事",
+      "href": "./gallery/",
+      "accent": "#8d8dd8",
+      "order": 2
     },
     {
       "id": "puzzles",
       "title": "知识解谜世界",
       "tagline": "运用知识",
-      "description": "探索未知、建立假设、解决机制谜题"
+      "description": "探索未知、建立假设、解决机制谜题",
+      "href": "./puzzles/",
+      "accent": "#e5a45c",
+      "order": 3
     }
   ],
   "works": [
@@ -31,7 +40,10 @@
       "kind": "experiment",
       "status": "live",
       "href": "./lab/experiments/promise-debugger/",
-      "summary": "运行可编辑 Promise 代码，逐事件检查状态、resolve 锁、thenable 采用、reaction、链式调用、四种组合 API、FIFO 微任务、计时器与 Promise 对象关系；提供 13 个内置实验和原生 Promise 输出差分验证"
+      "summary": "运行可编辑 Promise 代码，逐事件检查状态、resolve 锁、thenable 采用、reaction、链式调用、四种组合 API、FIFO 微任务、计时器与 Promise 对象关系；提供 13 个内置实验和原生 Promise 输出差分验证",
+      "knowledge_ids": [
+        "promise"
+      ]
     },
     {
       "id": "lab-microtasks",
@@ -42,7 +54,10 @@
       "kind": "experiment",
       "status": "live",
       "href": "./lab/experiments/queue-observatory/",
-      "summary": "单步检查同步执行、微任务入队与回调执行的先后关系"
+      "summary": "单步检查同步执行、微任务入队与回调执行的先后关系",
+      "knowledge_ids": [
+        "promise"
+      ]
     },
     {
       "id": "promise-identity",
@@ -53,7 +68,10 @@
       "kind": "experiment",
       "status": "live",
       "href": "./lab/experiments/promise-identity/",
-      "summary": "对比 Promise.resolve(inner) 与 new Promise(resolve => resolve(inner)) 的身份与采用过程"
+      "summary": "对比 Promise.resolve(inner) 与 new Promise(resolve => resolve(inner)) 的身份与采用过程",
+      "knowledge_ids": [
+        "promise"
+      ]
     },
     {
       "id": "microtask-resolution",
@@ -64,7 +82,10 @@
       "kind": "experiment",
       "status": "live",
       "href": "./lab/experiments/microtask-resolution/",
-      "summary": "逐帧呈现 thenable 解析、Promise 采用及微任务调度"
+      "summary": "逐帧呈现 thenable 解析、Promise 采用及微任务调度",
+      "knowledge_ids": [
+        "promise"
+      ]
     },
     {
       "id": "gallery-promise",
@@ -75,7 +96,11 @@
       "kind": "exhibition",
       "status": "live",
       "href": "./gallery/exhibits/promise-universe/",
-      "summary": "以 Canvas 叙事原型观察状态、反应与时序之间的关系"
+      "summary": "以 Canvas 叙事原型观察状态、反应与时序之间的关系",
+      "knowledge_ids": [
+        "promise",
+        "creative"
+      ]
     },
     {
       "id": "promise-cosmos",
@@ -86,7 +111,11 @@
       "kind": "exhibition",
       "status": "live",
       "href": "./gallery/exhibits/promise-cosmos/",
-      "summary": "实时 3D 渲染与四幕空间叙事，可拖动镜头并切换场景"
+      "summary": "实时 3D 渲染与四幕空间叙事，可拖动镜头并切换场景",
+      "knowledge_ids": [
+        "promise",
+        "creative"
+      ]
     },
     {
       "id": "puzzle-world",
@@ -97,7 +126,11 @@
       "kind": "puzzle",
       "status": "live",
       "href": "./puzzles/worlds/first-realm/",
-      "summary": "探索独立房间，辨析 Promise 状态与 reaction 队列之间的差别"
+      "summary": "探索独立房间，辨析 Promise 状态与 reaction 队列之间的差别",
+      "knowledge_ids": [
+        "promise",
+        "creative"
+      ]
     },
     {
       "id": "promise-realm",
@@ -108,7 +141,11 @@
       "kind": "game",
       "status": "live",
       "href": "./puzzles/worlds/promise-realm/",
-      "summary": "在 3D 机制世界中探索 Promise 规则，通过推理激活装置并推进关卡"
+      "summary": "在 3D 机制世界中探索 Promise 规则，通过推理激活装置并推进关卡",
+      "knowledge_ids": [
+        "promise",
+        "creative"
+      ]
     }
   ]
 }

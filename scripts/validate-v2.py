@@ -4,37 +4,66 @@ from pathlib import Path
 from html.parser import HTMLParser
 from urllib.parse import urlsplit, unquote
 import json
-root=Path(__file__).resolve().parents[1]
+
+root = Path(__file__).resolve().parents[1]
+
+
 class Links(HTMLParser):
- def __init__(self):super().__init__();self.refs=[]
- def handle_starttag(self,t,a):
-  d=dict(a)
-  if t in ('a','link','script','img'):
-   u=d.get('href') if t in ('a','link') else d.get('src')
-   if u:self.refs.append((t,u))
-missing=[];checked=0
-for f in root.rglob('*.html'):
- parser=Links();parser.feed(f.read_text(encoding='utf-8'))
- for typ,href in parser.refs:
-  if href.startswith(('#','http:','https:','mailto:','tel:','javascript:','data:')):continue
-  u=unquote(urlsplit(href).path)
-  if not u:continue
-  target=(f.parent/u).resolve()
-  if not target.is_relative_to(root):missing.append((str(f.relative_to(root)),href,'path traversal'));continue
-  if target.is_dir():target=target/'index.html'
-  if not target.exists():missing.append((str(f.relative_to(root)),href,'missing'))
-  checked+=1
-pan=list((root/'assets/panoramas').glob('*.mmd'))
-svg=list((root/'assets/panoramas').glob('*.svg'))
-assert len(pan)>=12 and {x.stem for x in pan}=={x.stem for x in svg},(len(pan),len(svg))
-for m in pan:assert m.read_text().startswith('flowchart LR'),m
-search=json.loads((root/'data/search.json').read_text())
-assert len(search)>=40,len(search)
+    def __init__(self):
+        super().__init__()
+        self.refs = []
+
+    def handle_starttag(self, tag, attrs):
+        data = dict(attrs)
+        if tag in ("a", "link", "script", "img"):
+            url = data.get("href") if tag in ("a", "link") else data.get("src")
+            if url:
+                self.refs.append((tag, url))
+
+
+missing = []
+checked = 0
+for file in root.rglob("*.html"):
+    parser = Links()
+    parser.feed(file.read_text(encoding="utf-8"))
+    for kind, href in parser.refs:
+        if href.startswith(("#", "http:", "https:", "mailto:", "tel:", "javascript:", "data:")):
+            continue
+        url = unquote(urlsplit(href).path)
+        if not url:
+            continue
+        target = (file.parent / url).resolve()
+        if not target.is_relative_to(root):
+            missing.append((str(file.relative_to(root)), href, "path traversal"))
+            continue
+        if target.is_dir():
+            target = target / "index.html"
+        if not target.exists():
+            missing.append((str(file.relative_to(root)), href, "missing"))
+        checked += 1
+
+panoramas = list((root / "assets/panoramas").glob("*.mmd"))
+svgs = list((root / "assets/panoramas").glob("*.svg"))
+assert len(panoramas) >= 12 and {item.stem for item in panoramas} == {item.stem for item in svgs}, (len(panoramas), len(svgs))
+for diagram in panoramas:
+    assert diagram.read_text(encoding="utf-8").startswith("flowchart LR"), diagram
+
+search = json.loads((root / "data/search.json").read_text(encoding="utf-8"))
+knowledge = json.loads((root / "content/knowledge.json").read_text(encoding="utf-8"))
+metadata = json.loads((root / "content/search-metadata.json").read_text(encoding="utf-8"))
+topic_ids = {topic["id"] for topic in knowledge["topics"]}
+assert len(search) == len(metadata["records"]), "Generated search index and metadata counts differ"
+assert len(search) >= 40, len(search)
+assert len({item["href"] for item in search}) == len(search), "Duplicate search route"
 for item in search:
- target=root/item['href']
- assert (target/'index.html').is_file(),item['href']
-print(f'checked {checked} local links, {len(pan)} Mermaid panoramas, {len(search)} search records')
+    assert item["knowledge_id"] in topic_ids, item
+    assert item["body"].strip(), item
+    target = root / item["href"]
+    assert (target / "index.html").is_file(), item["href"]
+
+print(f"checked {checked} local links, {len(panoramas)} Mermaid panoramas, {len(search)} generated search records")
 if missing:
- print('BROKEN LINKS:')
- for x in missing:print(*x)
- raise SystemExit(1)
+    print("BROKEN LINKS:")
+    for item in missing:
+        print(*item)
+    raise SystemExit(1)

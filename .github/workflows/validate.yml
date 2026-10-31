@@ -10,6 +10,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Build deterministic full-text search index from source pages
+        run: python3 scripts/build-search-index.py
+      - name: Verify generated search index is reproducible
+        run: python3 scripts/build-search-index.py --check
       - name: Validate V1 content registry and routes
         run: python3 scripts/validate-content.py
       - name: Validate V2 knowledge pages and Mermaid panoramas
