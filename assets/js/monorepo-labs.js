@@ -2,17 +2,18 @@
   "use strict";
   const host = document.querySelector("[data-lab]");
   if (!host) return;
-  const scriptUrl = document.currentScript?.src || new URL("./assets/js/monorepo-labs.js", document.baseURI).href;
-  const siteRoot = new URL("../../", scriptUrl);
+  const scriptUrl = document.currentScript?.src || "";
   const $ = id => document.getElementById(id);
   const escape = value => String(value).replace(/[&<>"']/g, char => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
   }[char]));
 
   async function loadGraphTools() {
+    const baseUrl = scriptUrl || new URL("./assets/js/monorepo-labs.js", document.baseURI).href;
+    const siteRoot = new URL("../../", baseUrl);
     const [response, model] = await Promise.all([
       fetch(new URL("data/monorepo-graph.json", siteRoot), { headers: { Accept: "application/json" } }),
-      import(new URL("./monorepo-graph-model.mjs", scriptUrl).href),
+      import(new URL("./monorepo-graph-model.mjs", baseUrl).href),
     ]);
     if (!response.ok) throw new Error("Monorepo graph HTTP " + response.status);
     return { graph: await response.json(), model };

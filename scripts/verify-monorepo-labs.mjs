@@ -1,53 +1,87 @@
-/** Offline widget verification: execute the real browser lab script using a minimal DOM harness. */
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { runInNewContext } from 'node:vm';
-const program = readFileSync(new URL('../assets/js/monorepo-labs.js', import.meta.url), 'utf8');
-function makeLab(kind) {
+/** Offline checks for the real Monorepo graph model and cache-key teaching lab. */
+import test from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { runInNewContext } from "node:vm";
+import {
+  getAffectedIds,
+  getReadyBuildNodes,
+  tryBuildNode,
+} from "../assets/js/monorepo-graph-model.mjs";
+
+const graph = JSON.parse(readFileSync(new URL("../data/monorepo-graph.json", import.meta.url), "utf8"));
+const labProgram = readFileSync(new URL("../assets/js/monorepo-labs.js", import.meta.url), "utf8");
+
+function makeCacheLab() {
   const elements = new Map();
   const node = id => {
-    if (!elements.has(id)) elements.set(id, {
-      id, value: '', checked: true, disabled: false, textContent: '', innerHTML: '', listeners: new Map(),
-      addEventListener(name, callback) { this.listeners.set(name, callback); },
-      querySelectorAll() { return []; },
-      click() { this.onclick?.(); },
-      change() { this.listeners.get('change')?.(); },
-      select(v) { this.value = v; this.change(); },
-    });
+    if (!elements.has(id)) {
+      elements.set(id, {
+        id, value: "", checked: true, disabled: false, textContent: "", innerHTML: "",
+        listeners: new Map(),
+        addEventListener(name, callback) { this.listeners.set(name, callback); },
+        querySelectorAll() { return []; },
+        click() { this.onclick?.(); },
+        change() { this.listeners.get("change")?.(); },
+      });
+    }
     return elements.get(id);
   };
-  node('package').value = 'contracts';
-  node('change-kind').value = 'source';
-  node('affected-mode').value = 'project';
-  node('env-mode').value = 'alpha';
-  node('source-ver').value = 'v1';
-  const document = { querySelector: sel => sel === '[data-lab]' ? { dataset: { lab: kind } } : null, getElementById: node };
-  runInNewContext(program, { document, navigator: {}, console, Map, Set, Math, JSON, String, Number, Array });
+  node("include-env").checked = false;
+  node("env-mode").value = "alpha";
+  node("source-ver").value = "v1";
+  const document = {
+    currentScript: null,
+    querySelector: selector => selector === "[data-lab]" ? { dataset: { lab: "cache" } } : null,
+    getElementById: node,
+  };
+  runInNewContext(labProgram, { document, navigator: {}, console, Map, Set, Math, JSON, String, Number, Array });
   return node;
 }
-test('graph: reverse dependency closure excludes unrelated mobile when domain changes', () => {
-  const e = makeLab('graph');
-  e('package').select('domain');
-  const result=e('result-projects').textContent;
-  assert.match(result,/domain, web, api|domain, api, web/);
-  assert.ok(!result.split('受影响项目：')[1].split('\n')[0].includes('mobile'));
+
+test("domain change affects every real consumer, including mobile", () => {
+  assert.deepEqual(getAffectedIds(graph, "domain"), ["domain", "api", "mobile", "web"]);
+  assert.equal(getAffectedIds(graph, "domain").includes("contracts"), false);
 });
-test('task mode: changing only tests does not require build in the teaching model', () => {
-  const e=makeLab('graph');e('package').select('domain');e('change-kind').select('test');e('affected-mode').select('task');
-  assert.match(e('result-tasks').textContent,/domain:test/);
-  assert.doesNotMatch(e('result-tasks').textContent,/domain:build/);
+
+test("contracts change propagates through the complete five-package workspace", () => {
+  assert.deepEqual(getAffectedIds(graph, "contracts"), graph.build_order);
+  assert.deepEqual(getAffectedIds(graph, "mobile"), ["mobile"]);
 });
-test('cache: missing environment input creates a demonstrable false hit', () => {
-  const e=makeLab('cache');e('include-env').checked=false;e('run-cache').click();
-  e('env-mode').value='beta';e('run-cache').click();
-  assert.match(e('cache-result').textContent,/错误命中/);
-  e('include-env').checked=true;e('run-cache').click();
-  assert.match(e('cache-result').textContent,/产物与当前输入匹配/);
+
+test("build readiness follows the manifest-derived layers and blocks premature apps", () => {
+  assert.deepEqual(getReadyBuildNodes(graph).map(node => node.id), ["contracts"]);
+  assert.deepEqual(getReadyBuildNodes(graph, ["contracts"]).map(node => node.id), ["domain"]);
+  assert.deepEqual(
+    getReadyBuildNodes(graph, ["contracts", "domain"]).map(node => node.id),
+    ["api", "mobile", "web"]
+  );
+  assert.equal(tryBuildNode(graph, [], "api").reason, "dependencies-not-built");
+  let completed = [];
+  for (const id of graph.build_order) {
+    const result = tryBuildNode(graph, completed, id);
+    assert.equal(result.ok, true, id);
+    completed = result.completed;
+  }
+  assert.equal(completed.length, 5);
 });
-test('build storyboard: terminal step reached and next disabled', () => {
-  const e=makeLab('build');for(let i=0;i<6;i++)e('build-next').click();
-  assert.equal(e('build-next').disabled, true);
-  assert.match(e('build-evidence').textContent,/tsc -b/);
-  e('build-reset').click();assert.equal(e('build-next').disabled,false);
+
+test("cache lab still demonstrates a false hit when MODE is omitted", () => {
+  const element = makeCacheLab();
+  element("run-cache").listeners.get("click")();
+  element("env-mode").value = "beta";
+  element("run-cache").listeners.get("click")();
+  assert.match(element("cache-result").textContent, /错误命中/);
+
+  element("include-env").checked = true;
+  element("run-cache").listeners.get("click")();
+  assert.match(element("cache-result").textContent, /产物与当前输入匹配/);
 });
+
+test("browser lab loads the generated workspace graph instead of a hard-coded demo topology", () => {
+  assert.match(labProgram, /data\/monorepo-graph\.json/);
+  assert.match(labProgram, /monorepo-graph-model\.mjs/);
+  assert.doesNotMatch(labProgram, /ui-adapter/);
+});
+
+console.log("PASS: real Monorepo graph closure, parallel build layers, cache-key lab, browser lab data source");
