@@ -1,0 +1,669 @@
+{
+  "id": "thenable-inner-adoption",
+  "title": "thenable → inner Promise → 微任务队列",
+  "level": "进阶",
+  "objective": "逐步追踪同步 getter、thenable job、inner 采用、Promise reaction 与 queueMicrotask 的入队次序。",
+  "code": [
+    "let finish;",
+    "const inner = new Promise(resolve => {",
+    "  finish = resolve;",
+    "});",
+    "",
+    "const thenable = {",
+    "  get then() {",
+    "    console.log(\"get\");",
+    "    return (resolve, reject) => {",
+    "      console.log(\"call\");",
+    "      resolve(inner);",
+    "      reject(new Error(\"late\"));",
+    "      throw new Error(\"thenable-throw\");",
+    "    };",
+    "  }",
+    "};",
+    "",
+    "console.log(\"start\");",
+    "const outer = Promise.resolve(thenable);",
+    "outer.then(value => console.log(\"value\", value));",
+    "",
+    "queueMicrotask(() => {",
+    "  console.log(\"M1\");",
+    "  finish(42);",
+    "  queueMicrotask(() => console.log(\"M2\"));",
+    "});",
+    "",
+    "console.log(\"end\");"
+  ],
+  "expectedOutput": [
+    "start",
+    "get",
+    "end",
+    "call",
+    "M1",
+    "M2",
+    "value 42"
+  ],
+  "steps": [
+    {
+      "title": "全局代码尚未开始",
+      "phase": "ready",
+      "phaseLabel": "READY",
+      "line": null,
+      "action": "准备运行",
+      "stack": [
+        "等待进入全局脚本"
+      ],
+      "queue": [],
+      "timerQueue": [],
+      "logs": [],
+      "states": [
+        {
+          "name": "inner",
+          "status": "未创建",
+          "detail": "尚未执行 Promise 构造器"
+        },
+        {
+          "name": "outer",
+          "status": "未创建",
+          "detail": "Promise.resolve 尚未调用"
+        }
+      ],
+      "reactions": [
+        "outer.then 尚未注册"
+      ],
+      "explain": "先把观察对象分清：inner 是稍后会被外部 finish() 兑现的 Promise；outer 是 Promise.resolve(thenable) 返回的 Promise。它们不是同一个对象。",
+      "tags": [
+        "起点",
+        "同步阶段"
+      ]
+    },
+    {
+      "title": "创建 inner Promise",
+      "phase": "sync",
+      "phaseLabel": "SYNC · EXECUTOR",
+      "line": 2,
+      "action": "执行 Promise executor",
+      "stack": [
+        "全局脚本",
+        "Promise 构造器 executor"
+      ],
+      "queue": [],
+      "timerQueue": [],
+      "logs": [],
+      "states": [
+        {
+          "name": "inner",
+          "status": "pending",
+          "detail": "executor 同步运行，把 resolve 保存到 finish"
+        },
+        {
+          "name": "outer",
+          "status": "未创建",
+          "detail": "尚未调用 Promise.resolve"
+        }
+      ],
+      "reactions": [
+        "finish 持有 inner 的 resolving function",
+        "inner 当前没有任何 reaction"
+      ],
+      "explain": "Promise 构造器的 executor 会立即、同步执行。这里没有异步等待；finish 被赋值为 inner 的 resolve 函数，但 inner 仍是 pending。",
+      "tags": [
+        "同步执行",
+        "executor"
+      ]
+    },
+    {
+      "title": "创建 thenable 对象",
+      "phase": "sync",
+      "phaseLabel": "SYNC · OBJECT",
+      "line": 6,
+      "action": "创建对象字面量",
+      "stack": [
+        "全局脚本"
+      ],
+      "queue": [],
+      "timerQueue": [],
+      "logs": [],
+      "states": [
+        {
+          "name": "inner",
+          "status": "pending",
+          "detail": "finish 已保存，尚未调用"
+        },
+        {
+          "name": "outer",
+          "status": "未创建",
+          "detail": "尚未调用 Promise.resolve"
+        }
+      ],
+      "reactions": [
+        "thenable 对象已创建",
+        "getter then 尚未读取"
+      ],
+      "explain": "创建对象本身不会触发 getter。只有后续代码对 thenable.then 做属性读取时，get then 才会运行。",
+      "tags": [
+        "对象创建",
+        "getter 尚未触发"
+      ]
+    },
+    {
+      "title": "输出 start",
+      "phase": "sync",
+      "phaseLabel": "SYNC · LOG",
+      "line": 18,
+      "action": "执行 console.log",
+      "stack": [
+        "全局脚本"
+      ],
+      "queue": [],
+      "timerQueue": [],
+      "logs": [
+        "start"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "pending",
+          "detail": "仍在等待 finish(…)"
+        },
+        {
+          "name": "outer",
+          "status": "未创建",
+          "detail": "下一行才会创建"
+        }
+      ],
+      "reactions": [
+        "outer.then 尚未注册"
+      ],
+      "explain": "普通 console.log 是当前调用栈中的同步操作，先写入控制台输出。后面的异步机制不会把它移到队尾。",
+      "tags": [
+        "同步输出"
+      ]
+    },
+    {
+      "title": "读取 then 属性：getter 同步执行",
+      "phase": "sync",
+      "phaseLabel": "SYNC · GET THEN",
+      "line": 7,
+      "action": "Promise.resolve 读取 thenable.then",
+      "stack": [
+        "全局脚本",
+        "Promise.resolve / Promise Resolution Procedure",
+        "Get(thenable, \"then\")"
+      ],
+      "queue": [
+        {
+          "name": "ThenableJob",
+          "detail": "稍后调用 getter 返回的 then 函数",
+          "kind": "thenable"
+        }
+      ],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "pending",
+          "detail": "没有变化"
+        },
+        {
+          "name": "outer",
+          "status": "pending · 采用 thenable",
+          "detail": "已开始解决流程，但尚未 fulfilled"
+        }
+      ],
+      "reactions": [
+        "thenable.then 已被读取",
+        "getter 返回可调用函数，安排 ThenableJob"
+      ],
+      "explain": "关键区分：读取 then 属性是同步的，所以 get 现在就输出；调用 getter 返回的 then 函数不是现在发生，而是被安排为后续微任务 job。",
+      "tags": [
+        "同步 getter",
+        "ThenableJob 入队"
+      ]
+    },
+    {
+      "title": "注册 outer.then reaction",
+      "phase": "sync",
+      "phaseLabel": "SYNC · REGISTER",
+      "line": 20,
+      "action": "注册 Promise reaction",
+      "stack": [
+        "全局脚本",
+        "Promise.prototype.then"
+      ],
+      "queue": [
+        {
+          "name": "ThenableJob",
+          "detail": "调用 thenable 返回的 then 函数",
+          "kind": "thenable"
+        }
+      ],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "pending",
+          "detail": "等待 finish"
+        },
+        {
+          "name": "outer",
+          "status": "pending · 采用中",
+          "detail": "reaction 已挂在 outer 上，等待它落定"
+        }
+      ],
+      "reactions": [
+        "R_outer：已注册，尚未入队",
+        "Promise pending 时，then 只登记 reaction，不会立刻运行回调"
+      ],
+      "explain": "then() 在 pending Promise 上只登记 reaction。此刻回调没有进入微任务队列；只有 outer 最终落定时，对应 PromiseReactionJob 才会入队。",
+      "tags": [
+        "注册 reaction",
+        "尚未入队"
+      ]
+    },
+    {
+      "title": "把 M1 放入微任务队列",
+      "phase": "sync",
+      "phaseLabel": "SYNC · QUEUE MICROTASK",
+      "line": 22,
+      "action": "调用 queueMicrotask",
+      "stack": [
+        "全局脚本",
+        "queueMicrotask"
+      ],
+      "queue": [
+        {
+          "name": "ThenableJob",
+          "detail": "先于 M1 入队",
+          "kind": "thenable"
+        },
+        {
+          "name": "M1",
+          "detail": "queueMicrotask 回调",
+          "kind": "microtask"
+        }
+      ],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "pending",
+          "detail": "等待 M1 中的 finish(42)"
+        },
+        {
+          "name": "outer",
+          "status": "pending · 采用中",
+          "detail": "等待 thenable job 和 inner 的结果"
+        }
+      ],
+      "reactions": [
+        "R_outer：仍登记在 outer 上，尚未入队"
+      ],
+      "explain": "ThenableJob 在 Promise.resolve 读取 then 后已经先入队；M1 是后来注册的，因此当前 FIFO 顺序是 ThenableJob → M1。",
+      "tags": [
+        "FIFO",
+        "两个微任务已排队"
+      ]
+    },
+    {
+      "title": "同步脚本结束",
+      "phase": "sync",
+      "phaseLabel": "SYNC · STACK EMPTY",
+      "line": 28,
+      "action": "输出 end，退出当前调用栈",
+      "stack": [],
+      "queue": [
+        {
+          "name": "ThenableJob",
+          "detail": "下一步调用 thenable.then",
+          "kind": "thenable"
+        },
+        {
+          "name": "M1",
+          "detail": "随后运行 queueMicrotask 回调",
+          "kind": "microtask"
+        }
+      ],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get",
+        "end"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "pending",
+          "detail": "finish 尚未调用"
+        },
+        {
+          "name": "outer",
+          "status": "pending · 采用中",
+          "detail": "等待微任务继续解析"
+        }
+      ],
+      "reactions": [
+        "R_outer：registered / waiting"
+      ],
+      "explain": "到这里所有全局同步代码结束，所以 start、get、end 已经输出。接下来才开始清空微任务队列。",
+      "tags": [
+        "同步阶段结束",
+        "微任务检查点开始"
+      ]
+    },
+    {
+      "title": "执行 ThenableJob：调用 then 函数",
+      "phase": "microtask",
+      "phaseLabel": "MICROTASK · THENABLE JOB",
+      "line": 9,
+      "action": "出队 ThenableJob，并调用 then(resolve, reject)",
+      "stack": [
+        "微任务检查点",
+        "NewPromiseResolveThenableJob",
+        "thenable.then(resolve, reject)"
+      ],
+      "queue": [
+        {
+          "name": "M1",
+          "detail": "仍在队列中，排在 AdoptInnerJob 之前",
+          "kind": "microtask"
+        },
+        {
+          "name": "AdoptInnerJob",
+          "detail": "resolve(inner) 安排的采用任务",
+          "kind": "adopt"
+        }
+      ],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get",
+        "end",
+        "call"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "pending",
+          "detail": "thenable 只是把 inner 交给 outer，尚未兑现 inner"
+        },
+        {
+          "name": "outer",
+          "status": "pending · 已锁定采用 inner",
+          "detail": "首次 resolve(inner) 已锁定外部解决权，继续等待 inner"
+        }
+      ],
+      "reactions": [
+        "R_outer：仍登记在 outer 上",
+        "thenable 的 resolve(inner) 触发对 inner 的进一步采用"
+      ],
+      "explain": "call 现在才输出。thenable 调用 resolve(inner) 后，outer 的外部 resolve/reject 入口已经被锁定；后面的 reject(late) 和 throw(thenable-throw) 都不能覆盖首次解决结果。对 inner 的采用还需要后续 job。",
+      "tags": [
+        "thenable 函数异步调用",
+        "resolve 首次调用锁定",
+        "晚到 reject / throw 被忽略"
+      ]
+    },
+    {
+      "title": "执行 M1：兑现 inner，并安排 M2",
+      "phase": "microtask",
+      "phaseLabel": "MICROTASK · QUEUE MICROTASK",
+      "line": 23,
+      "action": "执行 M1 回调",
+      "stack": [
+        "微任务检查点",
+        "M1 / queueMicrotask callback"
+      ],
+      "queue": [
+        {
+          "name": "AdoptInnerJob",
+          "detail": "先前由 resolve(inner) 安排",
+          "kind": "adopt"
+        },
+        {
+          "name": "M2",
+          "detail": "M1 内部新注册的 queueMicrotask",
+          "kind": "microtask"
+        }
+      ],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get",
+        "end",
+        "call",
+        "M1"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "fulfilled · 42",
+          "detail": "finish(42) 兑现 inner"
+        },
+        {
+          "name": "outer",
+          "status": "pending · 采用 inner",
+          "detail": "outer 尚未安装 inner.then reaction，仍在等待"
+        }
+      ],
+      "reactions": [
+        "R_outer：仍登记在 outer 上",
+        "inner 上暂时还没有 AdoptInnerJob 安装的 reaction"
+      ],
+      "explain": "M1 先于 AdoptInnerJob 执行。finish(42) 让 inner fulfilled；但采用 inner 的 job 还没运行，因此此刻 inner 的兑现不会立即让 outer 的回调执行。M2 又被追加到队尾。",
+      "tags": [
+        "inner fulfilled",
+        "outer 仍 pending",
+        "M2 入队"
+      ]
+    },
+    {
+      "title": "执行 AdoptInnerJob：订阅已兑现的 inner",
+      "phase": "microtask",
+      "phaseLabel": "MICROTASK · ADOPTION JOB",
+      "line": 11,
+      "action": "对 inner 调用 then(resolveOuter, rejectOuter)",
+      "stack": [
+        "微任务检查点",
+        "NewPromiseResolveThenableJob · AdoptInnerJob",
+        "inner.then(resolveOuter, rejectOuter)"
+      ],
+      "queue": [
+        {
+          "name": "M2",
+          "detail": "早于 inner 的 reaction job 入队",
+          "kind": "microtask"
+        },
+        {
+          "name": "InnerReactionJob",
+          "detail": "inner 已 fulfilled，then 注册后安排 reaction",
+          "kind": "reaction"
+        }
+      ],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get",
+        "end",
+        "call",
+        "M1"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "fulfilled · 42",
+          "detail": "已经落定，不会反转"
+        },
+        {
+          "name": "outer",
+          "status": "pending · 等待 inner reaction",
+          "detail": "采用 job 已订阅 inner，等待 reaction job 将结果传递给 outer"
+        }
+      ],
+      "reactions": [
+        "R_inner：现在才挂到 inner 上，并因 inner 已 fulfilled 而安排 InnerReactionJob",
+        "R_outer：仍等待 outer 落定"
+      ],
+      "explain": "注意这里有两层异步：先运行 AdoptInnerJob，再由 inner.then 为已兑现的 inner 安排 PromiseReactionJob。因为 M2 之前已经入队，所以它排在 InnerReactionJob 前面。",
+      "tags": [
+        "采用 inner",
+        "reaction job 入队",
+        "FIFO 再次决定顺序"
+      ]
+    },
+    {
+      "title": "执行 M2",
+      "phase": "microtask",
+      "phaseLabel": "MICROTASK · USER JOB",
+      "line": 25,
+      "action": "运行 M1 内注册的 M2",
+      "stack": [
+        "微任务检查点",
+        "M2 / queueMicrotask callback"
+      ],
+      "queue": [
+        {
+          "name": "InnerReactionJob",
+          "detail": "下一步把 inner 的 42 传递给 outer",
+          "kind": "reaction"
+        }
+      ],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get",
+        "end",
+        "call",
+        "M1",
+        "M2"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "fulfilled · 42",
+          "detail": "已兑现"
+        },
+        {
+          "name": "outer",
+          "status": "pending · 等待 inner reaction",
+          "detail": "InnerReactionJob 尚未运行"
+        }
+      ],
+      "reactions": [
+        "R_inner：已入队，等待执行",
+        "R_outer：仍登记在 outer 上"
+      ],
+      "explain": "M2 先于 InnerReactionJob 输出，不是因为 Promise reaction 优先级更低，而是因为 M2 在它之前入队。Promise reaction job 和 queueMicrotask 回调都参与同一个微任务 FIFO 顺序。",
+      "tags": [
+        "M2 输出",
+        "微任务 FIFO"
+      ]
+    },
+    {
+      "title": "执行 InnerReactionJob：outer fulfilled",
+      "phase": "microtask",
+      "phaseLabel": "MICROTASK · PROMISE REACTION",
+      "line": 11,
+      "action": "把 inner 的 42 传给 outer 的 resolving function",
+      "stack": [
+        "微任务检查点",
+        "PromiseReactionJob · InnerReactionJob",
+        "resolveOuter(42)"
+      ],
+      "queue": [
+        {
+          "name": "OuterReactionJob",
+          "detail": "outer 落定后，之前登记的 R_outer 入队",
+          "kind": "reaction"
+        }
+      ],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get",
+        "end",
+        "call",
+        "M1",
+        "M2"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "fulfilled · 42",
+          "detail": "源 Promise 的结果"
+        },
+        {
+          "name": "outer",
+          "status": "fulfilled · 42",
+          "detail": "采用链完成，outer 现在才兑现"
+        }
+      ],
+      "reactions": [
+        "R_inner：已执行",
+        "R_outer：因 outer fulfilled 而入队，等待回调运行"
+      ],
+      "explain": "inner 的 reaction 把 42 交给 outer 的内部 resolving function。outer 此时变为 fulfilled；先前登记的 outer.then 回调现在才作为新的 PromiseReactionJob 入队。",
+      "tags": [
+        "outer fulfilled",
+        "OuterReactionJob 入队"
+      ]
+    },
+    {
+      "title": "执行 OuterReactionJob：输出最终值",
+      "phase": "microtask",
+      "phaseLabel": "MICROTASK · FINAL REACTION",
+      "line": 20,
+      "action": "运行 outer.then 回调",
+      "stack": [
+        "微任务检查点",
+        "PromiseReactionJob · OuterReactionJob",
+        "console.log(\"value\", 42)"
+      ],
+      "queue": [],
+      "timerQueue": [],
+      "logs": [
+        "start",
+        "get",
+        "end",
+        "call",
+        "M1",
+        "M2",
+        "value 42"
+      ],
+      "states": [
+        {
+          "name": "inner",
+          "status": "fulfilled · 42",
+          "detail": "源 Promise 已兑现"
+        },
+        {
+          "name": "outer",
+          "status": "fulfilled · 42",
+          "detail": "最终结果已传递给 reaction"
+        }
+      ],
+      "reactions": [
+        "R_inner：已执行",
+        "R_outer：已执行",
+        "微任务队列清空"
+      ],
+      "explain": "最后才运行 outer.then 注册的回调，输出 value 42。整个顺序由同步读取 then、两个采用相关 job、M1/M2 和两个 Promise reaction 的实际入队时刻决定。",
+      "tags": [
+        "最终输出",
+        "队列清空",
+        "实验结束"
+      ]
+    }
+  ]
+}
