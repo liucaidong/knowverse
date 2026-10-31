@@ -1,9 +1,9 @@
 # KNOWVERSE V2 · 知域知识库
 
 - GitHub Pages：`https://liucaidong.github.io/knowverse/`
-- 版本：V2 / 2026-10-30
+- 版本：V2 / 2026-10-31
 - **12 个专题、34 篇结构化文章、12 张 Mermaid 全景图、22 个历史节点、8 个可直接打开的互动作品。**
-- 三条产品主线共用 content/works.json 作品注册表；首页、作品总览和主线页面使用同一份数据。
+- 三条产品主线共用 `content/works.json` 作品注册表；首页、作品总览和主线页面使用同一份数据。
 
 ## 目录
 
@@ -13,8 +13,15 @@
 - `assets/panoramas/*.svg`：离线可见的静态矢量备份（自动从同一知识节点生成）
 - `data/search.json`：按文章内容生成的全文索引
 - `content/works.json`：三条产品主线的统一作品注册表
-- `works/index.html`：全部互动作品总览，支持主线筛选与关键词搜索\n- `lab/experiments/promise-debugger/`：Promise 机制调试器，逐帧显示状态、调用栈、微任务队列并提供原生验证；支持方向键单步、空格播放
+- `works/index.html`：全部互动作品总览，支持主线筛选与关键词搜索
+- `lab/experiments/promise-debugger/`：Promise 运行时观测工作台，提供可编辑代码、逐事件回放、Promise 对象图、微任务 FIFO、调用栈、计时器队列和原生 Promise 差分验证
 - `provenance/`：来源与覆盖边界
+
+## Promise 调试工作台
+
+工作台使用独立的 `TraceRuntime` 执行可编辑 JavaScript 代码，并为每个状态转移和调度动作生成快照。内置 13 组机制实验，覆盖 thenable 解析、Promise 采用与身份、reaction 链、catch / finally、all / race / any / allSettled、自我解决和空输入边界。用户可单步、回退、连续播放和跳转事件；原生验证在 Worker 中使用浏览器原生 Promise 对同一份代码进行可见输出对照。
+
+**边界说明：** 这是一个具有完整可观测内部状态的教学/调试运行时，不是 V8 或 JavaScriptCore 的内部调试接口。浏览器原生 Promise 的内部 reaction 队列不会被直接暴露；`async / await` 的引擎挂起点、Promise 子类等高级规范细节不属于当前模型的追踪范围。
 
 ## 产品主线
 

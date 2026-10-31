@@ -25,13 +25,13 @@
     {
       "id": "promise-mechanism-debugger",
       "pillar": "lab",
-      "title": "Promise 机制调试器 · thenable 采用链",
+      "title": "Promise 机制调试工作台 · 可观测运行时",
       "subject": "JavaScript",
       "level": "进阶",
       "kind": "experiment",
       "status": "live",
       "href": "./lab/experiments/promise-debugger/",
-      "summary": "逐帧调试代码行、调用栈、Promise 状态、微任务 FIFO 与 reaction，并用当前浏览器原生 Promise 验证日志"
+      "summary": "运行可编辑 Promise 代码，逐事件检查状态、resolve 锁、thenable 采用、reaction、链式调用、四种组合 API、FIFO 微任务、计时器与 Promise 对象关系；提供 13 个内置实验和原生 Promise 输出差分验证"
     },
     {
       "id": "lab-microtasks",
@@ -97,7 +97,7 @@
       "kind": "puzzle",
       "status": "live",
       "href": "./puzzles/worlds/first-realm/",
-      "summary": "探索独立房间，辨析 Promise 状态与反应之间的区别"
+      "summary": "探索独立房间，辨析 Promise 状态与 reaction 队列之间的差别"
     },
     {
       "id": "promise-realm",
