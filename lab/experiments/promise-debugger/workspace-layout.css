@@ -732,3 +732,116 @@ body.hide-inspector .inspector-column{display:none}
     height: auto;
   }
 }
+
+
+/* Workbench stage: normal mode uses the page's remaining height; fullscreen
+   mode isolates the complete debugger surface and hides surrounding chrome. */
+.workbench-stage {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+.workbench-stage > .workbench-layout {
+  flex: 1 1 0;
+  height: 0;
+  min-height: 0;
+}
+.hero-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 13px;
+  row-gap: 3px;
+}
+.hero-title-row > h1 {
+  flex: 0 0 auto;
+  margin: 0 0 5px;
+}
+.hero-title-row > .capability-row {
+  flex: 0 1 auto;
+  margin: 0 0 5px;
+  gap: 5px;
+}
+.hero-title-row > .capability-row span {
+  padding: 4px 7px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+.workbench-fullscreen-toggle {
+  border-color: #347a73;
+  color: #a9eee0;
+  background: #102925;
+  padding-inline: 10px;
+}
+.workbench-fullscreen-toggle:hover {
+  border-color: #62e4ce;
+  color: #d7fff5;
+}
+.workbench-stage:fullscreen,
+.workbench-stage.is-expanded {
+  position: relative;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  min-height: 0;
+  margin: 0;
+  padding: 10px 12px;
+  gap: 9px;
+  overflow: hidden;
+  background: var(--wb-bg, #080b12);
+  color: var(--wb-ink, #edf4ff);
+}
+.workbench-stage:fullscreen > .workbench-layout,
+.workbench-stage.is-expanded > .workbench-layout {
+  flex: 1 1 0;
+  width: 100%;
+  height: 0;
+  min-height: 0;
+  max-height: none;
+}
+.workbench-stage:fullscreen > .boundary-note,
+.workbench-stage.is-expanded > .boundary-note {
+  flex: 0 0 auto;
+  margin: 0;
+}
+@media (max-width: 980px) {
+  .workbench-stage:not(:fullscreen):not(.is-expanded) {
+    flex: none;
+    overflow: visible;
+  }
+  .hero-title-row > .capability-row {
+    flex-basis: 100%;
+  }
+  .workbench-stage:fullscreen,
+  .workbench-stage.is-expanded {
+    overflow: auto;
+    align-items: stretch;
+  }
+  .workbench-stage:fullscreen > .workbench-layout,
+  .workbench-stage.is-expanded > .workbench-layout {
+    flex: none;
+    height: auto;
+    min-height: 760px;
+  }
+}
+@media (max-width: 720px) {
+  .hero-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .hero-title-row > .capability-row {
+    flex-basis: auto;
+  }
+  .workbench-stage:fullscreen,
+  .workbench-stage.is-expanded {
+    padding: 8px;
+  }
+}

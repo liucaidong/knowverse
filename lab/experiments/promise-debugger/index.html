@@ -18,7 +18,7 @@
     <div class="topbar-right">
       <button class="layout-toggle" id="toggle-scenarios" type="button" aria-pressed="false" title="收起或展开场景库">收起场景库</button>
       <button class="layout-toggle" id="toggle-inspector" type="button" aria-pressed="false" title="收起或展开右侧检查器">收起检查器</button>
-      <button class="layout-toggle" id="fullscreen-toggle" type="button" title="切换全屏">全屏</button>
+      <button class="layout-toggle" id="fullscreen-toggle" type="button" aria-pressed="false" title="放大工作台主体">⛶ 放大工作区</button>
       <span class="runtime-pill"><i></i> TRACE RUNTIME</span>
       <a href="../../../works/">全部作品</a><a href="../../../knowledge/promise/">Promise 课程</a>
     </div>
@@ -29,7 +29,10 @@
       <div class="eyebrow">JAVASCRIPT ASYNC RUNTIME · INSPECT EVERY TRANSITION</div>
       <div class="hero-row">
         <div class="hero-copy">
-          <h1>Promise <em>调试工作台</em></h1>
+          <div class="hero-title-row">
+            <h1>Promise <em>调试工作台</em></h1>
+            <div class="capability-row" aria-label="工作台能力"><span>可编辑代码</span><span>单步 / 连续 / 跳转</span><span>对象状态与关系</span><span>ThenableJob / ReactionJob</span><span>原生 Promise 对照</span></div>
+          </div>
           <p>编辑代码并逐事件运行。中间观察代码与时间线，右侧固定检查 Promise、微任务 FIFO 和调用栈；每一步的变化会汇总在右侧顶部。</p>
         </div>
         <div class="hero-stats">
@@ -38,9 +41,9 @@
           <div><strong>2-way</strong><span>原生差分</span></div>
         </div>
       </div>
-      <div class="capability-row"><span>可编辑代码</span><span>单步 / 连续 / 跳转</span><span>对象状态与关系</span><span>ThenableJob / ReactionJob</span><span>原生 Promise 对照</span></div>
     </section>
 
+    <div class="workbench-stage" id="workbench-stage" aria-label="Promise 调试工作台主体">
     <div class="workbench-layout" id="workbench-layout">
       <aside class="sidebar panel" id="scenario-sidebar">
         <div class="sidebar-heading">
@@ -65,6 +68,7 @@
             <button class="btn" id="reset-trace" type="button" disabled>↺ 重置</button>
           </div>
           <div class="toolbar-meta">
+            <button class="layout-toggle workbench-fullscreen-toggle" id="workbench-fullscreen" type="button" aria-pressed="false" title="放大整个调试工作区">⛶ 放大工作区</button>
             <label for="play-speed">速度</label>
             <select id="play-speed"><option value="1200">慢</option><option value="650" selected>正常</option><option value="240">快</option></select>
             <span class="frame-counter" id="frame-counter">等待运行</span>
@@ -167,6 +171,7 @@
       <summary><span class="boundary-icon">i</span><strong>关于“真正调试”的准确边界</strong><span>查看模型与浏览器原生运行时的区别</span></summary>
       <p>本工作台执行独立、可观测的 Promise 模型运行时，因此能够记录它自己的状态转移和调度队列；它不是 V8 / JavaScriptCore 的内部调试器，不能读取浏览器原生 Promise 的私有 reaction 或微任务队列。原生差分验证会用真实浏览器运行时核对外部可见输出。模型不支持原生 async / await 的内部挂起点追踪，也不应把非标准 Promise 子类行为视为完整规范实现。</p>
     </details>
+    </div>
 
     <footer class="page-footer"><a href="../../../lab/">← 返回原理实验室</a><span>KNOWVERSE · PROMISE RUNTIME WORKBENCH</span><a href="../../../knowledge/promise/lesson-14/">继续 Promise 第 14 课 →</a></footer>
   </main>

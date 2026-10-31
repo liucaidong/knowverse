@@ -171,20 +171,55 @@ function bindLayoutToggle(buttonId, bodyClass, expandedText, collapsedText) {
 bindLayoutToggle("toggle-scenarios", "hide-scenarios", "收起场景库", "展开场景库");
 bindLayoutToggle("toggle-inspector", "hide-inspector", "收起检查器", "展开检查器");
 
-const fullscreenButton = $("#fullscreen-toggle");
-if (fullscreenButton) {
-  fullscreenButton.addEventListener("click", async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen();
-    } catch (error) {
-      fullscreenButton.title = "当前浏览器未允许切换全屏：" + (error && error.message ? error.message : String(error));
-    }
-  });
-  document.addEventListener("fullscreenchange", () => {
-    fullscreenButton.textContent = document.fullscreenElement ? "退出全屏" : "全屏";
+const workbenchStage = $("#workbench-stage");
+const fullscreenButtons = [$("#fullscreen-toggle"), $("#workbench-fullscreen")].filter(Boolean);
+
+function workbenchIsExpanded() {
+  return Boolean(workbenchStage && (
+    document.fullscreenElement === workbenchStage ||
+    workbenchStage.classList.contains("is-expanded")
+  ));
+}
+
+function syncWorkbenchFullscreenControls() {
+  const expanded = workbenchIsExpanded();
+  fullscreenButtons.forEach(button => {
+    button.setAttribute("aria-pressed", String(expanded));
+    button.textContent = expanded ? "↙ 退出放大" : "⛶ 放大工作区";
+    button.title = expanded ? "恢复普通页面布局" : "将场景库、工具栏和全部调试面板放大到全屏";
   });
 }
+
+async function toggleWorkbenchFullscreen() {
+  if (!workbenchStage) return;
+  try {
+    if (document.fullscreenElement === workbenchStage) {
+      await document.exitFullscreen();
+      return;
+    }
+    if (workbenchStage.classList.contains("is-expanded")) {
+      workbenchStage.classList.remove("is-expanded");
+      syncWorkbenchFullscreenControls();
+      return;
+    }
+    if (workbenchStage.requestFullscreen) {
+      await workbenchStage.requestFullscreen();
+      return;
+    }
+    workbenchStage.classList.add("is-expanded");
+  } catch (error) {
+    // Some embedded browsers deny the Fullscreen API. Keep the feature usable
+    // with a fixed-position fallback instead of leaving a dead control.
+    workbenchStage.classList.add("is-expanded");
+    const message = error && error.message ? error.message : String(error);
+    fullscreenButtons.forEach(button => { button.title = "浏览器全屏 API 不可用，已切换为页面放大模式：" + message; });
+  }
+  syncWorkbenchFullscreenControls();
+}
+
+fullscreenButtons.forEach(button => button.addEventListener("click", toggleWorkbenchFullscreen));
+document.addEventListener("fullscreenchange", syncWorkbenchFullscreenControls);
+syncWorkbenchFullscreenControls();
 
 document.addEventListener("keydown", event => {
   const active = document.activeElement;

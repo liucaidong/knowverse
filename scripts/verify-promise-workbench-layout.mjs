@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../lab/experiments/promise-debugger/index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("../lab/experiments/promise-debugger/workspace-layout.css", import.meta.url), "utf8");
+const enhancement = readFileSync(new URL("../lab/experiments/promise-debugger/workspace-enhancements.js", import.meta.url), "utf8");
 
 const dockStart = html.indexOf('<div class="output-dock">');
 const consoleIndex = html.indexOf('class="panel console-panel"');
@@ -30,3 +31,22 @@ assert.match(css, /\.primary-column\s*\{[^}]*clamp\(132px,\s*21vh,\s*200px\)/s, 
 assert.match(html, /rel="icon" href="\.\.\/\.\.\/\.\.\/favicon\.ico"/, "workbench must declare its site-relative favicon");
 assert.match(html, /rel="icon" href="\.\.\/\.\.\/\.\.\/favicon\.svg"/, "workbench must declare its SVG favicon");
 console.log("PASS: full-height parent sizing and site-relative favicons");
+
+
+const heroTitle = html.indexOf('<div class="hero-title-row">');
+const heroChips = html.indexOf('class="capability-row"', heroTitle);
+const heroStats = html.indexOf('class="hero-stats"', heroTitle);
+assert.ok(heroTitle >= 0 && heroChips > heroTitle && heroStats > heroChips, "capability chips must sit beside the hero title, before hero stats");
+assert.equal((html.match(/class="capability-row"/g) || []).length, 1, "capability chips must not be duplicated below the title");
+const stageStart = html.indexOf('<div class="workbench-stage" id="workbench-stage"');
+const workbenchStart2 = html.indexOf('<div class="workbench-layout"', stageStart);
+const boundaryIndex = html.indexOf('<details class="boundary-note panel">', stageStart);
+const stageEnd = html.indexOf('</div>\n\n    <footer class="page-footer">', boundaryIndex);
+assert.ok(stageStart >= 0 && workbenchStart2 > stageStart && boundaryIndex > workbenchStart2 && stageEnd > boundaryIndex, "full workbench and boundary note must be grouped in one stage");
+assert.match(html, /id="workbench-fullscreen"/, "fullscreen exit control must be available inside the workbench");
+assert.match(enhancement, /document\.fullscreenElement === workbenchStage/, "fullscreen target must be the workbench stage, not the entire document");
+assert.match(enhancement, /workbenchStage\.classList\.add\("is-expanded"\)/, "fullscreen must have a fallback expanded mode");
+assert.match(enhancement, /document\.addEventListener\("fullscreenchange", syncWorkbenchFullscreenControls\)/, "controls must stay synchronized when users press Escape");
+assert.match(css, /\.workbench-stage:fullscreen/, "workbench fullscreen layout rules must exist");
+assert.match(css, /\.hero-title-row\s*\{[^}]*display:\s*flex/s, "title and capability chips must share a responsive title row");
+console.log("PASS: capability chips in hero title row and workbench-only fullscreen/restore controls");
