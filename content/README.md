@@ -1,11 +1,24 @@
 # 内容管理规范
 
-作品统一登记在 `content/works.json`。每项必须具有 `id`、`pillar`、`title`、`href`、`summary` 和 `status`。
+所有交互作品统一登记在 content/works.json，由首页作品目录和三条产品主线页面共同读取。
 
-- pillar: lab / gallery / puzzles
-- status: live / planned / archived
-- href: 以站点根目录为基准，采用 ./ 相对地址
-- 为每件新作品创建单独目录和 index.html
-- 新作品上线前检查直接访问地址、返回首页和移动端操作
+## 字段约定
 
-当前采用静态 JSON 内容清单，不需要后台服务；网站自动读取并生成作品目录。
+每项作品必须具有 id、pillar、title、href、summary 和 status。
+
+- pillar：lab / gallery / puzzles
+- status：live / planned / archived
+- href：以站点根目录为基准，采用 ./ 开头的相对地址
+- live 作品必须指向独立、可直接访问的体验页面，不能指向产品主线目录本身
+- 每件新作品创建独立目录和 index.html，并登记唯一 ID 和唯一入口
+- 新作品上线前检查直接访问、返回首页、桌面端与移动端交互
+
+## 产品主线
+
+| ID | 产品主线 | 目标 |
+|---|---|---|
+| lab | 原理实验室 | 精准模拟、单步运行、验证规律 |
+| gallery | 沉浸式知识展厅 | 三维探索、电影级镜头、空间叙事 |
+| puzzles | 知识解谜世界 | 探索未知、建立假设、解决机制谜题 |
+
+当前采用静态 JSON 内容清单，不需要后台服务。统一目录支持按产品主线筛选、关键词搜索和难度识别；CI 会检查作品入口、主线页面和清单完整性。
