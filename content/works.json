@@ -1,6 +1,6 @@
 {
-  "version": "1.4.0",
-  "updated": "2026-10-31",
+  "version": "1.5.0",
+  "updated": "2026-11-01",
   "pillars": [
     {
       "id": "lab",
@@ -216,6 +216,21 @@
       "summary": "挑战 workspace:* 依赖声明、真实拓扑构建顺序和 contracts 变化的 Affected 反向依赖闭包",
       "knowledge_ids": [
         "monorepo",
+        "creative"
+      ]
+    },
+    {
+      "id": "promise-mechanism-quest",
+      "pillar": "puzzles",
+      "title": "时序裂隙 · Promise 机制挑战世界",
+      "subject": "JavaScript / ECMAScript",
+      "level": "进阶",
+      "kind": "puzzle",
+      "status": "live",
+      "href": "./puzzles/worlds/promise-mechanism-quest/",
+      "summary": "通过五道递进挑战掌握 thenable 采用、微任务 FIFO、链式错误传播、组合 API 与综合时序；错题自动定位薄弱概念并链接对应课程与真实实验。",
+      "knowledge_ids": [
+        "promise",
         "creative"
       ]
     }

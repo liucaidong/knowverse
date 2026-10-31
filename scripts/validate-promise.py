@@ -26,6 +26,12 @@ required = [
     'lab/experiments/promise-debugger/workbench.bundle.part-03.b64',
     'lab/experiments/promise-debugger/workbench.bundle.part-04.b64',
     'scripts/verify-promise-debugger.mjs',
+    'assets/js/challenge-engine.mjs',
+    'assets/js/promise-quest.mjs',
+    'assets/js/promise-quest-world.mjs',
+    'assets/css/promise-quest.css',
+    'puzzles/worlds/promise-mechanism-quest/index.html',
+    'scripts/verify-promise-quest.mjs',
 ]
 for rel in required:
     assert (root / rel).is_file(), rel
@@ -42,4 +48,33 @@ assert any(
     and '工作台' in item['title']
     for item in works
 )
-print('PASS: 20 Promise lessons / panorama / searchable observatory / compressed runtime Promise workbench')
+
+challenge_registry = json.loads((root / 'content/challenges.json').read_text(encoding='utf-8'))
+promise_quest = next(
+    (item for item in challenge_registry['challenges'] if item.get('id') == 'promise-mechanism-quest'),
+    None
+)
+assert promise_quest is not None, 'Promise mechanism quest is missing from challenge registry'
+assert len(promise_quest['steps']) == 5, 'Promise quest must contain five mechanism stages'
+for step in promise_quest['steps']:
+    assert len(step.get('hints', [])) >= 3, f"Progressive hints are missing: {step['id']}"
+    assert sum(option.get('id') == step.get('answer') for option in step['options']) == 1, (
+        f"Promise quest must have exactly one answer: {step['id']}"
+    )
+    assert step['lessonHref'].startswith('../../../knowledge/promise/'), step['id']
+    assert step['labHref'].startswith('../../../lab/'), step['id']
+
+promise_works = [
+    item for item in works
+    if item.get('id') == 'promise-mechanism-quest'
+    and item.get('href') == './puzzles/worlds/promise-mechanism-quest/'
+]
+assert len(promise_works) == 1, 'Promise mechanism quest must be registered exactly once'
+
+quest_html = (root / 'puzzles/worlds/promise-mechanism-quest/index.html').read_text(encoding='utf-8')
+assert 'promise-quest.mjs' in quest_html, 'Promise challenge page must mount its interaction module'
+assert '../../puzzles/worlds/promise-mechanism-quest/' in (root / 'knowledge/promise/index.html').read_text(encoding='utf-8'), (
+    'Promise course must link to its mechanism challenge'
+)
+
+print('PASS: 20 Promise lessons / panorama / searchable observatory / runtime workbench / 5-stage Promise challenge')

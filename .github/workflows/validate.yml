@@ -26,6 +26,8 @@ jobs:
         run: python3 scripts/validate-promise.py
       - name: Check Promise semantic examples
         run: node scripts/verify-promise-model.mjs
+      - name: Test Promise challenge against native execution order
+        run: node --test scripts/verify-promise-quest.mjs
       - name: Verify Promise workbench layout constraints
         run: node scripts/verify-promise-workbench-layout.mjs
       - name: Validate Monorepo course and routes
@@ -44,6 +46,8 @@ jobs:
           node --check assets/js/monorepo-graph-model.mjs
           node --check assets/js/monorepo-quest-core.mjs
           node --check assets/js/challenge-engine.mjs
+          node --check assets/js/promise-quest.mjs
+          node --check assets/js/promise-quest-world.mjs
       - name: Test Monorepo reference graph and affected logic
         run: cd knowledge/monorepo/starter && node --test tests/*.test.mjs
       - name: Verify Monorepo browser lab mechanics offline
