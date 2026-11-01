@@ -438,7 +438,8 @@
       "description": "Codegen 生成 C++ glue 与平台接口；原生业务实现仍由开发者编写。",
       "competencyIds": [
         "rn-build-artifacts",
-        "rn-turbomodules-codegen"
+        "rn-turbomodules-codegen",
+        "rn-integrated-architecture"
       ]
     },
     {
