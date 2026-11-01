@@ -71,11 +71,14 @@ test("React Native is a complete third learning domain across the three product 
   for (const gap of rnGaps) {
     assert.ok(gap.competencyIds.length > 0, gap.id);
     assert.ok(gap.competencyIds.every(id => rnMap.competencies.some(item => item.id === id)), gap.id);
-    const variants = reviews.assessments.filter(item =>
-      item.topicId === "react-native" && item.gapIds?.includes(gap.id));
-    assert.equal(variants.length, 2, "Every RN gap needs two review variants: " + gap.id);
-    assert.equal(new Set(variants.map(item => item.id)).size, 2);
+    for (const competencyId of gap.competencyIds) {
+      const variants = reviews.assessments.filter(item =>
+        item.topicId === "react-native" && item.competencyId === competencyId && item.gapIds?.includes(gap.id));
+      assert.equal(variants.length, 2, "Every RN gap/competency pair needs two review variants: " + gap.id + "::" + competencyId);
+      assert.equal(new Set(variants.map(item => item.id)).size, 2);
+    }
   }
+  assert.equal(reviews.assessments.filter(item => item.topicId === "react-native").length, 32);
 
   const rnCheckpoints = checkpoints.checkpoints.filter(item => item.topicId === "react-native");
   assert.equal(rnCheckpoints.length, 2);

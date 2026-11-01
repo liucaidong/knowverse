@@ -104,7 +104,7 @@ TypeScript Monorepo 不再只是课程页：原理实验室提供依赖图、缓
 
 The third complete knowledge domain is connected to all three learning pillars.
 
-- Topic and learning map: 6 competencies, 12 diagnosed gaps, and 24 targeted review variants.
+- Topic and learning map: 6 competencies, 12 diagnosed gaps, and 32 competency-targeted review variants.
 - Lab: Fabric Render / Commit / Mount pipeline observatory.
 - Gallery: interactive CSS 3D Build / Startup / Runtime architecture space.
 - Puzzle: six-step architecture boundary challenge using the shared Challenge Engine.

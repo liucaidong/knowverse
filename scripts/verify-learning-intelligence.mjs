@@ -251,10 +251,10 @@ test("the assessment catalog covers every tracked gap/competency pair with two t
       }
     }
   }
-  assert.equal(tracked.length, 9);
-  assert.equal(registry.assessments.length, 40);
+  assert.equal(tracked.length, 15);
+  assert.equal(registry.assessments.length, 72);
   assert.equal(gapVariants.size, map.gaps.length);
-  assert.equal(map.gaps.length, 19);
+  assert.equal(map.gaps.length, 31);
   for (const id of tracked) assert.ok((byCompetency.get(id)?.length || 0) >= 2, "expected at least 2 variants for " + id);
   for (const [gapId, variants] of gapVariants) assert.ok(variants.size >= 2, "gap needs two independent variants: " + gapId);
   for (const key of sourcePairs) assert.ok((reviewPairs.get(key)?.size || 0) >= 2, "gap/competency mapping needs two targeted variants: " + key);

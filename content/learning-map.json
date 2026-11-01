@@ -520,7 +520,8 @@
       "label": "Build / Startup / Runtime 边界混淆",
       "description": "Hermes / Codegen 属于构建产物；Runtime 初始化属于启动；调用、事件和渲染属于运行。",
       "competencyIds": [
-        "rn-integrated-architecture"
+        "rn-integrated-architecture",
+        "rn-build-artifacts"
       ]
     }
   ]

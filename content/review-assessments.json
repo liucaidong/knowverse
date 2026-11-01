@@ -1902,6 +1902,266 @@
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
       "explanation": "Hermes / Codegen 产物属于 Build；Runtime 初始化属于 Startup；执行、事件和渲染属于 Runtime。"
+    },
+    {
+      "id": "review-rn-codegen-generated-output-rn-turbomodules-codegen-a",
+      "competencyId": "rn-turbomodules-codegen",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-codegen-generated-output"
+      ],
+      "title": "TurboModule · spec 与平台实现分工（A）",
+      "prompt": "新增一个名为 NativeFoo 的 Turbo Native Module。Codegen 运行完成后，开发者仍然必须完成哪项工作？",
+      "options": [
+        {
+          "id": "a",
+          "label": "Codegen 已生成完整业务功能，直接从 JavaScript 调用即可。",
+          "gapId": "rn-codegen-generated-output"
+        },
+        {
+          "id": "b",
+          "label": "实现 Android / iOS 平台逻辑，并确保它满足 Codegen 生成的接口契约。"
+        },
+        {
+          "id": "c",
+          "label": "把生成的 C++ glue 再交给 Hermes 编译成 JS 字节码。",
+          "gapId": "rn-codegen-generated-output"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先区分接口脚手架与平台业务行为。",
+        "Codegen 生成跨语言 glue / interfaces；系统 API、权限和具体行为仍要写原生实现。"
+      ],
+      "explanation": "Codegen 输出 C++ glue 和平台接口，不会自动实现 NativeFoo 的业务逻辑。开发者仍需实现 Android / iOS 原生功能。"
+    },
+    {
+      "id": "review-rn-codegen-generated-output-rn-turbomodules-codegen-b",
+      "competencyId": "rn-turbomodules-codegen",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-codegen-generated-output"
+      ],
+      "title": "TurboModule · spec 变更后的工程步骤（B）",
+      "prompt": "你给 NativeFoo spec 新增一个异步方法 getDeviceLabel(): Promise<string>。哪项描述了正确的工程责任？",
+      "code": "spec change → Codegen → platform build → runtime call",
+      "options": [
+        {
+          "id": "a",
+          "label": "更新 spec 并运行 Codegen，检查生成接口，然后实现平台方法并分别构建验证。"
+        },
+        {
+          "id": "b",
+          "label": "只更新 spec 即可；Codegen 会从方法名推断并实现 Android / iOS 系统调用。",
+          "gapId": "rn-codegen-generated-output"
+        },
+        {
+          "id": "c",
+          "label": "由 Hermes 在应用运行时生成 Java / Objective-C++ 原生方法。",
+          "gapId": "rn-codegen-generated-output"
+        }
+      ],
+      "answer": "a",
+      "hints": [
+        "spec 变化首先影响生成契约。",
+        "生成代码与平台行为实现是两个不同交付物。"
+      ],
+      "explanation": "spec 描述 JS / Native 类型契约；Codegen 生成接口胶水；原生系统调用仍需要平台实现。"
+    },
+    {
+      "id": "review-rn-codegen-generated-output-rn-integrated-architecture-a",
+      "competencyId": "rn-integrated-architecture",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-codegen-generated-output"
+      ],
+      "title": "综合架构 · Codegen 位于哪一个阶段（A）",
+      "prompt": "CI 在构建 React Native 应用时读取 TypeScript Native Module spec 并生成 C++ glue。这个动作属于哪个阶段？",
+      "options": [
+        {
+          "id": "a",
+          "label": "Build：生成的 glue 与 Hermes bytecode 一起进入原生应用构建。"
+        },
+        {
+          "id": "b",
+          "label": "Startup：设备创建 JS Runtime 后才扫描 spec 并生成 C++。",
+          "gapId": "rn-codegen-generated-output"
+        },
+        {
+          "id": "c",
+          "label": "Runtime：每次调用 TurboModule 时都重新运行 Codegen。",
+          "gapId": "rn-codegen-generated-output"
+        }
+      ],
+      "answer": "a",
+      "hints": [
+        "判断它是否需要设备上的 JS Runtime 已经启动。",
+        "Codegen 在应用构建时运行，不是每次运行期调用都发生。"
+      ],
+      "explanation": "Codegen 在构建阶段读取类型化 spec，生成 C++ glue 与平台接口，再参与原生 App Build。"
+    },
+    {
+      "id": "review-rn-codegen-generated-output-rn-integrated-architecture-b",
+      "competencyId": "rn-integrated-architecture",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-codegen-generated-output"
+      ],
+      "title": "综合架构 · 两条构建产物路径（B）",
+      "prompt": "下面哪组最准确描述 Hermes 与 Codegen 的关系？",
+      "code": "JS / TS → Metro → Hermes bytecode\nTyped Native spec → Codegen → C++ / platform interfaces",
+      "options": [
+        {
+          "id": "a",
+          "label": "Codegen 先把 spec 编译成 Hermes bytecode，Hermes 再生成原生 C++ 接口。",
+          "gapId": "rn-codegen-generated-output"
+        },
+        {
+          "id": "b",
+          "label": "Hermes 生成 Java / Objective-C++ Native Module 实现；Codegen 负责 JS 运行时。",
+          "gapId": "rn-codegen-generated-output"
+        },
+        {
+          "id": "c",
+          "label": "它们是不同输入驱动的两条构建产物路径，最终都参与 App Build。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "沿着两个不同输入分别跟踪输出。",
+        "一个服务 JS Runtime 的代码产物；另一个服务类型化 Native 接口。"
+      ],
+      "explanation": "Hermes 编译 JavaScript；Codegen 处理 Native spec。二者是职责不同的构建路径，不是互相替代的串行步骤。"
+    },
+    {
+      "id": "review-rn-jsi-bridge-myth-rn-integrated-architecture-a",
+      "competencyId": "rn-integrated-architecture",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-jsi-bridge-myth"
+      ],
+      "title": "Bridgeless · 移除的是哪一条核心通路（A）",
+      "prompt": "一个应用从 Legacy Architecture 迁移到 New Architecture。关于旧 Bridge 与异步行为，哪种说法正确？",
+      "options": [
+        {
+          "id": "a",
+          "label": "New Architecture 不再依赖旧 Bridge 作为 JS / Native 核心消息通路，但 Promise、事件和异步调度仍然存在。"
+        },
+        {
+          "id": "b",
+          "label": "Bridgeless 意味着所有 Native 调用都同步完成，不再需要 Promise。",
+          "gapId": "rn-jsi-bridge-myth"
+        },
+        {
+          "id": "c",
+          "label": "JSI 只是把旧 Bridge 的 JSON 消息改成另一种 JSON 格式。",
+          "gapId": "rn-jsi-bridge-myth"
+        }
+      ],
+      "answer": "a",
+      "hints": [
+        "把“旧通信机制不再是核心通路”和“异步机制消失”分开。",
+        "JSI 是 JS Runtime 与 C++ 的接口能力，不能推出所有 API 都同步。"
+      ],
+      "explanation": "Bridgeless 描述核心架构不再依赖旧 Bridge，并不意味着 Promise、事件或线程调度消失。"
+    },
+    {
+      "id": "review-rn-jsi-bridge-myth-rn-integrated-architecture-b",
+      "competencyId": "rn-integrated-architecture",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-jsi-bridge-myth"
+      ],
+      "title": "JSI · 直接接口与异步结果（B）",
+      "prompt": "JS 通过 JSI 暴露的 HostFunction 启动一个平台原生异步操作，稍后通过 Promise 返回结果。这个设计是否违背 JSI 的目标？",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "违背；只要使用 JSI，Native 结果就必须在当前 JS 调用栈同步返回。",
+          "gapId": "rn-jsi-bridge-myth"
+        },
+        {
+          "id": "b",
+          "label": "不违背；JSI 提供接口抽象，具体 API 仍可使用 Promise、回调与事件表达异步工作。"
+        },
+        {
+          "id": "c",
+          "label": "违背；New Architecture 只允许 Legacy Bridge 传递异步事件。",
+          "gapId": "rn-jsi-bridge-myth"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分调用进入原生接口的方式与操作最终完成的时间。",
+        "JSI 不会把系统 I/O、网络或权限操作自动变成同步。"
+      ],
+      "explanation": "JSI 改善跨语言接口机制，但 API 仍可异步。Bridgeless 并不等于 Async-less。"
+    },
+    {
+      "id": "review-rn-build-startup-runtime-boundary-rn-build-artifacts-a",
+      "competencyId": "rn-build-artifacts",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-build-startup-runtime-boundary"
+      ],
+      "title": "构建产物 · 哪些事情发生在 Build（A）",
+      "prompt": "Release CI 生成 Hermes .hbc，并从 TurboModule spec 生成 C++ glue。哪项归类正确？",
+      "options": [
+        {
+          "id": "a",
+          "label": "两项都是 Build 阶段产物；Startup 负责创建 Runtime 并加载构建结果。"
+        },
+        {
+          "id": "b",
+          "label": "Hermes .hbc 在 Startup 生成，Codegen glue 在 Runtime 首次调用时生成。",
+          "gapId": "rn-build-startup-runtime-boundary"
+        },
+        {
+          "id": "c",
+          "label": "两项都只在设备执行 JavaScript 时生成，不属于 App Build。",
+          "gapId": "rn-build-startup-runtime-boundary"
+        }
+      ],
+      "answer": "a",
+      "hints": [
+        "把“生成可执行产物”与“设备加载并使用产物”分开。",
+        "Hermes 编译与 Codegen 都在 App Build 流程。"
+      ],
+      "explanation": "Hermes Bytecode 和 Codegen 产物在构建期生成；应用启动时再建立 JS Runtime 并加载这些产物。"
+    },
+    {
+      "id": "review-rn-build-startup-runtime-boundary-rn-build-artifacts-b",
+      "competencyId": "rn-build-artifacts",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-build-startup-runtime-boundary"
+      ],
+      "title": "Build → Startup · 首次打开应用时会发生什么（B）",
+      "prompt": "一个已经完成 Release 构建的 RN 应用首次启动。哪项工作不应被误认为重新执行构建？",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "再次扫描 Native spec 并运行 Codegen，实时生成平台接口。",
+          "gapId": "rn-build-startup-runtime-boundary"
+        },
+        {
+          "id": "b",
+          "label": "创建 JavaScript Runtime，加载已打包的 JavaScript / Hermes Bytecode，并准备 Native 模块访问能力。"
+        },
+        {
+          "id": "c",
+          "label": "重新把所有 JavaScript 源码编译为 Hermes Bytecode，然后才创建 Runtime。",
+          "gapId": "rn-build-startup-runtime-boundary"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "题目给出的是已经完成 Release Build 的 App。",
+        "Startup 会加载构建产物，不是重新执行 Codegen 与 Hermes 编译流水线。"
+      ],
+      "explanation": "Hermes / Codegen 的构建产物随 App 交付；Startup 创建 Runtime、加载代码并准备模块访问。"
     }
   ],
   "version": "2.0.0"

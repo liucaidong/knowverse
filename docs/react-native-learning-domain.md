@@ -7,7 +7,7 @@
 ## 建设结果
 
 - 6 个 competency：Build artifacts、JSI boundaries、TurboModules / Codegen、Fabric render pipeline、Threading / priority、Integrated architecture。
-- 12 个稳定 gap ID，每个 gap 有 A / B 两种独立 review variant，共 24 个变体。
+- 12 个稳定 gap ID，16 组 gap × competency 映射，每组提供 A / B 两种独立 review variant，共 32 个变体。
 - 3 件 live works：1 件原理实验、1 件 CSS 3D 空间展览、1 件六关挑战。
 - 2 个非挑战 checkpoint，挑战由现有 Challenge Engine 产生完成证据。
 - 课程路径 7 章，另保留历史会话线索页。
