@@ -66,7 +66,7 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
 
   async function pushDocuments(device) {
     let pushed = 0;
-    let conflicts = 0;
+    const conflictIds = new Set();
     for (let page = 0; page < 100; page += 1) {
       const batch = await listPendingArchiveDocuments(50);
       if (!batch.length) break;
@@ -92,14 +92,14 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
       }
       for (const remote of rejected) {
         const applied = await applyRemoteLearningArchiveDocument(remote);
-        if (applied.status === "conflict") conflicts += 1;
+        if (applied.status === "conflict") conflictIds.add(remote.document_id);
       }
       if (!confirmed.length && !rejected.length) {
         throw new Error("云端没有确认学习档案文档，待同步文档已保留。");
       }
       if (rejected.length || confirmed.length < batch.length) break;
     }
-    return { pushed, conflicts };
+    return { pushed, conflictIds: [...conflictIds] };
   }
 
   async function pullEvents(userId) {
@@ -136,7 +136,7 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
   async function pullDocuments(userId) {
     let cursor = await getDocumentSyncCursor(userId);
     let pulled = 0;
-    let conflicts = 0;
+    const conflictIds = new Set();
     for (let page = 0; page < 20; page += 1) {
       const previousCursor = cursor;
       const result = await auth.request("/rest/v1/rpc/sync_pull_learning_documents", {
@@ -146,7 +146,7 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
       const rows = Array.isArray(result?.documents) ? result.documents : [];
       for (const remote of rows) {
         const applied = await applyRemoteLearningArchiveDocument(remote);
-        if (applied.status === "conflict") conflicts += 1;
+        if (applied.status === "conflict") conflictIds.add(remote.document_id);
         if (applied.status === "applied") pulled += 1;
       }
       const nextCursor = Number(result?.next_cursor ?? cursor);
@@ -156,7 +156,7 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
       }
       if (!result?.has_more || !rows.length || nextCursor <= previousCursor) break;
     }
-    return { pulled, cursor, conflicts };
+    return { pulled, cursor, conflictIds: [...conflictIds] };
   }
 
   async function sync() {
@@ -217,7 +217,7 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
         pulled: pulledEvents.pulled,
         pushedDocuments: pushedDocuments.pushed,
         pulledDocuments: pulledDocuments.pulled,
-        conflicts: pushedDocuments.conflicts + pulledDocuments.conflicts,
+        conflicts: new Set([...pushedDocuments.conflictIds, ...pulledDocuments.conflictIds]).size,
         pending: pendingEvents,
         cursor: pulledEvents.cursor,
         documentCursor: pulledDocuments.cursor,

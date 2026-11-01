@@ -66,6 +66,9 @@ test("IndexedDB v2 stores the complete restorable archive and preserves legacy s
   assert.match(archive, /knowverse:learning-plan:preferences:v1/);
   assert.match(archive, /原始 V1 数据仍保留/);
   assert.match(archive, /copy-and-verify; legacy keys are never removed/);
+  assert.match(store, /getMigrationRecord/);
+  assert.match(store, /setMigrationRecord/);
+  assert.match(archive, /setMigrationRecord/);
 });
 
 test("document conflict handling uses optimistic revisions and never silently overwrites", async () => {
@@ -126,4 +129,11 @@ test("legacy V1 events remain readable when the V2 key is corrupt and V3 event s
   assert.match(source, /isSupportedSnapshot/);
   assert.match(source, /parsedLegacy/);
   assert.match(source, /eventSchemaVersion: \[2, 3\]/);
+});
+
+
+test("one document conflict is counted once when both push and pull report the same revision", async () => {
+  const sync = await read("assets/js/backend/sync-engine.mjs");
+  assert.match(sync, /const conflictIds = new Set\(\)/);
+  assert.match(sync, /new Set\(\[\.\.\.pushedDocuments\.conflictIds, \.\.\.pulledDocuments\.conflictIds\]\)\.size/);
 });

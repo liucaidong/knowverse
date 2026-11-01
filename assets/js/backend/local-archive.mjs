@@ -1,11 +1,11 @@
 import {
   deleteArchiveDocument,
-  getArchiveMeta,
   getLocalDevice,
+  getMigrationRecord,
   listArchiveDocuments,
   persistLearningEvents,
   resolveArchiveConflict,
-  setArchiveMeta,
+  setMigrationRecord,
   writeArchiveDocument,
   applyRemoteArchiveDocument,
 } from "./local-event-store.mjs";
@@ -105,6 +105,15 @@ export async function captureLocalLearningArchive(progressStore) {
   const events = Array.isArray(snapshot.events) ? snapshot.events : [];
   const currentV2 = storage.getItem("knowverse:learning-progress:v2");
   const legacyV1 = storage.getItem("knowverse:learning-progress:v1");
+  const migrationErrors = [];
+  if (currentV2) {
+    let currentV2Valid = false;
+    try {
+      const parsed = JSON.parse(currentV2);
+      currentV2Valid = Boolean(parsed && [1, 2].includes(parsed.schemaVersion) && Array.isArray(parsed.events));
+    } catch { /* Preserve the damaged source and attempt the V1 compatibility copy. */ }
+    if (!currentV2Valid) migrationErrors.push("V2 学习快照无法校验；原始键已保留，并尝试从 V1 兼容恢复。");
+  }
   if (!currentV2 && legacyV1) {
     // Preserve V1 in place; write its normalized V2 representation only after
     // the compatibility store has successfully parsed and validated it.
@@ -123,13 +132,13 @@ export async function captureLocalLearningArchive(progressStore) {
     deviceId: device.id,
     eventsMirrored: events.length,
     documentsCaptured: parsed.documents.length,
-    errors: parsed.errors,
+    errors: [...migrationErrors, ...parsed.errors],
     checksum: hashText(JSON.stringify({ events, documents: parsed.documents })),
   };
 }
 
 export async function migrateLegacyLocalStorage(progressStore) {
-  const previous = await getArchiveMeta(MIGRATION_KEY);
+  const previous = await getMigrationRecord(MIGRATION_KEY);
   try {
     const restore = await restoreMissingArchiveDocuments();
     const captured = await captureLocalLearningArchive(progressStore);
@@ -145,7 +154,7 @@ export async function migrateLegacyLocalStorage(progressStore) {
       startedAt: previous?.startedAt || new Date().toISOString(),
       completedAt: captured.errors.length ? null : new Date().toISOString(),
     };
-    await setArchiveMeta(MIGRATION_KEY, marker);
+    await setMigrationRecord({ id: MIGRATION_KEY, ...marker });
     return marker;
   } catch (error) {
     const marker = {
@@ -156,7 +165,7 @@ export async function migrateLegacyLocalStorage(progressStore) {
       startedAt: previous?.startedAt || new Date().toISOString(),
       completedAt: null,
     };
-    await setArchiveMeta(MIGRATION_KEY, marker);
+    await setMigrationRecord({ id: MIGRATION_KEY, ...marker });
     throw error;
   }
 }

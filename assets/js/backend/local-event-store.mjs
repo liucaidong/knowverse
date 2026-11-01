@@ -291,6 +291,33 @@ export async function setArchiveMeta(key, value) {
   }
 }
 
+export async function getMigrationRecord(id) {
+  const db = await openDatabase();
+  try {
+    const transaction = db.transaction(STORE_MIGRATIONS, "readonly");
+    const row = await requestValue(transaction.objectStore(STORE_MIGRATIONS).get(id));
+    await transactionDone(transaction);
+    return row || null;
+  } finally {
+    db.close();
+  }
+}
+
+export async function setMigrationRecord(record) {
+  if (!record || typeof record.id !== "string" || !record.id) {
+    throw new TypeError("迁移记录必须包含稳定 ID。");
+  }
+  const db = await openDatabase();
+  try {
+    const transaction = db.transaction(STORE_MIGRATIONS, "readwrite");
+    transaction.objectStore(STORE_MIGRATIONS).put(record);
+    await transactionDone(transaction);
+    return true;
+  } finally {
+    db.close();
+  }
+}
+
 const allowedDocumentTypes = new Set(["challenge_progress", "review_session", "plan_preferences"]);
 const documentId = (type, key) => type + ":" + encodeURIComponent(String(key));
 
@@ -534,7 +561,7 @@ export async function getArchiveStatus() {
     countOutbox(),
     listArchiveDocuments(1000),
     listArchiveConflicts(),
-    getArchiveMeta("legacy-localstorage-v1"),
+    getMigrationRecord("legacy-localstorage-v1"),
     getArchiveMeta("last-successful-sync"),
     getArchiveMeta("last-sync-error"),
   ]);
