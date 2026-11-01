@@ -35,7 +35,7 @@ function normalizeSnapshot(value) {
     Array.isArray(event.competencyIds)
   ).map(event => ({
     ...event,
-    eventSchemaVersion: 2,
+    eventSchemaVersion: [2, 3].includes(Number(event.eventSchemaVersion)) ? Number(event.eventSchemaVersion) : 2,
     sessionType: event.sessionType || (event.type === "activity" ? "exploration" : "campaign"),
     sessionId: event.sessionId || event.runId || null,
     variantId: event.variantId || null,
@@ -49,12 +49,29 @@ function normalizeSnapshot(value) {
 }
 
 function readStorage(storage, key) {
+  if (!storage) return emptySnapshot();
+  const isSupportedSnapshot = value =>
+    asObject(value) &&
+    [1, SCHEMA_VERSION].includes(value.schemaVersion) &&
+    Array.isArray(value.events);
+
   try {
-    const raw = storage?.getItem(key);
-    if (raw) return normalizeSnapshot(JSON.parse(raw));
+    const raw = storage.getItem(key);
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (isSupportedSnapshot(parsed)) return normalizeSnapshot(parsed);
+      } catch {
+        // A malformed V2 value must not prevent fallback to the preserved V1 key.
+      }
+    }
+
     if (key === STORAGE_KEY) {
-      const legacy = storage?.getItem(LEGACY_STORAGE_KEY);
-      if (legacy) return normalizeSnapshot(JSON.parse(legacy));
+      const legacy = storage.getItem(LEGACY_STORAGE_KEY);
+      if (legacy) {
+        const parsedLegacy = JSON.parse(legacy);
+        if (isSupportedSnapshot(parsedLegacy)) return normalizeSnapshot(parsedLegacy);
+      }
     }
     return emptySnapshot();
   } catch {

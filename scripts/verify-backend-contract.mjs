@@ -73,7 +73,7 @@ test("document conflict handling uses optimistic revisions and never silently ov
   const sync = await read("assets/js/backend/sync-engine.mjs");
   const migration = await read("supabase/migrations/20261101110000_learning_archive_documents.sql");
   assert.match(store, /baseRevision/);
-  assert.match(store, /previous\.dirty && Number\(previous\.baseRevision \|\| 0\) < revision/);
+  assert.match(store, /previous\?\.dirty && Number\(previous\.baseRevision \|\| 0\) < revision/);
   assert.match(store, /resolveArchiveConflict/);
   assert.match(sync, /sync_push_learning_documents/);
   assert.match(sync, /sync_pull_learning_documents/);
@@ -118,4 +118,12 @@ test("account panel exposes local, device, network, sync and conflict state", as
   assert.match(panel, /保留本机版本/);
   assert.match(panel, /采用云端版本/);
   assert.match(panel, /退出登录/);
+});
+
+
+test("legacy V1 events remain readable when the V2 key is corrupt and V3 event schema is preserved", async () => {
+  const source = await read("assets/js/learning-progress.mjs");
+  assert.match(source, /isSupportedSnapshot/);
+  assert.match(source, /parsedLegacy/);
+  assert.match(source, /eventSchemaVersion: \[2, 3\]/);
 });

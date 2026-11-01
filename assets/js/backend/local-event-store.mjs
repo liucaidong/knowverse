@@ -544,7 +544,6 @@ export async function getArchiveStatus() {
     indexedDbAvailable: isIndexedDbAvailable(),
     deviceId: device?.id || null,
     documents: documents.length,
-    events: documents.reduce((sum, item) => sum, 0),
     pendingEvents,
     eventRecords: await countEventRecords(),
     pendingDocuments: documents.filter(item => item.dirty && !item.conflict).length,
