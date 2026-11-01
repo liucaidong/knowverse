@@ -162,6 +162,8 @@ export function createChallengeLearningEvents(challenge, previous, next, options
     event.sessionId = event.sessionId || runId;
     event.sessionType = "campaign";
     event.variantId = event.variantId || challenge.id + ":" + event.stepId;
+    if (typeof challenge.workId === "string") event.workId = challenge.workId;
+    if (Array.isArray(challenge.knowledgeIds)) event.knowledgeIds = challenge.knowledgeIds.slice();
   }
   return events;
 }

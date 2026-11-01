@@ -1,0 +1,268 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-11-01",
+  "checkpoints": [
+    {
+      "id": "cp-promise-debugger",
+      "workId": "promise-mechanism-debugger",
+      "topicId": "promise",
+      "competencyId": "integrated-execution-model",
+      "title": "Thenable 解析时序检查",
+      "prompt": "调用 Promise.resolve(thenable) 时，下面哪组输出顺序正确？",
+      "code": "console.log('start'); Promise.resolve({ get then() { console.log('get'); return resolve => console.log('call'); } }); console.log('end');",
+      "options": [
+        {
+          "id": "a",
+          "label": "start → end → get → call",
+          "gapId": "thenable-job-timing"
+        },
+        {
+          "id": "b",
+          "label": "start → get → end → call"
+        }
+      ],
+      "answer": "b",
+      "explanation": "读取 then 属性是同步操作；取出的 then 函数由后续 ThenableJob 调用。"
+    },
+    {
+      "id": "cp-microtask-queue",
+      "workId": "lab-microtasks",
+      "topicId": "promise",
+      "competencyId": "microtask-scheduling",
+      "title": "微任务嵌套入队检查",
+      "prompt": "下面代码的输出顺序是什么？",
+      "code": "Promise.resolve().then(() => { console.log('A'); queueMicrotask(() => console.log('C')); }); queueMicrotask(() => console.log('B'));",
+      "options": [
+        {
+          "id": "a",
+          "label": "A → C → B",
+          "gapId": "nested-microtask"
+        },
+        {
+          "id": "b",
+          "label": "A → B → C"
+        }
+      ],
+      "answer": "b",
+      "explanation": "执行 A 时才把 C 加入队尾；此时 B 已经排队，因此 B 先于 C 执行。"
+    },
+    {
+      "id": "cp-promise-identity",
+      "workId": "promise-identity",
+      "topicId": "promise",
+      "competencyId": "thenable-adoption",
+      "title": "Promise 采用与状态检查",
+      "prompt": "执行 resolve(inner) 后，外层 Promise 的状态应该如何理解？",
+      "code": "const inner = Promise.resolve(42); const outer = new Promise(resolve => resolve(inner));",
+      "options": [
+        {
+          "id": "a",
+          "label": "外层立即复制 inner 的 fulfilled 状态和值。",
+          "gapId": "resolved-vs-settled"
+        },
+        {
+          "id": "b",
+          "label": "外层解决权被锁定，但仍要采用 inner；此刻不应把它等同于已经 fulfilled。"
+        }
+      ],
+      "answer": "b",
+      "explanation": "外层解决权被锁定，但最终落定要遵循 inner 的状态与 Promise Resolution Procedure。"
+    },
+    {
+      "id": "cp-promise-resolution",
+      "workId": "microtask-resolution",
+      "topicId": "promise",
+      "competencyId": "integrated-execution-model",
+      "title": "同步读取与异步调用检查",
+      "prompt": "thenable 的 getter 与取出的 then 函数分别在哪个阶段执行？",
+      "code": "const t = { get then() { console.log('get'); return () => console.log('call'); } }; Promise.resolve(t);",
+      "options": [
+        {
+          "id": "a",
+          "label": "get 同步发生；call 在后续 ThenableJob 中执行。"
+        },
+        {
+          "id": "b",
+          "label": "get 和 call 都在同步段完成。",
+          "gapId": "getter-sync"
+        }
+      ],
+      "answer": "a",
+      "explanation": "读取 then 属性同步发生；调用取出的函数由后续 ThenableJob 执行。"
+    },
+    {
+      "id": "cp-promise-gallery",
+      "workId": "gallery-promise",
+      "topicId": "promise",
+      "competencyId": "microtask-scheduling",
+      "title": "Reaction 注册检查",
+      "prompt": "对一个已经 fulfilled 的 Promise 调用 .then(callback)，callback 会在当前同步语句中执行吗？",
+      "code": "Promise.resolve(1).then(() => console.log('callback')); console.log('sync');",
+      "options": [
+        {
+          "id": "a",
+          "label": "会，因为源 Promise 已经 fulfilled。",
+          "gapId": "reaction-registration-timing"
+        },
+        {
+          "id": "b",
+          "label": "不会；reaction 会被安排执行，当前同步语句先继续运行。"
+        }
+      ],
+      "answer": "b",
+      "explanation": "then 同步注册 reaction，但回调通过后续微任务执行。"
+    },
+    {
+      "id": "cp-promise-cosmos",
+      "workId": "promise-cosmos",
+      "topicId": "promise",
+      "competencyId": "integrated-execution-model",
+      "title": "Promise 宇宙：Get 与 Call",
+      "prompt": "Promise.resolve(thenable) 对 then 的读取与函数调用有什么区别？",
+      "code": "const t = { get then() { console.log('get'); return resolve => { console.log('call'); resolve(1); }; } }; Promise.resolve(t);",
+      "options": [
+        {
+          "id": "a",
+          "label": "读取 getter 同步发生；函数调用由 ThenableJob 执行。"
+        },
+        {
+          "id": "b",
+          "label": "getter 和函数调用都必然同步发生。",
+          "gapId": "getter-sync"
+        }
+      ],
+      "answer": "a",
+      "explanation": "把属性 Get 与后续 ThenableJob 的 Call 分开，才能正确推导同步段和微任务队列。"
+    },
+    {
+      "id": "cp-promise-first-realm",
+      "workId": "puzzle-world",
+      "topicId": "promise",
+      "competencyId": "microtask-scheduling",
+      "title": "空间机制：状态与 Reaction",
+      "prompt": "Promise 状态变成 fulfilled，是否意味着所有已注册的 reaction 已经执行完成？",
+      "options": [
+        {
+          "id": "a",
+          "label": "是，状态落定和 reaction 执行是同一个动作。",
+          "gapId": "reaction-registration-timing"
+        },
+        {
+          "id": "b",
+          "label": "不是；状态落定会安排 reaction，回调仍需等待微任务执行。"
+        }
+      ],
+      "answer": "b",
+      "explanation": "Promise 状态与 reaction 回调执行是两个不同阶段。"
+    },
+    {
+      "id": "cp-promise-realm",
+      "workId": "promise-realm",
+      "topicId": "promise",
+      "competencyId": "thenable-adoption",
+      "title": "约定之境：解决权与落定",
+      "prompt": "外层 Promise 的 resolve 收到另一个 Promise 时，哪项描述正确？",
+      "code": "const inner = new Promise(resolve => setTimeout(() => resolve('ok'), 0)); const outer = new Promise(resolve => resolve(inner));",
+      "options": [
+        {
+          "id": "a",
+          "label": "outer 调用 resolve 后马上 fulfilled，之后 inner 的结果不再影响 outer。",
+          "gapId": "resolved-vs-settled"
+        },
+        {
+          "id": "b",
+          "label": "outer 锁定解决权并采用 inner，最终落定要等待 inner 的结果。"
+        }
+      ],
+      "answer": "b",
+      "explanation": "resolve(inner) 不会简单地把 outer 的状态同步改成 fulfilled；外层会跟随被采用 Promise 的最终结果。"
+    },
+    {
+      "id": "cp-monorepo-graph",
+      "workId": "monorepo-dependency-graph",
+      "topicId": "monorepo",
+      "competencyId": "affected-closure",
+      "title": "Affected 反向依赖检查",
+      "prompt": "A 被 B 依赖，B 被 C 依赖，C 被 D 依赖。修改 A 后，Affected 应包含哪些节点？",
+      "code": "A ← B ← C ← D",
+      "options": [
+        {
+          "id": "a",
+          "label": "仅 A 和直接消费者 B。",
+          "gapId": "affected-reverse-closure"
+        },
+        {
+          "id": "b",
+          "label": "A、B、C、D；必须递归计算所有下游消费者。"
+        }
+      ],
+      "answer": "b",
+      "explanation": "Affected 沿依赖边的反方向递归传播，直到闭包不再扩展。"
+    },
+    {
+      "id": "cp-monorepo-cache",
+      "workId": "monorepo-cache-key",
+      "topicId": "monorepo",
+      "competencyId": "build-cache-integrity",
+      "title": "缓存键输入完整性检查",
+      "prompt": "构建产物依赖源码和 PUBLIC_URL，缓存键只计算源码哈希。这个设计正确吗？",
+      "code": "output = build(source, process.env.PUBLIC_URL); cacheKey = hash(source);",
+      "options": [
+        {
+          "id": "a",
+          "label": "正确；源码不变就可以保证产物不变。",
+          "gapId": "build-cache-input-coverage"
+        },
+        {
+          "id": "b",
+          "label": "不完整；PUBLIC_URL 变化也可能改变产物，必须影响缓存指纹。"
+        }
+      ],
+      "answer": "b",
+      "explanation": "缓存键必须覆盖所有会影响任务输出的输入，包括相关环境变量。"
+    },
+    {
+      "id": "cp-monorepo-build",
+      "workId": "monorepo-build-order",
+      "topicId": "monorepo",
+      "competencyId": "build-topology",
+      "title": "拓扑构建顺序检查",
+      "prompt": "应用 app 依赖 domain，domain 依赖 contracts。正确的构建顺序是什么？",
+      "code": "app → domain → contracts",
+      "options": [
+        {
+          "id": "a",
+          "label": "contracts → domain → app；依赖先构建，消费者后构建。"
+        },
+        {
+          "id": "b",
+          "label": "app → domain → contracts；先构建最终应用即可。",
+          "gapId": "build-dependency-order"
+        }
+      ],
+      "answer": "a",
+      "explanation": "构建拓扑按依赖方向推进：上游先产出声明/构建产物，下游消费者随后构建。"
+    },
+    {
+      "id": "cp-monorepo-exhibition",
+      "workId": "monorepo-architecture-exhibition",
+      "topicId": "monorepo",
+      "competencyId": "build-topology",
+      "title": "依赖星系：并行构建层检查",
+      "prompt": "同一拓扑层内的两个包互不依赖，且它们的所有上游依赖都已完成。下一步应该怎样？",
+      "options": [
+        {
+          "id": "a",
+          "label": "仍必须逐个串行构建，以保持依赖关系。",
+          "gapId": "build-dependency-order"
+        },
+        {
+          "id": "b",
+          "label": "它们都已就绪，可以并行构建。"
+        }
+      ],
+      "answer": "b",
+      "explanation": "拓扑层中的就绪节点之间没有依赖约束，可以并行执行。"
+    }
+  ]
+}

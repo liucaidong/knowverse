@@ -1,5 +1,5 @@
 {
-  "version": "1.5.0",
+  "version": "1.6.0",
   "updated": "2026-11-01",
   "pillars": [
     {
@@ -43,7 +43,21 @@
       "summary": "运行可编辑 Promise 代码，逐事件检查状态、resolve 锁、thenable 采用、reaction、链式调用、四种组合 API、FIFO 微任务、计时器与 Promise 对象关系；提供 13 个内置实验和原生 Promise 输出差分验证",
       "knowledge_ids": [
         "promise"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "thenable-adoption",
+          "microtask-scheduling",
+          "chain-error-propagation",
+          "combinator-semantics",
+          "integrated-execution-model"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-promise-debugger"
+        }
+      }
     },
     {
       "id": "lab-microtasks",
@@ -57,7 +71,17 @@
       "summary": "单步检查同步执行、微任务入队与回调执行的先后关系",
       "knowledge_ids": [
         "promise"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "microtask-scheduling"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-microtask-queue"
+        }
+      }
     },
     {
       "id": "promise-identity",
@@ -71,7 +95,17 @@
       "summary": "对比 Promise.resolve(inner) 与 new Promise(resolve => resolve(inner)) 的身份与采用过程",
       "knowledge_ids": [
         "promise"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "thenable-adoption"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-promise-identity"
+        }
+      }
     },
     {
       "id": "microtask-resolution",
@@ -85,7 +119,18 @@
       "summary": "逐帧呈现 thenable 解析、Promise 采用及微任务调度",
       "knowledge_ids": [
         "promise"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "thenable-adoption",
+          "integrated-execution-model"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-promise-resolution"
+        }
+      }
     },
     {
       "id": "gallery-promise",
@@ -100,7 +145,17 @@
       "knowledge_ids": [
         "promise",
         "creative"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "microtask-scheduling"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-promise-gallery"
+        }
+      }
     },
     {
       "id": "promise-cosmos",
@@ -115,7 +170,17 @@
       "knowledge_ids": [
         "promise",
         "creative"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "integrated-execution-model"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-promise-cosmos"
+        }
+      }
     },
     {
       "id": "puzzle-world",
@@ -130,7 +195,17 @@
       "knowledge_ids": [
         "promise",
         "creative"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "microtask-scheduling"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-promise-first-realm"
+        }
+      }
     },
     {
       "id": "promise-realm",
@@ -145,7 +220,19 @@
       "knowledge_ids": [
         "promise",
         "creative"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "thenable-adoption",
+          "combinator-semantics",
+          "integrated-execution-model"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-promise-realm"
+        }
+      }
     },
     {
       "id": "monorepo-dependency-graph",
@@ -159,7 +246,18 @@
       "summary": "从真实五包工作区 package.json 自动生成依赖图，选择变更包并观察消费者反向依赖闭包与任务目标映射",
       "knowledge_ids": [
         "monorepo"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "build-topology",
+          "affected-closure"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-monorepo-graph"
+        }
+      }
     },
     {
       "id": "monorepo-cache-key",
@@ -173,7 +271,17 @@
       "summary": "切换源码与环境变量，检验构建缓存键是否覆盖所有影响产物的输入，观察错误缓存命中",
       "knowledge_ids": [
         "monorepo"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "build-cache-integrity"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-monorepo-cache"
+        }
+      }
     },
     {
       "id": "monorepo-build-order",
@@ -187,7 +295,17 @@
       "summary": "从真实依赖图逐层推进构建，识别上游声明产物、可构建节点与同层并行批次",
       "knowledge_ids": [
         "monorepo"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "build-topology"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-monorepo-build"
+        }
+      }
     },
     {
       "id": "monorepo-architecture-exhibition",
@@ -202,7 +320,18 @@
       "knowledge_ids": [
         "monorepo",
         "creative"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "build-topology",
+          "affected-closure"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-monorepo-exhibition"
+        }
+      }
     },
     {
       "id": "monorepo-dependency-quest",
@@ -217,7 +346,19 @@
       "knowledge_ids": [
         "monorepo",
         "creative"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "workspace-resolution",
+          "build-topology",
+          "affected-closure"
+        ],
+        "assessment": {
+          "type": "challenge",
+          "challengeId": "monorepo-dependency-quest"
+        }
+      }
     },
     {
       "id": "promise-mechanism-quest",
@@ -232,7 +373,21 @@
       "knowledge_ids": [
         "promise",
         "creative"
-      ]
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "thenable-adoption",
+          "microtask-scheduling",
+          "chain-error-propagation",
+          "combinator-semantics",
+          "integrated-execution-model"
+        ],
+        "assessment": {
+          "type": "challenge",
+          "challengeId": "promise-mechanism-quest"
+        }
+      }
     }
   ]
 }

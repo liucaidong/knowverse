@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Validate KNOWVERSE knowledge, work, pillar and local route relationships."""
 import json
+import os
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 
 root = Path(__file__).resolve().parents[1]
 work_manifest = json.loads((root / "content/works.json").read_text(encoding="utf-8"))
+learning_map = json.loads((root / "content/learning-map.json").read_text(encoding="utf-8"))
+challenge_registry = json.loads((root / "content/challenges.json").read_text(encoding="utf-8"))
+checkpoint_registry = json.loads((root / "content/learning-checkpoints.json").read_text(encoding="utf-8"))
 knowledge_manifest = json.loads((root / "content/knowledge.json").read_text(encoding="utf-8"))
 works = work_manifest["works"]
 pillars = {pillar["id"]: pillar for pillar in work_manifest["pillars"]}
@@ -80,6 +84,64 @@ assert 'data-knowledge-catalog="featured"' in home, "Homepage featured topics mu
 knowledge_home = (root / "knowledge/index.html").read_text(encoding="utf-8")
 assert 'data-knowledge-catalog="all"' in knowledge_home, "Knowledge directory must use the shared knowledge registry"
 assert "knowledge-graph.js" in home and "knowledge-graph.js" in knowledge_home
+
+
+# A single learning contract connects every work to activity, competency and evidence.
+competencies = {
+    item["id"]: topic["id"]
+    for topic in learning_map["topics"]
+    for item in topic["competencies"]
+}
+challenges = {item["id"]: item for item in challenge_registry["challenges"]}
+checkpoints = {item["id"]: item for item in checkpoint_registry["checkpoints"]}
+assert len(checkpoints) == len(checkpoint_registry["checkpoints"]), "Duplicate checkpoint IDs"
+checkpoint_work_ids = set()
+for work in works:
+    learning = work.get("learning")
+    assert isinstance(learning, dict), f"Work is missing its learning contract: {work['id']}"
+    assert learning.get("activityTracking") is True, f"Work must track privacy-safe activity: {work['id']}"
+    competency_ids = learning.get("competencyIds")
+    assert isinstance(competency_ids, list) and competency_ids, f"Work must declare competencies: {work['id']}"
+    assert len(competency_ids) == len(set(competency_ids)), f"Duplicate competency links: {work['id']}"
+    assert all(item in competencies for item in competency_ids), f"Unknown competency in work: {work['id']}"
+    assessment = learning.get("assessment", {})
+    if assessment.get("type") == "challenge":
+        challenge = challenges.get(assessment.get("challengeId"))
+        assert challenge, f"Unknown challenge for work: {work['id']}"
+        assert challenge.get("workId") == work["id"], f"Challenge/work identity mismatch: {work['id']}"
+        mapped = {item for step in challenge["steps"] for item in step.get("competencyIds", [])}
+        assert set(competency_ids).issubset(mapped), f"Challenge does not assess all declared competencies: {work['id']}"
+    elif assessment.get("type") == "checkpoint":
+        checkpoint_id = assessment.get("checkpointId")
+        checkpoint = checkpoints.get(checkpoint_id)
+        assert checkpoint, f"Unknown checkpoint for work: {work['id']}"
+        assert checkpoint["workId"] == work["id"], f"Checkpoint/work identity mismatch: {work['id']}"
+        assert checkpoint["competencyId"] in competency_ids, f"Checkpoint competency is not declared by work: {work['id']}"
+        assert work["id"] not in checkpoint_work_ids, f"Duplicate checkpoint work mapping: {work['id']}"
+        checkpoint_work_ids.add(work["id"])
+    else:
+        raise AssertionError(f"Live work needs a challenge or checkpoint assessment: {work['id']}")
+
+    href = unquote(urlsplit(work["href"]).path)
+    page = (root / href[2:]).resolve()
+    target = page / "index.html" if href.endswith("/") else page
+    relative_module = Path(os.path.relpath(root / "assets/js/learning-integration.mjs", target.parent)).as_posix()
+    html = target.read_text(encoding="utf-8")
+    assert relative_module in html, f"Work is not connected to the unified learning integration: {work['id']}"
+
+assert checkpoint_work_ids == {
+    work["id"] for work in works
+    if work["status"] == "live" and work["learning"]["assessment"]["type"] == "checkpoint"
+}, "Checkpoint work registration is incomplete"
+for checkpoint in checkpoint_registry["checkpoints"]:
+    assert checkpoint["workId"] in {work["id"] for work in works}, checkpoint
+    assert checkpoint["competencyId"] in competencies, checkpoint
+    assert len({option["id"] for option in checkpoint["options"]}) == len(checkpoint["options"]), checkpoint
+    assert any(option["id"] == checkpoint["answer"] for option in checkpoint["options"]), checkpoint
+    for option in checkpoint["options"]:
+        if option.get("gapId"):
+            gap = next((item for item in learning_map["gaps"] if item["id"] == option["gapId"]), None)
+            assert gap and checkpoint["competencyId"] in gap["competencyIds"], checkpoint
 
 metadata = json.loads((root / "content/search-metadata.json").read_text(encoding="utf-8"))
 assert len(metadata["records"]) >= 40, "Curated search metadata is unexpectedly small"

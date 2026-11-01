@@ -337,6 +337,7 @@ function renderEvents() {
       : event.type === "attempt" ? (event.correct ? "作答正确" : "错误概念记录")
       : event.type === "hint" || event.type === "hint_revealed" ? "使用渐进提示"
       : event.type === "review_started" ? "开始独立复习"
+      : event.type === "checkpoint_started" ? "开始知识检查"
       : event.type === "activity" ? "产品线探索活动" : "学习事件";
     copy.append(element("strong", "", type + " · " + (event.stepTitle || event.challengeTitle || event.activity || "学习活动")));
     copy.append(element("small", "", (event.challengeTitle || event.pagePath || event.challengeId) + " · " + (event.topicId || event.sessionType || "未分类")));

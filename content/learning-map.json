@@ -97,7 +97,7 @@
       "href": "./knowledge/monorepo/",
       "challengeId": "monorepo-dependency-quest",
       "graph": {
-        "width": 760,
+        "width": 1040,
         "height": 300
       },
       "competencies": [
@@ -143,6 +143,21 @@
           "lessonHref": "./knowledge/monorepo/unit-06/",
           "challengeHref": "./puzzles/worlds/monorepo-quest/",
           "labHref": "./lab/"
+        },
+        {
+          "id": "build-cache-integrity",
+          "title": "构建缓存键完整性",
+          "description": "识别影响构建产物的源码、配置、环境变量与工具链输入，避免不完整缓存键造成错误命中。",
+          "prerequisites": [
+            "build-topology"
+          ],
+          "position": {
+            "x": 810,
+            "y": 112
+          },
+          "lessonHref": "./knowledge/monorepo/labs/cache/",
+          "challengeHref": "./review/?competencyId=build-cache-integrity",
+          "labHref": "./knowledge/monorepo/labs/cache/"
         }
       ]
     }
@@ -283,6 +298,22 @@
       "description": "变更影响沿依赖边反方向传播，并递归覆盖所有消费者。",
       "competencyIds": [
         "affected-closure"
+      ]
+    },
+    {
+      "id": "build-cache-input-coverage",
+      "label": "缓存键遗漏构建输入",
+      "description": "缓存键必须覆盖所有会影响构建产物的源码、配置、环境变量和工具链输入。",
+      "competencyIds": [
+        "build-cache-integrity"
+      ]
+    },
+    {
+      "id": "build-cache-stale-output",
+      "label": "缓存命中与产物正确性混淆",
+      "description": "缓存命中只说明输入指纹相同；若输入集合定义不完整，命中仍可能复用过期产物。",
+      "competencyIds": [
+        "build-cache-integrity"
       ]
     }
   ]

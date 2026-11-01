@@ -51,6 +51,11 @@
             "affected-closure"
           ]
         }
+      ],
+      "workId": "monorepo-dependency-quest",
+      "knowledgeIds": [
+        "monorepo",
+        "creative"
       ]
     },
     {
@@ -344,6 +349,11 @@
             "integrated-execution-model"
           ]
         }
+      ],
+      "workId": "promise-mechanism-quest",
+      "knowledgeIds": [
+        "promise",
+        "creative"
       ]
     }
   ]

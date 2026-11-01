@@ -157,10 +157,13 @@ test("published map has valid challenge links, unique competency ids and acyclic
     };
     for (const id of byId.keys()) visit(id);
 
+    const checkpointRegistry = JSON.parse(await readFile(new URL("../content/learning-checkpoints.json", import.meta.url), "utf8"));
+    const checkpointCompetencies = new Set(checkpointRegistry.checkpoints.map(item => item.competencyId));
     const challengeItem = registry.challenges.find(item => item.id === topic.challengeId);
     const mapped = new Set(challengeItem.steps.flatMap(step => step.competencyIds || []));
     for (const competency of topic.competencies) {
-      assert.ok(mapped.has(competency.id), "competency has no challenge evidence mapping: " + competency.id);
+      assert.ok(mapped.has(competency.id) || checkpointCompetencies.has(competency.id),
+        "competency has no challenge or checkpoint evidence source: " + competency.id);
     }
   }
 });

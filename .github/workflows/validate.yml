@@ -45,6 +45,8 @@ jobs:
         run: node --test scripts/verify-learning-progress.mjs
       - name: Test Learning Intelligence V2 migration, review lifecycle and independent verification
         run: node --test scripts/verify-learning-intelligence.mjs
+      - name: Verify work-to-knowledge learning integration and checkpoints
+        run: node --test scripts/verify-learning-integration.mjs
       - name: Parse learning and review browser modules
         run: |
           node --check assets/js/learning-progress.mjs
@@ -52,6 +54,8 @@ jobs:
           node --check assets/js/review-engine.mjs
           node --check assets/js/review-workspace.mjs
           node --check assets/js/learning-activity.mjs
+          node --check assets/js/learning-checkpoint-engine.mjs
+          node --check assets/js/learning-integration.mjs
           node --input-type=module --check < assets/js/v2.js
       - name: Install Playwright browsers for cross-engine review flow
         run: |
@@ -59,6 +63,8 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Browser E2E · Chromium desktop and WebKit mobile viewport
         run: node --test scripts/e2e-learning-intelligence.mjs
+      - name: Browser E2E · Work checkpoint and learning telemetry
+        run: node --test scripts/e2e-learning-integration.mjs
       - name: Parse Monorepo browser modules
         run: |
           node --input-type=module --check < assets/js/monorepo-world.js

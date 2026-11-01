@@ -1010,6 +1010,118 @@
         "调用取出的 then 函数才是后续 Job。"
       ],
       "explanation": "同步段依次输出 A、get、B；call 由后续 ThenableJob 执行。"
+    },
+    {
+      "id": "review-cache-input-coverage-a",
+      "competencyId": "build-cache-integrity",
+      "topicId": "monorepo",
+      "gapIds": [
+        "build-cache-input-coverage"
+      ],
+      "title": "缓存键：环境变量必须入指纹",
+      "prompt": "某构建任务输出会读取 PUBLIC_URL，但缓存键只包含源码哈希。如何判断？",
+      "code": "build(src, process.env.PUBLIC_URL)",
+      "options": [
+        {
+          "id": "a",
+          "label": "缓存键不完整：PUBLIC_URL 改变时可能错误复用旧产物。"
+        },
+        {
+          "id": "b",
+          "label": "缓存键完整：只要源码不变，输出就一定不变。",
+          "gapId": "build-cache-input-coverage"
+        }
+      ],
+      "answer": "a",
+      "hints": [
+        "列出所有影响输出的输入。",
+        "环境变量也可能是构建函数的输入。"
+      ],
+      "explanation": "缓存键应覆盖所有影响产物的输入；PUBLIC_URL 改变必须改变任务指纹。"
+    },
+    {
+      "id": "review-cache-input-coverage-b",
+      "competencyId": "build-cache-integrity",
+      "topicId": "monorepo",
+      "gapIds": [
+        "build-cache-input-coverage"
+      ],
+      "title": "缓存键：配置与工具链输入",
+      "prompt": "下面哪些信息可能需要进入任务缓存指纹？",
+      "code": "tsc -p tsconfig.json",
+      "options": [
+        {
+          "id": "a",
+          "label": "仅 .ts 源码；配置和 TypeScript 版本永远无关。",
+          "gapId": "build-cache-input-coverage"
+        },
+        {
+          "id": "b",
+          "label": "源码、tsconfig、环境变量及会改变输出的工具链版本。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "改变该输入时，产物是否可能改变？",
+        "缓存键是任务输入的指纹。"
+      ],
+      "explanation": "凡是会改变产物的输入都必须纳入缓存键或等效任务指纹。"
+    },
+    {
+      "id": "review-cache-stale-output-a",
+      "competencyId": "build-cache-integrity",
+      "topicId": "monorepo",
+      "gapIds": [
+        "build-cache-stale-output"
+      ],
+      "title": "缓存命中不等于正确",
+      "prompt": "PUBLIC_URL 已改变，但缓存键没有包含它，构建系统仍报告 cache hit。这说明什么？",
+      "code": "oldKey(src) === cachedKey",
+      "options": [
+        {
+          "id": "a",
+          "label": "产物一定正确，因为缓存系统确认命中。",
+          "gapId": "build-cache-stale-output"
+        },
+        {
+          "id": "b",
+          "label": "只说明旧指纹相同；由于输入遗漏，命中可能复用过期产物。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分缓存命中与缓存键完整性。",
+        "命中只证明已纳入指纹的输入相同。"
+      ],
+      "explanation": "系统无法感知未进入指纹的输入变化，因此 cache hit 不自动保证产物正确。"
+    },
+    {
+      "id": "review-cache-stale-output-b",
+      "competencyId": "build-cache-integrity",
+      "topicId": "monorepo",
+      "gapIds": [
+        "build-cache-stale-output"
+      ],
+      "title": "错误缓存的根因定位",
+      "prompt": "更改环境变量后构建结果未更新，清空缓存后问题消失。优先修复什么？",
+      "code": "cacheKey = hash(sourceFiles)",
+      "options": [
+        {
+          "id": "a",
+          "label": "扩展任务指纹，纳入相关环境变量和配置。"
+        },
+        {
+          "id": "b",
+          "label": "每次都关闭缓存；无需分析输入指纹。",
+          "gapId": "build-cache-stale-output"
+        }
+      ],
+      "answer": "a",
+      "hints": [
+        "缓存失效通常是输入建模问题。",
+        "清空缓存只是绕过，不会修复错误命中。"
+      ],
+      "explanation": "应将影响产物的输入纳入指纹，而不是依赖反复清空缓存。"
     }
   ]
 }

@@ -44,7 +44,7 @@
 | `assessment_passed` | 独立复习题验证通过 | 是 |
 | `activity` | 原理实验室、展厅或页面交互 | 否 |
 
-**学习活动和掌握证据明确分离。** 探索三维场景、运行实验或打开课程不会直接让知识点涨分。未来要把实验检查点升级为评估，需要为其设计明确、可判定的 checkpoint，再显式映射 competency。
+**学习活动和掌握证据明确分离。** 探索三维场景、运行实验或打开课程不会直接让知识点涨分。当前 12 件非挑战作品已配置明确、可判定的无提示 checkpoint，并显式映射 competency；两件挑战作品由 Challenge Engine 提供结构化评估。
 
 ## 版本迁移与本地存储
 
@@ -101,7 +101,7 @@ V2 可以读取旧 V1 快照，并在新事件写入时升级为 V2。旧事件 
 
 - 可从知识点或具体 gap 打开。
 - 使用 `content/review-assessments.json` 的题型变体，不重置或覆盖原挑战。
-- 当前覆盖 Promise 五个 competency 与 Monorepo 三个 competency，17 个 gap、18 个 gap-competency 映射，共 36 个针对性验证场景。
+- 当前覆盖 Promise 五个 competency 与 Monorepo 四个 competency，19 个 gap、20 个 gap-competency 映射，共 40 个针对性验证场景。
 - 同一 competency 的两种变体均映射其可诊断 gap，使定向复习可以真正切换题型。
 - 每次复习保存 sessionId、sessionType、variantId、答案、尝试、提示和结果。
 - 复习通过、失败、提示和会话开始都进入统一事件历史。
@@ -135,7 +135,7 @@ CI 包含：
 - schema V1 → V2 迁移、事件去重和完整历史保留测试；
 - gap 精准匹配、提示辅助、不同变体与独立验证状态测试；
 - mastery / confidence、状态升级和降级、gap-only review queue 测试；
-- 八个 competency、17 个 gap 和 18 组 gap-competency 映射的 36 个 review variant 注册表校验；
+- 九个 competency、19 个 gap 和 20 组 gap-competency 映射的 40 个 review variant 注册表校验；
 - Playwright Chromium 桌面端和 WebKit 手机视口的浏览器端闭环测试；
 - 原有 Promise、Monorepo、内容路由、搜索索引及作品工程回归。
 
@@ -148,3 +148,34 @@ WebKit 手机视口属于浏览器引擎的自动化视口测试，不等同于�
 - 不生成没有验证题的虚假掌握分。
 - 不把三个产品主线重写为一个大型应用；采用统一事件协议与轻量采集模块。
 - 当前事件主档仍为 LocalStorage V2，以兼容现有同步挑战 API；尚未迁移到 IndexedDB。大规模长期档案应定期导出备份，后续如升级异步 IndexedDB，需要同步重构 challenge store 的持久化接口。
+
+
+## 统一作品学习接入（2026-11-01）
+
+### 单一作品契约
+
+`content/works.json` 是每件作品的唯一学习接入入口。每个 live work 必须声明 `activityTracking: true`、`competencyIds`，以及 `assessment.type`（`challenge` 或 `checkpoint`）和对应的入口 ID。页面只加载 `assets/js/learning-integration.mjs`；集成层根据当前路由匹配 work 注册表，统一加载活动采集与检查点。
+
+### 事件来源与证据等级
+
+| 来源 | 事件 | 用途 | 能否增加掌握度 |
+|---|---|---|---|
+| 页面浏览 / 控件交互 | `activity` | 探索轨迹 | 否 |
+| 答题错误 | `attempt` | 精确薄弱点诊断 | 否 |
+| 原挑战关卡通过 | `completed` | 挑战证据 | 是 |
+| 无提示知识检查通过 | `assessment_passed` | 检查点证据 | 是 |
+| 定向复习通过 | `assessment_passed` | 薄弱点独立验证 | 是，并可按规则解除 gap |
+
+探索事件仅保留作品 ID、知识专题 ID、路由、控件标识和动作类型；不采集代码编辑内容、文本输入、表单值或个人内容。
+
+### 检查点规则
+
+12 件非挑战作品各自注册一个无提示检查点。检查点使用独立的 `sessionType=checkpoint` 和稳定 `variantId`。答错可登记 gap，但 checkpoint 成功不能关闭已有 gap；只有 Review 工作台中不同变体、无提示的独立验证才能完成 gap 生命周期。两件挑战型作品继续由 Challenge Engine 产生 campaign 证据。
+
+### Monorepo 缓存能力
+
+新增 `build-cache-integrity`，位于 `build-topology` 之后。新增两个 gap：`build-cache-input-coverage`（缓存键遗漏环境变量、配置或工具链输入）和 `build-cache-stale-output`（把 cache hit 错当成产物必然正确）。为每个 gap 提供 A/B 两种不同复习变体。该能力由缓存实验与作品检查点评估，不会伪装成现有三关 Monorepo 解谜游戏的一部分。
+
+### 兼容与边界
+
+V1/V2 档案迁移、LocalStorage、事件追加、导入导出和原有挑战存储键保持兼容。此阶段不引入用户账户、云端数据库、跨设备自动同步，也不把探索行为升级为掌握证据。

@@ -2,7 +2,7 @@
 
 - GitHub Pages：`https://liucaidong.github.io/knowverse/`
 - 版本：V2 / Learning Intelligence 2.0 / 2026-11-01
-- **12 个知识专题、92 条可检索内容记录、22 张 Mermaid 全景图、13 件已上线互动作品。**
+- **12 个知识专题、92 条可检索内容记录、22 张 Mermaid 全景图、14 件已上线互动作品。**
 - `content/knowledge.json` 是知识专题注册表；`content/works.json` 是三条产品主线与作品注册表；作品通过 `knowledge_ids` 关联专题。
 - 首页精选专题、知识目录、三条主线作品卡片和专题页的关联体验由共享注册表驱动。
 
@@ -57,9 +57,19 @@ TypeScript Monorepo 不再只是课程页：原理实验室提供依赖图、缓
 - 统一事件 V2：兼容旧 V1 学习档案，记录挑战、复习会话与三条产品线探索活动。
 - 掌握度与置信度分开计算；未验证节点不记 0 分。
 - gap 精准生命周期：普通成功不清除误区，提示辅助通过需等待不同题型的无提示独立验证。
-- 首批 8 个能力点、17 个薄弱点、36 个精确复习变体，覆盖 Promise 与 TypeScript Monorepo。
+- 首批 9 个能力点、19 个薄弱点、40 个精确复习变体，覆盖 Promise 与 TypeScript Monorepo。
 - `assets/js/review-engine.mjs`：隔离复习会话，不重置或覆盖原始挑战。
 - `assets/js/learning-activity.mjs`：本地记录实验室、展厅、解谜世界的探索活动；探索行为不会被当作掌握证据。
 - `docs/learning-progress-system.md`：V2 数据模型、迁移、复习策略、隐私和验收说明。
 
 学习记录保存在当前浏览器 LocalStorage，不会提交到公开仓库；GitHub Pages 不提供账户或云同步，跨设备请使用 JSON 导出 / 导入。浏览器存储受站点配额限制，建议定期备份。
+
+
+## 统一作品学习接入
+
+- `content/works.json` 为 14 件作品声明活动采集、能力点关系和评估入口。
+- `assets/js/learning-integration.mjs` 按当前作品路由加载同一套集成。
+- `content/learning-checkpoints.json` 为 12 件非挑战作品提供无提示、可判定的检查点；两件结构化解谜挑战继续由 Challenge Engine 提供评估证据。
+- `assets/js/learning-checkpoint-engine.mjs` 只将正确检查点写为掌握证据；错误答案可产生薄弱点，但检查点不能自行清除 gap，必须走独立 Review。
+- Monorepo 新增“构建缓存键完整性”能力点，配有两个薄弱点和四个定向复习变体。
+- CI 检查作品、知识能力、挑战、检查点和页面入口之间的完整关系。
