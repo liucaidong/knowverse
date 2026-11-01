@@ -225,7 +225,13 @@ export function startLocalLearningArchive(progressStore) {
     const onDelete = event => {
       const type = event.detail?.type;
       const key = event.detail?.key;
-      deleteArchiveDocument(type, key).then(scheduleCapture).catch(error => {
+      deleteArchiveDocument(type, key).then(() => {
+        scheduleCapture();
+        // Wake the shared sync runtime after the tombstone is durable.
+        window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", {
+          detail: { type, key, deleted: true },
+        }));
+      }).catch(error => {
         window.dispatchEvent(new CustomEvent("knowverse:archive-state", {
           detail: { status: "error", message: error.message || "学习档案删除记录失败" },
         }));

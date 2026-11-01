@@ -137,3 +137,17 @@ test("one document conflict is counted once when both push and pull report the s
   assert.match(sync, /const conflictIds = new Set\(\)/);
   assert.match(sync, /new Set\(\[\.\.\.pushedDocuments\.conflictIds, \.\.\.pulledDocuments\.conflictIds\]\)\.size/);
 });
+
+
+test("one shared archive runtime auto-syncs from every page and powers the account panel", async () => {
+  const bootstrap = await read("assets/js/backend/archive-bootstrap.mjs");
+  const panel = await read("assets/js/backend/account-panel.mjs");
+  assert.match(bootstrap, /createLearningSyncService/);
+  assert.match(bootstrap, /syncService\.start\(\)/);
+  assert.match(bootstrap, /syncService\.initialize\(\)/);
+  assert.match(bootstrap, /getArchiveRuntime/);
+  assert.match(panel, /getArchiveRuntime/);
+  assert.doesNotMatch(panel, /createLearningSyncService|syncService\.start\(\)/);
+  assert.match(panel, /立即同步/);
+  assert.match(bootstrap, /BACKEND_CONFIG/);
+});

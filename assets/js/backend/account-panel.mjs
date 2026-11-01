@@ -1,6 +1,5 @@
 import { BACKEND_CONFIG } from "./config.mjs";
-import { createSupabaseAuthClient } from "./auth.mjs";
-import { createLearningSyncService } from "./sync-engine.mjs";
+import { getArchiveRuntime } from "./archive-bootstrap.mjs";
 import {
   getArchiveStatus,
   getLocalDevice,
@@ -28,10 +27,9 @@ const shortId = value => value ? String(value).slice(0, 8) + "…" : "尚未初�
 
 export async function mountBackendAccountPanel(host, options = {}) {
   if (!host) return () => {};
-  const store = options.store;
-  const auth = createSupabaseAuthClient();
-  const syncService = createLearningSyncService(auth, store);
-  const stopSyncListener = syncService.start();
+  const runtime = await getArchiveRuntime();
+  const auth = runtime.auth;
+  const syncService = runtime.syncService;
   let busy = false;
   let lastSyncLabel = null;
   let destroyed = false;
@@ -307,7 +305,6 @@ export async function mountBackendAccountPanel(host, options = {}) {
 
   return () => {
     destroyed = true;
-    stopSyncListener();
     window.removeEventListener("knowverse:sync-state", onSyncState);
     window.removeEventListener("online", onNetwork);
     window.removeEventListener("offline", onNetwork);
