@@ -120,7 +120,7 @@ async function exerciseReview(browser, label, viewport) {
   await page.locator("#hero-tested").waitFor();
   await page.locator("#gap-list").waitFor();
   assert.match(await page.locator("#gap-list").innerText(), /没有尚未纠正的概念误区/);
-  assert.match(await page.locator("#hero-tested").innerText(), /1\s*\/\s*8/);
+  assert.match(await page.locator("#hero-tested").innerText(), /1\s*\/\s*9/);
   assert.deepEqual(pageErrors, [], label + ": uncaught browser exceptions");
   await context.close();
 }
