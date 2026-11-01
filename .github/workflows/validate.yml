@@ -70,6 +70,8 @@ jobs:
           node --check assets/js/backend/auth.mjs
           node --check assets/js/backend/local-event-store.mjs
           node --check assets/js/backend/sync-engine.mjs
+          node --check assets/js/backend/local-archive.mjs
+          node --check assets/js/backend/archive-bootstrap.mjs
           node --check assets/js/backend/account-panel.mjs
           node --check assets/js/backend/callback.mjs
           node --check assets/js/rn-render-pipeline.mjs
@@ -83,6 +85,8 @@ jobs:
         run: node --test scripts/e2e-learning-intelligence.mjs
       - name: Browser E2E · Work checkpoint and learning telemetry
         run: node --test scripts/e2e-learning-integration.mjs
+      - name: Browser E2E · Mac + iPhone archive sync, offline recovery and conflict resolution
+        run: node --test scripts/e2e-cross-device-archive.mjs
       - name: Browser E2E · Adaptive daily learning plan
         run: node --test scripts/e2e-learning-planner.mjs
       - name: Browser E2E · React Native domain across all three pillars

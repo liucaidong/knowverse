@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>KNOWVERSE archive E2E harness</title></head>
+<body>
+<script type="module">
+import { createLearningProgressStore } from "/assets/js/learning-progress.mjs";
+import { createLearningSyncService } from "/assets/js/backend/sync-engine.mjs";
+import { getArchiveStatus, listArchiveConflicts } from "/assets/js/backend/local-event-store.mjs";
+import {
+  migrateLegacyLocalStorage,
+  resolveLocalLearningArchiveConflict,
+} from "/assets/js/backend/local-archive.mjs";
+
+const store = createLearningProgressStore();
+const auth = {
+  getSession: async () => ({ user: { id: "archive-test-user", email: "archive@example.test" } }),
+  request: async (path, options = {}) => {
+    const response = await fetch("/mock" + path, {
+      method: options.method || "GET",
+      headers: { "content-type": "application/json" },
+      body: options.body === undefined ? undefined : JSON.stringify(options.body)
+    });
+    const result = await response.json();
+    if (!response.ok) throw new Error(result.message || "Mock RPC failed");
+    return result;
+  }
+};
+const service = createLearningSyncService(auth, store, { enabled: true });
+const stop = service.start();
+window.archiveHarness = {
+  store,
+  sync: () => service.sync(),
+  stop,
+  addEvent: event => store.appendMany([event]),
+  status: () => getArchiveStatus(),
+  conflicts: () => listArchiveConflicts(),
+  resolve: (id, choice) => resolveLocalLearningArchiveConflict(id, choice),
+  migrate: () => migrateLegacyLocalStorage(store)
+};
+window.archiveReady = true;
+</script>
+</body>
+</html>
