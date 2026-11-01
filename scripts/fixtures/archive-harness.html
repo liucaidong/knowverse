@@ -6,7 +6,10 @@
 import { createLearningProgressStore } from "/assets/js/learning-progress.mjs";
 import { createLearningSyncService } from "/assets/js/backend/sync-engine.mjs";
 import { getArchiveStatus, listArchiveConflicts } from "/assets/js/backend/local-event-store.mjs";
-import { resolveLocalLearningArchiveConflict } from "/assets/js/backend/local-archive.mjs";
+import {
+  migrateLegacyLocalStorage,
+  resolveLocalLearningArchiveConflict,
+} from "/assets/js/backend/local-archive.mjs";
 
 const store = createLearningProgressStore();
 const auth = {
@@ -31,7 +34,8 @@ window.archiveHarness = {
   addEvent: event => store.appendMany([event]),
   status: () => getArchiveStatus(),
   conflicts: () => listArchiveConflicts(),
-  resolve: (id, choice) => resolveLocalLearningArchiveConflict(id, choice)
+  resolve: (id, choice) => resolveLocalLearningArchiveConflict(id, choice),
+  migrate: () => migrateLegacyLocalStorage(store)
 };
 window.archiveReady = true;
 </script>
