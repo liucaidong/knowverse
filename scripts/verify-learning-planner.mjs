@@ -34,7 +34,7 @@ function plan(f, snapshot = { events: [] }, preferences = { dailyMinutes: 25, fo
 }
 function evidence({ id, competencyId, at = "2026-10-20T10:00:00.000Z", scorePct = 90, variantId = "variant-a", challengeId = "sample", stepId = "step" } = {}) {
   return {
-    id, type: "assessment_passed", at, topicId: competencyId.startsWith("build-") ? "monorepo" : "promise",
+    id, type: "assessment_passed", at, topicId: competencyId.startsWith("build-") ? "monorepo" : competencyId.startsWith("rn-") ? "react-native" : "promise",
     challengeId, challengeTitle: challengeId, stepId, stepTitle: stepId,
     competencyIds: [competencyId], sessionId: "session-" + id, sessionType: "checkpoint",
     variantId, scorePct, hintsUsed: 0,
@@ -46,10 +46,14 @@ test("an empty profile starts with prerequisite roots, not advanced topics", asy
   const result = plan(f);
   assert.ok(result.actions.length > 0);
   assert.ok(result.plannedMinutes <= 25);
-  assert.deepEqual(new Set(result.actions.map(item => item.competencyId)),
-    new Set(["thenable-adoption", "workspace-resolution"]));
+  const rootCompetencies = new Set(f.learningMap.topics.flatMap(topic =>
+    topic.competencies.filter(item => !item.prerequisites?.length).map(item => item.id)));
+  assert.equal(rootCompetencies.size, 3);
+  assert.ok(result.actions.every(item => rootCompetencies.has(item.competencyId)),
+    "An empty profile must only schedule prerequisite roots");
   assert.ok(result.actions.every(item => item.type === "learn"));
   assert.ok(result.blockedCompetencies.some(item => item.competencyId === "integrated-execution-model"));
+  assert.ok(result.blockedCompetencies.some(item => item.competencyId === "rn-integrated-architecture"));
   assert.match(result.headline, /基础/);
 });
 
@@ -87,10 +91,26 @@ test("a prerequisite with initial evidence unlocks the next node; its descendant
     variantId: "monorepo-dependency-quest:workspace-protocol",
     challengeId: "monorepo-dependency-quest", stepId: "workspace-protocol",
   })] };
-  const result = plan(f, snapshot);
+  const result = plan(f, snapshot, { dailyMinutes: 40, focusTopicId: "monorepo" });
   assert.ok(result.actions.some(item => item.competencyId === "build-topology" && item.type === "learn"));
   assert.ok(result.blockedCompetencies.some(item => item.competencyId === "affected-closure"));
   assert.ok(result.blockedCompetencies.some(item => item.competencyId === "build-cache-integrity"));
+});
+
+test("React Native prerequisite evidence unlocks JSI while TurboModules and Fabric remain gated", async () => {
+  const f = await fixtures();
+  const snapshot = { events: [evidence({
+    id: "rn-build-pass",
+    competencyId: "rn-build-artifacts",
+    variantId: "rn-architecture-quest:build-artifacts",
+    challengeId: "rn-architecture-quest",
+    stepId: "build-artifacts",
+  })] };
+  const result = plan(f, snapshot, { dailyMinutes: 40, focusTopicId: "react-native" });
+  assert.ok(result.actions.some(item => item.competencyId === "rn-jsi-boundaries" && item.type === "learn"));
+  assert.ok(result.blockedCompetencies.some(item => item.competencyId === "rn-turbomodules-codegen"));
+  assert.ok(result.blockedCompetencies.some(item => item.competencyId === "rn-fabric-render-pipeline"));
+  assert.ok(result.blockedCompetencies.some(item => item.competencyId === "rn-integrated-architecture"));
 });
 
 test("prerequisite gating checks the entire ancestor chain, not only the direct parent", async () => {
