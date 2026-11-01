@@ -87,3 +87,14 @@ TypeScript Monorepo 不再只是课程页：原理实验室提供依赖图、缓
 - 规划偏好独立保存在 LocalStorage；计划执行事件进入现有学习档案，随 JSON 导出 / 导入。
 - 规划引擎采用本地确定性规则与可解释优先级，不调用在线 LLM、不上传个人学习档案，也不自动写入虚假掌握分。
 - `scripts/verify-learning-planner.mjs` 覆盖前置门控、时间预算、薄弱点优先级、间隔复习、计划反馈和证据隔离；Playwright 桌面 / 移动端验证真实页面。
+
+
+## KNOWVERSE 3.0 · Personal Learning Platform
+
+- 产品边界保持三条体验主线：原理实验室、沉浸式知识展厅、知识解谜世界；学习驾驶舱、复习工作台和主动规划属于横向 Learning Intelligence。
+- `docs/product-architecture-v3.md`：产品定位、目标架构、实施阶段和验收标准。
+- `docs/backend/implementation.md`：Supabase 项目、GitHub OAuth、个人账户白名单、IndexedDB Outbox 和云端同步激活手册。
+- `supabase/migrations/`：个人学习档案 PostgreSQL Schema、RLS、白名单和 Push / Pull RPC。
+- `assets/js/backend/`：PKCE Auth、IndexedDB 事件镜像、Outbox 与同步客户端。
+- 云端默认关闭；配置 `assets/js/backend/public-config.js` 的 Supabase URL 与 Publishable Key 后，按后端手册创建 OAuth 应用并加入个人账户白名单。
+- 当前挑战与复习引擎仍保留 LocalStorage 同步 API；IndexedDB 已作为事件镜像与 Outbox 使用。进行中的挑战 / 复习快照迁移和跨设备因果冲突处理属于后续阶段，不能误认为已经完成。

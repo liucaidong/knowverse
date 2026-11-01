@@ -1,0 +1,7 @@
+# Local backend configuration and generated build output
+.env
+.env.*
+!.env.example
+_site/
+node_modules/
+.supabase/

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#f7faf9">
+  <title>账户认证 · KNOWVERSE</title>
+  <link rel="stylesheet" href="../../assets/css/v2.css">
+  <style>
+    body{min-height:100vh;display:grid;place-items:center;background:#f4f8f6}
+    .callback-card{width:min(520px,calc(100% - 32px));padding:32px;border:1px solid #dce8e3;border-radius:22px;background:#fff;box-shadow:0 18px 60px #173b3812}
+    .callback-card h1{margin:8px 0 12px;font-size:27px}.callback-card p{color:#597174;line-height:1.8}
+  </style>
+</head>
+<body>
+  <main class="callback-card">
+    <span class="eyebrow">KNOWVERSE / ACCOUNT</span>
+    <h1 id="callback-title">正在验证账户…</h1>
+    <p id="callback-message">正在安全交换 OAuth 授权码，不要关闭当前页面。</p>
+  </main>
+  <script src="../../assets/js/backend/public-config.js"></script>
+  <script type="module" src="../../assets/js/backend/callback.mjs"></script>
+</body>
+</html>

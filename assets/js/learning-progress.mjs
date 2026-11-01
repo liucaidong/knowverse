@@ -191,19 +191,27 @@ export function createLearningProgressStore(options = {}) {
   return {
     available,
     load() { return available ? readStorage(storage, key) : emptySnapshot(); },
-    appendMany(newEvents) {
+    appendMany(newEvents, appendOptions = {}) {
       if (!available) return false;
       if (!Array.isArray(newEvents) || !newEvents.length) return true;
       const snapshot = readStorage(storage, key);
       const known = new Set(snapshot.events.map(event => event.id));
+      const added = [];
       for (const event of newEvents) {
         if (asObject(event) && typeof event.id === "string" && !known.has(event.id)) {
           snapshot.events.push(clone(event));
+          added.push(clone(event));
           known.add(event.id);
         }
       }
       snapshot.updatedAt = timestamp();
-      return save(snapshot);
+      const saved = save(snapshot);
+      if (saved && added.length && appendOptions.remote !== true && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("knowverse:learning-events-appended", {
+          detail: { events: added, remote: false }
+        }));
+      }
+      return saved;
     },
     exportJSON() {
       return JSON.stringify({
@@ -236,6 +244,11 @@ export function createLearningProgressStore(options = {}) {
       current.updatedAt = timestamp();
       if (!current.events.length && incoming.events.length) current.events = incoming.events;
       if (!save(current)) throw new Error("写入本地存储失败，可能是浏览器空间不足。");
+      if (incoming.events.length && typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("knowverse:learning-events-appended", {
+          detail: { events: incoming.events, remote: false, imported: true }
+        }));
+      }
       return { imported: incoming.events.length, total: current.events.length, mode: replace ? "replace" : "merge" };
     },
   };

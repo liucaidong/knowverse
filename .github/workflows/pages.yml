@@ -27,12 +27,25 @@ jobs:
         run: python3 scripts/build-monorepo-graph.py
       - name: Verify Monorepo graph is reproducible from package manifests
         run: python3 scripts/build-monorepo-graph.py --check
+      - name: Assemble public Pages site from an explicit allowlist
+        run: |
+          mkdir -p _site
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='.github/' \
+            --exclude='supabase/' \
+            --exclude='scripts/' \
+            --exclude='node_modules/' \
+            --exclude='_site/' \
+            --exclude='.env*' \
+            --exclude='docs/backend/' \
+            ./ _site/
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v4
         with:
-          path: .
+          path: _site
       - name: Deploy Pages
         id: deployment
         uses: actions/deploy-pages@v4

@@ -60,6 +60,16 @@ jobs:
           node --check assets/js/learning-integration.mjs
           node --check assets/js/learning-planner.mjs
           node --input-type=module --check < assets/js/v2.js
+      - name: Validate cloud archive security and sync contracts
+        run: node --test scripts/verify-backend-contract.mjs
+      - name: Parse backend browser modules
+        run: |
+          node --check assets/js/backend/config.mjs
+          node --check assets/js/backend/auth.mjs
+          node --check assets/js/backend/local-event-store.mjs
+          node --check assets/js/backend/sync-engine.mjs
+          node --check assets/js/backend/account-panel.mjs
+          node --check assets/js/backend/callback.mjs
       - name: Install Playwright browsers for cross-engine review flow
         run: |
           npm install --no-save playwright

@@ -8,6 +8,7 @@
   <title>学习进度与知识掌握 · KNOWVERSE</title>
   <link rel="stylesheet" href="../assets/css/v2.css">
   <link rel="stylesheet" href="../assets/css/learning-progress.css">
+  <link rel="stylesheet" href="../assets/css/backend-account.css">
 </head>
 <body class="lp-page" data-root="../">
   <div class="topline"></div>
@@ -145,6 +146,14 @@
       <div class="lp-panel"><div id="event-list" class="lp-event-list"><div class="lp-empty">还没有挑战记录。</div></div></div>
     </section>
 
+    <section class="lp-section" id="cloud-account">
+      <div class="lp-section-head">
+        <div><span class="lp-eyebrow">LOCAL-FIRST / CLOUD ARCHIVE</span><h2>个人学习档案</h2></div>
+        <p>本地数据始终可用；配置云端账户后，学习事件可在多个设备之间增量同步。</p>
+      </div>
+      <div id="backend-account-panel" aria-live="polite"></div>
+    </section>
+
     <section class="lp-section" id="data-portability">
       <div class="lp-privacy">
         <div><strong>本地优先 · 数据由你掌控</strong><p id="storage-status">学习数据保存在当前浏览器。Mac 与 iPhone 暂不自动同步，可通过 JSON 导出后在另一台设备导入合并。</p></div>
@@ -153,10 +162,11 @@
     </section>
   </main>
 
-  <footer class="lp-footer lp-container">KNOWVERSE / LEARNING INTELLIGENCE · 个人学习记录仅保存在当前浏览器</footer>
+  <footer class="lp-footer lp-container">KNOWVERSE / LEARNING INTELLIGENCE · 个人学习记录采用本地优先保存；云端同步需完成账户配置</footer>
   <div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索">
     <div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、Monorepo、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div>
   </div>
+  <script src="../assets/js/backend/public-config.js"></script>
   <script defer src="../assets/js/v2.js"></script>
   <script type="module" src="../assets/js/learning-progress-page.mjs"></script>
 </body>

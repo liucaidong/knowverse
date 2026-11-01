@@ -1,5 +1,6 @@
 import { createLearningProgressStore, deriveLearningInsights } from "./learning-progress.mjs";
 import { buildAdaptiveLearningPlan, createLearningPlanPreferencesStore, recordLearningPlanAction } from "./learning-planner.mjs";
+import { mountBackendAccountPanel } from "./backend/account-panel.mjs";
 
 const siteRoot = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
@@ -77,7 +78,7 @@ function renderMetrics() {
   setText("metric-confidence", averageConfidence === null ? "—" : averageConfidence + "%");
   $("first-run-callout").hidden = summary.attempts + summary.completions > 0;
   $("storage-status").textContent = store.available
-    ? "学习数据保存在当前浏览器的 localStorage。Mac 与 iPhone 暂不自动同步，可通过 JSON 导出后在另一台设备导入合并。"
+    ? "学习事件先保存在本机，并镜像到 IndexedDB 同步队列。云端账户配置后可跨设备同步；JSON 导出仍可作为独立备份。"
     : "当前浏览器未开放本地存储，学习事件无法持久保存。请使用支持 localStorage 的常规浏览器窗口。";
 }
 
@@ -509,6 +510,12 @@ function wireDataActions() {
 }
 
 async function boot() {
+  const backendPanel = document.getElementById("backend-account-panel");
+  if (backendPanel) {
+    mountBackendAccountPanel(backendPanel, { store }).catch(error => {
+      backendPanel.textContent = "云端账户面板初始化失败：" + error.message;
+    });
+  }
   if (!store.available) {
     setText("storage-status", "当前浏览器未开放本地存储；学习事件无法持久保存。");
   }

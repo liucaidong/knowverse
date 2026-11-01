@@ -1,0 +1,20 @@
+project_id = "knowverse"
+
+[api]
+enabled = true
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "https://liucaidong.github.io/knowverse"
+additional_redirect_urls = [
+  "https://liucaidong.github.io/knowverse/auth/callback/",
+  "http://localhost:4173/knowverse/auth/callback/"
+]
+
+[auth.external.github]
+enabled = true
+client_id = "env(SUPABASE_AUTH_GITHUB_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
