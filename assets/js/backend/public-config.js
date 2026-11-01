@@ -1,5 +1,5 @@
-/* Public browser configuration only. Never place OAuth client secrets, database passwords,
-   Supabase Secret Keys, service_role keys, or model API keys in this file. */
+/* Public-only browser configuration. Never place private OAuth credentials, database passwords,
+   server-side keys, or AI provider credentials in this file. */
 window.KNOWVERSE_BACKEND_CONFIG = window.KNOWVERSE_BACKEND_CONFIG || {
   supabaseUrl: "",
   publishableKey: ""
