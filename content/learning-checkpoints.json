@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
+  "version": "1.1.0",
   "updated": "2026-11-01",
   "checkpoints": [
     {
@@ -263,6 +263,59 @@
       ],
       "answer": "b",
       "explanation": "拓扑层中的就绪节点之间没有依赖约束，可以并行执行。"
+    },
+    {
+      "id": "cp-rn-render-pipeline",
+      "workId": "rn-render-pipeline-lab",
+      "topicId": "react-native",
+      "competencyId": "rn-fabric-render-pipeline",
+      "title": "Fabric 的 Commit 与 Mount 分界",
+      "prompt": "一次 React state 更新导致 View 背景变化，Fabric 的核心处理顺序是什么？",
+      "code": "setState({ color: 'blue' }); // React Native renderer processes the update",
+      "options": [
+        {
+          "id": "a",
+          "label": "Render → Mount → Commit；Host View 先改变，再计算布局。",
+          "gapId": "rn-render-commit-mount"
+        },
+        {
+          "id": "b",
+          "label": "Render → Commit（Yoga layout / tree promotion）→ Mount（diff / Host View）。"
+        },
+        {
+          "id": "c",
+          "label": "Render → TurboModule → Codegen → Mount。",
+          "gapId": "rn-yoga-vs-mount"
+        }
+      ],
+      "answer": "b",
+      "explanation": "Render 创建 React / Shadow Tree；Commit 计算布局并提升 next tree；Mount 计算 diff 并在 UI Thread 更新 Host Views。"
+    },
+    {
+      "id": "cp-rn-architecture-exhibition",
+      "workId": "rn-new-architecture-gallery",
+      "topicId": "react-native",
+      "competencyId": "rn-integrated-architecture",
+      "title": "Build / Startup / Runtime 阶段定位",
+      "prompt": "下面哪一组把 React Native 0.88 的工作放到了正确阶段？",
+      "options": [
+        {
+          "id": "a",
+          "label": "Runtime 才执行 Codegen；Startup 才把 JS 源码编译为 Hermes 字节码。",
+          "gapId": "rn-build-startup-runtime-boundary"
+        },
+        {
+          "id": "b",
+          "label": "JSI 负责生成 Java / Objective-C++ 平台接口；TurboModule 实例都必须在 Build 阶段创建。",
+          "gapId": "rn-codegen-generated-output"
+        },
+        {
+          "id": "c",
+          "label": "Build 产生 Hermes 字节码与 Codegen 接口产物；Startup 初始化 Runtime / 注册能力；Runtime 执行 JS、Native 调用与渲染。"
+        }
+      ],
+      "answer": "c",
+      "explanation": "构建、启动、运行是不同阶段；Hermes / Codegen 产物在构建期生成，运行时由 JSI、TurboModules 与 Fabric 协作。"
     }
   ]
 }

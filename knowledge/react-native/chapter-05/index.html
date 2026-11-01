@@ -1,0 +1,21 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="从 React Element Tree 追到 C++ Shadow Tree，再到平台 Host Views。"><title>Fabric：Render / Commit / Mount 的逐帧路径 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/rn-domain.css"></head><body data-root="../../../" class="article rn-article"><div class="topline"></div><header class="navwrap"><nav class="navbar"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../progress/">学习驾驶舱</a></div><button id="mobile-menu" class="mobilemenu">菜单</button><button class="search-trigger" id="search-open">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">React Native · 新架构</a></div><div class="eyebrow">REACT NATIVE 0.88 / LEARNING PATH</div><h1>Fabric：Render / Commit / Mount 的逐帧路径</h1><p class="lead">从 React Element Tree 追到 C++ Shadow Tree，再到平台 Host Views。</p></div><div class="article-grid"><article class="reader"><p class="source-lead">Fabric 是 React Native 的新渲染系统。追踪一次 state 更新如何变成平台 View 更新，是理解它的最佳入口。</p>
+<pre class="mermaid">flowchart TD
+ State[React state / props update] --> Render
+ subgraph R[1 · Render]
+  Render[React executes components] --> Element[React Element Tree]
+  Element --> Shadow[Immutable C++ Shadow Tree]
+ end
+ subgraph C[2 · Commit]
+  Shadow --> Layout[Yoga layout calculation]
+  Layout --> Promote[Promote next tree]
+ end
+ subgraph M[3 · Mount]
+  Promote --> Diff[Diff previous / next tree]
+  Diff --> Mutations[Atomic view mutations]
+  Mutations --> UI[Apply on UI Thread]
+ end
+ UI --> Pixels[Pixels on screen]</pre>
+<h2>Render：React 逻辑与 Shadow Tree</h2><p>React 执行组件逻辑，得到 React Element Tree。对 Host Components，Renderer 创建对应 C++ Shadow Nodes 并组织成 Shadow Tree。该树不可变；更新时通过克隆和结构共享构造新树。</p>
+<h2>Commit：布局与树提升</h2><p>Commit 阶段安排 Layout Calculation，并使用 Yoga 计算 Shadow Nodes 的位置和大小。随后将新树提升为下一棵待 Mount 的树。</p>
+<h2>Mount：差异计算与平台视图</h2><p>Mount 比较上一棵已渲染树与下一棵树，生成创建、更新、删除等原子 mutation，再应用到 Android / iOS Host Views。平台视图操作发生在 UI Thread。</p>
+<div class="rn-callout"><strong>牢记三个边界</strong><ul><li>Yoga 计算布局，不等于创建最终平台 View。</li><li>Commit 是提交与布局，不代表像素已经绘制。</li><li>Shadow Tree 是 C++ 渲染模型，不是平台 UIView / Android View 的副本。</li></ul></div><div class="source-note"><strong>继续学习：</strong><a href="../">返回专题全景</a> · <a href="../../../lab/experiments/rn-render-pipeline/">打开原理实验室</a> · <a href="../../../puzzles/worlds/rn-architecture-quest/">进入架构边界挑战</a></div></article><aside class="sidelist"><strong>学习导航</strong><a href="../">专题全景</a><a href="../chapter-01/">三阶段模型</a><a href="../chapter-03/">JSI</a><a href="../chapter-04/">TurboModules</a><a href="../chapter-05/">Fabric</a><a href="../chapter-06/">线程模型</a><a href="../chapter-07/">0.88 工程基线</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>知识 / 探索 / 实践 · React Native New Architecture</p></div><div class="footerlinks"><a href="../../../knowledge/">知识专题</a><a href="../../../progress/">学习驾驶舱</a><a href="https://reactnative.dev/architecture/overview">官方架构文档</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 JSI、TurboModules、Fabric…" aria-label="搜索"><div id="search-results" class="searchresults"></div></div></div><script defer src="../../../assets/js/v2.js"></script></body></html>

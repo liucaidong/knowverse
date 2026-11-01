@@ -98,3 +98,14 @@ TypeScript Monorepo 不再只是课程页：原理实验室提供依赖图、缓
 - `assets/js/backend/`：PKCE Auth、IndexedDB 事件镜像、Outbox 与同步客户端。
 - 云端默认关闭；配置 `assets/js/backend/public-config.js` 的 Supabase URL 与 Publishable Key 后，按后端手册创建 OAuth 应用并加入个人账户白名单。
 - 当前挑战与复习引擎仍保留 LocalStorage 同步 API；IndexedDB 已作为事件镜像与 Outbox 使用。进行中的挑战 / 复习快照迁移和跨设备因果冲突处理属于后续阶段，不能误认为已经完成。
+
+
+## React Native · New Architecture learning domain
+
+The third complete knowledge domain is connected to all three learning pillars.
+
+- Topic and learning map: 6 competencies, 12 diagnosed gaps, and 24 targeted review variants.
+- Lab: Fabric Render / Commit / Mount pipeline observatory.
+- Gallery: interactive CSS 3D Build / Startup / Runtime architecture space.
+- Puzzle: six-step architecture boundary challenge using the shared Challenge Engine.
+- Implementation and official reference map: docs/react-native-learning-domain.md.

@@ -47,16 +47,21 @@
       "title": "React Native · 新架构",
       "short_title": "React Native",
       "category": "移动开发",
-      "summary": "Build → Startup → Runtime；JSI / TurboModules / Fabric 的系统全景",
+      "summary": "以 React Native 0.88 为基线，贯通 Build → Startup → Runtime：Hermes、JSI、TurboModules / Codegen、Fabric、线程与事件调度",
       "href": "./knowledge/react-native/",
       "accent": "#7c88ed",
       "featured": true,
       "tags": [
         "React Native",
+        "React Native 0.88",
+        "New Architecture",
         "JSI",
         "TurboModules",
+        "Codegen",
         "Fabric",
-        "Hermes"
+        "Hermes",
+        "Bridgeless",
+        "Render Commit Mount"
       ]
     },
     {

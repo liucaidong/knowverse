@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
+  "version": "2.1.0",
   "updated": "2026-11-01",
   "challenges": [
     {
@@ -354,6 +354,202 @@
       "knowledgeIds": [
         "promise",
         "creative"
+      ]
+    },
+    {
+      "id": "rn-architecture-quest",
+      "topic": "react-native",
+      "title": "架构边界挑战",
+      "summary": "六道挑战验证 React Native New Architecture 的构建产物、JSI、TurboModules、Fabric、线程模型与综合执行边界。",
+      "workId": "rn-architecture-quest",
+      "knowledgeIds": [
+        "react-native"
+      ],
+      "scoring": {
+        "attemptPenalty": 8,
+        "hintPenalty": 15
+      },
+      "steps": [
+        {
+          "id": "build-artifacts",
+          "title": "构建产物 · 两条生成路径",
+          "competencyIds": [
+            "rn-build-artifacts"
+          ],
+          "points": 100,
+          "answer": "b",
+          "prompt": "一次 Release 构建中，Hermes 与 Codegen 的产物关系，哪种描述正确？",
+          "hints": [
+            "把运行 JavaScript 的引擎产物与 Native Module 的接口胶水分开。",
+            "Hermes 负责编译 JS；Codegen 从类型化 spec 生成跨语言接口脚手架。"
+          ],
+          "options": [
+            {
+              "id": "a",
+              "label": "Codegen 把整个 JavaScript bundle 编译成 Hermes 字节码。",
+              "gapId": "rn-codegen-generated-output"
+            },
+            {
+              "id": "b",
+              "label": "Hermes 编译 JavaScript；Codegen 从类型化 spec 生成 C++ / 平台接口代码。"
+            },
+            {
+              "id": "c",
+              "label": "Hermes 与 Codegen 都只在应用启动后运行，不参与构建。",
+              "gapId": "rn-build-startup-runtime-boundary"
+            }
+          ]
+        },
+        {
+          "id": "jsi-boundary",
+          "title": "JSI · 直接接口不等于无边界",
+          "competencyIds": [
+            "rn-jsi-boundaries"
+          ],
+          "points": 100,
+          "answer": "b",
+          "prompt": "关于 JSI 与旧 Bridge，下面哪条判断最准确？",
+          "hints": [
+            "JSI 提供的是 JavaScript Runtime 与 C++ 之间的接口能力。",
+            "减少特定序列化开销，不等于所有调用同步、所有数据零拷贝。"
+          ],
+          "options": [
+            {
+              "id": "a",
+              "label": "JSI 只是旧 Bridge 的新名字，仍强制所有调用都转换成 JSON 消息。",
+              "gapId": "rn-jsi-bridge-myth"
+            },
+            {
+              "id": "b",
+              "label": "JSI 让 C++ 与 JavaScript Runtime 通过接口交互；同步/异步及数据复制仍取决于具体 API。"
+            },
+            {
+              "id": "c",
+              "label": "JSI 保证所有 Native 调用同步执行，并且任何数据都零拷贝。",
+              "gapId": "rn-jsi-zero-copy-myth"
+            }
+          ]
+        },
+        {
+          "id": "turbo-codegen",
+          "title": "TurboModules · Spec 到原生实现",
+          "competencyIds": [
+            "rn-turbomodules-codegen"
+          ],
+          "points": 100,
+          "answer": "b",
+          "prompt": "实现一个 Turbo Native Module，正确的责任划分是什么？",
+          "hints": [
+            "TypeScript / Flow spec 是接口契约，不是原生功能实现。",
+            "Codegen 生成接口与 glue；Android / iOS 平台代码仍要实现实际行为。"
+          ],
+          "options": [
+            {
+              "id": "a",
+              "label": "只写 TypeScript spec，Codegen 会自动生成完整业务功能。",
+              "gapId": "rn-turbo-spec-implementation"
+            },
+            {
+              "id": "b",
+              "label": "定义类型化 spec，配置 Codegen，编写平台原生实现，再通过 Registry 访问模块。"
+            },
+            {
+              "id": "c",
+              "label": "必须在 App 启动时手动创建所有 TurboModule 实例，之后才允许访问。",
+              "gapId": "rn-turbo-lazy-init"
+            }
+          ]
+        },
+        {
+          "id": "fabric-pipeline",
+          "title": "Fabric · 渲染阶段顺序",
+          "competencyIds": [
+            "rn-fabric-render-pipeline"
+          ],
+          "points": 100,
+          "answer": "b",
+          "prompt": "Fabric 更新一个 View 的颜色时，核心渲染阶段顺序是什么？",
+          "hints": [
+            "Render 先生成新的 React / Shadow Tree。",
+            "Commit 做布局与树提升；Mount 才将 diff 应用到平台 Host Views。"
+          ],
+          "options": [
+            {
+              "id": "a",
+              "label": "Render → Mount → Commit；先改平台 View，再计算布局。",
+              "gapId": "rn-render-commit-mount"
+            },
+            {
+              "id": "b",
+              "label": "Render → Commit → Mount；Yoga 布局属于 Commit，Host View 更新属于 Mount。"
+            },
+            {
+              "id": "c",
+              "label": "Render → Yoga → Native Module → Bridge → Mount。",
+              "gapId": "rn-yoga-vs-mount"
+            }
+          ]
+        },
+        {
+          "id": "thread-priority",
+          "title": "线程模型 · UI 优先级中断",
+          "competencyIds": [
+            "rn-threading-priority"
+          ],
+          "points": 100,
+          "answer": "b",
+          "prompt": "用户快速点击一个按钮，同时低优先级渲染还在进行。哪种判断正确？",
+          "hints": [
+            "UI Thread 是唯一可以操作平台 Host Views 的线程。",
+            "Render 阶段可以被高优先级离散事件打断。"
+          ],
+          "options": [
+            {
+              "id": "a",
+              "label": "JS Thread 与 UI Thread 可以互相随意操作对方拥有的所有 View。",
+              "gapId": "rn-js-ui-thread-roles"
+            },
+            {
+              "id": "b",
+              "label": "Render 通常在 JS Thread；高优先级离散事件可中断并优先处理交互更新。"
+            },
+            {
+              "id": "c",
+              "label": "Render 一旦开始就不可中断，任何事件只能等完整 Mount 后再处理。",
+              "gapId": "rn-render-interruptibility"
+            }
+          ]
+        },
+        {
+          "id": "integrated-model",
+          "title": "综合推演 · 当前版本与历史架构",
+          "competencyIds": [
+            "rn-integrated-architecture"
+          ],
+          "points": 100,
+          "answer": "b",
+          "prompt": "针对 React Native 0.88，哪种架构描述准确？",
+          "hints": [
+            "先按 Build、Startup、Runtime 分层，再看当前 New Architecture 的版本边界。",
+            "RN 0.82 起仅运行 New Architecture；Legacy Bridge 是历史对照。"
+          ],
+          "options": [
+            {
+              "id": "a",
+              "label": "每次应用启动时才运行 Codegen 与 Hermes 编译；随后所有 Native 通信都走 Legacy Bridge。",
+              "gapId": "rn-build-startup-runtime-boundary"
+            },
+            {
+              "id": "b",
+              "label": "构建阶段产生 Hermes / Codegen 产物，启动阶段初始化 Runtime 与组件，运行时由 JSI、TurboModules、Fabric 协同。"
+            },
+            {
+              "id": "c",
+              "label": "RN 0.88 默认使用 Legacy Bridge；New Architecture 仍是可选实验模式。",
+              "gapId": "rn-legacy-bridge-current"
+            }
+          ]
+        }
       ]
     }
   ]

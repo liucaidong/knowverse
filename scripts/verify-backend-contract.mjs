@@ -23,6 +23,7 @@ test("cloud migration protects the allowlist and enables row-level security", as
   assert.match(sql, /unique \(user_id, user_seq\)/i);
   assert.match(sql, /sync_push_learning_events/i);
   assert.match(sql, /sync_pull_learning_events/i);
+  assert.match(sql, /'checkpoint_started'/i);
 });
 
 test("learning event store preserves compatibility and prevents cloud echo", async () => {

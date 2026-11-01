@@ -645,6 +645,41 @@
       "summary": "Android UIAutomator、iOS Maestro、HTTP 503、非法 JSON、离线回退、恢复和反假阳性验证。",
       "tags": "E2E Android iOS Maestro UIAutomator HTTP 503 invalid JSON 网络异常 故障注入 离线回退",
       "href": "knowledge/monorepo/fullstack/guides/fault-injection/"
+    },
+    {
+      "title": "React Native 新架构 · JSI 与 Bridgeless",
+      "topic": "React Native · 新架构",
+      "summary": "JSI 提供 JavaScript Runtime 与 C++ 接口能力；区分旧 Bridge、同步接口、异步语义与数据传递成本。",
+      "tags": "React Native JSI Bridgeless C++ HostFunction HostObject",
+      "href": "knowledge/react-native/chapter-03/"
+    },
+    {
+      "title": "React Native · TurboModules 与 Codegen",
+      "topic": "React Native · 新架构",
+      "summary": "从 TypeScript / Flow spec 到 Codegen、C++ glue、平台接口、原生实现与 TurboModuleRegistry。",
+      "tags": "React Native TurboModules Codegen TypeScript Flow Android iOS",
+      "href": "knowledge/react-native/chapter-04/"
+    },
+    {
+      "title": "Fabric · Render / Commit / Mount 渲染管线",
+      "topic": "React Native · 新架构",
+      "summary": "沿 React Element Tree、Shadow Tree、Yoga 布局、树 diff 和 Host View Mount 追踪 UI 更新。",
+      "tags": "React Native Fabric Render Commit Mount Yoga Shadow Tree",
+      "href": "knowledge/react-native/chapter-05/"
+    },
+    {
+      "title": "React Native · 线程模型与事件优先级",
+      "topic": "React Native · 新架构",
+      "summary": "理解 JavaScript Thread、UI Thread、可中断 Render、高优先级离散事件与平台视图更新。",
+      "tags": "React Native Threading UI Thread JavaScript Thread Event Priority",
+      "href": "knowledge/react-native/chapter-06/"
+    },
+    {
+      "title": "React Native 0.88 · 新架构版本与工程基线",
+      "topic": "React Native · 新架构",
+      "summary": "以 React Native 0.88 为基线，梳理 0.82 New Architecture only、0.84 Hermes V1 默认、0.87 Strict TypeScript API 与 0.88 新变化。",
+      "tags": "React Native 0.88 Hermes V1 0.87 Strict TypeScript New Architecture",
+      "href": "knowledge/react-native/chapter-07/"
     }
   ]
 }

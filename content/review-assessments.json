@@ -1122,6 +1122,787 @@
         "清空缓存只是绕过，不会修复错误命中。"
       ],
       "explanation": "应将影响产物的输入纳入指纹，而不是依赖反复清空缓存。"
+    },
+    {
+      "id": "review-rn-hermes-bytecode-timing-a",
+      "competencyId": "rn-build-artifacts",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-hermes-bytecode-timing"
+      ],
+      "title": "Hermes 字节码在什么阶段产生？ · 概念辨析",
+      "prompt": "Release 构建中的 Hermes 做什么？",
+      "options": [
+        {
+          "id": "a",
+          "label": "RN 启动后才由 TurboModule 把 JS 源码编译成字节码。",
+          "gapId": "rn-hermes-bytecode-timing"
+        },
+        {
+          "id": "b",
+          "label": "React Native 构建期间会把 JavaScript 编译为 Hermes Bytecode（.hbc）。"
+        },
+        {
+          "id": "c",
+          "label": "Hermes 只负责原生 UI 布局计算。",
+          "gapId": "rn-hermes-bytecode-timing"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把 Hermes 编译放在 Build，而不是将它与 Startup / Runtime 混淆。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "React Native 构建期间会把 JavaScript 编译为 Hermes Bytecode（.hbc）。"
+    },
+    {
+      "id": "review-rn-hermes-bytecode-timing-b",
+      "competencyId": "rn-build-artifacts",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-hermes-bytecode-timing"
+      ],
+      "title": "Hermes 字节码在什么阶段产生？ · 场景推演",
+      "prompt": "Release 构建中的 Hermes 做什么？（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "Hermes 只负责原生 UI 布局计算。",
+          "gapId": "rn-hermes-bytecode-timing"
+        },
+        {
+          "id": "b",
+          "label": "RN 启动后才由 TurboModule 把 JS 源码编译成字节码。",
+          "gapId": "rn-hermes-bytecode-timing"
+        },
+        {
+          "id": "c",
+          "label": "React Native 构建期间会把 JavaScript 编译为 Hermes Bytecode（.hbc）。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "把 Hermes 编译放在 Build，而不是将它与 Startup / Runtime 混淆。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "React Native 构建期间会把 JavaScript 编译为 Hermes Bytecode（.hbc）。"
+    },
+    {
+      "id": "review-rn-codegen-generated-output-a",
+      "competencyId": "rn-build-artifacts",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-codegen-generated-output"
+      ],
+      "title": "Codegen 会生成什么？ · 概念辨析",
+      "prompt": "Native Module 的 Codegen 输出包含什么？",
+      "options": [
+        {
+          "id": "a",
+          "label": "Codegen 自动生成完整相机、定位或存储业务功能。",
+          "gapId": "rn-codegen-generated-output"
+        },
+        {
+          "id": "b",
+          "label": "Codegen 生成 C++ glue 与平台接口脚手架；业务实现仍需编写。"
+        },
+        {
+          "id": "c",
+          "label": "Codegen 只负责生成 Hermes 字节码。",
+          "gapId": "rn-codegen-generated-output"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分接口脚手架与开发者实现的原生行为。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Codegen 生成 C++ glue 与平台接口脚手架；业务实现仍需编写。"
+    },
+    {
+      "id": "review-rn-codegen-generated-output-b",
+      "competencyId": "rn-build-artifacts",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-codegen-generated-output"
+      ],
+      "title": "Codegen 会生成什么？ · 场景推演",
+      "prompt": "Native Module 的 Codegen 输出包含什么？（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "Codegen 只负责生成 Hermes 字节码。",
+          "gapId": "rn-codegen-generated-output"
+        },
+        {
+          "id": "b",
+          "label": "Codegen 自动生成完整相机、定位或存储业务功能。",
+          "gapId": "rn-codegen-generated-output"
+        },
+        {
+          "id": "c",
+          "label": "Codegen 生成 C++ glue 与平台接口脚手架；业务实现仍需编写。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "区分接口脚手架与开发者实现的原生行为。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Codegen 生成 C++ glue 与平台接口脚手架；业务实现仍需编写。"
+    },
+    {
+      "id": "review-rn-jsi-bridge-myth-a",
+      "competencyId": "rn-jsi-boundaries",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-jsi-bridge-myth"
+      ],
+      "title": "JSI 与 Legacy Bridge 的关系？ · 概念辨析",
+      "prompt": "选择对 JSI 最准确的描述。",
+      "options": [
+        {
+          "id": "a",
+          "label": "JSI 是旧 Bridge 的别名，仍强制 JSON 批量传输。",
+          "gapId": "rn-jsi-bridge-myth"
+        },
+        {
+          "id": "b",
+          "label": "JSI 提供 JS Runtime 与 C++ 的接口能力；New Architecture 不依赖旧 Bridge 的核心 JSON 批量消息通路。"
+        },
+        {
+          "id": "c",
+          "label": "JSI 完全取消所有异步通信和线程切换。",
+          "gapId": "rn-jsi-bridge-myth"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把接口层、旧消息通路和调度语义分开。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "JSI 提供 JS Runtime 与 C++ 的接口能力；New Architecture 不依赖旧 Bridge 的核心 JSON 批量消息通路。"
+    },
+    {
+      "id": "review-rn-jsi-bridge-myth-b",
+      "competencyId": "rn-jsi-boundaries",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-jsi-bridge-myth"
+      ],
+      "title": "JSI 与 Legacy Bridge 的关系？ · 场景推演",
+      "prompt": "选择对 JSI 最准确的描述。（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "JSI 完全取消所有异步通信和线程切换。",
+          "gapId": "rn-jsi-bridge-myth"
+        },
+        {
+          "id": "b",
+          "label": "JSI 是旧 Bridge 的别名，仍强制 JSON 批量传输。",
+          "gapId": "rn-jsi-bridge-myth"
+        },
+        {
+          "id": "c",
+          "label": "JSI 提供 JS Runtime 与 C++ 的接口能力；New Architecture 不依赖旧 Bridge 的核心 JSON 批量消息通路。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "把接口层、旧消息通路和调度语义分开。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "JSI 提供 JS Runtime 与 C++ 的接口能力；New Architecture 不依赖旧 Bridge 的核心 JSON 批量消息通路。"
+    },
+    {
+      "id": "review-rn-jsi-zero-copy-myth-a",
+      "competencyId": "rn-jsi-boundaries",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-jsi-zero-copy-myth"
+      ],
+      "title": "JSI 是否保证零拷贝？ · 概念辨析",
+      "prompt": "直接通过 JSI 接口访问 Native，是否意味着所有数据不复制？",
+      "options": [
+        {
+          "id": "a",
+          "label": "任何对象都能在 JS 与 Native 间零拷贝共享。",
+          "gapId": "rn-jsi-zero-copy-myth"
+        },
+        {
+          "id": "b",
+          "label": "不保证；复制与否取决于数据类型、HostObject / HostFunction 和具体实现。"
+        },
+        {
+          "id": "c",
+          "label": "使用 JSI 的函数调用一定同步。",
+          "gapId": "rn-jsi-zero-copy-myth"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "减少特定序列化，不等于消除所有数据转换。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "不保证；复制与否取决于数据类型、HostObject / HostFunction 和具体实现。"
+    },
+    {
+      "id": "review-rn-jsi-zero-copy-myth-b",
+      "competencyId": "rn-jsi-boundaries",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-jsi-zero-copy-myth"
+      ],
+      "title": "JSI 是否保证零拷贝？ · 场景推演",
+      "prompt": "直接通过 JSI 接口访问 Native，是否意味着所有数据不复制？（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "使用 JSI 的函数调用一定同步。",
+          "gapId": "rn-jsi-zero-copy-myth"
+        },
+        {
+          "id": "b",
+          "label": "任何对象都能在 JS 与 Native 间零拷贝共享。",
+          "gapId": "rn-jsi-zero-copy-myth"
+        },
+        {
+          "id": "c",
+          "label": "不保证；复制与否取决于数据类型、HostObject / HostFunction 和具体实现。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "减少特定序列化，不等于消除所有数据转换。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "不保证；复制与否取决于数据类型、HostObject / HostFunction 和具体实现。"
+    },
+    {
+      "id": "review-rn-turbo-spec-implementation-a",
+      "competencyId": "rn-turbomodules-codegen",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-turbo-spec-implementation"
+      ],
+      "title": "TurboModule 的 spec 与实现如何分工？ · 概念辨析",
+      "prompt": "完成一个 TurboModule 需要哪些部分？",
+      "options": [
+        {
+          "id": "a",
+          "label": "只需要 TypeScript 接口，Codegen 自动完成功能。",
+          "gapId": "rn-turbo-spec-implementation"
+        },
+        {
+          "id": "b",
+          "label": "类型化 spec、Codegen 生成接口、平台原生实现和 Registry 访问。"
+        },
+        {
+          "id": "c",
+          "label": "只写 Java / Objective-C++，不需要声明 JS 契约。",
+          "gapId": "rn-turbo-spec-implementation"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把 API 契约、生成代码和平台实现分为三层。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "类型化 spec、Codegen 生成接口、平台原生实现和 Registry 访问。"
+    },
+    {
+      "id": "review-rn-turbo-spec-implementation-b",
+      "competencyId": "rn-turbomodules-codegen",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-turbo-spec-implementation"
+      ],
+      "title": "TurboModule 的 spec 与实现如何分工？ · 场景推演",
+      "prompt": "完成一个 TurboModule 需要哪些部分？（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "只写 Java / Objective-C++，不需要声明 JS 契约。",
+          "gapId": "rn-turbo-spec-implementation"
+        },
+        {
+          "id": "b",
+          "label": "只需要 TypeScript 接口，Codegen 自动完成功能。",
+          "gapId": "rn-turbo-spec-implementation"
+        },
+        {
+          "id": "c",
+          "label": "类型化 spec、Codegen 生成接口、平台原生实现和 Registry 访问。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "把 API 契约、生成代码和平台实现分为三层。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "类型化 spec、Codegen 生成接口、平台原生实现和 Registry 访问。"
+    },
+    {
+      "id": "review-rn-turbo-lazy-init-a",
+      "competencyId": "rn-turbomodules-codegen",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-turbo-lazy-init"
+      ],
+      "title": "TurboModule 是否都在启动时实例化？ · 概念辨析",
+      "prompt": "TurboModule 注册和实例化关系是什么？",
+      "options": [
+        {
+          "id": "a",
+          "label": "所有 TurboModule 必须在 JS Runtime 启动前全部实例化。",
+          "gapId": "rn-turbo-lazy-init"
+        },
+        {
+          "id": "b",
+          "label": "接口可注册和查找，模块实例可按需初始化。"
+        },
+        {
+          "id": "c",
+          "label": "TurboModule 只能在第一次 React render 后由用户创建。",
+          "gapId": "rn-turbo-lazy-init"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "注册、查找和创建实例是不同生命周期动作。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "接口可注册和查找，模块实例可按需初始化。"
+    },
+    {
+      "id": "review-rn-turbo-lazy-init-b",
+      "competencyId": "rn-turbomodules-codegen",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-turbo-lazy-init"
+      ],
+      "title": "TurboModule 是否都在启动时实例化？ · 场景推演",
+      "prompt": "TurboModule 注册和实例化关系是什么？（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "TurboModule 只能在第一次 React render 后由用户创建。",
+          "gapId": "rn-turbo-lazy-init"
+        },
+        {
+          "id": "b",
+          "label": "所有 TurboModule 必须在 JS Runtime 启动前全部实例化。",
+          "gapId": "rn-turbo-lazy-init"
+        },
+        {
+          "id": "c",
+          "label": "接口可注册和查找，模块实例可按需初始化。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "注册、查找和创建实例是不同生命周期动作。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "接口可注册和查找，模块实例可按需初始化。"
+    },
+    {
+      "id": "review-rn-render-commit-mount-a",
+      "competencyId": "rn-fabric-render-pipeline",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-render-commit-mount"
+      ],
+      "title": "Fabric 的核心阶段顺序？ · 概念辨析",
+      "prompt": "选择正确的 Fabric render pipeline。",
+      "options": [
+        {
+          "id": "a",
+          "label": "Render → Mount → Commit。",
+          "gapId": "rn-render-commit-mount"
+        },
+        {
+          "id": "b",
+          "label": "Render → Commit → Mount。"
+        },
+        {
+          "id": "c",
+          "label": "Commit → Render → Mount。",
+          "gapId": "rn-render-commit-mount"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "从 Shadow Tree、布局提交和平台视图更新三个动作推导。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Render → Commit → Mount。"
+    },
+    {
+      "id": "review-rn-render-commit-mount-b",
+      "competencyId": "rn-fabric-render-pipeline",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-render-commit-mount"
+      ],
+      "title": "Fabric 的核心阶段顺序？ · 场景推演",
+      "prompt": "选择正确的 Fabric render pipeline。（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "Commit → Render → Mount。",
+          "gapId": "rn-render-commit-mount"
+        },
+        {
+          "id": "b",
+          "label": "Render → Mount → Commit。",
+          "gapId": "rn-render-commit-mount"
+        },
+        {
+          "id": "c",
+          "label": "Render → Commit → Mount。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "从 Shadow Tree、布局提交和平台视图更新三个动作推导。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Render → Commit → Mount。"
+    },
+    {
+      "id": "review-rn-yoga-vs-mount-a",
+      "competencyId": "rn-fabric-render-pipeline",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-yoga-vs-mount"
+      ],
+      "title": "Yoga 布局发生在哪个阶段？ · 概念辨析",
+      "prompt": "Yoga 计算出节点尺寸后，接下来是什么？",
+      "options": [
+        {
+          "id": "a",
+          "label": "Yoga 直接创建 UIView / Android View，因此它就是 Mount。",
+          "gapId": "rn-yoga-vs-mount"
+        },
+        {
+          "id": "b",
+          "label": "Yoga 布局属于 Commit；之后 Mount 计算 diff 并更新 Host Views。"
+        },
+        {
+          "id": "c",
+          "label": "Yoga 是 TurboModule 的代码生成步骤。",
+          "gapId": "rn-yoga-vs-mount"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "分清布局计算与真正操作平台视图。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Yoga 布局属于 Commit；之后 Mount 计算 diff 并更新 Host Views。"
+    },
+    {
+      "id": "review-rn-yoga-vs-mount-b",
+      "competencyId": "rn-fabric-render-pipeline",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-yoga-vs-mount"
+      ],
+      "title": "Yoga 布局发生在哪个阶段？ · 场景推演",
+      "prompt": "Yoga 计算出节点尺寸后，接下来是什么？（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "Yoga 是 TurboModule 的代码生成步骤。",
+          "gapId": "rn-yoga-vs-mount"
+        },
+        {
+          "id": "b",
+          "label": "Yoga 直接创建 UIView / Android View，因此它就是 Mount。",
+          "gapId": "rn-yoga-vs-mount"
+        },
+        {
+          "id": "c",
+          "label": "Yoga 布局属于 Commit；之后 Mount 计算 diff 并更新 Host Views。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "分清布局计算与真正操作平台视图。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Yoga 布局属于 Commit；之后 Mount 计算 diff 并更新 Host Views。"
+    },
+    {
+      "id": "review-rn-js-ui-thread-roles-a",
+      "competencyId": "rn-threading-priority",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-js-ui-thread-roles"
+      ],
+      "title": "JS Thread 和 UI Thread 的职责？ · 概念辨析",
+      "prompt": "关于 Renderer 的两条主要线程，哪项正确？",
+      "options": [
+        {
+          "id": "a",
+          "label": "两条线程都能无约束地操作 Host Views。",
+          "gapId": "rn-js-ui-thread-roles"
+        },
+        {
+          "id": "b",
+          "label": "JS Thread 执行常见 React render 与布局；UI Thread 是唯一能操作 Host Views 的线程。"
+        },
+        {
+          "id": "c",
+          "label": "UI Thread 只负责 JS，JS Thread 只负责绘制原生 View。",
+          "gapId": "rn-js-ui-thread-roles"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "关注谁执行 React 逻辑、谁拥有平台 View。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "JS Thread 执行常见 React render 与布局；UI Thread 是唯一能操作 Host Views 的线程。"
+    },
+    {
+      "id": "review-rn-js-ui-thread-roles-b",
+      "competencyId": "rn-threading-priority",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-js-ui-thread-roles"
+      ],
+      "title": "JS Thread 和 UI Thread 的职责？ · 场景推演",
+      "prompt": "关于 Renderer 的两条主要线程，哪项正确？（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "UI Thread 只负责 JS，JS Thread 只负责绘制原生 View。",
+          "gapId": "rn-js-ui-thread-roles"
+        },
+        {
+          "id": "b",
+          "label": "两条线程都能无约束地操作 Host Views。",
+          "gapId": "rn-js-ui-thread-roles"
+        },
+        {
+          "id": "c",
+          "label": "JS Thread 执行常见 React render 与布局；UI Thread 是唯一能操作 Host Views 的线程。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "关注谁执行 React 逻辑、谁拥有平台 View。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "JS Thread 执行常见 React render 与布局；UI Thread 是唯一能操作 Host Views 的线程。"
+    },
+    {
+      "id": "review-rn-render-interruptibility-a",
+      "competencyId": "rn-threading-priority",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-render-interruptibility"
+      ],
+      "title": "Render 阶段可以被打断吗？ · 概念辨析",
+      "prompt": "高优先级离散事件到达时，New Architecture 如何响应？",
+      "options": [
+        {
+          "id": "a",
+          "label": "Render 开始后必须完成 Mount 才能处理事件。",
+          "gapId": "rn-render-interruptibility"
+        },
+        {
+          "id": "b",
+          "label": "Render 可中断；高优先级事件优先处理，特定场景可在 UI Thread 同步执行渲染工作。"
+        },
+        {
+          "id": "c",
+          "label": "所有事件被强制放入一个无优先级 FIFO 队列。",
+          "gapId": "rn-render-interruptibility"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分 Render 的可中断性与 Mount 的 UI Thread 操作。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Render 可中断；高优先级事件优先处理，特定场景可在 UI Thread 同步执行渲染工作。"
+    },
+    {
+      "id": "review-rn-render-interruptibility-b",
+      "competencyId": "rn-threading-priority",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-render-interruptibility"
+      ],
+      "title": "Render 阶段可以被打断吗？ · 场景推演",
+      "prompt": "高优先级离散事件到达时，New Architecture 如何响应？（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "所有事件被强制放入一个无优先级 FIFO 队列。",
+          "gapId": "rn-render-interruptibility"
+        },
+        {
+          "id": "b",
+          "label": "Render 开始后必须完成 Mount 才能处理事件。",
+          "gapId": "rn-render-interruptibility"
+        },
+        {
+          "id": "c",
+          "label": "Render 可中断；高优先级事件优先处理，特定场景可在 UI Thread 同步执行渲染工作。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "区分 Render 的可中断性与 Mount 的 UI Thread 操作。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Render 可中断；高优先级事件优先处理，特定场景可在 UI Thread 同步执行渲染工作。"
+    },
+    {
+      "id": "review-rn-legacy-bridge-current-a",
+      "competencyId": "rn-integrated-architecture",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-legacy-bridge-current"
+      ],
+      "title": "RN 0.88 的默认架构状态？ · 概念辨析",
+      "prompt": "React Native 0.88 的 Legacy Architecture 处于什么位置？",
+      "options": [
+        {
+          "id": "a",
+          "label": "0.88 默认运行 Legacy Bridge，New Architecture 仍是实验开关。",
+          "gapId": "rn-legacy-bridge-current"
+        },
+        {
+          "id": "b",
+          "label": "0.82 起仅运行 New Architecture；Legacy Bridge 是历史对照。"
+        },
+        {
+          "id": "c",
+          "label": "两种架构在 0.88 运行时随机混合。",
+          "gapId": "rn-legacy-bridge-current"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "使用明确版本边界，而不是套用旧迁移教程。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "0.82 起仅运行 New Architecture；Legacy Bridge 是历史对照。"
+    },
+    {
+      "id": "review-rn-legacy-bridge-current-b",
+      "competencyId": "rn-integrated-architecture",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-legacy-bridge-current"
+      ],
+      "title": "RN 0.88 的默认架构状态？ · 场景推演",
+      "prompt": "React Native 0.88 的 Legacy Architecture 处于什么位置？（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "两种架构在 0.88 运行时随机混合。",
+          "gapId": "rn-legacy-bridge-current"
+        },
+        {
+          "id": "b",
+          "label": "0.88 默认运行 Legacy Bridge，New Architecture 仍是实验开关。",
+          "gapId": "rn-legacy-bridge-current"
+        },
+        {
+          "id": "c",
+          "label": "0.82 起仅运行 New Architecture；Legacy Bridge 是历史对照。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "使用明确版本边界，而不是套用旧迁移教程。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "0.82 起仅运行 New Architecture；Legacy Bridge 是历史对照。"
+    },
+    {
+      "id": "review-rn-build-startup-runtime-boundary-a",
+      "competencyId": "rn-integrated-architecture",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-build-startup-runtime-boundary"
+      ],
+      "title": "Build / Startup / Runtime 如何区分？ · 概念辨析",
+      "prompt": "把 Hermes、Codegen、JSI 和 Fabric 放到合理阶段。",
+      "options": [
+        {
+          "id": "a",
+          "label": "Hermes 和 Codegen 都只在 Runtime 执行，Build 只打包图片。",
+          "gapId": "rn-build-startup-runtime-boundary"
+        },
+        {
+          "id": "b",
+          "label": "Hermes / Codegen 产物属于 Build；Runtime 初始化属于 Startup；执行、事件和渲染属于 Runtime。"
+        },
+        {
+          "id": "c",
+          "label": "Fabric 的 Mount 在 Codegen 阶段完成。",
+          "gapId": "rn-build-startup-runtime-boundary"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先按阶段分类，再把组件放回其生命周期。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Hermes / Codegen 产物属于 Build；Runtime 初始化属于 Startup；执行、事件和渲染属于 Runtime。"
+    },
+    {
+      "id": "review-rn-build-startup-runtime-boundary-b",
+      "competencyId": "rn-integrated-architecture",
+      "topicId": "react-native",
+      "gapIds": [
+        "rn-build-startup-runtime-boundary"
+      ],
+      "title": "Build / Startup / Runtime 如何区分？ · 场景推演",
+      "prompt": "把 Hermes、Codegen、JSI 和 Fabric 放到合理阶段。（请代入一次真实应用构建与运行过程。）",
+      "code": "Build → Startup → Runtime\\nJS / C++ / Native / UI Thread",
+      "options": [
+        {
+          "id": "a",
+          "label": "Fabric 的 Mount 在 Codegen 阶段完成。",
+          "gapId": "rn-build-startup-runtime-boundary"
+        },
+        {
+          "id": "b",
+          "label": "Hermes 和 Codegen 都只在 Runtime 执行，Build 只打包图片。",
+          "gapId": "rn-build-startup-runtime-boundary"
+        },
+        {
+          "id": "c",
+          "label": "Hermes / Codegen 产物属于 Build；Runtime 初始化属于 Startup；执行、事件和渲染属于 Runtime。"
+        }
+      ],
+      "answer": "c",
+      "hints": [
+        "先按阶段分类，再把组件放回其生命周期。",
+        "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
+      ],
+      "explanation": "Hermes / Codegen 产物属于 Build；Runtime 初始化属于 Startup；执行、事件和渲染属于 Runtime。"
     }
-  ]
+  ],
+  "version": "2.0.0"
 }

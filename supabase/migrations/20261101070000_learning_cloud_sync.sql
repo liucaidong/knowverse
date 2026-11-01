@@ -241,7 +241,7 @@ declare
   v_inserted integer := 0;
   v_allowed_types text[] := array[
     'attempt', 'hint', 'hint_revealed', 'completed',
-    'review_started', 'assessment_passed', 'activity',
+    'checkpoint_started', 'review_started', 'assessment_passed', 'activity',
     'plan_action_started', 'plan_action_completed'
   ];
 begin

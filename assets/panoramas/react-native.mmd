@@ -1,35 +1,34 @@
 flowchart LR
-classDef hub fill:#10374a,color:#ffffff,stroke:#4a8b9a,stroke-width:2px;
-classDef node fill:#f0f7f6,color:#1b4452,stroke:#accfd0,stroke-width:1px;
-  subgraph G0["构建时"]
-    N00["Hermes 编译"]
-    N01["CodeGen"]
-    N02["类型到胶水代码"]
-  end
-  N00 --> N01
-  N01 --> N02
-  subgraph G1["启动时"]
-    N10["JSI Runtime"]
-    N11["TurboModule 工厂"]
-    N12["Fabric 初始化"]
-  end
-  N10 --> N11
-  N11 --> N12
-  subgraph G2["运行时"]
-    N20["JS ↔ C++ ↔ Native"]
-    N21["Render → Commit → Mount"]
-    N22["事件与生命周期"]
-  end
-  N20 --> N21
-  N21 --> N22
-  N02 ==> N10
-  N12 ==> N20
-  class N00 node
-  class N01 node
-  class N02 node
-  class N10 node
-  class N11 node
-  class N12 node
-  class N20 node
-  class N21 node
-  class N22 node
+classDef build fill:#e7f1f7,color:#25465c,stroke:#92b4c8,stroke-width:1px;
+classDef startup fill:#f0ebfa,color:#4d4274,stroke:#b2a6d5,stroke-width:1px;
+classDef runtime fill:#e5f3ee,color:#285a4a,stroke:#8fc2ab,stroke-width:1px;
+subgraph B["Build Time / 构建时"]
+ JS["JS / TS source"] --> Metro["Metro bundle"] --> Hermes["Hermes compiler → .hbc"]
+ Spec["Typed Native spec"] --> Codegen["Codegen"]
+ Codegen --> Glue["C++ glue + platform interfaces"]
+ Android["Android / iOS source"]
+ Hermes --> App["Native app build"]
+ Glue --> App
+ Android --> App
+end
+subgraph S["App Startup / 启动时"]
+ App --> Runtime["Create JS Runtime"]
+ Runtime --> JSI["Install JSI bindings"]
+ Runtime --> Registry["TurboModule Registry / lazy lookup"]
+ Runtime --> FabricInit["Initialize Fabric renderer"]
+end
+subgraph R["Runtime / 运行时"]
+ JSI --> Calls["JS ↔ C++ ↔ Native calls"]
+ Registry --> Calls
+ FabricInit --> Render["Render"]
+ Render --> Shadow["Immutable Shadow Tree"]
+ Shadow --> Commit["Commit + Yoga layout"]
+ Commit --> Mount["Mount / tree diff"]
+ Mount --> Host["Host Views on UI Thread"]
+ Host --> Pixels["Pixels"]
+ Events["Native events"] --> Dispatch["Event dispatch / priority"]
+ Dispatch --> Render
+end
+class JS,Metro,Hermes,Spec,Codegen,Glue,Android,App build
+class Runtime,JSI,Registry,FabricInit startup
+class Calls,Render,Shadow,Commit,Mount,Host,Pixels,Events,Dispatch runtime

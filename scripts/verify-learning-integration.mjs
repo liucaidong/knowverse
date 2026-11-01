@@ -26,8 +26,8 @@ test("all live works declare a learning contract and use the shared integration 
   const challengeMap = new Map(challenges.challenges.map(item => [item.id, item]));
   const checkpointMap = new Map(checkpoints.checkpoints.map(item => [item.id, item]));
   assert.equal(works.pillars.length, 3);
-  assert.equal(works.works.length, 14);
-  assert.equal(checkpoints.checkpoints.length, 12);
+  assert.equal(works.works.length, 17);
+  assert.equal(checkpoints.checkpoints.length, 14);
   for (const work of works.works.filter(item => item.status === "live")) {
     assert.equal(work.learning.activityTracking, true, work.id);
     assert.ok(work.knowledge_ids.every(id => topicIds.has(id)), work.id);

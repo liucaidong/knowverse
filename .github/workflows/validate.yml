@@ -47,6 +47,8 @@ jobs:
         run: node --test scripts/verify-learning-intelligence.mjs
       - name: Verify work-to-knowledge learning integration and checkpoints
         run: node --test scripts/verify-learning-integration.mjs
+      - name: Validate React Native third learning domain, prerequisite graph and gap variants
+        run: node --test scripts/verify-react-native-domain.mjs
       - name: Test explainable adaptive learning planner and prerequisite scheduling
         run: node --test scripts/verify-learning-planner.mjs
       - name: Parse learning and review browser modules
@@ -70,6 +72,9 @@ jobs:
           node --check assets/js/backend/sync-engine.mjs
           node --check assets/js/backend/account-panel.mjs
           node --check assets/js/backend/callback.mjs
+          node --check assets/js/rn-render-pipeline.mjs
+          node --check assets/js/rn-architecture-gallery.mjs
+          node --check assets/js/rn-architecture-quest.mjs
       - name: Install Playwright browsers for cross-engine review flow
         run: |
           npm install --no-save playwright
@@ -80,6 +85,8 @@ jobs:
         run: node --test scripts/e2e-learning-integration.mjs
       - name: Browser E2E · Adaptive daily learning plan
         run: node --test scripts/e2e-learning-planner.mjs
+      - name: Browser E2E · React Native domain across all three pillars
+        run: node --test scripts/e2e-react-native-domain.mjs
       - name: Parse Monorepo browser modules
         run: |
           node --input-type=module --check < assets/js/monorepo-world.js

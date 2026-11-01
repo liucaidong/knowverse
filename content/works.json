@@ -1,5 +1,5 @@
 {
-  "version": "1.6.0",
+  "version": "1.7.0",
   "updated": "2026-11-01",
   "pillars": [
     {
@@ -386,6 +386,83 @@
         "assessment": {
           "type": "challenge",
           "challengeId": "promise-mechanism-quest"
+        }
+      }
+    },
+    {
+      "id": "rn-render-pipeline-lab",
+      "pillar": "lab",
+      "title": "Fabric 渲染管线观测器 · Render / Commit / Mount",
+      "subject": "React Native",
+      "level": "进阶",
+      "kind": "experiment",
+      "status": "live",
+      "href": "./lab/experiments/rn-render-pipeline/",
+      "summary": "单步观察 Build / Startup / Runtime，以及 Fabric Render、Commit、Yoga 布局、树 diff 和 UI Thread Mount。",
+      "knowledge_ids": [
+        "react-native"
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "rn-fabric-render-pipeline"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-rn-render-pipeline"
+        }
+      }
+    },
+    {
+      "id": "rn-new-architecture-gallery",
+      "pillar": "gallery",
+      "title": "新架构空间全景 · Build / Startup / Runtime 3D 展厅",
+      "subject": "React Native",
+      "level": "进阶",
+      "kind": "exhibition",
+      "status": "live",
+      "href": "./gallery/exhibits/rn-new-architecture/",
+      "summary": "在交互式 CSS 3D 空间探索 Hermes、Codegen、JSI、TurboModules、Fabric 与线程边界。",
+      "knowledge_ids": [
+        "react-native"
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "rn-integrated-architecture"
+        ],
+        "assessment": {
+          "type": "checkpoint",
+          "checkpointId": "cp-rn-architecture-exhibition"
+        }
+      }
+    },
+    {
+      "id": "rn-architecture-quest",
+      "pillar": "puzzles",
+      "title": "架构边界挑战 · React Native New Architecture Quest",
+      "subject": "React Native",
+      "level": "进阶",
+      "kind": "puzzle",
+      "status": "live",
+      "href": "./puzzles/worlds/rn-architecture-quest/",
+      "summary": "六道递进挑战覆盖构建、JSI、TurboModules、Fabric、线程优先级与综合推演；错题定位 gap 并进入独立复习。",
+      "knowledge_ids": [
+        "react-native"
+      ],
+      "learning": {
+        "activityTracking": true,
+        "competencyIds": [
+          "rn-build-artifacts",
+          "rn-jsi-boundaries",
+          "rn-turbomodules-codegen",
+          "rn-fabric-render-pipeline",
+          "rn-threading-priority",
+          "rn-integrated-architecture"
+        ],
+        "assessment": {
+          "type": "challenge",
+          "challengeId": "rn-architecture-quest"
         }
       }
     }

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#102a3d"><meta name="description" content="交互式观察 React Native Fabric 的 Build、Startup、Render、Commit、Mount 阶段边界。"><title>Fabric 渲染管线观测器 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/rn-domain.css"></head>
+<body class="rn-work-page" data-root="../../../">
+<header class="rn-work-top"><a href="../../../">KNOWVERSE / LAB</a><nav><a href="../../../knowledge/react-native/">知识专题</a><a href="../../../gallery/exhibits/rn-new-architecture/">空间展厅</a><a href="../../../puzzles/worlds/rn-architecture-quest/">挑战世界</a></nav></header>
+<main class="rn-work-main">
+<section class="rn-work-hero"><div><span class="rn-kicker">01 / UNDERSTAND · FABRIC RENDERER</span><h1>Fabric 渲染管线观测器</h1><p>单步追踪一次 UI 更新如何从 React state，经过 C++ Shadow Tree、Yoga 布局和 tree diff，最终应用到 Android / iOS Host Views。这里是教学模型，不读取设备内部私有队列。</p></div><div class="rn-card"><span class="rn-kicker">MODEL</span><strong>Build → Startup → Runtime</strong><p>8 个阶段 · 跳转 / 单步 · 线程归属</p></div></section>
+<div class="rn-panels">
+<section class="rn-card">
+<div class="rn-stage-tabs" aria-label="选择架构阶段"><button data-phase="build" aria-pressed="false">Build</button><button data-phase="startup" aria-pressed="false">Startup</button><button data-phase="runtime" aria-pressed="true">Runtime</button></div>
+<div class="rn-flow-track" id="rn-flow-track"></div>
+<div class="rn-step-view" aria-live="polite"><span class="rn-kicker" id="rn-step-label">RUNTIME / 05</span><h2 id="rn-step-title">Render</h2><p id="rn-step-description"></p><div class="rn-meta-list"><div class="rn-meta-row"><strong>执行层 / Thread</strong><span id="rn-step-thread"></span></div><div class="rn-meta-row"><strong>输入 → 输出</strong><span id="rn-step-io"></span></div><div class="rn-meta-row"><strong>边界提醒</strong><span id="rn-step-boundary"></span></div></div></div>
+<div class="rn-controls"><button class="secondary" id="rn-prev">上一步</button><button id="rn-next">下一步</button><button class="secondary" id="rn-reset">重置观察</button></div>
+</section>
+<aside class="rn-card"><span class="rn-kicker">OBSERVATION NOTES</span><h2>本阶段要辨析什么？</h2><div class="rn-meta-list"><div class="rn-meta-row"><strong>Yoga ≠ Mount</strong><span>Yoga 参与布局计算，Mount 将变更应用到平台 Host Views。</span></div><div class="rn-meta-row"><strong>Shadow Tree ≠ Native Views</strong><span>Shadow Tree 是 C++ 渲染模型，Host Views 是平台视图。</span></div><div class="rn-meta-row"><strong>Commit ≠ Paint</strong><span>Commit 完成布局和树提升；Mount 才执行视图变更。</span></div></div><a class="rn-action" href="../../../knowledge/react-native/chapter-05/">阅读 Fabric 原理课程 ↗</a></aside>
+</div></main>
+<script type="module" src="../../../assets/js/rn-render-pipeline.mjs"></script>
+<script type="module" src="../../../assets/js/learning-integration.mjs"></script>
+</body></html>

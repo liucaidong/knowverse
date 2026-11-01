@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
+  "version": "3.0.0",
   "updated": "2026-11-01",
   "description": "KNOWVERSE 掌握图谱 V2：每个 gap 显式映射至真实 competency，用于精确诊断、定向复习和下游影响分析。",
   "topics": [
@@ -160,6 +160,114 @@
           "labHref": "./knowledge/monorepo/labs/cache/"
         }
       ]
+    },
+    {
+      "id": "react-native",
+      "title": "React Native · 新架构",
+      "accent": "#7c88ed",
+      "href": "./knowledge/react-native/",
+      "challengeId": "rn-architecture-quest",
+      "graph": {
+        "width": 1380,
+        "height": 430
+      },
+      "competencies": [
+        {
+          "id": "rn-build-artifacts",
+          "title": "构建产物与启动边界",
+          "description": "区分 Metro bundle、Hermes 字节码、Codegen 生成代码和平台原生构建产物。",
+          "prerequisites": [],
+          "position": {
+            "x": 35,
+            "y": 48
+          },
+          "lessonHref": "./knowledge/react-native/chapter-01/",
+          "challengeHref": "./puzzles/worlds/rn-architecture-quest/",
+          "labHref": "./lab/experiments/rn-render-pipeline/",
+          "exhibitionHref": "./gallery/exhibits/rn-new-architecture/"
+        },
+        {
+          "id": "rn-jsi-boundaries",
+          "title": "JSI 与跨语言运行时边界",
+          "description": "理解 JSI 如何让 JavaScript Runtime 与 C++ HostFunction / HostObject 建立接口；避免误解为全同步或零拷贝。",
+          "prerequisites": [
+            "rn-build-artifacts"
+          ],
+          "position": {
+            "x": 365,
+            "y": 48
+          },
+          "lessonHref": "./knowledge/react-native/chapter-03/",
+          "challengeHref": "./puzzles/worlds/rn-architecture-quest/",
+          "labHref": "./lab/experiments/rn-render-pipeline/",
+          "exhibitionHref": "./gallery/exhibits/rn-new-architecture/"
+        },
+        {
+          "id": "rn-turbomodules-codegen",
+          "title": "TurboModules 与 Codegen 契约",
+          "description": "从 TypeScript / Flow spec、Codegen 生成接口、平台原生实现，到 TurboModule Registry 获取模块。",
+          "prerequisites": [
+            "rn-jsi-boundaries"
+          ],
+          "position": {
+            "x": 695,
+            "y": 48
+          },
+          "lessonHref": "./knowledge/react-native/chapter-04/",
+          "challengeHref": "./puzzles/worlds/rn-architecture-quest/",
+          "labHref": "./lab/experiments/rn-render-pipeline/",
+          "exhibitionHref": "./gallery/exhibits/rn-new-architecture/"
+        },
+        {
+          "id": "rn-fabric-render-pipeline",
+          "title": "Fabric 渲染管线",
+          "description": "推演 React Element Tree、C++ Shadow Tree、Render、Commit / Yoga 布局和 Mount / Host View 更新。",
+          "prerequisites": [
+            "rn-jsi-boundaries"
+          ],
+          "position": {
+            "x": 365,
+            "y": 238
+          },
+          "lessonHref": "./knowledge/react-native/chapter-05/",
+          "challengeHref": "./puzzles/worlds/rn-architecture-quest/",
+          "labHref": "./lab/experiments/rn-render-pipeline/",
+          "exhibitionHref": "./gallery/exhibits/rn-new-architecture/"
+        },
+        {
+          "id": "rn-threading-priority",
+          "title": "线程模型与事件优先级",
+          "description": "区分 JavaScript Thread 与 UI Thread 的职责，理解 Render 可中断和高优先级离散事件。",
+          "prerequisites": [
+            "rn-fabric-render-pipeline"
+          ],
+          "position": {
+            "x": 695,
+            "y": 238
+          },
+          "lessonHref": "./knowledge/react-native/chapter-06/",
+          "challengeHref": "./puzzles/worlds/rn-architecture-quest/",
+          "labHref": "./lab/experiments/rn-render-pipeline/",
+          "exhibitionHref": "./gallery/exhibits/rn-new-architecture/"
+        },
+        {
+          "id": "rn-integrated-architecture",
+          "title": "新架构综合运行模型",
+          "description": "整合 Build、Startup、Runtime，JSI、TurboModules、Fabric、Hermes 与线程调度。",
+          "prerequisites": [
+            "rn-turbomodules-codegen",
+            "rn-threading-priority"
+          ],
+          "position": {
+            "x": 1025,
+            "y": 143
+          },
+          "lessonHref": "./knowledge/react-native/chapter-07/",
+          "challengeHref": "./puzzles/worlds/rn-architecture-quest/",
+          "labHref": "./lab/experiments/rn-render-pipeline/",
+          "exhibitionHref": "./gallery/exhibits/rn-new-architecture/"
+        }
+      ]
     }
   ],
   "gaps": [
@@ -314,6 +422,104 @@
       "description": "缓存命中只说明输入指纹相同；若输入集合定义不完整，命中仍可能复用过期产物。",
       "competencyIds": [
         "build-cache-integrity"
+      ]
+    },
+    {
+      "id": "rn-hermes-bytecode-timing",
+      "label": "Hermes 字节码编译阶段混淆",
+      "description": "Hermes 在应用构建阶段将 JavaScript 编译为 Hermes Bytecode。",
+      "competencyIds": [
+        "rn-build-artifacts"
+      ]
+    },
+    {
+      "id": "rn-codegen-generated-output",
+      "label": "Codegen 生成物与业务实现混淆",
+      "description": "Codegen 生成 C++ glue 与平台接口；原生业务实现仍由开发者编写。",
+      "competencyIds": [
+        "rn-build-artifacts",
+        "rn-turbomodules-codegen"
+      ]
+    },
+    {
+      "id": "rn-jsi-bridge-myth",
+      "label": "JSI 与 Legacy Bridge 关系混淆",
+      "description": "JSI 提供 JS Runtime 与 C++ 接口；新架构不依赖旧 Bridge 核心消息通路，但不代表不存在异步边界。",
+      "competencyIds": [
+        "rn-jsi-boundaries",
+        "rn-integrated-architecture"
+      ]
+    },
+    {
+      "id": "rn-jsi-zero-copy-myth",
+      "label": "JSI 被误解为所有数据零拷贝",
+      "description": "JSI 改善接口与特定数据通路，具体复制和异步行为取决于 API 与实现。",
+      "competencyIds": [
+        "rn-jsi-boundaries"
+      ]
+    },
+    {
+      "id": "rn-turbo-spec-implementation",
+      "label": "TurboModule spec 与原生实现混淆",
+      "description": "类型化 spec 定义接口，Codegen 生成 glue 和平台接口，实际 Native 行为仍需实现。",
+      "competencyIds": [
+        "rn-turbomodules-codegen"
+      ]
+    },
+    {
+      "id": "rn-turbo-lazy-init",
+      "label": "TurboModule 注册与实例化时机混淆",
+      "description": "注册、查找和实例创建是不同动作；模块可以按需初始化。",
+      "competencyIds": [
+        "rn-turbomodules-codegen"
+      ]
+    },
+    {
+      "id": "rn-render-commit-mount",
+      "label": "Fabric Render / Commit / Mount 顺序混淆",
+      "description": "Render 构建树；Commit 计算布局和树提升；Mount 应用平台视图变更。",
+      "competencyIds": [
+        "rn-fabric-render-pipeline"
+      ]
+    },
+    {
+      "id": "rn-yoga-vs-mount",
+      "label": "Yoga 布局计算与 Host View Mount 混淆",
+      "description": "Yoga 参与 Commit 布局；Mount 的 diff 和平台视图操作是后续阶段。",
+      "competencyIds": [
+        "rn-fabric-render-pipeline"
+      ]
+    },
+    {
+      "id": "rn-js-ui-thread-roles",
+      "label": "JS Thread 与 UI Thread 职责混淆",
+      "description": "JS Thread 执行常见 React render；UI Thread 是唯一能操作平台 Host Views 的线程。",
+      "competencyIds": [
+        "rn-threading-priority"
+      ]
+    },
+    {
+      "id": "rn-render-interruptibility",
+      "label": "Render 可中断性混淆",
+      "description": "Render 阶段可被高优先级事件打断；不能把整条管线视为固定线程上的单块工作。",
+      "competencyIds": [
+        "rn-threading-priority"
+      ]
+    },
+    {
+      "id": "rn-legacy-bridge-current",
+      "label": "Legacy Bridge 被当作当前默认架构",
+      "description": "React Native 0.82 起仅运行 New Architecture；Legacy Architecture 是历史对照。",
+      "competencyIds": [
+        "rn-integrated-architecture"
+      ]
+    },
+    {
+      "id": "rn-build-startup-runtime-boundary",
+      "label": "Build / Startup / Runtime 边界混淆",
+      "description": "Hermes / Codegen 属于构建产物；Runtime 初始化属于启动；调用、事件和渲染属于运行。",
+      "competencyIds": [
+        "rn-integrated-architecture"
       ]
     }
   ]

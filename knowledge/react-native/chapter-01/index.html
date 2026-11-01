@@ -1,25 +1,24 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="将新架构分为 Build Time / App Startup / Runtime：构建阶段产生 Hermes 字节码与 CodeGen 生成代码；启动阶段初始化 JS Runtime、JSI 绑定、TurboModule 注册、Fabric；运行阶段贯通 JavaSc"><title>构建、启动、运行三阶段 · KNOWVERSE 知域</title><link rel="stylesheet" href="../../../assets/css/v2.css"></head><body data-root="../../../" class="article"><div class="topline"></div><header class="navwrap"><nav class="navbar" aria-label="主导航"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/" aria-current="page">知识库</a><a href="../../../lab/" >原理实验室</a><a href="../../../gallery/" >沉浸展厅</a><a href="../../../puzzles/" >解谜世界</a><a href="../../../timeline/" >会话时间线</a></div><button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button><button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">React Native · 新架构</a></div><div class="eyebrow">FROM JAVASCRIPT TO PIXELS / NOTE</div><h1>构建、启动、运行三阶段</h1><p class="lead">将新架构分为 Build Time / App Startup / Runtime：构建阶段产生 Hermes 字节码与 CodeGen 生成代码；启动阶段初始化 JS Runtime、JSI 绑定、TurboModule 注册、Fabric；运行阶段贯通 JavaSc</p><div class="stats"><span>专题：<strong>React Native · 新架构</strong></span><span>来源：<strong>历史会话整理</strong></span></div></div><div class="article-grid"><article class="reader"><h1>构建、启动、运行三阶段</h1>
-<blockquote>
-<p>来源：按可检索历史会话线索整理，部分表达为知识性归纳，非逐字原话。</p>
-</blockquote>
-<p>将新架构分为 <strong>Build Time / App Startup / Runtime</strong>：构建阶段产生 Hermes 字节码与 CodeGen 生成代码；启动阶段初始化 JS Runtime、JSI 绑定、TurboModule 注册、Fabric；运行阶段贯通 JavaScript、C++ 与平台 Native。</p>
-<pre class="mermaid">flowchart TD
- subgraph Build[Build Time]
- H[Hermes 编译] --> Bundle[字节码或包]
- Schema[类型规格] --> CG[CodeGen] --> Glue[原生胶水代码]
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="把 Hermes 编译、Codegen、Runtime 初始化与运行期渲染分到正确阶段。"><title>Build / Startup / Runtime：先建立阶段模型 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/rn-domain.css"></head><body data-root="../../../" class="article rn-article"><div class="topline"></div><header class="navwrap"><nav class="navbar"><a class="mark" href="../../../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a><div class="navlinks"><a href="../../../knowledge/">知识库</a><a href="../../../lab/">原理实验室</a><a href="../../../gallery/">沉浸展厅</a><a href="../../../puzzles/">解谜世界</a><a href="../../../progress/">学习驾驶舱</a></div><button id="mobile-menu" class="mobilemenu">菜单</button><button class="search-trigger" id="search-open">搜索知识库 <span>⌘ K</span></button></nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">React Native · 新架构</a></div><div class="eyebrow">REACT NATIVE 0.88 / LEARNING PATH</div><h1>Build / Startup / Runtime：先建立阶段模型</h1><p class="lead">把 Hermes 编译、Codegen、Runtime 初始化与运行期渲染分到正确阶段。</p></div><div class="article-grid"><article class="reader"><p class="source-lead">版本基线：React Native 0.88。Build / Startup / Runtime 是帮助定位职责的教学分层，不代表每一步都严格串行。</p>
+<h2>一张图先看三阶段</h2><pre class="mermaid">flowchart LR
+ subgraph B[Build Time]
+  JS[JS / TS] --> Metro[Metro bundle] --> Hermes[Hermes compiler / .hbc]
+  Spec[Typed Native spec] --> CG[Codegen] --> Glue[C++ glue + platform interfaces]
+  Hermes --> App[Native app build]
+  Glue --> App
  end
- subgraph Start[App Startup]
- JSRT[JS Runtime / JSI] --> TReg[TurboModule 注册]
- JSRT --> Fabric[Fabric 初始化]
+ subgraph S[Startup]
+  App --> Runtime[Create JS Runtime]
+  Runtime --> JSI[Install JSI bindings]
+  Runtime --> Registry[Resolve native modules]
+  Runtime --> Fabric[Initialize Fabric]
  end
- subgraph Run[Runtime]
- JS[JS 调用与状态] --> CPP[C++ 核心]
- CPP --> Native[原生实现与 UI]
- Native -->|事件| JS
- end
- Bundle --> JSRT
- Glue --> TReg
- Fabric --> CPP
-</pre>
-<p>这是概念级全景，不意味着每一步在所有平台上都是线性和同步的。它服务于诊断问题：哪个操作发生在编译期、哪一层持有运行时对象、哪些跨线程边界会引入等待。</p>
-<div class="source-note">本篇为可追溯知识整理，并非完整会话逐字稿。 <a href="./index.md">查看 Markdown 原文</a> · <a href="../">返回专题</a></div></article><aside class="sidelist"><strong>ON THIS PAGE</strong><a href="../">返回专题全景图</a><hr style="border:0;border-top:1px solid #d5e3e5;margin:22px 0"><a href="../">← 专题目录</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>把长期对话整理成可探索、可验证的知识系统 · V2 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、Rush、Fabric、金融、Agent…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script></body></html>
+ subgraph R[Runtime]
+  JSI --> Calls[JS ↔ C++ ↔ Native]
+  Fabric --> Render[Render → Commit → Mount]
+  Calls --> Events[Native events / callbacks]
+ end</pre>
+<h2>Build：两条产物路径</h2><p>Hermes 负责 JavaScript 引擎与字节码；Codegen 根据类型化 Native spec 生成 C++ glue 与平台接口。两者都参与应用构建，但不是固定串行依赖。</p>
+<div class="rn-two-column"><section><h3>Hermes</h3><p>Release 构建会将 JavaScript 编译为 Hermes Bytecode。它是 JS Runtime，不是原生 UI renderer。</p></section><section><h3>Codegen</h3><p>TypeScript / Flow spec 经过 Codegen，生成 C++ glue 与平台接口；Native 业务实现仍由开发者编写。</p></section></div>
+<h2>Startup：初始化运行环境</h2><p>应用启动时创建 JavaScript Runtime、安装 JSI 绑定、准备 Native Module 的查找与实例化，并初始化 Fabric renderer。模块注册、查找和实例化不是同一个动作。</p>
+<h2>Runtime：持续发生的工作</h2><p>运行期包含 JavaScript 逻辑、JSI 跨语言接口、原生模块调用、平台事件，以及 Fabric 的 UI 更新。</p>
+<p><strong>诊断口诀：</strong>字节码和接口脚手架问 Build；Runtime 与模块可用性问 Startup；调用、事件、渲染和帧更新问 Runtime。</p><div class="source-note"><strong>继续学习：</strong><a href="../">返回专题全景</a> · <a href="../../../lab/experiments/rn-render-pipeline/">打开原理实验室</a> · <a href="../../../puzzles/worlds/rn-architecture-quest/">进入架构边界挑战</a></div></article><aside class="sidelist"><strong>学习导航</strong><a href="../">专题全景</a><a href="../chapter-01/">三阶段模型</a><a href="../chapter-03/">JSI</a><a href="../chapter-04/">TurboModules</a><a href="../chapter-05/">Fabric</a><a href="../chapter-06/">线程模型</a><a href="../chapter-07/">0.88 工程基线</a></aside></div></main><footer class="sitefooter"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>知识 / 探索 / 实践 · React Native New Architecture</p></div><div class="footerlinks"><a href="../../../knowledge/">知识专题</a><a href="../../../progress/">学习驾驶舱</a><a href="https://reactnative.dev/architecture/overview">官方架构文档</a></div></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 JSI、TurboModules、Fabric…" aria-label="搜索"><div id="search-results" class="searchresults"></div></div></div><script defer src="../../../assets/js/v2.js"></script></body></html>
