@@ -1,0 +1,1015 @@
+{
+  "schemaVersion": 2,
+  "updated": "2026-11-01",
+  "description": "KNOWVERSE 精确薄弱点复习注册表。17 个 gap、18 个 gap-competency 映射，各提供两种不同验证变体；提示辅助通过仍需另一个无提示变体独立确认。",
+  "assessments": [
+    {
+      "id": "review-thenable-get-vs-call-a",
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "thenable-get-vs-call"
+      ],
+      "title": "Get 与 Call：同步边界",
+      "prompt": "调用 thenable 时，哪一步属于同步执行？",
+      "code": "const thenable = { get then() { console.log('get'); return () => console.log('call'); } }; Promise.resolve(thenable); console.log('end');",
+      "options": [
+        {
+          "id": "a",
+          "label": "then 函数会和 getter 一样同步调用。",
+          "gapId": "thenable-get-vs-call"
+        },
+        {
+          "id": "b",
+          "label": "then getter 的属性读取会在 Promise 解析过程中同步发生。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把“读取 then 属性”与“调用读取到的函数”分开。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "Get(then) 同步发生；then 函数调用由后续 PromiseResolveThenableJob 执行。"
+    },
+    {
+      "id": "review-thenable-get-vs-call-b",
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "thenable-get-vs-call"
+      ],
+      "title": "Get 与 Call：输出顺序验证",
+      "prompt": "下面代码的输出顺序是什么？",
+      "code": "const x = { get then() { console.log('get'); return resolve => { console.log('call'); resolve(1); }; } }; console.log('start'); Promise.resolve(x); console.log('end');",
+      "options": [
+        {
+          "id": "a",
+          "label": "start → end → get → call；getter 也被推迟到微任务。",
+          "gapId": "thenable-get-vs-call"
+        },
+        {
+          "id": "b",
+          "label": "start → get → end → call。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "getter 属于属性读取阶段；函数调用才被安排到 Job。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "正确顺序是 start、get、end、call。"
+    },
+    {
+      "id": "review-resolved-vs-settled-a",
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "resolved-vs-settled"
+      ],
+      "title": "解决权与落定状态",
+      "prompt": "resolve(inner) 已执行，但 inner 仍为 pending。outer 的状态是什么？",
+      "code": "let finish; const inner = new Promise(r => finish = r); const outer = new Promise(resolve => resolve(inner)); console.log('outer waiting');",
+      "options": [
+        {
+          "id": "a",
+          "label": "outer 已经 fulfilled，值就是 inner Promise 对象。",
+          "gapId": "resolved-vs-settled"
+        },
+        {
+          "id": "b",
+          "label": "outer 仍为 pending，但其解决方向已经锁定为采用 inner。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "resolved 描述解决过程被锁定；settled 描述最终兑现或拒绝。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "outer 需要采用 inner；inner pending 时 outer 也保持 pending。"
+    },
+    {
+      "id": "review-resolved-vs-settled-b",
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "resolved-vs-settled"
+      ],
+      "title": "解决权与落定状态：延迟观察",
+      "prompt": "执行到 console.log 时，outer.then 的处理器是否可能已经运行？",
+      "code": "let finish; const inner = new Promise(r => finish = r); const outer = new Promise(resolve => resolve(inner)); outer.then(() => console.log('done')); console.log('sync-end');",
+      "options": [
+        {
+          "id": "a",
+          "label": "会。调用 resolve(inner) 就等于 outer 立即 fulfilled。",
+          "gapId": "resolved-vs-settled"
+        },
+        {
+          "id": "b",
+          "label": "不会。inner 尚未兑现，outer 的 fulfillment reaction 没有执行条件。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "检查 inner 的状态，不要把 resolve 被调用误当作 outer 落定。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "outer 会等待 inner 的最终状态，sync-end 先执行。"
+    },
+    {
+      "id": "review-thenable-job-timing-a",
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "thenable-job-timing"
+      ],
+      "title": "ThenableJob：函数调用时机",
+      "prompt": "Promise.resolve(thenable) 读取 then 后，会在何时调用取出的函数？",
+      "code": "const t = { get then() { console.log('get'); return r => { console.log('call'); r(1); }; } }; Promise.resolve(t); console.log('end');",
+      "options": [
+        {
+          "id": "a",
+          "label": "在 Promise.resolve 返回之前立即调用。",
+          "gapId": "thenable-job-timing"
+        },
+        {
+          "id": "b",
+          "label": "在后续 PromiseResolveThenableJob 中调用。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "将 getter 的 Get 操作和随后调用 then 函数的 Job 分开。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "then 函数调用通过 PromiseResolveThenableJob 排队，不是当前同步调用栈中的直接调用。"
+    },
+    {
+      "id": "review-thenable-job-timing-b",
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "thenable-job-timing"
+      ],
+      "title": "ThenableJob：与普通微任务的顺序",
+      "prompt": "Promise.resolve(thenable) 后立即 queueMicrotask，哪个日志先出现？",
+      "code": "const t = { then(r) { console.log('then'); r(1); } }; Promise.resolve(t); queueMicrotask(() => console.log('micro'));",
+      "options": [
+        {
+          "id": "a",
+          "label": "micro → then；queueMicrotask 总是优先于 Promise 内部任务。",
+          "gapId": "thenable-job-timing"
+        },
+        {
+          "id": "b",
+          "label": "then → micro；Promise.resolve 先安排 ThenableJob，之后才注册 micro。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "按任务实际入队先后推导，不要按 API 名称猜优先级。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "ThenableJob 在 queueMicrotask 调用前已被安排，因此先执行。"
+    },
+    {
+      "id": "review-getter-sync-a",
+      "competencyId": "integrated-execution-model",
+      "topicId": "promise",
+      "gapIds": [
+        "getter-sync"
+      ],
+      "title": "then Getter：同步读取与异常",
+      "prompt": "thenable 的 then getter 抛出异常时，Promise.resolve 会怎样？",
+      "code": "const t = { get then() { console.log('get'); throw Error('getter'); } }; const p = Promise.resolve(t); console.log('after');",
+      "options": [
+        {
+          "id": "a",
+          "label": "getter 会等一个微任务后才读取，异常直接同步抛出给调用者。",
+          "gapId": "getter-sync"
+        },
+        {
+          "id": "b",
+          "label": "同步读取 getter 并记录 get；异常被转换成返回 Promise 的拒绝。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分 getter 的同步执行与 Promise 对外暴露拒绝结果的方式。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "Get(then) 在同步解析流程中执行；读取过程的 abrupt completion 会拒绝该 Promise。"
+    },
+    {
+      "id": "review-getter-sync-b",
+      "competencyId": "integrated-execution-model",
+      "topicId": "promise",
+      "gapIds": [
+        "getter-sync"
+      ],
+      "title": "then Getter：同步输出检查",
+      "prompt": "下面哪条日志顺序正确？",
+      "code": "const t = { get then() { console.log('getter'); return resolve => { console.log('then-call'); resolve(); }; } }; Promise.resolve(t); console.log('sync');",
+      "options": [
+        {
+          "id": "a",
+          "label": "sync → getter → then-call；Promise.resolve 会推迟属性读取。",
+          "gapId": "getter-sync"
+        },
+        {
+          "id": "b",
+          "label": "getter → sync → then-call。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "属性访问器在访问时执行；不要把它与 then 函数调用混在一起。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "then getter 同步输出，then-call 由后续 ThenableJob 输出。"
+    },
+    {
+      "id": "review-reaction-registration-timing-a",
+      "competencyId": "microtask-scheduling",
+      "topicId": "promise",
+      "gapIds": [
+        "reaction-registration-timing"
+      ],
+      "title": "Reaction 注册不等于执行",
+      "prompt": "对已经 fulfilled 的 Promise 调用 then，回调会同步执行吗？",
+      "code": "Promise.resolve(1).then(() => console.log('reaction')); console.log('sync');",
+      "options": [
+        {
+          "id": "a",
+          "label": "会；源 Promise 已 fulfilled，所以回调立即执行。",
+          "gapId": "reaction-registration-timing"
+        },
+        {
+          "id": "b",
+          "label": "不会；then 注册 reaction，回调作为 PromiseReactionJob 后续执行。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分注册 reaction 和执行 reaction 的时机。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "then 不同步调用处理器；反应任务在后续微任务检查点执行。"
+    },
+    {
+      "id": "review-reaction-registration-timing-b",
+      "competencyId": "microtask-scheduling",
+      "topicId": "promise",
+      "gapIds": [
+        "reaction-registration-timing"
+      ],
+      "title": "Reaction 注册：已落定 Promise",
+      "prompt": "then 调用返回前，回调是否已经运行？",
+      "code": "const p = Promise.resolve('ok'); let ran = false; p.then(() => ran = true); console.log(ran);",
+      "options": [
+        {
+          "id": "a",
+          "label": "输出 true；fulfilled Promise 的 then 会同步执行。",
+          "gapId": "reaction-registration-timing"
+        },
+        {
+          "id": "b",
+          "label": "输出 false；回调尚未运行，只是 reaction 已注册并排队。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把同步代码的观察点放在微任务检查点之前。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "回调稍后执行，因此同步读取 ran 仍是 false。"
+    },
+    {
+      "id": "review-microtask-fifo-a",
+      "competencyId": "microtask-scheduling",
+      "topicId": "promise",
+      "gapIds": [
+        "microtask-fifo"
+      ],
+      "title": "微任务 FIFO：跨 API",
+      "prompt": "以下两个微任务的执行顺序是什么？",
+      "code": "Promise.resolve().then(() => console.log('A')); queueMicrotask(() => console.log('B')); console.log('sync');",
+      "options": [
+        {
+          "id": "a",
+          "label": "sync → B → A；queueMicrotask 有更高优先级。",
+          "gapId": "microtask-fifo"
+        },
+        {
+          "id": "b",
+          "label": "sync → A → B。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "按调用先后画出微任务入队顺序。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "Promise reaction 与 queueMicrotask 回调都遵循同一微任务队列的 FIFO 顺序。"
+    },
+    {
+      "id": "review-microtask-fifo-b",
+      "competencyId": "microtask-scheduling",
+      "topicId": "promise",
+      "gapIds": [
+        "microtask-fifo"
+      ],
+      "title": "微任务 FIFO：反向注册",
+      "prompt": "将 queueMicrotask 放在 Promise.then 前面，结果是什么？",
+      "code": "queueMicrotask(() => console.log('B')); Promise.resolve().then(() => console.log('A'));",
+      "options": [
+        {
+          "id": "a",
+          "label": "A → B；PromiseReactionJob 总是优先。",
+          "gapId": "microtask-fifo"
+        },
+        {
+          "id": "b",
+          "label": "B → A；先注册的 queueMicrotask 先入队。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "顺序由谁先入队决定，不由任务类型名称决定。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "先入队的 B 执行后，才轮到 A。"
+    },
+    {
+      "id": "review-nested-microtask-a",
+      "competencyId": "microtask-scheduling",
+      "topicId": "promise",
+      "gapIds": [
+        "nested-microtask"
+      ],
+      "title": "嵌套微任务：追加到队尾",
+      "prompt": "A 内部注册 C，而 B 已经等待执行。顺序是什么？",
+      "code": "queueMicrotask(() => { console.log('A'); queueMicrotask(() => console.log('C')); }); queueMicrotask(() => console.log('B'));",
+      "options": [
+        {
+          "id": "a",
+          "label": "A → C → B；嵌套微任务会插到队首。",
+          "gapId": "nested-microtask"
+        },
+        {
+          "id": "b",
+          "label": "A → B → C。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "C 要等 A 开始执行才会入队；此时 B 已经排队。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "当前回调内新增的微任务追加到队列尾部，已排队的 B 先于 C。"
+    },
+    {
+      "id": "review-nested-microtask-b",
+      "competencyId": "microtask-scheduling",
+      "topicId": "promise",
+      "gapIds": [
+        "nested-microtask"
+      ],
+      "title": "嵌套微任务：多个已排队任务",
+      "prompt": "A 加入 C，队列原本还有 B、D，执行顺序是什么？",
+      "code": "queueMicrotask(() => { console.log('A'); queueMicrotask(() => console.log('C')); }); queueMicrotask(() => console.log('B')); queueMicrotask(() => console.log('D'));",
+      "options": [
+        {
+          "id": "a",
+          "label": "A → C → B → D；嵌套任务抢占当前队列。",
+          "gapId": "nested-microtask"
+        },
+        {
+          "id": "b",
+          "label": "A → B → D → C。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "初始队列是 A、B、D；C 只在 A 运行时才加入。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "C 被追加到既有任务之后，所以最后输出。"
+    },
+    {
+      "id": "review-then-rejection-boundary-a",
+      "competencyId": "chain-error-propagation",
+      "topicId": "promise",
+      "gapIds": [
+        "then-rejection-boundary"
+      ],
+      "title": "then 拒绝处理器的边界",
+      "prompt": "同一次 then 的第二个参数能捕获第一个参数内部的 throw 吗？",
+      "code": "Promise.resolve(1).then(() => { throw Error('boom'); }, () => console.log('same then reject')).catch(() => console.log('later catch'));",
+      "options": [
+        {
+          "id": "a",
+          "label": "能；同一次 then 的 onRejected 会捕获 onFulfilled 的异常。",
+          "gapId": "then-rejection-boundary"
+        },
+        {
+          "id": "b",
+          "label": "不能；throw 拒绝 then 返回的新 Promise，由后续 catch 捕获。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "onRejected 处理的是源 Promise 的拒绝，不是同一 then 的成功处理器异常。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "成功处理器抛错会拒绝下游 Promise；后续 catch 才处理它。"
+    },
+    {
+      "id": "review-then-rejection-boundary-b",
+      "competencyId": "chain-error-propagation",
+      "topicId": "promise",
+      "gapIds": [
+        "then-rejection-boundary"
+      ],
+      "title": "then 拒绝边界：源 Promise 已拒绝",
+      "prompt": "源 Promise 已 rejected，哪个处理器执行？",
+      "code": "Promise.reject('bad').then(() => console.log('fulfilled'), () => console.log('rejected'));",
+      "options": [
+        {
+          "id": "a",
+          "label": "fulfilled；then 的第一个处理器总会执行。",
+          "gapId": "then-rejection-boundary"
+        },
+        {
+          "id": "b",
+          "label": "rejected；第二个参数处理源 Promise 的拒绝。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "这次 onRejected 接收的是源 Promise 的拒绝原因。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "onRejected 负责处理源 Promise 的拒绝。"
+    },
+    {
+      "id": "review-chain-state-recovery-a",
+      "competencyId": "chain-error-propagation",
+      "topicId": "promise",
+      "gapIds": [
+        "chain-state-recovery"
+      ],
+      "title": "catch 恢复下游链",
+      "prompt": "原 Promise rejected，catch 返回普通字符串。下游状态如何？",
+      "code": "const source = Promise.reject('bad'); const next = source.catch(() => 'recovered'); next.then(console.log);",
+      "options": [
+        {
+          "id": "a",
+          "label": "source 会被改写成 fulfilled，原对象状态发生逆转。",
+          "gapId": "chain-state-recovery"
+        },
+        {
+          "id": "b",
+          "label": "source 仍 rejected；next 是新的 fulfilled Promise，值为 recovered。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "单个 Promise 状态不可逆；catch 通过返回的新 Promise 恢复下游链。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "source 状态不变，catch 的返回值决定新 Promise 的结果。"
+    },
+    {
+      "id": "review-chain-state-recovery-b",
+      "competencyId": "chain-error-propagation",
+      "topicId": "promise",
+      "gapIds": [
+        "chain-state-recovery"
+      ],
+      "title": "catch 抛错：恢复会再次失败",
+      "prompt": "catch 处理器自己 throw 时，下游 Promise 是什么状态？",
+      "code": "Promise.reject('bad').catch(() => { throw Error('again'); }).catch(error => console.log(error.message));",
+      "options": [
+        {
+          "id": "a",
+          "label": "下游 Promise fulfilled，因为 catch 已经执行过。",
+          "gapId": "chain-state-recovery"
+        },
+        {
+          "id": "b",
+          "label": "下游 Promise 再次 rejected，后续 catch 可捕获 again。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "catch 不保证成功；它返回的新 Promise 仍遵守解析流程。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "catch 回调抛错会拒绝它返回的新 Promise。"
+    },
+    {
+      "id": "review-then-new-promise-a",
+      "competencyId": "chain-error-propagation",
+      "topicId": "promise",
+      "gapIds": [
+        "then-new-promise"
+      ],
+      "title": "then 总是建立下游 Promise",
+      "prompt": "同一个源 Promise 调用两次 then，会返回同一个 Promise 吗？",
+      "code": "const p = Promise.resolve(1); const a = p.then(x => x); const b = p.then(x => x); console.log(a === b);",
+      "options": [
+        {
+          "id": "a",
+          "label": "会；then 只是在源 Promise 上登记不同回调。",
+          "gapId": "then-new-promise"
+        },
+        {
+          "id": "b",
+          "label": "不会；每次 then 调用都会创建一个新的 Promise。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分源 Promise 与每一次 then 返回的下游 Promise。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "a 与 b 是两个不同的新 Promise。"
+    },
+    {
+      "id": "review-then-new-promise-b",
+      "competencyId": "chain-error-propagation",
+      "topicId": "promise",
+      "gapIds": [
+        "then-new-promise"
+      ],
+      "title": "then 返回值：采用处理器结果",
+      "prompt": "处理器返回另一个 Promise 时，下游 Promise 会怎样？",
+      "code": "const inner = Promise.resolve(42); const next = Promise.resolve(1).then(() => inner);",
+      "options": [
+        {
+          "id": "a",
+          "label": "next 与 inner 必须是同一个对象，因为处理器返回了 inner。",
+          "gapId": "then-new-promise"
+        },
+        {
+          "id": "b",
+          "label": "next 采用 inner 的最终状态与结果，但 next 本身仍是 then 创建的新 Promise。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分对象身份与 Promise Resolution Procedure 的采用行为。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "下游 Promise 会采用 inner，但对象身份不会因此合并。"
+    },
+    {
+      "id": "review-all-race-order-a",
+      "competencyId": "combinator-semantics",
+      "topicId": "promise",
+      "gapIds": [
+        "all-race-order"
+      ],
+      "title": "all 输入顺序与 race 先落定",
+      "prompt": "slow 是数组第一项，fast 先兑现。all 与 race 的结果是什么？",
+      "code": "const slow = new Promise(r => setTimeout(() => r('slow'), 20)); const fast = Promise.resolve('fast'); Promise.all([slow, fast]); Promise.race([slow, fast]);",
+      "options": [
+        {
+          "id": "a",
+          "label": "all 按完成顺序返回 ['fast','slow']；race 固定选择第一项 slow。",
+          "gapId": "all-race-order"
+        },
+        {
+          "id": "b",
+          "label": "all 等两项后按输入顺序返回 ['slow','fast']；race 返回 fast。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "all 结果位置看输入索引；race 看最先落定。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "all 等待全部兑现且保持输入顺序；race 由 fast 先落定。"
+    },
+    {
+      "id": "review-all-race-order-b",
+      "competencyId": "combinator-semantics",
+      "topicId": "promise",
+      "gapIds": [
+        "all-race-order"
+      ],
+      "title": "all 与 race：后注册不改变输入位置",
+      "prompt": "数组第二项先落定会让 all 结果交换位置吗？",
+      "code": "Promise.all([new Promise(r => setTimeout(() => r('A'), 10)), Promise.resolve('B')]).then(console.log);",
+      "options": [
+        {
+          "id": "a",
+          "label": "会；先完成的 B 会成为结果数组的第一项。",
+          "gapId": "all-race-order"
+        },
+        {
+          "id": "b",
+          "label": "不会；结果仍按输入顺序排列为 ['A','B']。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "all 收集结果时使用输入位置索引，而不是完成时间。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "Promise.all 的结果顺序与兑现顺序无关。"
+    },
+    {
+      "id": "review-all-waits-all-a",
+      "competencyId": "combinator-semantics",
+      "topicId": "promise",
+      "gapIds": [
+        "all-waits-all"
+      ],
+      "title": "Promise.all 的全部成功条件",
+      "prompt": "Promise.all 中一项很快 fulfilled，另一项仍 pending。组合 Promise 会 fulfilled 吗？",
+      "code": "const slow = new Promise(resolve => setTimeout(() => resolve('slow'), 100)); Promise.all([Promise.resolve('fast'), slow]);",
+      "options": [
+        {
+          "id": "a",
+          "label": "会；只要有一个输入 fulfilled，all 就立即 fulfilled。",
+          "gapId": "all-waits-all"
+        },
+        {
+          "id": "b",
+          "label": "不会；必须等所有输入都 fulfilled 才 fulfilled。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "all 的成功条件是全部输入成功，而不是任一输入成功。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "Promise.all 会等待 slow 完成后才交付结果数组。"
+    },
+    {
+      "id": "review-all-waits-all-b",
+      "competencyId": "combinator-semantics",
+      "topicId": "promise",
+      "gapIds": [
+        "all-waits-all"
+      ],
+      "title": "Promise.all：拒绝的快速路径",
+      "prompt": "输入中一项 rejected，all 是否还必须等待其它所有项 settled 才能 rejected？",
+      "code": "Promise.all([Promise.reject('bad'), new Promise(r => setTimeout(r, 1000))]);",
+      "options": [
+        {
+          "id": "a",
+          "label": "必须；all 无论成功或失败都必须等待全部 settled。",
+          "gapId": "all-waits-all"
+        },
+        {
+          "id": "b",
+          "label": "不必；组合 Promise 可以在观察到拒绝后快速 rejected。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分全部成功条件与 fail-fast 拒绝路径。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "all 的 fulfilled 需要全部成功；rejected 则不必等其它输入。"
+    },
+    {
+      "id": "review-all-no-cancel-a",
+      "competencyId": "combinator-semantics",
+      "topicId": "promise",
+      "gapIds": [
+        "all-no-cancel"
+      ],
+      "title": "Promise.all 不会取消底层任务",
+      "prompt": "Promise.all 中一项 rejected，其他请求会自动停止吗？",
+      "code": "const a = fetch('/slow'); const b = fetch('/bad'); await Promise.all([a,b]);",
+      "options": [
+        {
+          "id": "a",
+          "label": "会；all rejected 会自动向所有输入广播取消。",
+          "gapId": "all-no-cancel"
+        },
+        {
+          "id": "b",
+          "label": "不会；all 只决定组合 Promise，底层取消需要 AbortController 等机制。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "Promise 组合层与网络请求/任务本身是两个不同层次。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "Promise.all 不自带取消协议；需要底层 API 支持取消。"
+    },
+    {
+      "id": "review-all-no-cancel-b",
+      "competencyId": "combinator-semantics",
+      "topicId": "promise",
+      "gapIds": [
+        "all-no-cancel"
+      ],
+      "title": "显式取消：AbortController",
+      "prompt": "希望在一个请求失败后中止另一个 fetch，应该依赖什么？",
+      "code": "const controller = new AbortController(); fetch('/slow', { signal: controller.signal });",
+      "options": [
+        {
+          "id": "a",
+          "label": "只需 Promise.race 一个 reject Promise，fetch 就会自动结束。",
+          "gapId": "all-no-cancel"
+        },
+        {
+          "id": "b",
+          "label": "在失败处理路径调用 controller.abort()，并让请求共享对应 signal。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "race 只决定组合结果；AbortSignal 才会通知 fetch 取消。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "使用 AbortController/AbortSignal 发出取消信号。"
+    },
+    {
+      "id": "review-adoption-timeline-a",
+      "competencyId": "integrated-execution-model",
+      "topicId": "promise",
+      "gapIds": [
+        "adoption-timeline"
+      ],
+      "title": "Promise 采用时序：inner 先兑现",
+      "prompt": "outer 采用 inner 后，inner 兑现前 outer.then 会执行吗？",
+      "code": "let finish; const inner = new Promise(r => finish = r); const outer = Promise.resolve({ then(resolve) { resolve(inner); } }); outer.then(() => console.log('outer'));",
+      "options": [
+        {
+          "id": "a",
+          "label": "会；thenable 调用 resolve(inner) 时 outer 就立即兑现。",
+          "gapId": "adoption-timeline"
+        },
+        {
+          "id": "b",
+          "label": "不会；outer 必须先采用 inner 的最终状态。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把 thenable Job、inner 状态变化与 outer reaction 分成不同时间点。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "inner 兑现后，采用传播完成，outer 才能触发 fulfillment reaction。"
+    },
+    {
+      "id": "review-adoption-timeline-b",
+      "competencyId": "integrated-execution-model",
+      "topicId": "promise",
+      "gapIds": [
+        "adoption-timeline"
+      ],
+      "title": "Promise 采用时序：先注册 reaction",
+      "prompt": "outer 采用 pending inner 时注册的 then 会怎样？",
+      "code": "let finish; const inner = new Promise(r => finish = r); const outer = Promise.resolve(inner); outer.then(() => console.log('done')); console.log('waiting');",
+      "options": [
+        {
+          "id": "a",
+          "label": "reaction 会因为 outer 已经 resolved 而同步执行。",
+          "gapId": "adoption-timeline"
+        },
+        {
+          "id": "b",
+          "label": "reaction 会等待 outer 采用 inner 的最终兑现结果后执行。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "resolved-but-pending 仍然 pending；reaction 不会跳过采用过程。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "waiting 先同步输出，done 要等 inner 兑现并完成传播后才执行。"
+    },
+    {
+      "id": "review-workspace-protocol-a",
+      "competencyId": "workspace-resolution",
+      "topicId": "monorepo",
+      "gapIds": [
+        "workspace-protocol"
+      ],
+      "title": "Workspace 协议：仓库内依赖",
+      "prompt": "同一 pnpm workspace 内 apps/web 直接依赖 packages/domain，推荐如何声明？",
+      "code": "// apps/web/package.json dependencies",
+      "options": [
+        {
+          "id": "a",
+          "label": "只写普通 ^1.0.0 就能保证永远解析到当前 workspace。",
+          "gapId": "workspace-protocol"
+        },
+        {
+          "id": "b",
+          "label": "使用 workspace:* 明确引用仓库内工作区包。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "用协议表达仓库内依赖，消费者仍显式声明直接依赖。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "workspace:* 明确工作区边界并避免意外解析 registry 版本。"
+    },
+    {
+      "id": "review-workspace-protocol-b",
+      "competencyId": "workspace-resolution",
+      "topicId": "monorepo",
+      "gapIds": [
+        "workspace-protocol"
+      ],
+      "title": "Workspace 协议：直接依赖声明",
+      "prompt": "源码 import 一个工作区包，但它只出现在根 package.json，是否合规？",
+      "code": "// apps/web/src/main.ts\\nimport { createDomain } from '@kv/domain';",
+      "options": [
+        {
+          "id": "a",
+          "label": "合规；只要某个 node_modules 目录里能解析就足够。",
+          "gapId": "workspace-protocol"
+        },
+        {
+          "id": "b",
+          "label": "不合规；apps/web 必须在自己的 manifest 中声明直接依赖。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "依赖关系应属于真实消费者，不依赖 hoisting 或幽灵依赖。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "直接 import 的包必须由消费者 package.json 声明。"
+    },
+    {
+      "id": "review-build-dependency-order-a",
+      "competencyId": "build-topology",
+      "topicId": "monorepo",
+      "gapIds": [
+        "build-dependency-order"
+      ],
+      "title": "构建拓扑：依赖先于消费者",
+      "prompt": "domain 依赖 utils，web 依赖 domain。有效构建顺序是什么？",
+      "code": "web → domain → utils（箭头表示消费者依赖提供者）",
+      "options": [
+        {
+          "id": "a",
+          "label": "web → domain → utils；先构建最终应用。",
+          "gapId": "build-dependency-order"
+        },
+        {
+          "id": "b",
+          "label": "utils → domain → web。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "构建必须遵守 provider 先于 consumer 的依赖约束。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "utils 是最底层依赖，domain 和 web 依次等待上游。"
+    },
+    {
+      "id": "review-build-dependency-order-b",
+      "competencyId": "build-topology",
+      "topicId": "monorepo",
+      "gapIds": [
+        "build-dependency-order"
+      ],
+      "title": "构建拓扑：并行就绪层",
+      "prompt": "A、B 无依赖；C 依赖 A，D 依赖 B。第一层可以安排什么？",
+      "code": "A    B\\n|    |\\nC    D",
+      "options": [
+        {
+          "id": "a",
+          "label": "必须 A → B → C → D，所有节点都要串行。",
+          "gapId": "build-dependency-order"
+        },
+        {
+          "id": "b",
+          "label": "A 与 B 可以并行；C、D 各自在上游完成后再执行。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "拓扑排序限制依赖路径，不限制无关节点并行。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "互不依赖的 A、B 可同层执行，消费者等待各自上游。"
+    },
+    {
+      "id": "review-affected-reverse-closure-a",
+      "competencyId": "affected-closure",
+      "topicId": "monorepo",
+      "gapIds": [
+        "affected-reverse-closure"
+      ],
+      "title": "Affected：反向依赖闭包",
+      "prompt": "contracts 被修改，domain 依赖 contracts，web 依赖 domain。affected 至少包括？",
+      "code": "web → domain → contracts（箭头表示消费者依赖提供者）",
+      "options": [
+        {
+          "id": "a",
+          "label": "只包含 contracts，因为只有它的源码改变。",
+          "gapId": "affected-reverse-closure"
+        },
+        {
+          "id": "b",
+          "label": "contracts、domain、web；从变更源沿消费者方向递归传播。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "影响传播方向是依赖边的反向，且需要递归。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "完整闭包包含变更源和所有直接、间接消费者。"
+    },
+    {
+      "id": "review-affected-reverse-closure-b",
+      "competencyId": "affected-closure",
+      "topicId": "monorepo",
+      "gapIds": [
+        "affected-reverse-closure"
+      ],
+      "title": "Affected：多层间接消费者",
+      "prompt": "A 被 B 使用，B 被 C 使用，C 被 D 使用。修改 A 后，闭包是什么？",
+      "code": "D → C → B → A",
+      "options": [
+        {
+          "id": "a",
+          "label": "只包含 A、B；直接消费者之后不受影响。",
+          "gapId": "affected-reverse-closure"
+        },
+        {
+          "id": "b",
+          "label": "A、B、C、D；不能停在第一层直接消费者。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "每个新增受影响包本身也可能有消费者。",
+        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+      ],
+      "explanation": "affected 必须递归到 B、C、D，并包含 A。"
+    },
+    {
+      "id": "review-integrated-thenable-job-timing-a",
+      "competencyId": "integrated-execution-model",
+      "topicId": "promise",
+      "gapIds": [
+        "thenable-job-timing"
+      ],
+      "title": "综合时序：ThenableJob 入队点",
+      "prompt": "在 Promise.resolve(thenable) 后立刻注册 queueMicrotask，then 函数调用与 micro 回调谁先执行？",
+      "code": "const t = { then(resolve) { console.log('then-call'); resolve(); } }; console.log('start'); Promise.resolve(t); queueMicrotask(() => console.log('micro')); console.log('end');",
+      "options": [
+        {
+          "id": "a",
+          "label": "micro → then-call；queueMicrotask 一定优先于 Promise 内部 Job。",
+          "gapId": "thenable-job-timing"
+        },
+        {
+          "id": "b",
+          "label": "then-call → micro；ThenableJob 已在 queueMicrotask 注册前入队。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先确定 Promise.resolve 读取 then 后安排 Job 的位置。",
+        "再看 queueMicrotask 是在 Promise.resolve 返回后才注册。"
+      ],
+      "explanation": "ThenableJob 先入队，之后 queueMicrotask 再入队，因此 then-call 先于 micro。"
+    },
+    {
+      "id": "review-integrated-thenable-job-timing-b",
+      "competencyId": "integrated-execution-model",
+      "topicId": "promise",
+      "gapIds": [
+        "thenable-job-timing"
+      ],
+      "title": "综合时序：同步段与采用任务",
+      "prompt": "同一段代码里，哪些输出属于同步段，哪些来自 thenable 采用任务？",
+      "code": "const t = { get then() { console.log('get'); return () => console.log('call'); } }; console.log('A'); Promise.resolve(t); console.log('B');",
+      "options": [
+        {
+          "id": "a",
+          "label": "A、get、call、B 都在同步段，因为 Promise.resolve 会立即采用。",
+          "gapId": "thenable-job-timing"
+        },
+        {
+          "id": "b",
+          "label": "A、get、B 是同步输出；call 来自之后执行的 ThenableJob。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "Get(then) 是同步属性读取。",
+        "调用取出的 then 函数才是后续 Job。"
+      ],
+      "explanation": "同步段依次输出 A、get、B；call 由后续 ThenableJob 执行。"
+    }
+  ]
+}

@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Build deterministic full-text search index from source pages
         run: python3 scripts/build-search-index.py
       - name: Verify generated search index is reproducible
@@ -40,6 +43,22 @@ jobs:
         run: node --test scripts/verify-challenge-engine.mjs
       - name: Test learning mastery graph, event log, diagnostics and review scheduling
         run: node --test scripts/verify-learning-progress.mjs
+      - name: Test Learning Intelligence V2 migration, review lifecycle and independent verification
+        run: node --test scripts/verify-learning-intelligence.mjs
+      - name: Parse learning and review browser modules
+        run: |
+          node --check assets/js/learning-progress.mjs
+          node --check assets/js/learning-progress-page.mjs
+          node --check assets/js/review-engine.mjs
+          node --check assets/js/review-workspace.mjs
+          node --check assets/js/learning-activity.mjs
+          node --input-type=module --check < assets/js/v2.js
+      - name: Install Playwright browsers for cross-engine review flow
+        run: |
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium webkit
+      - name: Browser E2E · Chromium desktop and WebKit mobile viewport
+        run: node --test scripts/e2e-learning-intelligence.mjs
       - name: Parse Monorepo browser modules
         run: |
           node --input-type=module --check < assets/js/monorepo-world.js

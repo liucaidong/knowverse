@@ -36,7 +36,7 @@
 .lp-section-head h2 { margin: 4px 0 0; font-size: clamp(21px, 3vw, 28px); letter-spacing: -.04em; }
 .lp-section-head p { max-width: 560px; margin: 0; color: var(--lp-muted); font-size: 12px; line-height: 1.8; }
 .lp-eyebrow { color: #17887e; font-size: 10px; font-weight: 850; letter-spacing: .16em; }
-.lp-metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.lp-metric-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
 .lp-metric { padding: 18px; border: 1px solid var(--lp-line); border-radius: 15px; background: #fff; }
 .lp-metric span { display: block; color: var(--lp-muted); font-size: 11px; }
 .lp-metric strong { display: block; margin: 8px 0 2px; font-size: 29px; letter-spacing: -.05em; }
@@ -132,3 +132,5 @@
   .lp-privacy-actions { margin-top: 12px; }
 }
 @media (prefers-reduced-motion: reduce) { .lp-node { transition: none; } .lp-node:hover { transform: none; } }
+
+.lp-queue-group{display:grid;gap:9px;margin:0 0 18px}.lp-queue-group-heading{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:0 2px 3px}.lp-queue-group-heading h3{margin:0;color:#294850;font-size:13px;font-weight:850}.lp-queue-group-heading p{margin:0;color:#89989c;font-size:10px;line-height:1.6}@media(max-width:640px){.lp-queue-group-heading{display:block}.lp-queue-group-heading p{margin-top:4px}}

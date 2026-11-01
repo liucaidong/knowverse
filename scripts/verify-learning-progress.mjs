@@ -90,11 +90,11 @@ test("mastery stays unverified without evidence and does not treat a failed atte
     }],
   };
   const afterFailure = deriveLearningInsights(learningMap, { challenges: [challenge] }, failed, new Date("2026-11-01T12:00:00Z"));
-  assert.equal(afterFailure.competencyInsights[0].status, "unverified");
+  assert.equal(afterFailure.competencyInsights[0].status, "weak");
   assert.equal(afterFailure.gaps.length, 1);
 });
 
-test("later successful evidence resolves an earlier gap and schedules a review", () => {
+test("generic campaign success does not resolve a gap; gap-specific verification is required", () => {
   const snapshot = { events: [
     {
       id: "failed", type: "attempt", at: "2026-11-01T10:00:00Z", challengeId: challenge.id,
@@ -106,16 +106,16 @@ test("later successful evidence resolves an earlier gap and schedules a review",
     },
   ] };
   const result = deriveLearningInsights(learningMap, { challenges: [challenge] }, snapshot, new Date("2026-11-03T10:00:00Z"));
-  assert.equal(result.gaps.length, 0);
-  assert.equal(result.competencyInsights[0].status, "initial");
-  assert.equal(result.competencyInsights[0].intervalDays, 14);
-  assert.equal(result.competencyInsights[0].isDue, false);
+  assert.equal(result.gaps.length, 1);
+  assert.equal(result.competencyInsights[0].status, "weak");
+  assert.equal(result.competencyInsights[0].intervalDays, 1);
+  assert.equal(result.competencyInsights[0].isDue, true);
 });
 
 test("stable mastery requires independent verification on different dates", () => {
   const snapshot = { events: [
-    { id: "a", type: "completed", at: "2026-10-20T10:00:00Z", challengeId: challenge.id, stepId: "thenable", competencyIds: ["thenable-adoption"], scorePct: 100, hintsUsed: 0 },
-    { id: "b", type: "completed", at: "2026-10-25T10:00:00Z", challengeId: challenge.id, stepId: "thenable", competencyIds: ["thenable-adoption"], scorePct: 92, hintsUsed: 0 },
+    { id: "a", type: "completed", at: "2026-10-20T10:00:00Z", challengeId: challenge.id, stepId: "thenable", competencyIds: ["thenable-adoption"], scorePct: 100, hintsUsed: 0, variantId: "variant-a" },
+    { id: "b", type: "completed", at: "2026-10-25T10:00:00Z", challengeId: challenge.id, stepId: "thenable", competencyIds: ["thenable-adoption"], scorePct: 92, hintsUsed: 0, variantId: "variant-b" },
   ] };
   const result = deriveLearningInsights(learningMap, { challenges: [challenge] }, snapshot, new Date("2026-10-26T10:00:00Z"));
   assert.equal(result.competencyInsights[0].status, "stable");

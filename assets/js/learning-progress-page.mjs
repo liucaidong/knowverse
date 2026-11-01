@@ -59,11 +59,17 @@ function renderMetrics() {
   setText("hero-stable", String(summary.stableCount));
   setText("hero-due", String(summary.dueCount));
   setText("hero-events", String(insights.eventsCount));
+  setText("hero-verify", String(summary.pendingVerificationCount || 0));
   setText("metric-average", summary.averageScore === null ? "—" : summary.averageScore + "%");
   setText("metric-weak", String(summary.weakCount));
   setText("metric-completed", String(summary.completions));
   setText("metric-hints", String(summary.hints));
-  $("first-run-callout").hidden = insights.eventsCount > 0;
+  const confidenceRows = insights.competencyInsights.filter(item => item.evidenceCount);
+  const averageConfidence = confidenceRows.length
+    ? Math.round(confidenceRows.reduce((total, item) => total + (item.confidenceScore || 0), 0) / confidenceRows.length)
+    : null;
+  setText("metric-confidence", averageConfidence === null ? "—" : averageConfidence + "%");
+  $("first-run-callout").hidden = summary.attempts + summary.completions > 0;
   $("storage-status").textContent = store.available
     ? "学习数据保存在当前浏览器的 localStorage。Mac 与 iPhone 暂不自动同步，可通过 JSON 导出后在另一台设备导入合并。"
     : "当前浏览器未开放本地存储，学习事件无法持久保存。请使用支持 localStorage 的常规浏览器窗口。";
@@ -185,8 +191,10 @@ function renderNodeDetail(topic, competencyId) {
   meta.append(
     element("span", "lp-chip", "状态 · " + state.statusLabel),
     element("span", "lp-chip", "掌握度 · " + (state.masteryScore === null ? "待验证" : state.masteryScore + "%")),
+    element("span", "lp-chip", "置信度 · " + (state.confidenceScore ?? 0) + "%"),
     element("span", "lp-chip", "验证 · " + state.evidenceCount + " 次"),
-    element("span", "lp-chip", "尝试 · " + state.attemptsCount + " 次")
+    element("span", "lp-chip", "变体 · " + (state.variantCount || 0) + " 种"),
+    element("span", "lp-chip", "无提示 · " + (state.hintFreeRatio ?? 0) + "%")
   );
   main.append(meta);
   main.append(element("p", "", state.lastEvidenceAt
@@ -199,10 +207,14 @@ function renderNodeDetail(topic, competencyId) {
 
   const side = element("div");
   const links = element("div", "lp-detail-links");
-  const lesson = makeLink("对应原理课程", competency.lessonHref || topic.href);
-  const challenge = makeLink("进入验证挑战", competency.challengeHref || topic.challengeHref);
+  const lesson = makeLink("看原理", competency.lessonHref || topic.href);
+  const lab = makeLink("做实验", competency.labHref || "./lab/");
+  const challenge = makeLink("进入原始挑战", competency.challengeHref || topic.challengeHref);
+  const review = makeLink("立即复习", "./review/?competencyId=" + encodeURIComponent(competency.id));
   if (lesson) links.append(lesson);
+  if (lab) links.append(lab);
   if (challenge) links.append(challenge);
+  if (review) links.append(review);
   side.append(links);
   const recentGap = state.activeGaps[0];
   if (recentGap) side.append(element("p", "", "最近薄弱点：" + recentGap.label + " · " + recentGap.count + " 次"));
@@ -222,8 +234,9 @@ function renderGapList() {
     const card = element("article", "lp-list-card");
     const copy = element("div");
     copy.append(element("h3", "", gap.label), element("p", "", gap.description || gap.competencyTitle + " · 最近发生 " + formatDate(gap.lastSeenAt)));
-    copy.append(element("span", "lp-tag", "出现 " + gap.count + " 次"));
-    const link = makeLink("针对性复习", gap.challengeHref || "./puzzles/");
+    copy.append(element("span", "lp-tag", gap.lifecycleLabel || "待复习"));
+    copy.append(element("span", "lp-tag info", "出现 " + gap.count + " 次"));
+    const link = makeLink("针对性复习", "./review/?competencyId=" + encodeURIComponent(gap.competencyId) + "&gapId=" + encodeURIComponent(gap.id));
     card.append(copy);
     if (link) card.append(link);
     host.append(card);
@@ -241,8 +254,13 @@ function renderWeakSkills() {
   rows.forEach(item => {
     const card = element("article", "lp-list-card");
     const copy = element("div");
-    copy.append(element("h3", "", item.title), element("p", "", item.topicTitle + " · 掌握度 " + item.masteryScore + "% · 最近验证 " + formatDate(item.lastEvidenceAt)));
-    const link = makeLink("重新验证", item.challengeHref || item.topicHref);
+    const scoreText = item.masteryScore === null ? "尚无成功证据" : "掌握度 " + item.masteryScore + "%";
+    copy.append(element("h3", "", item.title), element("p", "", item.topicTitle + " · " + scoreText + " · 置信度 " + (item.confidenceScore || 0) + "% · 最近验证 " + formatDate(item.lastEvidenceAt)));
+    const targetGap = item.activeGaps[0];
+    const reviewPath = targetGap
+      ? "./review/?competencyId=" + encodeURIComponent(item.id) + "&gapId=" + encodeURIComponent(targetGap.id)
+      : "./review/?competencyId=" + encodeURIComponent(item.id);
+    const link = makeLink("进入复习工作台", reviewPath);
     card.append(copy);
     if (link) card.append(link);
     host.append(card);
@@ -256,20 +274,53 @@ function renderReviewPlan() {
     host.append(element("div", "lp-empty", "完成第一次挑战后，系统会按你的表现生成下一次复习日期。"));
     return;
   }
-  const due = insights.reviewQueue.filter(item => item.isDue);
-  const queue = due.length ? due : insights.reviewQueue.slice(0, 4);
-  queue.slice(0, 8).forEach(item => {
-    const card = element("article", "lp-list-card");
-    const copy = element("div");
-    const tag = element("span", "lp-tag " + (item.isDue ? "" : "good"), item.isDue ? "现在应复习" : "计划复习");
-    copy.append(tag, element("h3", "", item.title), element("p", "", item.topicTitle + " · 掌握度 " + item.masteryScore + "% · " + item.intervalDays + " 天间隔 · " + formatDate(item.nextReviewAt)));
-    const link = makeLink("开始再次验证", item.challengeHref || item.topicHref);
-    card.append(copy);
-    if (link) card.append(link);
-    host.append(card);
+  const now = Date.now();
+  const groups = [
+    {
+      title: "今天必须完成",
+      description: "优先处理未纠正误区和已经到期的复习",
+      items: insights.reviewQueue.filter(item => item.isDue),
+    },
+    {
+      title: "近期建议",
+      description: "未来 7 天内值得主动巩固的知识点",
+      items: insights.reviewQueue.filter(item => {
+        if (item.isDue || !item.nextReviewAt) return false;
+        const days = (Date.parse(item.nextReviewAt) - now) / 86_400_000;
+        return days <= 7;
+      }),
+    },
+    {
+      title: "后续安排",
+      description: "已进入复习节奏、暂时不必今天处理的知识点",
+      items: insights.reviewQueue.filter(item => {
+        if (item.isDue || !item.nextReviewAt) return false;
+        return (Date.parse(item.nextReviewAt) - now) / 86_400_000 > 7;
+      }),
+    },
+  ];
+  groups.forEach(group => {
+    if (!group.items.length) return;
+    const section = element("section", "lp-queue-group");
+    const heading = element("div", "lp-queue-group-heading");
+    heading.append(element("h3", "", group.title), element("p", "", group.description));
+    section.append(heading);
+    group.items.slice(0, 5).forEach(item => {
+      const card = element("article", "lp-list-card");
+      const copy = element("div");
+      const tag = element("span", "lp-tag " + (item.isDue ? "" : "good"), item.isDue ? "现在应复习" : item.kind === "gap" ? "待独立确认" : "计划复习");
+      const scoreText = item.masteryScore === null || item.masteryScore === undefined ? "尚无成功证据" : "掌握度 " + item.masteryScore + "%";
+      const confidenceText = item.confidenceScore === undefined ? "" : " · 置信度 " + item.confidenceScore + "%";
+      const reasons = Array.isArray(item.priorityReasons) && item.priorityReasons.length ? " · 优先原因：" + item.priorityReasons.join("、") : "";
+      copy.append(tag, element("h3", "", item.title), element("p", "", item.topicTitle + " · " + scoreText + confidenceText + " · " + (item.kind === "gap" ? "针对性纠错" : item.intervalDays + " 天间隔") + " · " + formatDate(item.nextReviewAt) + reasons));
+      const link = makeLink("开始再次验证", item.reviewHref || item.challengeHref || item.topicHref);
+      card.append(copy);
+      if (link) card.append(link);
+      section.append(card);
+    });
+    host.append(section);
   });
 }
-
 function renderEvents() {
   const host = $("event-list");
   host.replaceChildren();
@@ -281,10 +332,18 @@ function renderEvents() {
     const row = element("div", "lp-event");
     const time = element("time", "", formatDate(event.at, true));
     const copy = element("div");
-    const type = event.type === "completed" ? "知识点验证通过" : event.type === "attempt" ? (event.correct ? "挑战作答正确" : "挑战作答记录") : "使用渐进提示";
-    copy.append(element("strong", "", type + " · " + (event.stepTitle || event.challengeTitle)));
-    copy.append(element("small", "", (event.challengeTitle || event.challengeId) + " · " + (event.topicId || "未分类")));
-    const value = element("span", "lp-event-score", event.type === "completed" ? event.scorePct + "%" : event.type === "hint" ? "提示 " + event.hintNumber : event.correct === false ? "待纠正" : event.correct === true ? "正确" : "记录");
+    const type = event.type === "completed" || event.type === "assessment_passed"
+      ? (event.sessionType === "review" ? "独立复习通过" : "知识点验证通过")
+      : event.type === "attempt" ? (event.correct ? "作答正确" : "错误概念记录")
+      : event.type === "hint" || event.type === "hint_revealed" ? "使用渐进提示"
+      : event.type === "review_started" ? "开始独立复习"
+      : event.type === "activity" ? "产品线探索活动" : "学习事件";
+    copy.append(element("strong", "", type + " · " + (event.stepTitle || event.challengeTitle || event.activity || "学习活动")));
+    copy.append(element("small", "", (event.challengeTitle || event.pagePath || event.challengeId) + " · " + (event.topicId || event.sessionType || "未分类")));
+    const value = element("span", "lp-event-score",
+      event.scorePct !== undefined ? event.scorePct + "%" :
+      event.type === "hint" || event.type === "hint_revealed" ? "提示 " + (event.hintNumber || 1) :
+      event.correct === false ? "待纠正" : event.correct === true ? "正确" : "记录");
     row.append(time, copy, value);
     host.append(row);
   });

@@ -8,12 +8,22 @@
   const base = document.body.dataset.root || "./";
   let index = null;
 
+  import(new URL("assets/js/learning-activity.mjs", new URL(base, location.href)).href)
+    .catch(error => console.warn("[KNOWVERSE] learning activity telemetry unavailable:", error));
+
   const nav = document.querySelector(".navlinks");
   if (nav && !nav.querySelector('[data-learning-progress-link]')) {
     const link = document.createElement("a");
     link.href = base + "progress/";
     link.textContent = "学习进度";
     link.dataset.learningProgressLink = "true";
+    nav.append(link);
+  }
+  if (nav && !nav.querySelector('[data-review-workspace-link]')) {
+    const link = document.createElement("a");
+    link.href = base + "review/";
+    link.textContent = "复习工作台";
+    link.dataset.reviewWorkspaceLink = "true";
     nav.append(link);
   }
 
