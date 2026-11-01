@@ -87,11 +87,13 @@ export function createReviewSessionEngine(options = {}) {
     const key = SESSION_PREFIX + session.sessionId;
     if (session.status !== "active") {
       try { storage?.removeItem?.(key); } catch { /* The append-only event log remains authoritative. */ }
+      if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-delete", { detail: { type: "review_session", key: session.sessionId } }));
       return;
     }
     if (!writeJSON(storage, key, session)) {
       throw new Error("复习会话无法写入本地存储。请先导出学习档案并检查浏览器空间。");
     }
+    if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "review_session", key: session.sessionId } }));
   }
   function appendEvent(session, type, suffix, fields = {}) {
     const definition = definitions.get(session.variantId);

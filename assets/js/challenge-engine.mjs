@@ -226,6 +226,7 @@ export function createChallengeProgressStore(options = {}) {
           if (events.length && !learningStore.appendMany(events)) return false;
         }
         storage.setItem(key, JSON.stringify(progress));
+        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "challenge_progress", key: progress.challengeId } }));
         return true;
       } catch {
         return false;
@@ -236,6 +237,7 @@ export function createChallengeProgressStore(options = {}) {
       if (!usable) return false;
       try {
         storage.removeItem(prefix + encodeURIComponent(challengeId));
+        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-delete", { detail: { type: "challenge_progress", key: String(challengeId) } }));
         return true;
       } catch {
         return false;

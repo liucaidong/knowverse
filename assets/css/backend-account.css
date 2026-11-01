@@ -12,3 +12,30 @@
 .kv-backend-actions button:disabled{opacity:.55;cursor:wait}
 .kv-backend-hint{padding-top:10px;border-top:1px solid #e6eeeb;font-size:11px}
 @media(max-width:640px){.kv-backend-card{padding:17px}.kv-backend-header h3{font-size:18px}}
+
+.kv-backend-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
+.kv-backend-metric{display:grid;gap:4px;min-width:0;padding:12px;border:1px solid #e1ece7;border-radius:12px;background:#fff}
+.kv-backend-metric-label{color:#718784;font-size:10px;font-weight:750;letter-spacing:.04em}
+.kv-backend-metric-value{color:#183d43;font-size:23px;line-height:1.2;font-variant-numeric:tabular-nums}
+.kv-backend-metric-note{color:#849794;font-size:10px;line-height:1.4}
+.kv-backend-details{display:grid;grid-template-columns:minmax(100px,.45fr) minmax(0,1fr);gap:8px 14px;margin:0;padding:13px 15px;border:1px solid #e5eeea;border-radius:12px;background:#fff;font-size:12px}
+.kv-backend-details dt{color:#78908b}
+.kv-backend-details dd{margin:0;color:#35565a;font-weight:650;overflow-wrap:anywhere}
+.kv-backend-last-sync{margin:0;color:#56716c;font-size:11px}
+.kv-backend-error{margin:0;padding:11px 13px;border:1px solid #eac8b9;border-radius:10px;background:#fff4ee;color:#8a4f36;font-size:12px;line-height:1.65;overflow-wrap:anywhere}
+.kv-backend-error[hidden]{display:none}
+.kv-backend-conflicts{display:grid;gap:10px;padding-top:13px;border-top:1px solid #e7eeeb}
+.kv-backend-conflicts[hidden]{display:none}
+.kv-backend-conflicts h4{margin:0;color:#7a5724;font-size:13px}
+.kv-backend-conflict-list{display:grid;gap:9px}
+.kv-backend-conflict{display:grid;gap:9px;padding:13px;border:1px solid #e8d8ba;border-radius:12px;background:#fffaf0}
+.kv-backend-conflict strong{color:#654e2a;font-size:12px;overflow-wrap:anywhere}
+.kv-backend-conflict p{margin:0;color:#76664d;font-size:11px;line-height:1.6}
+.kv-backend-conflict-actions{display:flex;flex-wrap:wrap;gap:8px}
+.kv-backend-conflict-actions button{font-size:11px}
+@media(max-width:640px){
+  .kv-backend-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kv-backend-details{grid-template-columns:1fr;gap:3px}
+  .kv-backend-details dd{margin-bottom:7px}
+  .kv-backend-metric-value{font-size:21px}
+}

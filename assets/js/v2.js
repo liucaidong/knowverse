@@ -11,6 +11,10 @@
   import(new URL("assets/js/learning-activity.mjs", new URL(base, location.href)).href)
     .catch(error => console.warn("[KNOWVERSE] learning activity telemetry unavailable:", error));
 
+  import(new URL("assets/js/backend/archive-bootstrap.mjs", new URL(base, location.href)).href)
+    .then(module => module.startArchiveBootstrap())
+    .catch(error => console.warn("[KNOWVERSE] local learning archive unavailable:", error));
+
   const nav = document.querySelector(".navlinks");
   if (nav && !nav.querySelector('[data-learning-progress-link]')) {
     const link = document.createElement("a");

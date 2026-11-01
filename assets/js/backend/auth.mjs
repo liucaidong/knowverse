@@ -138,12 +138,40 @@ export class SupabaseAuthClient {
       ...(options.body === undefined ? {} : { "Content-Type": "application/json" }),
       ...(session?.access_token ? { Authorization: "Bearer " + session.access_token } : {}),
     };
-    const response = await fetch(this.config.supabaseUrl + path, {
+    const requestOptions = {
       method: options.method || "GET",
       headers,
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
       signal: options.signal,
-    });
+    };
+    let response = await fetch(this.config.supabaseUrl + path, requestOptions);
+
+    // A session can be revoked server-side before the locally cached expires_at.
+    // Refresh once on 401; never loop or retry a request without a new access token.
+    if (response.status === 401 && session?.refresh_token) {
+      const refreshResponse = await fetch(this.config.supabaseUrl + "/auth/v1/token?grant_type=refresh_token", {
+        method: "POST",
+        headers: {
+          apikey: this.config.publishableKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ refresh_token: session.refresh_token }),
+      });
+      if (!refreshResponse.ok) {
+        this.clearSession();
+        return readResponse(refreshResponse);
+      }
+      const refreshed = this.saveSession(await readResponse(refreshResponse));
+      const retryHeaders = {
+        ...headers,
+        ...(refreshed.access_token ? { Authorization: "Bearer " + refreshed.access_token } : {}),
+      };
+      response = await fetch(this.config.supabaseUrl + path, {
+        ...requestOptions,
+        headers: retryHeaders,
+      });
+      if (response.status === 401) this.clearSession();
+    }
     return readResponse(response);
   }
 

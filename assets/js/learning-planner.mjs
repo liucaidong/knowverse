@@ -37,8 +37,11 @@ export function createLearningPlanPreferencesStore(options = {}) {
     save(value) {
       const normalized = normalizePreferences(value);
       if (!available) return false;
-      try { storage.setItem(key, JSON.stringify(normalized)); return true; }
-      catch { return false; }
+      try {
+        storage.setItem(key, JSON.stringify(normalized));
+        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "plan_preferences", key: "preferences" } }));
+        return true;
+      } catch { return false; }
     },
   };
 }
