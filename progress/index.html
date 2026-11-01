@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f6f9f8">
+  <meta name="description" content="KNOWVERSE 学习进度与知识掌握系统：知识图谱、挑战记录、薄弱点识别、个性化复习和再次验证。">
+  <title>学习进度与知识掌握 · KNOWVERSE</title>
+  <link rel="stylesheet" href="../assets/css/v2.css">
+  <link rel="stylesheet" href="../assets/css/learning-progress.css">
+</head>
+<body class="lp-page" data-root="../">
+  <div class="topline"></div>
+  <header class="navwrap">
+    <nav class="navbar" aria-label="主导航">
+      <a class="mark" href="../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a>
+      <div class="navlinks">
+        <a href="../knowledge/">知识库</a><a href="../lab/">原理实验室</a><a href="../gallery/">沉浸展厅</a><a href="../puzzles/">解谜世界</a><a href="../works/">作品目录</a><a href="../timeline/">会话时间线</a>
+      </div>
+      <button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button>
+      <button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button>
+    </nav>
+  </header>
+
+  <section class="lp-hero">
+    <div class="lp-container lp-hero-inner">
+      <div>
+        <span class="lp-kicker">LEARNING INTELLIGENCE / PERSONAL MASTERY MAP</span>
+        <h1>看见真正掌握的知识。</h1>
+        <p>学习不是完成了多少页面，而是能否独立解释、推演和再次验证。这里把知识点、挑战结果、错误原因与复习安排连接为一张持续更新的个人学习地图。</p>
+      </div>
+      <div class="lp-hero-side" aria-label="学习状态概览">
+        <div class="lp-hero-stat"><span>已验证知识点</span><strong id="hero-tested">—</strong><small>有真实挑战证据</small></div>
+        <div class="lp-hero-stat"><span>稳定掌握</span><strong id="hero-stable">—</strong><small>至少跨日期独立验证</small></div>
+        <div class="lp-hero-stat"><span>待复习</span><strong id="hero-due">—</strong><small>已经到达复习时间</small></div>
+        <div class="lp-hero-stat"><span>学习事件</span><strong id="hero-events">—</strong><small>作答、提示与完成记录</small></div>
+      </div>
+    </div>
+  </section>
+
+  <main class="lp-container">
+    <div class="lp-toolbar">
+      <div class="lp-tabs" aria-label="学习进度分区">
+        <button class="lp-tab" data-scroll="#overview" aria-current="true">总览</button>
+        <button class="lp-tab" data-scroll="#knowledge-map">知识图谱</button>
+        <button class="lp-tab" data-scroll="#weak-points">薄弱点</button>
+        <button class="lp-tab" data-scroll="#review-plan">复习计划</button>
+        <button class="lp-tab" data-scroll="#challenge-history">挑战记录</button>
+      </div>
+      <div class="lp-data-actions">
+        <button class="lp-data-button" id="export-progress" type="button">导出学习数据</button>
+        <button class="lp-data-button" id="import-progress" type="button">导入 / 合并</button>
+        <input id="import-file" type="file" accept="application/json,.json" hidden>
+      </div>
+    </div>
+
+    <section class="lp-section" id="overview">
+      <div class="lp-section-head">
+        <div><span class="lp-eyebrow">YOUR LEARNING SIGNALS</span><h2>学习概况</h2></div>
+        <p>只统计已产生的有效挑战证据。未接入挑战评估的专题不会被算成零分，也不会被计入掌握率。</p>
+      </div>
+      <div class="lp-metric-grid">
+        <article class="lp-metric"><span>掌握度均值</span><strong id="metric-average">—</strong><small>仅计算已有验证的知识点</small></article>
+        <article class="lp-metric"><span>需要补强</span><strong id="metric-weak">—</strong><small>薄弱知识点与未解决误区</small></article>
+        <article class="lp-metric"><span>挑战完成</span><strong id="metric-completed">—</strong><small>通过单个知识点关卡的次数</small></article>
+        <article class="lp-metric"><span>提示使用</span><strong id="metric-hints">—</strong><small>辅助程度会影响掌握判断</small></article>
+      </div>
+      <div class="lp-callout" id="first-run-callout">
+        <span aria-hidden="true">✦</span>
+        <div><strong>这是一份真实记录，不是预填的成绩单。</strong><p>完成一次 Promise 或 Monorepo 挑战后，系统就会开始记录你的作答、错误概念和验证结果。<a href="../puzzles/">进入解谜世界开始挑战 ↗</a></p></div>
+      </div>
+      <div style="height:16px"></div>
+      <div class="lp-section-head"><div><span class="lp-eyebrow">TRACKED KNOWLEDGE DOMAINS</span><h2>当前可量化的学习专题</h2></div></div>
+      <div id="topic-overview" class="lp-topic-overview"><div class="lp-empty">正在读取知识专题…</div></div>
+    </section>
+
+    <section class="lp-section" id="knowledge-map">
+      <div class="lp-section-head">
+        <div><span class="lp-eyebrow">KNOWLEDGE GRAPH / MASTERY STATUS</span><h2>知识掌握图谱</h2></div>
+        <p>节点之间的连线表示前置知识关系。选择节点可以查看验证证据、错误记录、对应课程和挑战入口。</p>
+      </div>
+      <div class="lp-panel">
+        <div id="topic-choices" class="lp-topic-choices" aria-label="选择知识专题"></div>
+        <div class="lp-graph-scroll"><div id="graph-canvas" class="lp-graph-canvas"><div class="lp-empty">正在构建知识图谱…</div></div></div>
+        <div id="node-detail" class="lp-node-detail" aria-live="polite">
+          <div><h3>选择一个知识节点</h3><p>节点状态和掌握度会在完成对应挑战后更新。</p></div><div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-section" id="weak-points">
+      <div class="lp-section-head">
+        <div><span class="lp-eyebrow">MISCONCEPTION DETECTION</span><h2>薄弱点识别</h2></div>
+        <p>优先显示尚未被后续成功验证覆盖的错误概念，而不是只按答错次数给你贴标签。</p>
+      </div>
+      <div class="lp-two-col">
+        <div class="lp-panel"><h3 style="margin:0 0 13px;font-size:15px">需要纠正的概念误区</h3><div id="gap-list" class="lp-list"><div class="lp-empty">完成挑战后，这里会出现具体误区。</div></div></div>
+        <div class="lp-panel"><h3 style="margin:0 0 13px;font-size:15px">需要继续巩固的知识点</h3><div id="weak-skill-list" class="lp-list"><div class="lp-empty">目前还没有足够的验证样本。</div></div></div>
+      </div>
+    </section>
+
+    <section class="lp-section" id="review-plan">
+      <div class="lp-section-head">
+        <div><span class="lp-eyebrow">ADAPTIVE SPACED REVIEW</span><h2>个性化复习计划</h2></div>
+        <p>低分或重复错误优先在短间隔内复习；较高表现逐步延长间隔。每次复习都需要再次验证。</p>
+      </div>
+      <div class="lp-panel"><div id="review-list" class="lp-list"><div class="lp-empty">完成一次知识点挑战后，系统将生成第一份复习计划。</div></div></div>
+    </section>
+
+    <section class="lp-section" id="challenge-history">
+      <div class="lp-section-head">
+        <div><span class="lp-eyebrow">APPEND-ONLY LEARNING LOG</span><h2>挑战与学习记录</h2></div>
+        <p>历史记录按事件追加。重置挑战不会删除过去的尝试、提示和完成证据。</p>
+      </div>
+      <div class="lp-panel"><div id="event-list" class="lp-event-list"><div class="lp-empty">还没有挑战记录。</div></div></div>
+    </section>
+
+    <section class="lp-section" id="data-portability">
+      <div class="lp-privacy">
+        <div><strong>本地优先 · 数据由你掌控</strong><p id="storage-status">学习数据保存在当前浏览器。Mac 与 iPhone 暂不自动同步，可通过 JSON 导出后在另一台设备导入合并。</p></div>
+        <div class="lp-privacy-actions"><button class="lp-data-button primary" id="export-progress-bottom" type="button">备份学习档案</button></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="lp-footer lp-container">KNOWVERSE / LEARNING INTELLIGENCE · 个人学习记录仅保存在当前浏览器</footer>
+  <div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索">
+    <div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、Monorepo、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div>
+  </div>
+  <script defer src="../assets/js/v2.js"></script>
+  <script type="module" src="../assets/js/learning-progress-page.mjs"></script>
+</body>
+</html>

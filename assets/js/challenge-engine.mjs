@@ -1,6 +1,9 @@
+import { createChallengeLearningEvents, createLearningProgressStore } from "./learning-progress.mjs";
+
 const ENGINE_VERSION = 1;
 
 const timestamp = () => new Date().toISOString();
+const createRunId = () => "run-" + Date.now().toString(36) + "-" + (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
 const clone = value => JSON.parse(JSON.stringify(value));
 const asCount = value => Number.isSafeInteger(value) && value > 0 ? value : 0;
 
@@ -71,6 +74,7 @@ export function createChallengeProgress(challenge, saved = null) {
   return {
     engineVersion: ENGINE_VERSION,
     challengeId: challenge.id,
+    runId: savedIsCompatible && typeof saved.runId === "string" ? saved.runId : createRunId(),
     status: isComplete ? "completed" : steps.some(step => step.status === "completed" || step.attempts || step.hintsUsed) ? "in-progress" : "not-started",
     createdAt: savedIsCompatible && typeof saved.createdAt === "string" ? saved.createdAt : timestamp(),
     updatedAt: savedIsCompatible && typeof saved.updatedAt === "string" ? saved.updatedAt : timestamp(),
@@ -192,9 +196,12 @@ export function createChallengeProgressStore(options = {}) {
     typeof storage.getItem === "function" &&
     typeof storage.setItem === "function" &&
     typeof storage.removeItem === "function";
+  const learningStore = createLearningProgressStore({ storage });
+  const definitions = new Map();
 
   return {
     load(challenge) {
+      definitions.set(challenge.id, challenge);
       let saved = null;
       if (usable) {
         try {
@@ -210,7 +217,15 @@ export function createChallengeProgressStore(options = {}) {
     save(progress) {
       if (!usable) return false;
       try {
-        storage.setItem(prefix + encodeURIComponent(progress.challengeId), JSON.stringify(progress));
+        const key = prefix + encodeURIComponent(progress.challengeId);
+        const raw = storage.getItem(key);
+        const previous = raw ? JSON.parse(raw) : null;
+        const challenge = definitions.get(progress.challengeId);
+        if (challenge) {
+          const events = createChallengeLearningEvents(challenge, previous, progress);
+          if (events.length && !learningStore.appendMany(events)) return false;
+        }
+        storage.setItem(key, JSON.stringify(progress));
         return true;
       } catch {
         return false;

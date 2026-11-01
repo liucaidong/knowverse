@@ -38,6 +38,8 @@ jobs:
         run: node scripts/verify-monorepo-product.mjs
       - name: Test reusable learning challenge engine and registry
         run: node --test scripts/verify-challenge-engine.mjs
+      - name: Test learning mastery graph, event log, diagnostics and review scheduling
+        run: node --test scripts/verify-learning-progress.mjs
       - name: Parse Monorepo browser modules
         run: |
           node --input-type=module --check < assets/js/monorepo-world.js
@@ -46,6 +48,8 @@ jobs:
           node --check assets/js/monorepo-graph-model.mjs
           node --check assets/js/monorepo-quest-core.mjs
           node --check assets/js/challenge-engine.mjs
+          node --check assets/js/learning-progress.mjs
+          node --check assets/js/learning-progress-page.mjs
           node --check assets/js/promise-quest.mjs
           node --check assets/js/promise-quest-world.mjs
       - name: Test Monorepo reference graph and affected logic

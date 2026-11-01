@@ -1,0 +1,118 @@
+{
+  "version": "1.0.0",
+  "updated": "2026-11-01",
+  "description": "KNOWVERSE 学习掌握图谱：专题、可验证知识点、前置关系与挑战映射。所有 ID 均为稳定标识，不存储个人学习成绩。",
+  "topics": [
+    {
+      "id": "promise",
+      "title": "JavaScript · Promise",
+      "accent": "#35a995",
+      "href": "./knowledge/promise/",
+      "challengeId": "promise-mechanism-quest",
+      "graph": { "width": 940, "height": 340 },
+      "competencies": [
+        {
+          "id": "thenable-adoption",
+          "title": "thenable 解析与 Promise 采用",
+          "description": "区分同步读取 then 属性、PromiseResolveThenableJob、resolve 锁定，以及 outer 采用 inner 的过程。",
+          "prerequisites": [],
+          "position": { "x": 28, "y": 124 },
+          "lessonHref": "./knowledge/promise/lesson-03/",
+          "challengeHref": "./puzzles/worlds/promise-mechanism-quest/"
+        },
+        {
+          "id": "microtask-scheduling",
+          "title": "微任务 FIFO 与嵌套入队",
+          "description": "根据 Job 的实际入队时刻推导执行顺序，区分 PromiseReactionJob 与 queueMicrotask。",
+          "prerequisites": ["thenable-adoption"],
+          "position": { "x": 238, "y": 124 },
+          "lessonHref": "./knowledge/promise/lesson-04/",
+          "challengeHref": "./puzzles/worlds/promise-mechanism-quest/"
+        },
+        {
+          "id": "chain-error-propagation",
+          "title": "链式传播与错误恢复",
+          "description": "理解 then 创建新 Promise、处理器抛错、onRejected 边界，以及 catch 如何恢复下游链。",
+          "prerequisites": ["microtask-scheduling"],
+          "position": { "x": 448, "y": 34 },
+          "lessonHref": "./knowledge/promise/lesson-05/",
+          "challengeHref": "./puzzles/worlds/promise-mechanism-quest/"
+        },
+        {
+          "id": "combinator-semantics",
+          "title": "组合 API 的真实边界",
+          "description": "区分 all 的输入顺序与全部成功条件、race 的首个落定，以及组合结果与底层取消。",
+          "prerequisites": ["microtask-scheduling"],
+          "position": { "x": 448, "y": 214 },
+          "lessonHref": "./knowledge/promise/lesson-08/",
+          "challengeHref": "./puzzles/worlds/promise-mechanism-quest/"
+        },
+        {
+          "id": "integrated-execution-model",
+          "title": "综合执行时序推演",
+          "description": "把 thenable、resolved-but-pending、嵌套采用、ReactionJob 与微任务入队串成完整执行模型。",
+          "prerequisites": ["chain-error-propagation", "combinator-semantics"],
+          "position": { "x": 700, "y": 124 },
+          "lessonHref": "./knowledge/promise/lesson-14/",
+          "challengeHref": "./puzzles/worlds/promise-mechanism-quest/"
+        }
+      ]
+    },
+    {
+      "id": "monorepo",
+      "title": "TypeScript · Monorepo",
+      "accent": "#688ce0",
+      "href": "./knowledge/monorepo/",
+      "challengeId": "monorepo-dependency-quest",
+      "graph": { "width": 760, "height": 300 },
+      "competencies": [
+        {
+          "id": "workspace-resolution",
+          "title": "工作区依赖声明",
+          "description": "使用 workspace 协议表达仓库内依赖，并由消费者 manifest 显式声明直接依赖。",
+          "prerequisites": [],
+          "position": { "x": 30, "y": 112 },
+          "lessonHref": "./knowledge/monorepo/chapter-01/",
+          "challengeHref": "./puzzles/worlds/monorepo-quest/"
+        },
+        {
+          "id": "build-topology",
+          "title": "依赖图与构建拓扑",
+          "description": "识别依赖方向、入度为零的构建起点、拓扑层次及可并行的任务。",
+          "prerequisites": ["workspace-resolution"],
+          "position": { "x": 290, "y": 112 },
+          "lessonHref": "./knowledge/monorepo/chapter-02/",
+          "challengeHref": "./puzzles/worlds/monorepo-quest/"
+        },
+        {
+          "id": "affected-closure",
+          "title": "Affected 反向依赖闭包",
+          "description": "从变更包沿消费者方向递归传播，计算需要重新验证的完整影响范围。",
+          "prerequisites": ["build-topology"],
+          "position": { "x": 550, "y": 112 },
+          "lessonHref": "./knowledge/monorepo/unit-06/",
+          "challengeHref": "./puzzles/worlds/monorepo-quest/"
+        }
+      ]
+    }
+  ],
+  "gaps": [
+    { "id": "thenable-get-vs-call", "label": "then 属性读取与函数调用混淆", "description": "Get(thenable, 'then') 是同步属性读取；调用取到的 then 函数发生在后续 ThenableJob。" },
+    { "id": "resolved-vs-settled", "label": "resolved 与 settled 混淆", "description": "resolve(inner) 会锁定解决权，但 outer 仍可能处于 pending，并继续采用 inner。" },
+    { "id": "thenable-job-timing", "label": "ThenableJob 的执行边界混淆", "description": "同步读取 then 不等于同步调用 then；函数调用由后续 Job 执行。" },
+    { "id": "reaction-registration-timing", "label": "reaction 注册与执行时机混淆", "description": "then 负责注册 reaction；回调并不会因此同步执行。" },
+    { "id": "microtask-fifo", "label": "微任务 FIFO 入队顺序混淆", "description": "按实际入队顺序推导，而不是按代码块位置或结果名称猜测。" },
+    { "id": "nested-microtask", "label": "嵌套微任务入队时机混淆", "description": "嵌套任务在当前回调执行时才入队，已经排队的任务会先运行。" },
+    { "id": "then-rejection-boundary", "label": "then 的拒绝处理边界混淆", "description": "同一次 then 的 onRejected 处理的是源 Promise 的拒绝，不会捕获同次 onFulfilled 抛出的异常。" },
+    { "id": "chain-state-recovery", "label": "Promise 状态与链式恢复混淆", "description": "单个 Promise 状态不可逆，但 catch 会创建新的下游 Promise。" },
+    { "id": "then-new-promise", "label": "then 返回新 Promise 的对象关系不清", "description": "每次 then 都返回新 Promise，下游状态取决于处理器结果。" },
+    { "id": "all-race-order", "label": "all 输入顺序与 race 首个落定混淆", "description": "all 结果按输入索引排列；race 观察最先落定的输入。" },
+    { "id": "all-waits-all", "label": "Promise.all 的全部成功条件混淆", "description": "Promise.all 需要全部输入兑现后才兑现。" },
+    { "id": "all-no-cancel", "label": "组合结果与底层取消混淆", "description": "组合 Promise 快速拒绝不代表底层任务会自动取消。" },
+    { "id": "getter-sync", "label": "then getter 的同步时机混淆", "description": "then getter 在 Promise 解析流程中同步读取，不能放到 ThenableJob 之后。" },
+    { "id": "adoption-timeline", "label": "resolved-but-pending 采用时序混淆", "description": "解决权锁定、inner 状态落定、outer 兑现和 reaction 输出是不同阶段。" },
+    { "id": "workspace-protocol", "label": "workspace 协议与普通 semver 混淆", "description": "workspace:* 明确要求消费者使用当前仓库中的工作区包。" },
+    { "id": "build-dependency-order", "label": "构建顺序与依赖约束混淆", "description": "必须先构建依赖提供者，再构建消费者；无依赖边的任务可以并行。" },
+    { "id": "affected-reverse-closure", "label": "Affected 传播方向或闭包不完整", "description": "变更影响沿依赖边反方向传播，并递归覆盖所有消费者。" }
+  ]
+}

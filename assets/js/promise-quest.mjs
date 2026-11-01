@@ -164,6 +164,7 @@ function chooseOption(step, option) {
   if (option.id === step.answer) {
     progress = setStepData(progress, step.id, {
       correctOptionId: option.id,
+      lastGapId: null,
       lastFeedback: "",
       misconceptions: previousMistakes,
     });
@@ -190,6 +191,7 @@ function chooseOption(step, option) {
     progress = setStepData(progress, step.id, {
       lastFeedback: diagnosis,
       lastOptionId: option.id,
+      lastGapId: option.gapId || null,
       misconceptions: mistakes,
     });
     saveProgress();

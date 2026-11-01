@@ -49,3 +49,15 @@ TypeScript Monorepo 不再只是课程页：原理实验室提供依赖图、缓
 ## 内容来源
 
 可恢复的历史对话摘要、既有专题笔记及 KNOWVERSE 作品。来源与覆盖边界见 `provenance/`。
+
+
+## 学习进度与知识掌握系统
+
+`progress/` 是 KNOWVERSE 的学习驾驶舱，将知识图谱、挑战证据、薄弱点诊断、间隔复习与再次验证连接成统一闭环。
+
+- `content/learning-map.json`：稳定的知识点 ID、前置关系和挑战入口。
+- `assets/js/learning-progress.mjs`：追加式学习事件、掌握度分析、错误 gap 识别、复习安排与 JSON 导入导出。
+- `assets/js/challenge-engine.mjs`：挑战保存时自动把 attempt / hint / completed 写入统一学习档案。
+- `docs/learning-progress-system.md`：系统架构、事件模型、掌握度规则、隐私边界与验收标准。
+
+第一批接入 Promise 五关与 Monorepo 三关。数据存储在当前浏览器，不会提交到公开仓库；GitHub Pages 没有账户与云同步，跨设备请使用 JSON 导出 / 导入。

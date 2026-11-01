@@ -158,6 +158,7 @@ function chooseBuildNode(id) {
 
   if (!result.ok) {
     progress = recordAttempt(progress, STEP.build);
+    progress = setStepData(progress, STEP.build, { lastGapId: "build-dependency-order" });
     const missing = result.missing.map(value => names.get(value)).join("、");
     const message = result.reason === "dependencies-not-built"
       ? "现在不能构建 " + node.name + "。请先完成上游依赖：" + missing + "。"
@@ -229,6 +230,7 @@ function wireChoices() {
         $("stage-protocol-next").hidden = false;
       } else {
         button.classList.add("wrong");
+        progress = setStepData(progress, STEP.protocol, { lastGapId: "workspace-protocol" });
         persistProgress();
         setFeedback(
           "protocol-feedback",
@@ -262,6 +264,7 @@ function wireChoices() {
         showStage(3);
       } else {
         button.classList.add("wrong");
+        progress = setStepData(progress, STEP.affected, { lastGapId: "affected-reverse-closure" });
         persistProgress();
         setFeedback(
           "affected-feedback",
