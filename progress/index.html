@@ -15,7 +15,7 @@
     <nav class="navbar" aria-label="主导航">
       <a class="mark" href="../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a>
       <div class="navlinks">
-        <a href="../knowledge/">知识库</a><a href="../lab/">原理实验室</a><a href="../gallery/">沉浸展厅</a><a href="../puzzles/">解谜世界</a><a href="../works/">作品目录</a><a href="../timeline/">会话时间线</a><a href="../review/" data-review-workspace-link>复习工作台</a>
+        <a href="../knowledge/">知识库</a><a href="../lab/">原理实验室</a><a href="../gallery/">沉浸展厅</a><a href="../puzzles/">解谜世界</a><a href="../works/">作品目录</a><a href="../timeline/">会话时间线</a><a href="../review/" data-review-workspace-link>复习工作台</a><a href="#adaptive-plan">主动学习</a>
       </div>
       <button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button>
       <button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button>
@@ -41,7 +41,8 @@
   <main class="lp-container">
     <div class="lp-toolbar">
       <div class="lp-tabs" aria-label="学习进度分区">
-        <button class="lp-tab" data-scroll="#overview" aria-current="true">总览</button>
+        <button class="lp-tab" data-scroll="#adaptive-plan" aria-current="true">今日行动</button>
+        <button class="lp-tab" data-scroll="#overview">总览</button>
         <button class="lp-tab" data-scroll="#knowledge-map">知识图谱</button>
         <button class="lp-tab" data-scroll="#weak-points">薄弱点</button>
         <button class="lp-tab" data-scroll="#review-plan">复习计划</button>
@@ -53,6 +54,35 @@
         <input id="import-file" type="file" accept="application/json,.json" hidden>
       </div>
     </div>
+
+    <section class="lp-section" id="adaptive-plan">
+      <div class="lp-section-head">
+        <div><span class="lp-eyebrow">ACTIVE LEARNING / EXPLAINABLE PLANNER</span><h2>今天应该学什么</h2></div>
+        <p>系统结合掌握证据、薄弱点、前置知识、变体覆盖和复习时间，为你安排可执行的学习行动。每条建议都会展示选择依据。</p>
+      </div>
+      <div class="lp-plan-shell">
+        <div class="lp-plan-controls">
+          <label>今日可用时间
+            <select id="plan-time-budget">
+              <option value="15">15 分钟</option><option value="25" selected>25 分钟</option>
+              <option value="40">40 分钟</option><option value="60">60 分钟</option>
+            </select>
+          </label>
+          <label>优先专题
+            <select id="plan-focus-topic">
+              <option value="all">自动规划</option>
+              <option value="promise">JavaScript · Promise</option>
+              <option value="monorepo">TypeScript · Monorepo</option>
+            </select>
+          </label>
+          <button class="lp-data-button primary" id="plan-rebuild" type="button">重新规划</button>
+        </div>
+        <div id="plan-summary" class="lp-plan-summary" aria-live="polite">正在分析你的学习记录…</div>
+        <div id="plan-actions" class="lp-plan-actions"><div class="lp-empty">正在计算下一步学习行动…</div></div>
+        <div id="plan-context" class="lp-plan-context"></div>
+        <p class="lp-plan-footnote">规划引擎采用本地可解释规则，不会把浏览、点击或“标记完成”当成知识掌握证据；只有挑战、检查点和独立复习的有效评估会更新掌握图谱。</p>
+      </div>
+    </section>
 
     <section class="lp-section" id="overview">
       <div class="lp-section-head">

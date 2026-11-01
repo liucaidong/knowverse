@@ -1,8 +1,14 @@
 import { createLearningProgressStore, deriveLearningInsights } from "./learning-progress.mjs";
+import { buildAdaptiveLearningPlan, createLearningPlanPreferencesStore, recordLearningPlanAction } from "./learning-planner.mjs";
 
 const siteRoot = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
 const store = createLearningProgressStore();
+const planPreferencesStore = createLearningPlanPreferencesStore();
+let worksManifest;
+let checkpointRegistry;
+let planPreferences = planPreferencesStore.load();
+let adaptivePlan;
 let knowledge;
 let learningMap;
 let challengeRegistry;
@@ -338,6 +344,8 @@ function renderEvents() {
       : event.type === "hint" || event.type === "hint_revealed" ? "使用渐进提示"
       : event.type === "review_started" ? "开始独立复习"
       : event.type === "checkpoint_started" ? "开始知识检查"
+      : event.type === "plan_action_started" ? "开始计划行动"
+      : event.type === "plan_action_completed" ? "标记计划步骤完成"
       : event.type === "activity" ? "产品线探索活动" : "学习事件";
     copy.append(element("strong", "", type + " · " + (event.stepTitle || event.challengeTitle || event.activity || "学习活动")));
     copy.append(element("small", "", (event.challengeTitle || event.pagePath || event.challengeId) + " · " + (event.topicId || event.sessionType || "未分类")));
@@ -350,8 +358,96 @@ function renderEvents() {
   });
 }
 
+function renderAdaptivePlan() {
+  adaptivePlan = buildAdaptiveLearningPlan({
+    learningMap, challengeRegistry, worksManifest, checkpointRegistry,
+    snapshot: store.load(), preferences: planPreferences,
+  });
+  const summary = $("plan-summary");
+  const host = $("plan-actions");
+  const context = $("plan-context");
+  if (!summary || !host || !context) return;
+  summary.replaceChildren();
+  summary.append(element("strong", "lp-plan-headline", adaptivePlan.headline));
+  summary.append(element("span", "lp-plan-meta",
+    adaptivePlan.actions.length
+      ? "今日安排 " + adaptivePlan.plannedMinutes + " 分钟 · 已完成计划耗时 " + adaptivePlan.completedMinutesToday + " / " + adaptivePlan.dailyMinutes + " 分钟 · " +
+        adaptivePlan.actions.length + " 个行动 · 已完成 " + adaptivePlan.completedTodayCount + " 步"
+      : "今日预算 " + adaptivePlan.dailyMinutes + " 分钟 · 已完成计划耗时 " + adaptivePlan.completedMinutesToday + " 分钟 · 已完成 " + adaptivePlan.completedTodayCount + " 步"));
+  $("plan-time-budget").value = String(planPreferences.dailyMinutes);
+  $("plan-focus-topic").value = planPreferences.focusTopicId;
+  host.replaceChildren();
+
+  if (!adaptivePlan.actions.length) {
+    const message = adaptivePlan.nextScheduledAt
+      ? "目前没有需要立即处理的行动。下一次计划复习：" + formatDate(adaptivePlan.nextScheduledAt) + "。可以继续探索其他知识专题，不会因为浏览行为增加掌握度。"
+      : adaptivePlan.completedTodayCount
+        ? "今天安排的行动已经完成。完成真正的挑战或检查后，系统会根据新增证据重新计算下一步。"
+        : "当前没有满足前置条件的行动。请先检查知识图谱中的前置节点，或选择一个专题开始基础学习。";
+    host.append(element("div", "lp-empty", message));
+  }
+
+  adaptivePlan.actions.forEach(action => {
+    const card = element("article", "lp-plan-card");
+    const top = element("div", "lp-plan-card-top");
+    top.append(element("span", "lp-plan-number", String(action.sequence).padStart(2, "0")));
+    top.append(element("span", "lp-tag " + (action.type === "repair" ? "" : "good"), action.typeLabel));
+    top.append(element("span", "lp-plan-time", action.estimatedMinutes + " 分钟"));
+    const copy = element("div", "lp-plan-copy");
+    copy.append(element("h3", "", action.competencyTitle));
+    copy.append(element("p", "", action.topicTitle + " · " +
+      (action.masteryScore === null ? "尚无掌握证据" : "掌握度 " + action.masteryScore + "%") +
+      " · 置信度 " + action.confidenceScore + "%"));
+    const reasons = element("ul", "lp-plan-reasons");
+    action.priorityReasons.forEach(reason => reasons.append(element("li", "", reason)));
+    copy.append(reasons);
+    const footer = element("div", "lp-plan-card-actions");
+    const link = makeLink(action.resourceLabel, action.href);
+    if (link) {
+      link.classList.add("lp-plan-link");
+      if (action.startedToday) link.textContent = "继续打开学习资源 ↗";
+      link.addEventListener("click", () => {
+        try { recordLearningPlanAction(store, action, "started"); }
+        catch (error) { setText("plan-status", error.message); }
+      });
+      footer.append(link);
+    }
+    const done = element("button", "lp-data-button", action.startedToday ? "标记已完成" : "完成此学习步骤");
+    done.type = "button";
+    done.addEventListener("click", () => {
+      try { recordLearningPlanAction(store, action, "completed"); refresh(); }
+      catch (error) { window.alert(error.message || "无法保存学习计划进度。"); }
+    });
+    footer.append(done);
+    if (action.startedToday) footer.append(element("span", "lp-plan-started", "进行中"));
+    card.append(top, copy, footer);
+    host.append(card);
+  });
+
+  context.replaceChildren();
+  if (adaptivePlan.blockedCompetencies.length) {
+    const blocked = element("div", "lp-plan-context-block");
+    blocked.append(element("strong", "", "前置知识保护"));
+    const unique = new Map();
+    adaptivePlan.blockedCompetencies.forEach(item => unique.set(item.competencyId, item));
+    [...unique.values()].slice(0, 3).forEach(item =>
+      blocked.append(element("p", "", item.competencyTitle + " 暂缓推进：先补齐 " + item.blockedBy.join("、") + "。"))
+    );
+    context.append(blocked);
+  }
+  if (adaptivePlan.upcomingReviews.length) {
+    const scheduled = element("div", "lp-plan-context-block");
+    scheduled.append(element("strong", "", "接下来将到期的复习"));
+    adaptivePlan.upcomingReviews.forEach(item =>
+      scheduled.append(element("p", "", item.topicTitle + " · " + item.competencyTitle + " · " + formatDate(item.nextReviewAt)))
+    );
+    context.append(scheduled);
+  }
+}
+
 function refresh() {
   insights = deriveLearningInsights(learningMap, challengeRegistry, store.load());
+  renderAdaptivePlan();
   renderMetrics();
   renderTopicOverview();
   renderTopicChoices();
@@ -392,6 +488,17 @@ function wireDataActions() {
       event.target.value = "";
     }
   });
+  $("plan-time-budget").addEventListener("change", event => {
+    planPreferences = { ...planPreferences, dailyMinutes: Number(event.target.value) };
+    if (!planPreferencesStore.save(planPreferences)) window.alert("无法保存计划偏好；本次页面仍会使用当前选择。");
+    refresh();
+  });
+  $("plan-focus-topic").addEventListener("change", event => {
+    planPreferences = { ...planPreferences, focusTopicId: event.target.value };
+    if (!planPreferencesStore.save(planPreferences)) window.alert("无法保存计划偏好；本次页面仍会使用当前选择。");
+    refresh();
+  });
+  $("plan-rebuild").addEventListener("click", refresh);
   document.querySelectorAll("[data-scroll]").forEach(button => {
     button.addEventListener("click", () => {
       const target = document.querySelector(button.dataset.scroll);
@@ -405,14 +512,18 @@ async function boot() {
   if (!store.available) {
     setText("storage-status", "当前浏览器未开放本地存储；学习事件无法持久保存。");
   }
-  const [knowledgeResponse, mapResponse, challengeResponse] = await Promise.all([
+  const [knowledgeResponse, mapResponse, challengeResponse, worksResponse, checkpointResponse] = await Promise.all([
     fetch(new URL("content/knowledge.json", siteRoot), { headers: { Accept: "application/json" } }),
     fetch(new URL("content/learning-map.json", siteRoot), { headers: { Accept: "application/json" } }),
     fetch(new URL("content/challenges.json", siteRoot), { headers: { Accept: "application/json" } }),
+    fetch(new URL("content/works.json", siteRoot), { headers: { Accept: "application/json" } }),
+    fetch(new URL("content/learning-checkpoints.json", siteRoot), { headers: { Accept: "application/json" } }),
   ]);
-  if (!knowledgeResponse.ok || !mapResponse.ok || !challengeResponse.ok) throw new Error("学习系统注册表加载失败。");
-  [knowledge, learningMap, challengeRegistry] = await Promise.all([
-    knowledgeResponse.json(), mapResponse.json(), challengeResponse.json(),
+  if ([knowledgeResponse, mapResponse, challengeResponse, worksResponse, checkpointResponse].some(response => !response.ok)) {
+    throw new Error("学习系统注册表加载失败。");
+  }
+  [knowledge, learningMap, challengeRegistry, worksManifest, checkpointRegistry] = await Promise.all([
+    knowledgeResponse.json(), mapResponse.json(), challengeResponse.json(), worksResponse.json(), checkpointResponse.json(),
   ]);
   if (!Array.isArray(knowledge.topics) || !Array.isArray(learningMap.topics) || !Array.isArray(challengeRegistry.challenges)) {
     throw new Error("学习系统注册表格式无效。");
@@ -425,7 +536,7 @@ async function boot() {
 
 boot().catch(error => {
   console.error("[KNOWVERSE] learning progress unavailable:", error);
-  ["topic-overview", "graph-canvas", "gap-list", "weak-skill-list", "review-list", "event-list"].forEach(id => {
+  ["plan-summary", "plan-actions", "plan-context", "topic-overview", "graph-canvas", "gap-list", "weak-skill-list", "review-list", "event-list"].forEach(id => {
     const host = $(id);
     if (host) host.replaceChildren(element("div", "lp-empty", "学习系统载入失败：" + error.message + "。请刷新页面或稍后重试。"));
   });
