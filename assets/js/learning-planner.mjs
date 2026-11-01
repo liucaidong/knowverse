@@ -26,7 +26,7 @@ export function createLearningPlanPreferencesStore(options = {}) {
     try { storage = globalThis.localStorage || null; } catch { storage = null; }
   }
   const key = options.key || PREFERENCES_KEY;
-  const available = Boolean(storage && typeof storage.getItem === "function" && typeof storage.setItem === "function);
+  const available = Boolean(storage && typeof storage.getItem === "function" && typeof storage.setItem === "function");
   return {
     available,
     load() {
