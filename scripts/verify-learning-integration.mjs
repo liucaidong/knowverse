@@ -109,14 +109,14 @@ test("a correct checkpoint creates one independent no-hint evidence variant", as
   assert.equal(passed.workId, checkpoint.workId);
 });
 
-test("the assessment catalog covers 9 competencies, 19 gaps and 40 targeted variants", async () => {
+test("the assessment catalog covers 15 competencies, 31 gaps and 72 targeted variants", async () => {
   const map = await readJSON("../content/learning-map.json");
   const registry = await readJSON("../content/review-assessments.json");
   const ids = new Set(map.topics.flatMap(topic => topic.competencies.map(item => item.id)));
   const gaps = new Set(map.gaps.map(item => item.id));
-  assert.equal(ids.size, 9);
-  assert.equal(gaps.size, 19);
-  assert.equal(registry.assessments.length, 40);
+  assert.equal(ids.size, 15);
+  assert.equal(gaps.size, 31);
+  assert.equal(registry.assessments.length, 72);
   for (const item of registry.assessments) {
     assert.ok(ids.has(item.competencyId), item.id);
     assert.ok(item.gapIds.length > 0, item.id);
