@@ -275,7 +275,7 @@ function continueQuest() {
 }
 
 function resetQuest() {
-  if (!window.confirm("确定要重置 Promise 挑战吗？这会清除本设备保存的尝试、提示和薄弱点记录。")) return;
+  if (!window.confirm("确定要重置当前 Promise 挑战的关卡进度吗？历史作答、提示、已识别薄弱点和复习验证记录会保留，不会被删除。")) return;
   store.clear(challenge.id);
   progress = resetChallengeProgress(challenge);
   saveProgress();

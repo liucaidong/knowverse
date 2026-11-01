@@ -1,7 +1,7 @@
 # KNOWVERSE V2 · 知域知识宇宙
 
 - GitHub Pages：`https://liucaidong.github.io/knowverse/`
-- 版本：V2 / 2026-10-31
+- 版本：V2 / Learning Intelligence 2.0 / 2026-11-01
 - **12 个知识专题、92 条可检索内容记录、22 张 Mermaid 全景图、13 件已上线互动作品。**
 - `content/knowledge.json` 是知识专题注册表；`content/works.json` 是三条产品主线与作品注册表；作品通过 `knowledge_ids` 关联专题。
 - 首页精选专题、知识目录、三条主线作品卡片和专题页的关联体验由共享注册表驱动。
@@ -51,13 +51,15 @@ TypeScript Monorepo 不再只是课程页：原理实验室提供依赖图、缓
 可恢复的历史对话摘要、既有专题笔记及 KNOWVERSE 作品。来源与覆盖边界见 `provenance/`。
 
 
-## 学习进度与知识掌握系统
+## Learning Intelligence 2.0 · 知识掌握与独立复习闭环
 
-`progress/` 是 KNOWVERSE 的学习驾驶舱，将知识图谱、挑战证据、薄弱点诊断、间隔复习与再次验证连接成统一闭环。
+- 学习驾驶舱：`/progress/`；针对性复习工作台：`/review/`。
+- 统一事件 V2：兼容旧 V1 学习档案，记录挑战、复习会话与三条产品线探索活动。
+- 掌握度与置信度分开计算；未验证节点不记 0 分。
+- gap 精准生命周期：普通成功不清除误区，提示辅助通过需等待不同题型的无提示独立验证。
+- 首批 8 个能力点、17 个薄弱点、36 个精确复习变体，覆盖 Promise 与 TypeScript Monorepo。
+- `assets/js/review-engine.mjs`：隔离复习会话，不重置或覆盖原始挑战。
+- `assets/js/learning-activity.mjs`：本地记录实验室、展厅、解谜世界的探索活动；探索行为不会被当作掌握证据。
+- `docs/learning-progress-system.md`：V2 数据模型、迁移、复习策略、隐私和验收说明。
 
-- `content/learning-map.json`：稳定的知识点 ID、前置关系和挑战入口。
-- `assets/js/learning-progress.mjs`：追加式学习事件、掌握度分析、错误 gap 识别、复习安排与 JSON 导入导出。
-- `assets/js/challenge-engine.mjs`：挑战保存时自动把 attempt / hint / completed 写入统一学习档案。
-- `docs/learning-progress-system.md`：系统架构、事件模型、掌握度规则、隐私边界与验收标准。
-
-第一批接入 Promise 五关与 Monorepo 三关。数据存储在当前浏览器，不会提交到公开仓库；GitHub Pages 没有账户与云同步，跨设备请使用 JSON 导出 / 导入。
+学习记录保存在当前浏览器 LocalStorage，不会提交到公开仓库；GitHub Pages 不提供账户或云同步，跨设备请使用 JSON 导出 / 导入。浏览器存储受站点配额限制，建议定期备份。

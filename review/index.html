@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f8f7">
+  <meta name="description" content="KNOWVERSE 针对性复习工作台：按具体薄弱点选择不同验证变体，以无提示独立作答纠正概念误区。">
+  <title>针对性复习工作台 · KNOWVERSE</title>
+  <link rel="stylesheet" href="../assets/css/v2.css">
+  <link rel="stylesheet" href="../assets/css/review-workspace.css">
+</head>
+<body class="review-page" data-root="../">
+  <div class="topline"></div>
+  <header class="navwrap">
+    <nav class="navbar" aria-label="主导航">
+      <a class="mark" href="../">KNOW<b>VERSE</b><small>知识 / 探索 / 实践</small></a>
+      <div class="navlinks">
+        <a href="../knowledge/">知识库</a><a href="../lab/">原理实验室</a><a href="../gallery/">沉浸展厅</a><a href="../puzzles/">解谜世界</a><a href="../progress/">学习进度</a>
+      </div>
+      <button id="mobile-menu" class="mobilemenu" aria-label="打开导航">菜单</button>
+      <button class="search-trigger" id="search-open" aria-label="站内搜索">搜索知识库 <span>⌘ K</span></button>
+    </nav>
+  </header>
+
+  <main class="rw-container">
+    <div class="rw-breadcrumb"><a href="../progress/">学习驾驶舱</a><span>/</span><span>针对性复习</span></div>
+    <section class="rw-hero">
+      <div>
+        <span class="rw-kicker">LEARNING INTELLIGENCE / REVIEW SESSION</span>
+        <h1>把“做对过”，变成“真正掌握”。</h1>
+        <p>每次复习都是独立会话，不会重置原挑战。系统为同一知识点提供不同验证变体；提示辅助通过会标记为“待独立确认”，只有不同变体上的无提示验证才能纠正对应薄弱点。</p>
+      </div>
+      <div class="rw-hero-side">
+        <span>SESSION ISOLATION</span><strong>Campaign ≠ Review</strong><small>原挑战记录永久保留 · 复习独立计分</small>
+      </div>
+    </section>
+
+    <section class="rw-picker" id="review-picker">
+      <div class="rw-section-title"><div><span>CHOOSE A KNOWLEDGE TARGET</span><h2>选择复习目标</h2></div><p>可以从薄弱点开始，也可以主动巩固已学习的知识点。</p></div>
+      <div id="target-list" class="rw-target-grid"><div class="rw-empty">正在加载知识点…</div></div>
+    </section>
+
+    <section class="rw-session" id="review-session" hidden>
+      <div class="rw-session-head">
+        <div><span class="rw-kicker">ACTIVE REVIEW SESSION</span><h2 id="session-title">复习任务</h2><p id="session-context"></p></div>
+        <div class="rw-session-status"><span id="session-status-label">进行中</span><strong id="session-variant">VARIANT</strong></div>
+      </div>
+      <div class="rw-session-grid">
+        <article class="rw-question-card">
+          <div class="rw-question-overline"><span id="question-topic">PROMISE</span><span id="question-progress">独立验证</span></div>
+          <h3 id="question-title"></h3>
+          <p id="question-prompt" class="rw-prompt"></p>
+          <pre id="question-code" class="rw-code" hidden></pre>
+          <div id="answer-options" class="rw-options" role="group" aria-label="选择答案"></div>
+          <div id="answer-feedback" class="rw-feedback" role="status" aria-live="polite">先独立推演，再提交答案。</div>
+          <div class="rw-hints">
+            <div><strong>渐进提示</strong><p>提示会帮助你完成本题，但会降低本次验证的独立性。</p></div>
+            <button id="reveal-hint" class="rw-secondary" type="button">展开一条提示</button>
+          </div>
+          <ol id="hint-list" class="rw-hint-list"></ol>
+          <div class="rw-explanation" id="answer-explanation" hidden></div>
+          <div class="rw-actions">
+            <button id="next-variant" class="rw-primary" type="button" hidden>用另一个题型再次验证 →</button>
+            <a id="back-progress" href="../progress/" class="rw-secondary-link">返回学习驾驶舱</a>
+          </div>
+        </article>
+        <aside class="rw-side">
+          <div class="rw-side-card"><span>本次验证原则</span><strong>不同题型</strong><p>重复同一道题只能说明记住了答案；不同变体更能检查是否理解知识结构。</p></div>
+          <div class="rw-side-card"><span>辅助程度</span><strong id="hint-state">未使用提示</strong><p id="hint-explain">无提示独立通过是更强的掌握证据。</p></div>
+          <div class="rw-side-card"><span>数据保存</span><strong>仅本机</strong><p>会话与学习事件保存在当前浏览器；Mac 与 iPhone 可通过学习档案 JSON 合并迁移。</p></div>
+        </aside>
+      </div>
+    </section>
+    <section class="rw-history" id="review-history">
+      <div class="rw-section-title"><div><span>RECENT REVIEW ACTIVITY</span><h2>最近复习记录</h2></div><a href="../progress/">查看完整成长档案 ↗</a></div>
+      <div id="history-list" class="rw-history-list"><div class="rw-empty">当前设备还没有复习会话。</div></div>
+    </section>
+  </main>
+  <footer class="rw-footer">KNOWVERSE / REVIEW SESSION ENGINE · 复习不会覆盖原始挑战历史</footer>
+  <script defer src="../assets/js/v2.js"></script>
+  <script type="module" src="../assets/js/review-workspace.mjs"></script>
+</body>
+</html>
