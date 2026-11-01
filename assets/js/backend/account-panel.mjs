@@ -83,6 +83,10 @@ export async function mountBackendAccountPanel(host, options = {}) {
     errorBox.textContent = message || "";
   }
 
+  if (runtime.bootstrapError) {
+    setError("本地档案数据库初始化失败；旧版 LocalStorage 学习记录仍保留。可继续本地学习，修复浏览器存储后再尝试同步。");
+  }
+
   function setBusy(value) {
     busy = value;
     sync.disabled = value;

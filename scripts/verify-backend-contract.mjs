@@ -150,4 +150,7 @@ test("one shared archive runtime auto-syncs from every page and powers the accou
   assert.doesNotMatch(panel, /createLearningSyncService|syncService\.start\(\)/);
   assert.match(panel, /立即同步/);
   assert.match(bootstrap, /BACKEND_CONFIG/);
+  assert.match(bootstrap, /stopSyncRuntime?.()/);
+  assert.match(bootstrap, /bootstrapError/);
+  assert.match(panel, /runtime.bootstrapError/);
 });

@@ -73,7 +73,7 @@ Lab / Gallery / Puzzles → 领域引擎 → Learning Intelligence → Local Arc
 |---|---|
 | assets/js/backend/local-event-store.mjs | IndexedDB V2：事件、Outbox、meta、档案文档、冲突、迁移元数据 |
 | assets/js/backend/local-archive.mjs | 扫描/复制 LocalStorage、幂等迁移、文档恢复、冲突选择 |
-| assets/js/backend/archive-bootstrap.mjs | 启动时迁移与恢复入口 |
+| assets/js/backend/archive-bootstrap.mjs | 全站共享同步运行时、启动时迁移与恢复入口 |
 | assets/js/backend/sync-engine.mjs | 设备注册、Push / Pull、重试、游标和状态事件 |
 | assets/js/backend/auth.mjs | OAuth PKCE、会话续期、401 后单次刷新重试 |
 | assets/js/backend/account-panel.mjs | 登录、设备、档案、待同步状态、冲突处理 UI |
@@ -200,7 +200,7 @@ Push 同一 event_id、相同 payload 是安全重试；同 ID 不同 payload �
 
 ## 9. 同步调度与状态 UI
 
-同步触发点：
+同步运行时由全站共享入口 assets/js/backend/archive-bootstrap.mjs 在每个页面启动；学习驾驶舱账号面板复用同一个实例，避免只在驾驶舱打开时才进入 Outbox。同步触发点：
 
 - 登录后初始化。
 - 学习事件写入后。
