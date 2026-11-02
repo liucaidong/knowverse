@@ -84,4 +84,18 @@ for (const topic of learningMap.topics || []) {
 assert.ok(Array.isArray(search.records), "search metadata records are required");
 for (const record of search.records) await routeExists(record.href);
 
+const shellSource = await readFile(path.join(root, "assets/js/site-shell.mjs"), "utf8");
+assert.ok(shellSource.includes('document.querySelector(".navwrap, .sitehead")'), "all supported page header templates must use the shared site shell");
+assert.ok(shellSource.includes("kv-account-quick-login"), "global GitHub sign-in must be visible in the top navigation");
+assert.ok(shellSource.includes('auth.signInWithGitHub(root, location.href)'), "global sign-in must preserve the initiating page");
+for (const file of [
+  "knowledge/monorepo/guides/cross-platform/index.html",
+  "knowledge/monorepo/guides/ghost-deps/index.html",
+  "knowledge/monorepo/guides/nx24-affected/index.html",
+  "knowledge/monorepo/guides/rush-rollout/index.html",
+]) {
+  const page = await readFile(path.join(root, file), "utf8");
+  assert.ok(page.includes('<body data-root="../../../../">'), `${file} must resolve site assets from the repository root`);
+  assert.ok(page.includes("../../../../assets/js/v2.js"), `${file} must load the shared navigation and account shell`);
+}
 console.log(`Site architecture verified: ${navigation.groups.length} nav groups, ${knowledge.topics.length} topics, ${works.pillars.length} pillars, ${works.works.length} works, ${(learningMap.topics || []).length} competency graphs, ${search.records.length} search records.`);
