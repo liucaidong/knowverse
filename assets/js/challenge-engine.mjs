@@ -183,7 +183,7 @@ export function summarizeChallenge(challenge, progress) {
 }
 
 export function createChallengeProgressStore(options = {}) {
-  const prefix = options.prefix || "knowverse:challenge:v1:";
+  const prefix = options.prefix || "knowverse:challenge/";
   let storage = options.storage;
   if (typeof storage === "undefined") {
     try {

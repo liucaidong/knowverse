@@ -84,7 +84,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
   }
 
   if (runtime.bootstrapError) {
-    setError("本地档案数据库初始化失败；旧版 LocalStorage 学习记录仍保留。可继续本地学习，修复浏览器存储后再尝试同步。");
+    setError("本地归档数据库初始化失败。请检查浏览器 IndexedDB 权限与存储空间后刷新页面。");
   }
 
   function setBusy(value) {
@@ -109,19 +109,16 @@ export async function mountBackendAccountPanel(host, options = {}) {
 
   async function renderArchive() {
     try {
-      const [archive, device] = await Promise.all([getArchiveStatus(), getLocalDevice()]);
+      const [archive, device] = await Promise.all([getArchiveStatus(options.store?.load?.()?.events?.length || 0), getLocalDevice()]);
       metrics.replaceChildren();
-      addMetric("本地学习事件", archive.eventRecords ?? "—", "已镜像到 IndexedDB");
+      addMetric("本地学习事件", archive.eventRecords ?? "—", "当前设备学习记录");
       addMetric("待上传事件", archive.pendingEvents, "服务端确认后才会清除");
       addMetric("待同步档案", archive.pendingDocuments, "挑战 / 复习 / 偏好");
       addMetric("冲突待处理", archive.conflicts, "不会自动覆盖任何一端");
       detailList.replaceChildren();
       addDetail("当前设备", shortId(device?.id));
       addDetail("本地数据库", archive.indexedDbAvailable ? "IndexedDB 可用" : "IndexedDB 不可用");
-      addDetail("本地迁移", archive.migration === "completed"
-        ? "已完成 · " + dateLabel(archive.migrationAt)
-        : archive.migration === "needs-attention" ? "已运行，但有数据需要检查"
-          : archive.migration === "failed" ? "迁移失败 · 原始 LocalStorage 保留" : "尚未完成");
+      addDetail("本地档案", archive.indexedDbAvailable ? "当前存储可用" : "当前存储不可用");
       addDetail("档案文档", archive.documents + " 份");
       addDetail("网络", typeof navigator === "undefined" ? "未知" : navigator.onLine ? "在线" : "离线");
       lastSync.textContent = "最近成功同步：" + dateLabel(archive.lastSyncAt);

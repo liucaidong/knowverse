@@ -8,8 +8,8 @@ export const BACKEND_CONFIG = Object.freeze({
   supabaseUrl,
   publishableKey,
   enabled: secureUrl && publishableKey.length > 10,
-  authStorageKey: "knowverse:supabase-session:v1",
-  pkceStorageKey: "knowverse:supabase-pkce:v1",
+  authStorageKey: "knowverse:supabase-session",
+  pkceStorageKey: "knowverse:supabase-pkce",
 });
 
 export function isBackendConfigured() {

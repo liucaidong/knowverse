@@ -1,6 +1,6 @@
 import { deriveLearningInsights } from "./learning-progress.mjs";
 
-const PREFERENCES_KEY = "knowverse:learning-plan:preferences:v1";
+const PREFERENCES_KEY = "knowverse:learning-plan:preferences";
 const DEFAULT_PREFERENCES = Object.freeze({ dailyMinutes: 25, focusTopicId: "all" });
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 const clone = value => JSON.parse(JSON.stringify(value));

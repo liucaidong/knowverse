@@ -86,7 +86,7 @@ async function exerciseReview(browser, label, viewport) {
   await page.addInitScript(event => {
     const marker = "knowverse:e2e-learning-seeded";
     if (localStorage.getItem(marker)) return;
-    localStorage.setItem("knowverse:learning-progress:v2", JSON.stringify({
+    localStorage.setItem("knowverse:learning-progress", JSON.stringify({
       schemaVersion: 2,
       createdAt: event.at,
       updatedAt: event.at,

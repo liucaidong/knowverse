@@ -95,7 +95,7 @@ test("React Native architecture quest: all six campaign steps create learning ev
       }
     }
     await page.locator("#quest-success").waitFor({state:"visible"});
-    const snapshot=await page.evaluate(()=>JSON.parse(localStorage.getItem("knowverse:learning-progress:v2")||"{}"));
+    const snapshot=await page.evaluate(()=>JSON.parse(localStorage.getItem("knowverse:learning-progress")||"{}"));
     const completed=(snapshot.events||[]).filter(event=>event.challengeId==="rn-architecture-quest"&&event.type==="completed");
     assert.equal(completed.length,6);
     assert.deepEqual(errors,[]);

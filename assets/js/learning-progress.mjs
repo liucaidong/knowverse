@@ -1,6 +1,5 @@
-const SCHEMA_VERSION = 2;
-const STORAGE_KEY = "knowverse:learning-progress:v2";
-const LEGACY_STORAGE_KEY = "knowverse:learning-progress:v1";
+const SCHEMA_VERSION = 1;
+const STORAGE_KEY = "knowverse:learning-progress";
 const DAY_MS = 86_400_000;
 
 const timestamp = () => new Date().toISOString();
@@ -17,12 +16,12 @@ function makeRunFallback() {
 
 function emptySnapshot() {
   const now = timestamp();
-  return { schemaVersion: SCHEMA_VERSION, createdAt: now, updatedAt: now, events: [] };
+  return { schemaVersion: SCHEMA_VERSION, createdAt: now, updatedAt: now, events: [], remoteEventIds: [] };
 }
 
 function normalizeSnapshot(value) {
   const source = asObject(value);
-  if (!source || ![1, SCHEMA_VERSION].includes(source.schemaVersion) || !Array.isArray(source.events)) {
+  if (!source || source.schemaVersion !== SCHEMA_VERSION || !Array.isArray(source.events)) {
     return emptySnapshot();
   }
   const events = source.events.filter(event =>
@@ -35,7 +34,7 @@ function normalizeSnapshot(value) {
     Array.isArray(event.competencyIds)
   ).map(event => ({
     ...event,
-    eventSchemaVersion: [2, 3].includes(Number(event.eventSchemaVersion)) ? Number(event.eventSchemaVersion) : 2,
+    eventSchemaVersion: 2,
     sessionType: event.sessionType || (event.type === "activity" ? "exploration" : "campaign"),
     sessionId: event.sessionId || event.runId || null,
     variantId: event.variantId || null,
@@ -45,35 +44,22 @@ function normalizeSnapshot(value) {
     createdAt: validDate(source.createdAt) ? source.createdAt : timestamp(),
     updatedAt: validDate(source.updatedAt) ? source.updatedAt : timestamp(),
     events: clone(events),
+    remoteEventIds: Array.isArray(source.remoteEventIds)
+      ? [...new Set(source.remoteEventIds.filter(id => typeof id === "string" && events.some(event => event.id === id)))]
+      : [],
   };
 }
 
 function readStorage(storage, key) {
   if (!storage) return emptySnapshot();
-  const isSupportedSnapshot = value =>
-    asObject(value) &&
-    [1, SCHEMA_VERSION].includes(value.schemaVersion) &&
-    Array.isArray(value.events);
-
   try {
     const raw = storage.getItem(key);
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        if (isSupportedSnapshot(parsed)) return normalizeSnapshot(parsed);
-      } catch {
-        // A malformed V2 value must not prevent fallback to the preserved V1 key.
-      }
+    if (!raw) return emptySnapshot();
+    const parsed = JSON.parse(raw);
+    if (!asObject(parsed) || parsed.schemaVersion !== SCHEMA_VERSION || !Array.isArray(parsed.events)) {
+      return emptySnapshot();
     }
-
-    if (key === STORAGE_KEY) {
-      const legacy = storage.getItem(LEGACY_STORAGE_KEY);
-      if (legacy) {
-        const parsedLegacy = JSON.parse(legacy);
-        if (isSupportedSnapshot(parsedLegacy)) return normalizeSnapshot(parsedLegacy);
-      }
-    }
-    return emptySnapshot();
+    return normalizeSnapshot(parsed);
   } catch {
     return emptySnapshot();
   }
@@ -213,14 +199,19 @@ export function createLearningProgressStore(options = {}) {
       if (!Array.isArray(newEvents) || !newEvents.length) return true;
       const snapshot = readStorage(storage, key);
       const known = new Set(snapshot.events.map(event => event.id));
+      const remoteIds = new Set(snapshot.remoteEventIds || []);
       const added = [];
       for (const event of newEvents) {
-        if (asObject(event) && typeof event.id === "string" && !known.has(event.id)) {
+        if (!asObject(event) || typeof event.id !== "string") continue;
+        if (!known.has(event.id)) {
           snapshot.events.push(clone(event));
           added.push(clone(event));
           known.add(event.id);
         }
+        if (appendOptions.remote === true) remoteIds.add(event.id);
+        else remoteIds.delete(event.id);
       }
+      snapshot.remoteEventIds = [...remoteIds];
       snapshot.updatedAt = timestamp();
       const saved = save(snapshot);
       if (saved && added.length && appendOptions.remote !== true && typeof window !== "undefined") {
@@ -242,22 +233,24 @@ export function createLearningProgressStore(options = {}) {
       if (!available) throw new Error("当前浏览器不支持本地存储。");
       const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
       const envelope = asObject(parsed);
-      if (!envelope || envelope.format !== "knowverse-learning-progress" || ![1, SCHEMA_VERSION].includes(envelope.schemaVersion)) {
+      if (!envelope || envelope.format !== "knowverse-learning-progress" || envelope.schemaVersion !== SCHEMA_VERSION) {
         throw new Error("文件格式或版本不受支持。请使用 KNOWVERSE 导出的 JSON 文件。");
       }
       const incoming = normalizeSnapshot(envelope.data);
-      if (!asObject(envelope.data) || ![1, SCHEMA_VERSION].includes(envelope.data.schemaVersion)) {
+      if (!asObject(envelope.data) || envelope.data.schemaVersion !== SCHEMA_VERSION) {
         throw new Error("学习记录数据不完整或版本不匹配。");
       }
       const replace = importOptions.replace === true;
       const current = replace ? emptySnapshot() : this.load();
       const known = new Set(current.events.map(event => event.id));
+      const importedIds = new Set(incoming.events.map(event => event.id));
       for (const event of incoming.events) {
         if (!known.has(event.id)) {
           current.events.push(clone(event));
           known.add(event.id);
         }
       }
+      current.remoteEventIds = (current.remoteEventIds || []).filter(id => !importedIds.has(id));
       current.updatedAt = timestamp();
       if (!current.events.length && incoming.events.length) current.events = incoming.events;
       if (!save(current)) throw new Error("写入本地存储失败，可能是浏览器空间不足。");

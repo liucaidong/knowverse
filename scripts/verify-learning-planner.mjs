@@ -214,7 +214,7 @@ test("preferences are validated and persisted independently of the learning even
   assert.equal(preferences.save({ dailyMinutes: 40, focusTopicId: "promise" }), true);
   assert.deepEqual(preferences.load(), { dailyMinutes: 40, focusTopicId: "promise" });
   assert.deepEqual(
-    createLearningPlanPreferencesStore({ storage: memoryStorage({ "knowverse:learning-plan:preferences:v1": "{broken" }) }).load(),
+    createLearningPlanPreferencesStore({ storage: memoryStorage({ "knowverse:learning-plan:preferences": "{broken" }) }).load(),
     { dailyMinutes: 25, focusTopicId: "all" }
   );
 });

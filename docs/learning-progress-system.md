@@ -46,20 +46,18 @@
 
 **学习活动和掌握证据明确分离。** 探索三维场景、运行实验或打开课程不会直接让知识点涨分。当前 12 件非挑战作品已配置明确、可判定的无提示 checkpoint，并显式映射 competency；两件挑战作品由 Challenge Engine 提供结构化评估。
 
-## 版本迁移与本地存储
+## 本机学习日志与云端归档
 
-当前实现采用浏览器 Local-first 存储：
+当前事件日志只使用一套 schema 和一个当前键，不读取旧 V1/V2 键，也不执行旧档案复制迁移：
 
-- 当前主档：`knowverse:learning-progress:v2`
-- 兼容旧档：`knowverse:learning-progress:v1`
-- 活动中的复习会话：`knowverse:review-session:v1:*`
-- 已完成复习历史由统一事件日志重建，并随学习档案 JSON 一起导出
+- 学习事件日志：`knowverse:learning-progress`
+- 活动中的挑战：`knowverse:challenge/<challengeId>`
+- 活动中的复习：`knowverse:review-session/<sessionId>`
+- 规划偏好：`knowverse:learning-plan:preferences`
 
-V2 可以读取旧 V1 快照，并在新事件写入时升级为 V2。旧事件 ID、时间、分数、挑战和知识点关系会保留；无法从旧记录推断的 session / variant 元数据不伪造。导入接受 V1 和 V2 JSON，默认按事件 ID 去重合并。
+本机事件日志是 LocalStorage 中的唯一权威快照。IndexedDB 只保存可靠上传队列、设备序列、同步游标、可恢复挑战/复习/偏好文档及冲突。云端同步成功后，事件由 Supabase 保存；本机 Outbox 只有收到服务端确认才会清除。挑战与复习现场使用文档 revision / compare-and-swap 同步，并发冲突必须由用户明确选择。
 
-事件日志不再按固定 5,000 条静默截断。浏览器存储仍受各浏览器的站点配额限制；写入失败会返回失败状态，不会假装已保存。建议定期导出 JSON 备份。导出文件包含个人学习记录，应由本人妥善保管，不要提交到公开仓库。
-
-**部署限制：** GitHub Pages 是静态站点。本版本不提供账户、云同步或跨设备自动合并。Mac 与 iPhone 的浏览器存储相互独立，需使用 JSON 导出 / 导入。
+事件日志不会按固定数量静默截断。浏览器存储受站点配额限制；写入失败会显示失败状态。学习档案支持 JSON 导入与导出；导出文件包含个人学习记录，应由本人妥善保管，不要提交到公开仓库。
 
 ## 掌握度和置信度
 
@@ -132,7 +130,7 @@ V2 可以读取旧 V1 快照，并在新事件写入时升级为 V2。旧事件 
 
 CI 包含：
 
-- schema V1 → V2 迁移、事件去重和完整历史保留测试；
+- 当前事件 schema 校验、事件去重和完整历史保留测试；
 - gap 精准匹配、提示辅助、不同变体与独立验证状态测试；
 - mastery / confidence、状态升级和降级、gap-only review queue 测试；
 - 九个 competency、19 个 gap 和 20 组 gap-competency 映射的 40 个 review variant 注册表校验；
@@ -143,11 +141,11 @@ WebKit 手机视口属于浏览器引擎的自动化视口测试，不等同于�
 
 ## 数据安全与非目标
 
-- 不引入用户账户、云端数据库或第三方学习分析服务。
+- 云端身份由 Supabase Auth GitHub OAuth 提供，写入由白名单、RLS 与受控 RPC 保护。
 - 不把个人学习事件写入仓库静态 JSON。
 - 不生成没有验证题的虚假掌握分。
 - 不把三个产品主线重写为一个大型应用；采用统一事件协议与轻量采集模块。
-- 当前事件主档仍为 LocalStorage V2，以兼容现有同步挑战 API；尚未迁移到 IndexedDB。大规模长期档案应定期导出备份，后续如升级异步 IndexedDB，需要同步重构 challenge store 的持久化接口。
+- 当前事件主档为单一 LocalStorage 快照；IndexedDB 仅用于同步队列、游标和 CAS 文档，不复制第二份事件历史。
 
 
 ## 统一作品学习接入（2026-11-01）
@@ -176,10 +174,9 @@ WebKit 手机视口属于浏览器引擎的自动化视口测试，不等同于�
 
 新增 `build-cache-integrity`，位于 `build-topology` 之后。新增两个 gap：`build-cache-input-coverage`（缓存键遗漏环境变量、配置或工具链输入）和 `build-cache-stale-output`（把 cache hit 错当成产物必然正确）。为每个 gap 提供 A/B 两种不同复习变体。该能力由缓存实验与作品检查点评估，不会伪装成现有三关 Monorepo 解谜游戏的一部分。
 
-### 兼容与边界
+### 当前存储边界
 
-V1/V2 档案迁移、LocalStorage、事件追加、导入导出和原有挑战存储键保持兼容。此阶段不引入用户账户、云端数据库、跨设备自动同步，也不把探索行为升级为掌握证据。
-
+事件日志只有一个当前 schema。LocalStorage 提供现有领域引擎需要的同步读写；IndexedDB 管理可靠云同步队列和版本化档案文档。旧键迁移、跨 schema 回退、兼容复制状态机均不属于当前产品。
 
 ## 主动学习规划系统（2026-11-01）
 
@@ -220,7 +217,7 @@ V1/V2 档案迁移、LocalStorage、事件追加、导入导出和原有挑战�
 - `plan_action_started`：开始执行一项建议；
 - `plan_action_completed`：用户确认已完成计划步骤。
 
-事件包含 planDate、actionId、competencyId、资源入口和行动类型，保存在现有 V2 事件日志并随 JSON 档案导出。但这些事件不属于 `completed` 或 `assessment_passed`，因此不会被掌握度算法计为评估证据。规划偏好单独保存在 `knowverse:learning-plan:preferences:v1`。
+事件包含 planDate、actionId、competencyId、资源入口和行动类型，保存在当前学习事件日志并随 JSON 档案导出。但这些事件不属于 `completed` 或 `assessment_passed`，因此不会被掌握度算法计为评估证据。规划偏好单独保存在 `knowverse:learning-plan:preferences`。
 
 ### 可解释性与安全边界
 

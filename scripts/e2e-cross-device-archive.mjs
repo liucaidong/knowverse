@@ -209,7 +209,7 @@ async function newDevice(browser, label) {
 function event(id, type, at, patch = {}) {
   return {
     id,
-    eventSchemaVersion: 3,
+    eventSchemaVersion: 2,
     type,
     at,
     topicId: "promise",
@@ -243,13 +243,7 @@ test("Mac + iPhone: offline-first archive, event merge, idempotency, document CA
       { correct: false, gapId: "thenable-get-vs-call", attemptNumber: 1 },
     );
     await mac.page.evaluate(value => {
-      localStorage.setItem("knowverse:learning-progress:v1", JSON.stringify({
-        schemaVersion: 1,
-        createdAt: value.at,
-        updatedAt: value.at,
-        events: [value],
-      }));
-      localStorage.setItem("knowverse:challenge:v1:promise-mechanism-quest", JSON.stringify({
+      localStorage.setItem("knowverse:challenge/promise-mechanism-quest", JSON.stringify({
         engineVersion: 1,
         challengeId: "promise-mechanism-quest",
         runId: "mac-run",
@@ -257,22 +251,12 @@ test("Mac + iPhone: offline-first archive, event merge, idempotency, document CA
         currentStep: "thenable-adoption",
         steps: [{ id: "thenable-adoption", status: "active", attempts: 1, hintsUsed: 0, data: {} }],
       }));
+      window.archiveHarness.addEvent(value);
     }, failedAttempt);
-
-    const migrationFirst = await mac.page.evaluate(() => window.archiveHarness.migrate());
-    const migrationSecond = await mac.page.evaluate(() => window.archiveHarness.migrate());
-    const migrationState = await mac.page.evaluate(() => ({
-      v1Retained: localStorage.getItem("knowverse:learning-progress:v1") !== null,
-      v2Events: JSON.parse(localStorage.getItem("knowverse:learning-progress:v2") || "{}").events?.length || 0,
-      indexedDb: null,
-    }));
-    migrationState.indexedDb = await mac.page.evaluate(() => window.archiveHarness.status());
-    assert.equal(migrationFirst.status, "completed");
-    assert.equal(migrationSecond.status, "completed");
-    assert.equal(migrationState.v1Retained, true);
-    assert.equal(migrationState.v2Events, 1);
-    assert.equal(migrationState.indexedDb.eventRecords, 1);
-    assert.equal(migrationState.indexedDb.migration, "completed");
+    await mac.page.waitForFunction(async () => {
+      const status = await window.archiveHarness.status();
+      return status.pendingEvents >= 1 && status.eventRecords === 1;
+    });
 
     const macFirstSync = await mac.page.evaluate(() => window.archiveHarness.sync());
     assert.equal(macFirstSync.status, "synced");
@@ -287,7 +271,7 @@ test("Mac + iPhone: offline-first archive, event merge, idempotency, document CA
     assert.equal(phoneFirstSync.pulledDocuments, 1);
     const phoneState = await phone.page.evaluate(() => ({
       events: window.archiveHarness.store.load().events,
-      challenge: JSON.parse(localStorage.getItem("knowverse:challenge:v1:promise-mechanism-quest") || "null"),
+      challenge: JSON.parse(localStorage.getItem("knowverse:challenge/promise-mechanism-quest") || "null"),
     }));
     assert.equal(phoneState.events.length, 1);
     assert.equal(phoneState.events[0].gapId, "thenable-get-vs-call");
@@ -309,7 +293,7 @@ test("Mac + iPhone: offline-first archive, event merge, idempotency, document CA
     );
     await phone.page.evaluate(value => {
       window.archiveHarness.addEvent(value);
-      localStorage.setItem("knowverse:review-session:v1:phone-review", JSON.stringify({
+      localStorage.setItem("knowverse:review-session/phone-review", JSON.stringify({
         schemaVersion: 1,
         sessionId: "phone-review",
         sessionType: "review",
@@ -320,7 +304,7 @@ test("Mac + iPhone: offline-first archive, event merge, idempotency, document CA
         attempts: 1,
         hintsUsed: 0,
       }));
-      localStorage.setItem("knowverse:learning-plan:preferences:v1", JSON.stringify({
+      localStorage.setItem("knowverse:learning-plan:preferences", JSON.stringify({
         dailyMinutes: 40,
         focusTopicId: "promise",
       }));
@@ -336,8 +320,8 @@ test("Mac + iPhone: offline-first archive, event merge, idempotency, document CA
     assert.equal(macPull.pulledDocuments, 2);
     const macMerged = await mac.page.evaluate(() => ({
       events: window.archiveHarness.store.load().events,
-      review: JSON.parse(localStorage.getItem("knowverse:review-session:v1:phone-review") || "null"),
-      preferences: JSON.parse(localStorage.getItem("knowverse:learning-plan:preferences:v1") || "null"),
+      review: JSON.parse(localStorage.getItem("knowverse:review-session/phone-review") || "null"),
+      preferences: JSON.parse(localStorage.getItem("knowverse:learning-plan:preferences") || "null"),
     }));
     assert.equal(macMerged.events.length, 2);
     assert.ok(macMerged.events.some(row => row.type === "attempt" && row.correct === false));
@@ -373,7 +357,7 @@ test("Mac + iPhone: offline-first archive, event merge, idempotency, document CA
     assert.equal(cloud.events.length, 3);
 
     await mac.page.evaluate(() => {
-      const key = "knowverse:challenge:v1:promise-mechanism-quest";
+      const key = "knowverse:challenge/promise-mechanism-quest";
       const value = JSON.parse(localStorage.getItem(key));
       value.currentStep = "mac-second-step";
       localStorage.setItem(key, JSON.stringify(value));
@@ -382,11 +366,11 @@ test("Mac + iPhone: offline-first archive, event merge, idempotency, document CA
     assert.equal(macEdit.status, "synced");
 
     const phoneBase = await phone.page.evaluate(() => JSON.parse(localStorage.getItem(
-      "knowverse:challenge:v1:promise-mechanism-quest"
+      "knowverse:challenge/promise-mechanism-quest"
     )));
     phoneBase.currentStep = "iphone-second-step";
     await phone.page.evaluate(value => localStorage.setItem(
-      "knowverse:challenge:v1:promise-mechanism-quest", JSON.stringify(value)
+      "knowverse:challenge/promise-mechanism-quest", JSON.stringify(value)
     ), phoneBase);
 
     const conflictSync = await phone.page.evaluate(() => window.archiveHarness.sync());

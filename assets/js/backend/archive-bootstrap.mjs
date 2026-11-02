@@ -50,9 +50,8 @@ export async function getArchiveRuntime() {
   try {
     await startArchiveBootstrap();
   } catch {
-    // Keep the account panel mountable even if IndexedDB is unavailable.
-    // The returned error is presented as a local archive warning; learning
-    // itself continues to use the legacy LocalStorage compatibility layer.
+    // Keep the account panel mountable so the storage error is visible.
+    // Local learning state remains in the current browser store.
   }
   return {
     store: archiveStore,

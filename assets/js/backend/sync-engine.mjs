@@ -120,7 +120,6 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
         if (!progressStore.appendMany(remoteEvents, { remote: true })) {
           throw new Error("云端事件已读取，但合并到本地学习档案失败；同步游标未推进。");
         }
-        await persistLearningEvents(remoteEvents, { origin: "cloud", queue: false });
         pulled += remoteEvents.length;
       }
       const nextCursor = Number(result?.next_cursor ?? cursor);
