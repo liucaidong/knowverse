@@ -1,6 +1,6 @@
 import { createLearningProgressStore } from "./learning-progress.mjs";
 
-const SESSION_PREFIX = "knowverse:review-session:v1:";
+const SESSION_PREFIX = "knowverse:review-session/";
 const clone = value => JSON.parse(JSON.stringify(value));
 const nowIso = () => new Date().toISOString();
 const makeId = () => "review-" + Date.now().toString(36) + "-" +

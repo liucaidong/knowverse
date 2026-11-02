@@ -84,32 +84,26 @@ const testRegistry = {
   ],
 };
 
-test("v1 snapshots migrate to v2 without changing or dropping historical events", () => {
-  const legacy = {
-    schemaVersion: 1,
-    createdAt: "2026-10-20T00:00:00.000Z",
-    updatedAt: "2026-10-20T00:00:00.000Z",
-    events: [{
-      id: "legacy-event",
-      type: "completed",
-      at: "2026-10-20T00:00:00.000Z",
-      challengeId: "old-challenge",
-      stepId: "old-step",
-      competencyIds: ["thenable-adoption"],
-      scorePct: 90,
-    }],
-  };
-  const storage = memoryStorage({ "knowverse:learning-progress:v1": JSON.stringify(legacy) });
+test("learning snapshots accept only the current schema", () => {
+  const storage = memoryStorage({
+    "knowverse:learning-progress": JSON.stringify({ schemaVersion: 0, events: [{ id: "stale" }] }),
+  });
   const store = createLearningProgressStore({ storage });
-  const snapshot = store.load();
-  assert.equal(snapshot.schemaVersion, 2);
-  assert.equal(snapshot.events.length, 1);
-  assert.equal(snapshot.events[0].id, "legacy-event");
-  assert.equal(snapshot.events[0].eventSchemaVersion, 2);
-  assert.equal(snapshot.events[0].sessionType, "campaign");
-  assert.equal(store.appendMany([{ ...campaignFailure, id: "new-event" }]), true);
-  assert.equal(store.load().events.length, 2);
-  assert.ok(storage.getItem("knowverse:learning-progress:v2"));
+  assert.equal(store.load().schemaVersion, 1);
+  assert.equal(store.load().events.length, 0);
+  assert.equal(store.appendMany([{ ...campaignFailure, id: "current-event" }]), true);
+  assert.equal(store.load().events.length, 1);
+  assert.ok(storage.getItem("knowverse:learning-progress"));
+});
+
+
+test("cloud-received events never re-enter the local upload queue snapshot", () => {
+  const source = createLearningProgressStore({ storage: memoryStorage() });
+  const remote = { ...campaignFailure, id: "remote-event" };
+  assert.equal(source.appendMany([remote], { remote: true }), true);
+  assert.deepEqual(source.load().remoteEventIds, ["remote-event"]);
+  const exported = JSON.parse(source.exportJSON());
+  assert.deepEqual(exported.data.remoteEventIds, ["remote-event"]);
 });
 
 test("event history is not silently truncated at an arbitrary event count", () => {

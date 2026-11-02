@@ -1,21 +1,17 @@
-const DB_NAME = "knowverse-learning-store";
-const DB_VERSION = 2;
-const STORE_EVENTS = "events";
+const DB_NAME = "knowverse-learning-archive";
+const DB_VERSION = 1;
 const STORE_OUTBOX = "outbox";
 const STORE_META = "meta";
 const STORE_DOCUMENTS = "documents";
-const STORE_MIGRATIONS = "migrations";
 const STORE_CONFLICTS = "conflicts";
 
 const randomId = () => globalThis.crypto?.randomUUID?.()
   || "device-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
 
 function ensureStores(db) {
-  if (!db.objectStoreNames.contains(STORE_EVENTS)) db.createObjectStore(STORE_EVENTS, { keyPath: "id" });
   if (!db.objectStoreNames.contains(STORE_OUTBOX)) db.createObjectStore(STORE_OUTBOX, { keyPath: "id" });
   if (!db.objectStoreNames.contains(STORE_META)) db.createObjectStore(STORE_META, { keyPath: "key" });
   if (!db.objectStoreNames.contains(STORE_DOCUMENTS)) db.createObjectStore(STORE_DOCUMENTS, { keyPath: "id" });
-  if (!db.objectStoreNames.contains(STORE_MIGRATIONS)) db.createObjectStore(STORE_MIGRATIONS, { keyPath: "id" });
   if (!db.objectStoreNames.contains(STORE_CONFLICTS)) db.createObjectStore(STORE_CONFLICTS, { keyPath: "id" });
 }
 
@@ -71,61 +67,33 @@ export async function getLocalDevice() {
 }
 
 /**
- * Maintains a durable IndexedDB event mirror and retryable Outbox.
- * queue:false mirrors local facts without treating an unsigned local-only
- * learner as a cloud-sync user. The first authenticated sync reconciles the
- * complete event snapshot into the Outbox.
+ * The localStorage event journal is the single local source of truth.
+ * IndexedDB stores only the durable upload queue, device sequence and archive documents.
  */
 export async function persistLearningEvents(events, options = {}) {
-  if (!Array.isArray(events) || !events.length) return true;
-  const origin = options.origin === "cloud" ? "cloud" : "local";
-  const queue = options.queue !== false && origin !== "cloud";
+  if (options.queue !== true || !Array.isArray(events) || !events.length) return true;
   const validEvents = events.filter(event => event && typeof event.id === "string" && event.id);
   if (!validEvents.length) return true;
   const db = await openDatabase();
   try {
-    const transaction = db.transaction([STORE_EVENTS, STORE_OUTBOX, STORE_META], "readwrite");
-    const eventStore = transaction.objectStore(STORE_EVENTS);
+    const transaction = db.transaction([STORE_OUTBOX, STORE_META], "readwrite");
     const outbox = transaction.objectStore(STORE_OUTBOX);
     const meta = transaction.objectStore(STORE_META);
-    let device = { id: randomId(), nextSeq: 1, createdAt: new Date().toISOString() };
-
     const deviceRequest = meta.get("device");
     deviceRequest.onsuccess = () => {
-      device = deviceRequest.result?.value || device;
+      const device = deviceRequest.result?.value || {
+        id: randomId(), nextSeq: 1, createdAt: new Date().toISOString(),
+      };
       let remaining = validEvents.length;
-      const finishOne = () => {
+      const finish = () => {
         remaining -= 1;
         if (remaining === 0) meta.put({ key: "device", value: device });
       };
-
       for (const event of validEvents) {
-        if (origin === "cloud") {
-          eventStore.put({ id: event.id, event, origin: "cloud", synced: true });
-          finishOne();
-          continue;
-        }
-
-        const existingEvent = eventStore.get(event.id);
-        existingEvent.onsuccess = () => {
-          if (existingEvent.result?.origin === "cloud" || existingEvent.result?.synced === true) {
-            finishOne();
-            return;
-          }
-          const existingQueue = outbox.get(event.id);
-          existingQueue.onsuccess = () => {
-            if (existingQueue.result) {
-              eventStore.put({ id: event.id, event, origin: "local", synced: false });
-              finishOne();
-              return;
-            }
-            if (!queue) {
-              eventStore.put({ id: event.id, event, origin: "local", synced: false });
-              finishOne();
-              return;
-            }
+        const existing = outbox.get(event.id);
+        existing.onsuccess = () => {
+          if (!existing.result) {
             const deviceSeq = device.nextSeq++;
-            eventStore.put({ id: event.id, event, origin: "local", synced: false, deviceSeq });
             outbox.put({
               id: event.id,
               event,
@@ -133,13 +101,11 @@ export async function persistLearningEvents(events, options = {}) {
               deviceSeq,
               queuedAt: new Date().toISOString(),
             });
-            finishOne();
-          };
-          existingQueue.onerror = () => transaction.abort();
+          }
+          finish();
         };
-        existingEvent.onerror = () => transaction.abort();
+        existing.onerror = () => transaction.abort();
       }
-      if (!validEvents.length) meta.put({ key: "device", value: device });
     };
     deviceRequest.onerror = () => transaction.abort();
     await transactionDone(transaction);
@@ -151,7 +117,8 @@ export async function persistLearningEvents(events, options = {}) {
 
 export async function reconcileLocalSnapshot(snapshot) {
   const events = Array.isArray(snapshot?.events) ? snapshot.events : [];
-  return persistLearningEvents(events, { origin: "local", queue: true });
+  const remoteIds = new Set(Array.isArray(snapshot?.remoteEventIds) ? snapshot.remoteEventIds : []);
+  return persistLearningEvents(events.filter(event => !remoteIds.has(event.id)), { queue: true });
 }
 
 export async function listOutbox(limit = 100) {
@@ -172,16 +139,9 @@ export async function acknowledgeOutbox(eventIds) {
   if (!Array.isArray(eventIds) || !eventIds.length) return 0;
   const db = await openDatabase();
   try {
-    const transaction = db.transaction([STORE_EVENTS, STORE_OUTBOX], "readwrite");
-    const events = transaction.objectStore(STORE_EVENTS);
+    const transaction = db.transaction(STORE_OUTBOX, "readwrite");
     const outbox = transaction.objectStore(STORE_OUTBOX);
-    for (const id of eventIds) {
-      outbox.delete(id);
-      const request = events.get(id);
-      request.onsuccess = () => {
-        if (request.result) events.put({ ...request.result, synced: true, syncedAt: new Date().toISOString() });
-      };
-    }
+    for (const id of eventIds) outbox.delete(id);
     await transactionDone(transaction);
     return eventIds.length;
   } finally {
@@ -201,17 +161,6 @@ export async function countOutbox() {
   }
 }
 
-export async function countEventRecords() {
-  const db = await openDatabase();
-  try {
-    const transaction = db.transaction(STORE_EVENTS, "readonly");
-    const count = await requestValue(transaction.objectStore(STORE_EVENTS).count());
-    await transactionDone(transaction);
-    return count;
-  } finally {
-    db.close();
-  }
-}
 
 export async function getSyncCursor(userId) {
   const db = await openDatabase();
@@ -284,33 +233,6 @@ export async function setArchiveMeta(key, value) {
   try {
     const transaction = db.transaction(STORE_META, "readwrite");
     transaction.objectStore(STORE_META).put({ key: "archive:" + key, value });
-    await transactionDone(transaction);
-    return true;
-  } finally {
-    db.close();
-  }
-}
-
-export async function getMigrationRecord(id) {
-  const db = await openDatabase();
-  try {
-    const transaction = db.transaction(STORE_MIGRATIONS, "readonly");
-    const row = await requestValue(transaction.objectStore(STORE_MIGRATIONS).get(id));
-    await transactionDone(transaction);
-    return row || null;
-  } finally {
-    db.close();
-  }
-}
-
-export async function setMigrationRecord(record) {
-  if (!record || typeof record.id !== "string" || !record.id) {
-    throw new TypeError("迁移记录必须包含稳定 ID。");
-  }
-  const db = await openDatabase();
-  try {
-    const transaction = db.transaction(STORE_MIGRATIONS, "readwrite");
-    transaction.objectStore(STORE_MIGRATIONS).put(record);
     await transactionDone(transaction);
     return true;
   } finally {
@@ -556,12 +478,11 @@ export async function resolveArchiveConflict(conflictId, choice) {
   }
 }
 
-export async function getArchiveStatus() {
-  const [pendingEvents, documents, conflicts, migration, lastSyncAt, lastSyncError] = await Promise.all([
+export async function getArchiveStatus(eventCount = 0) {
+  const [pendingEvents, documents, conflicts, lastSyncAt, lastSyncError] = await Promise.all([
     countOutbox(),
     listArchiveDocuments(1000),
     listArchiveConflicts(),
-    getMigrationRecord("legacy-localstorage-v1"),
     getArchiveMeta("last-successful-sync"),
     getArchiveMeta("last-sync-error"),
   ]);
@@ -572,11 +493,9 @@ export async function getArchiveStatus() {
     deviceId: device?.id || null,
     documents: documents.length,
     pendingEvents,
-    eventRecords: await countEventRecords(),
+    eventRecords: Math.max(0, Number(eventCount) || 0),
     pendingDocuments: documents.filter(item => item.dirty && !item.conflict).length,
     conflicts: conflicts.length,
-    migration: migration?.status || "not-started",
-    migrationAt: migration?.completedAt || null,
     lastSyncAt: lastSyncAt || null,
     lastSyncError: lastSyncError || null,
   };

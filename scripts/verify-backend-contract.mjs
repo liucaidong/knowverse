@@ -11,22 +11,39 @@ test("browser configuration contains public placeholders only", async () => {
   assert.doesNotMatch(config, /service_role|SUPABASE_SECRET|CLIENT_SECRET|DB_PASSWORD/i);
 });
 
-test("cloud migration protects the allowlist and enables row-level security", async () => {
-  const sql = await read("supabase/migrations/20261101070000_learning_cloud_sync.sql");
+test("single initial schema is the complete database source of truth", async () => {
+  const sql = await read("supabase/migrations/20261102032732_initial_schema.sql");
   assert.match(sql, /create schema if not exists private/i);
   assert.match(sql, /private\.authorized_users/i);
   assert.match(sql, /revoke all on private\.authorized_users from public, anon, authenticated/i);
-  assert.match(sql, /enable row level security/i);
   assert.match(sql, /auth\.uid\(\)/i);
-  assert.match(sql, /private\.is_authorized_user/i);
   assert.match(sql, /unique \(user_id, device_id, device_seq\)/i);
   assert.match(sql, /unique \(user_id, user_seq\)/i);
-  assert.match(sql, /sync_push_learning_events/i);
-  assert.match(sql, /sync_pull_learning_events/i);
-  assert.match(sql, /'checkpoint_started'/i);
+  const publicFunctions = [...sql.matchAll(/create function public\.[\s\S]*?\n\$\$;/gi)].map(match => match[0]);
+  assert.equal(publicFunctions.length, 6);
+  for (const routine of publicFunctions) {
+    assert.match(routine, /security invoker/i);
+    assert.doesNotMatch(routine, /security definer/i);
+  }
+  assert.equal((sql.match(/create table public\.learning_events/gi) || []).length, 1);
+  assert.equal((sql.match(/security definer/gi) || []).length, 2, "only the two private helper functions may run as definer");
+  const policyNames = [...sql.matchAll(/create policy "([^"]+)"/gi)].map(match => match[1]);
+  assert.equal(policyNames.length, 15);
+  assert.equal(new Set(policyNames).size, 15);
+  assert.doesNotMatch(sql, /schema_version\s+in\s*\(2\s*,\s*3\)/i);
+  assert.doesNotMatch(sql, /drop policy if exists|legacy|compatibility|V1\s*→\s*V2/i);
+  assert.match(sql, /alter table public\.learning_archive_documents enable row level security/i);
+  assert.match(sql, /create policy "append own authorized learning events"/i);
+  assert.match(sql, /create policy "update own authorized archive documents"/i);
 });
 
-test("learning event store preserves compatibility and prevents cloud echo", async () => {
+test("repository carries one migration whose version matches the remote baseline", async () => {
+  const { readdir } = await import("node:fs/promises");
+  const migrations = (await readdir(new URL("../supabase/migrations/", import.meta.url))).filter(name => name.endsWith(".sql"));
+  assert.deepEqual(migrations, ["20261102032732_initial_schema.sql"]);
+});
+
+test("local event journal keeps cloud events out of the outbound queue", async () => {
   const source = await read("assets/js/learning-progress.mjs");
   assert.match(source, /appendMany\(newEvents, appendOptions = \{\}\)/);
   assert.match(source, /knowverse:learning-events-appended/);
@@ -44,37 +61,31 @@ test("sync engine acknowledges Outbox only after server confirmation", async () 
   const sync = await read("assets/js/backend/sync-engine.mjs");
   assert.ok(sync.indexOf("const confirmed") < sync.indexOf("acknowledgeOutbox(confirmed)"));
   assert.match(sync, /reconcileLocalSnapshot/);
+  assert.ok(sync.includes("persistLearningEvents(event.detail?.events || [], { queue: true })"));
   assert.match(sync, /setSyncCursor/);
   assert.match(sync, /previousCursor/);
 });
 
 
-test("IndexedDB v2 stores the complete restorable archive and preserves legacy sources", async () => {
+test("one current IndexedDB archive stores events, Outbox, documents and conflicts", async () => {
   const store = await read("assets/js/backend/local-event-store.mjs");
   const archive = await read("assets/js/backend/local-archive.mjs");
-  assert.match(store, /const DB_VERSION = 2/);
-  for (const name of ["events", "outbox", "meta", "documents", "migrations", "conflicts"]) {
+  assert.match(store, /const DB_VERSION = 1/);
+  for (const name of ["outbox", "meta", "documents", "conflicts"]) {
     assert.match(store, new RegExp('STORE_' + name.toUpperCase()));
   }
-  for (const type of ["challenge_progress", "review_session", "plan_preferences"]) {
-    assert.ok(store.includes(type));
-  }
-  assert.match(archive, /legacy-localstorage-v1/);
-  assert.match(archive, /knowverse:learning-progress:v1/);
-  assert.match(archive, /knowverse:challenge:v1:/);
-  assert.match(archive, /knowverse:review-session:v1:/);
-  assert.match(archive, /knowverse:learning-plan:preferences:v1/);
-  assert.match(archive, /原始 V1 数据仍保留/);
-  assert.match(archive, /copy-and-verify; legacy keys are never removed/);
-  assert.match(store, /getMigrationRecord/);
-  assert.match(store, /setMigrationRecord/);
-  assert.match(archive, /setMigrationRecord/);
+  assert.doesNotMatch(store, /STORE_MIGRATIONS|getMigrationRecord|setMigrationRecord|STORE_EVENTS/);
+  assert.match(store, /localStorage event journal is the single local source of truth/i);
+  assert.doesNotMatch(archive, /legacy|compatibility|migrateLegacyLocalStorage|knowverse:learning-progress:v1/);
+  for (const type of ["challenge_progress", "review_session", "plan_preferences"]) assert.ok(store.includes(type));
+  assert.match(archive, /hydrateLearningArchiveDocuments/);
+  assert.match(archive, /captureLocalLearningArchive/);
 });
 
 test("document conflict handling uses optimistic revisions and never silently overwrites", async () => {
   const store = await read("assets/js/backend/local-event-store.mjs");
   const sync = await read("assets/js/backend/sync-engine.mjs");
-  const migration = await read("supabase/migrations/20261101110000_learning_archive_documents.sql");
+  const migration = await read("supabase/migrations/20261102032732_initial_schema.sql");
   assert.match(store, /baseRevision/);
   assert.match(store, /previous\?\.dirty && Number\(previous\.baseRevision \|\| 0\) < revision/);
   assert.match(store, /resolveArchiveConflict/);
@@ -100,10 +111,11 @@ test("sync retry, online recovery, visibility refresh and per-user account bindi
 });
 
 test("cloud documents and events are isolated with authenticated RPC and RLS", async () => {
-  const migration = await read("supabase/migrations/20261101110000_learning_archive_documents.sql");
+  const migration = await read("supabase/migrations/20261102032732_initial_schema.sql");
   assert.match(migration, /auth\.uid\(\)/i);
   assert.match(migration, /private\.is_authorized_user/i);
-  assert.match(migration, /security definer/i);
+  assert.match(migration, /security invoker/i);
+  assert.doesNotMatch(migration, /create or replace function public\.[\s\S]{0,180}security definer/i);
   assert.match(migration, /revoke all on function public\.sync_push_learning_documents[\s\S]*from public, anon/i);
   assert.match(migration, /grant execute on function public\.sync_push_learning_documents[\s\S]*to authenticated/i);
   assert.match(migration, /document_seq/);
@@ -124,13 +136,13 @@ test("account panel exposes local, device, network, sync and conflict state", as
 });
 
 
-test("legacy V1 events remain readable when the V2 key is corrupt and V3 event schema is preserved", async () => {
+test("learning journal uses one current schema and never falls back to legacy keys", async () => {
   const source = await read("assets/js/learning-progress.mjs");
-  assert.match(source, /isSupportedSnapshot/);
-  assert.match(source, /parsedLegacy/);
-  assert.match(source, /eventSchemaVersion: \[2, 3\]/);
+  assert.match(source, /const SCHEMA_VERSION = 1/);
+  assert.match(source, /const STORAGE_KEY = "knowverse:learning-progress"/);
+  assert.doesNotMatch(source, /LEGACY_STORAGE_KEY|parsedLegacy|schemaVersion === 0|schemaVersion === 2/);
+  assert.match(source, /eventSchemaVersion: 2/);
 });
-
 
 test("one document conflict is counted once when both push and pull report the same revision", async () => {
   const sync = await read("assets/js/backend/sync-engine.mjs");
@@ -156,17 +168,15 @@ test("one shared archive runtime auto-syncs from every page and powers the accou
 });
 
 
-test("archive document migration is complete and contains no duplicated SQL fragments", async () => {
-  const migration = await read("supabase/migrations/20261101110000_learning_archive_documents.sql");
+test("single baseline defines each archive object exactly once", async () => {
+  const migration = await read("supabase/migrations/20261102032732_initial_schema.sql");
   const count = fragment => migration.split(fragment).length - 1;
-
-  assert.equal(count("create or replace function private.normalize_learning_event_envelope()"), 1);
-  assert.equal(count("create table if not exists public.learning_archive_documents"), 1);
-  assert.equal(count("create or replace function public.sync_push_learning_documents("), 1);
-  assert.equal(count("create or replace function public.sync_pull_learning_documents("), 1);
-  assert.ok(migration.includes("v_schema_text not in ('2', '3')"));
-  assert.ok(migration.includes("when jsonb_typeof(event_payload -> 'causationEventIds') = 'array' then"));
-  assert.ok(migration.includes("create trigger normalize_learning_event_envelope"));
-  assert.ok(!migration.includes("~ '^[0-9]+\n"));
-  assert.ok(migration.trimEnd().endsWith("Mastery state remains event-derived.';"));
+  assert.equal(count("create function private.normalize_learning_event_envelope()"), 1);
+  assert.equal(count("create table public.learning_archive_documents"), 1);
+  assert.equal(count("create function public.sync_push_learning_documents("), 1);
+  assert.equal(count("create function public.sync_pull_learning_documents("), 1);
+  assert.match(migration, /v_schema_text <> '2'/i);
+  assert.match(migration, /security invoker/i);
+  assert.equal((migration.match(/security definer/gi) || []).length, 2);
+  assert.match(migration, /revoke all on function public.rls_auto_enable\(\)/i);
 });

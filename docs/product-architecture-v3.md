@@ -139,7 +139,7 @@ Future AI Services
 - 页面发布白名单，隔离 Migration 和后端工程文件。
 - 不配置云端时继续本地运行。
 
-当前兼容策略：旧挑战与复习引擎仍调用同步式 LocalStorage 接口。本期保留它们的行为，新增 IndexedDB 同步日志；不提前将异步 API 硬塞进同步调用点。LocalStorage 到 IndexedDB 主存储的迁移必须单独完成并通过迁移回读验收。
+当前存储边界：挑战与复习引擎使用当前 LocalStorage 快照完成同步式现场读取；IndexedDB 专注于 Outbox、设备序列、游标和云端 CAS 文档。事件历史只有一份本机权威副本，不维护双事件镜像或旧键迁移状态。
 
 验收：
 - 相同事件安全重试不重复插入。
@@ -156,7 +156,7 @@ Future AI Services
 交付：
 - 将挑战状态、Review Session 和本地事件仓库迁移至 IndexedDB。
 - 所有涉及持久化成功的接口异步化，UI 只在事务提交后显示保存成功。
-- V1/V2 学习档案读取、IndexedDB 写入、事件数量与派生状态校验、旧档保留。
+- 单一当前 schema 的学习事件日志、IndexedDB Outbox 与 CAS 文档持久化。
 - Event Schema V3：causation_event_ids、gap_observation_id、target_gap_event_ids。
 - 快照 revision 乐观锁，禁止 Last Write Wins 静默覆盖。
 - 跨设备 gap reducer 明确处理无法排序的并发证据。
