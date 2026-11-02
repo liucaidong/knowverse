@@ -25,6 +25,8 @@ jobs:
         run: python3 scripts/validate-content.py
       - name: Validate V2 knowledge pages and Mermaid panoramas
         run: python3 scripts/validate-v2.py
+      - name: Validate unified navigation, content relations and prerequisite DAGs
+        run: node scripts/validate-site-architecture.mjs
       - name: Validate Promise deep-dive
         run: python3 scripts/validate-promise.py
       - name: Check Promise semantic examples
