@@ -1,5 +1,8 @@
-import { createLearningStateStorage } from "./learning-state-storage.mjs";
-import { createChallengeLearningEvents, createLearningProgressStore } from "./learning-progress.mjs";
+import { createChallengeLearningEvents } from "./learning-progress.mjs";
+import {
+  getLearningRepository,
+  isLearningRepositoryAvailable,
+} from "./backend/learning-repository.mjs";
 
 const ENGINE_VERSION = 1;
 
@@ -184,70 +187,47 @@ export function summarizeChallenge(challenge, progress) {
 }
 
 export function createChallengeProgressStore(options = {}) {
-  const prefix = options.prefix || "knowverse:challenge/";
-  let storage = options.storage;
-  if (typeof storage === "undefined") {
-    try {
-      storage = globalThis.localStorage || null;
-    } catch {
-      storage = null;
-    }
-  }
-  storage = createLearningStateStorage(storage);
-  const usable = storage &&
-    typeof storage.getItem === "function" &&
-    typeof storage.setItem === "function" &&
-    typeof storage.removeItem === "function";
-  const learningStore = createLearningProgressStore({ storage });
+  const repositoryPromise = options.repository
+    ? Promise.resolve(options.repository)
+    : getLearningRepository();
   const definitions = new Map();
 
   return {
-    load(challenge) {
+    available: isLearningRepositoryAvailable(),
+    async load(challenge) {
+      if (!challenge?.id) throw new TypeError("Challenge definition is required.");
       definitions.set(challenge.id, challenge);
-      let saved = null;
-      if (usable) {
-        try {
-          const raw = storage.getItem(prefix + encodeURIComponent(challenge.id));
-          saved = raw ? JSON.parse(raw) : null;
-        } catch {
-          saved = null;
-        }
-      }
+      const repository = await repositoryPromise;
+      const stored = await repository.documents.get("challenge_progress", challenge.id);
+      const saved = stored?.payload?._deleted === true ? null : stored?.payload || null;
       return createChallengeProgress(challenge, saved);
     },
 
-    save(progress) {
-      if (!usable) return false;
-      try {
-        return storage.transaction(() => {
-        const key = prefix + encodeURIComponent(progress.challengeId);
-        const raw = storage.getItem(key);
-        const previous = raw ? JSON.parse(raw) : null;
-        const challenge = definitions.get(progress.challengeId);
-        if (challenge) {
-          const events = createChallengeLearningEvents(challenge, previous, progress);
-          if (events.length && !learningStore.appendMany(events)) return false;
-        }
-        storage.setItem(key, JSON.stringify(progress));
-        if (typeof window !== "undefined") storage.afterCommit(() => window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "challenge_progress", key: progress.challengeId } })));
-        return true;
-        });
-      } catch {
-        return false;
-      }
+    async save(progress) {
+      if (!progress?.challengeId) throw new TypeError("Challenge progress is invalid.");
+      const challenge = definitions.get(progress.challengeId);
+      if (!challenge) throw new Error("挑战定义未注册，无法将进度保存到学习仓储。");
+      const repository = await repositoryPromise;
+      const previous = await repository.documents.get("challenge_progress", progress.challengeId);
+      const previousPayload = previous?.payload?._deleted === true ? null : previous?.payload || null;
+      const events = createChallengeLearningEvents(challenge, previousPayload, progress);
+      await repository.commit({
+        events,
+        documents: [{
+          type: "challenge_progress",
+          key: progress.challengeId,
+          payload: progress,
+          expectedLocalRevision: Number(previous?.localRevision) || 0,
+        }],
+      });
+      return true;
     },
 
-    clear(challengeId) {
-      if (!usable) return false;
-      try {
-        storage.removeItem(prefix + encodeURIComponent(challengeId));
-        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-delete", { detail: { type: "challenge_progress", key: String(challengeId) } }));
-        return true;
-      } catch {
-        return false;
-      }
+    async clear(challengeId) {
+      if (typeof challengeId !== "string" || !challengeId) throw new TypeError("Challenge ID is required.");
+      const repository = await repositoryPromise;
+      await repository.documents.remove("challenge_progress", challengeId);
+      return true;
     },
-
-    available: Boolean(usable),
   };
 }

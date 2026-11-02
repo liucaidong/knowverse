@@ -1,5 +1,8 @@
-import { createLearningStateStorage } from "./learning-state-storage.mjs";
 import { deriveLearningInsights } from "./learning-progress.mjs";
+import {
+  getLearningRepository,
+  isLearningRepositoryAvailable,
+} from "./backend/learning-repository.mjs";
 
 const PREFERENCES_KEY = "knowverse:learning-plan:preferences";
 const DEFAULT_PREFERENCES = Object.freeze({ dailyMinutes: 25, focusTopicId: "all" });
@@ -22,28 +25,30 @@ function normalizePreferences(value = {}) {
 }
 
 export function createLearningPlanPreferencesStore(options = {}) {
-  let storage = options.storage;
-  if (typeof storage === "undefined") {
-    try { storage = globalThis.localStorage || null; } catch { storage = null; }
-  }
-  storage = createLearningStateStorage(storage);
-  const key = options.key || PREFERENCES_KEY;
-  const available = Boolean(storage && typeof storage.getItem === "function" && typeof storage.setItem === "function");
+  const repositoryPromise = options.repository
+    ? Promise.resolve(options.repository)
+    : getLearningRepository();
   return {
-    available,
-    load() {
-      if (!available) return { ...DEFAULT_PREFERENCES };
-      try { return normalizePreferences(JSON.parse(storage.getItem(key) || "{}")); }
-      catch { return { ...DEFAULT_PREFERENCES }; }
+    available: isLearningRepositoryAvailable(),
+    async load() {
+      const repository = await repositoryPromise;
+      const document = await repository.documents.get("plan_preferences", "preferences");
+      return normalizePreferences(document?.payload?._deleted ? {} : document?.payload || {});
     },
-    save(value) {
+    async save(value) {
       const normalized = normalizePreferences(value);
-      if (!available) return false;
-      try {
-        storage.setItem(key, JSON.stringify(normalized));
-        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "plan_preferences", key: "preferences" } }));
-        return true;
-      } catch { return false; }
+      if (!isLearningRepositoryAvailable()) throw new Error("当前浏览器不支持 IndexedDB，学习偏好未保存。");
+      const repository = await repositoryPromise;
+      const current = await repository.documents.get("plan_preferences", "preferences");
+      await repository.commit({
+        documents: [{
+          type: "plan_preferences",
+          key: "preferences",
+          payload: normalized,
+          expectedLocalRevision: Number(current?.localRevision) || 0,
+        }],
+      });
+      return true;
     },
   };
 }
@@ -430,7 +435,7 @@ export function buildAdaptiveLearningPlan(options = {}) {
   };
 }
 
-export function recordLearningPlanAction(store, action, status, options = {}) {
+export async function recordLearningPlanAction(store, action, status, options = {}) {
   if (!store || typeof store.appendMany !== "function") throw new TypeError("A learning progress store is required.");
   if (!action || typeof action.actionId !== "string" || !["started", "completed"].includes(status)) {
     throw new TypeError("A valid plan action and started/completed status are required.");
@@ -458,7 +463,7 @@ export function recordLearningPlanAction(store, action, status, options = {}) {
     targetHref: action.href || null,
     estimatedMinutes: Number(action.estimatedMinutes) || 0,
   };
-  if (!store.appendMany([event])) throw new Error("学习计划事件保存失败，请检查浏览器本地存储空间并导出备份。");
+  await store.appendMany([event]);
   return event;
 }
 

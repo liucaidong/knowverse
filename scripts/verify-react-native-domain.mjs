@@ -1,6 +1,14 @@
+import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import test from "node:test";
+import test, { beforeEach } from "node:test";
+import { deleteLocalDatabaseForTests } from "../assets/js/backend/local-event-store.mjs";
+import { resetLearningRepositoryForTests } from "../assets/js/backend/learning-repository.mjs";
+
+beforeEach(async () => {
+  resetLearningRepositoryForTests();
+  await deleteLocalDatabaseForTests();
+});
 import { createChallengeProgressStore, recordAttempt, completeStep, setStepData } from "../assets/js/challenge-engine.mjs";
 import { createLearningProgressStore, deriveLearningInsights } from "../assets/js/learning-progress.mjs";
 
@@ -94,16 +102,16 @@ test("React Native challenge creates a precise gap and only adds evidence on com
   const storage = memoryStorage();
   const challengeStore = createChallengeProgressStore({ storage });
   const learningStore = createLearningProgressStore({ storage });
-  let progress = challengeStore.load(challenge);
+  let progress = await challengeStore.load(challenge);
   const step = challenge.steps[0];
   const wrong = step.options.find(option => option.gapId);
   assert.ok(wrong, "The first challenge step must include a diagnosable wrong answer");
 
   progress = recordAttempt(progress, step.id);
   progress = setStepData(progress, step.id, { lastOptionId: wrong.id, correctOptionId: step.answer });
-  assert.equal(challengeStore.save(progress), true);
+  assert.equal(await challengeStore.save(progress), true);
 
-  let insights = deriveLearningInsights(map, registry, learningStore.load(), new Date("2026-11-01T12:00:00.000Z"));
+  let insights = deriveLearningInsights(map, registry, await learningStore.load(), new Date("2026-11-01T12:00:00.000Z"));
   let competency = insights.competencyInsights.find(item => item.id === step.competencyIds[0]);
   assert.equal(competency.status, "weak");
   assert.ok(competency.activeGaps.some(item => item.id === wrong.gapId));
@@ -111,9 +119,9 @@ test("React Native challenge creates a precise gap and only adds evidence on com
   progress = recordAttempt(progress, step.id);
   progress = setStepData(progress, step.id, { lastOptionId: step.answer, correctOptionId: step.answer });
   progress = completeStep(progress, challenge, step.id);
-  assert.equal(challengeStore.save(progress), true);
+  assert.equal(await challengeStore.save(progress), true);
 
-  insights = deriveLearningInsights(map, registry, learningStore.load(), new Date("2026-11-01T12:00:00.000Z"));
+  insights = deriveLearningInsights(map, registry, await learningStore.load(), new Date("2026-11-01T12:00:00.000Z"));
   competency = insights.competencyInsights.find(item => item.id === step.competencyIds[0]);
   assert.equal(competency.evidenceCount, 1);
   assert.ok(competency.activeGaps.some(item => item.id === wrong.gapId),

@@ -9,13 +9,13 @@ async function load(){
  challenge=registry.challenges.find(x=>x.id==="rn-architecture-quest");
  if(!challenge)throw new Error("挑战尚未注册。");
  store=createChallengeProgressStore();
- progress=store.load(challenge);
- $("quest-save-status").textContent=store.available?"进度已保存在本设备":"浏览器禁用了本地存储";
+ progress=await store.load(challenge);
+ $("quest-save-status").textContent=store.available?"进度已保存在本设备的 IndexedDB":"当前浏览器不支持 IndexedDB";
  render();
 }
-function save(){
- const ok=store.save(progress);
- $("quest-save-status").textContent=ok?"进度已保存在本设备":"保存失败；请先导出学习档案并检查浏览器存储。";
+async function save(){
+ await store.save(progress);
+ $("quest-save-status").textContent="进度已安全写入本地 IndexedDB。";
 }
 function render(){
  const summary=summarizeChallenge(challenge,progress);
@@ -57,18 +57,26 @@ function render(){
  $("quest-feedback").textContent=state.attempts?"本关已有 "+state.attempts+" 次作答记录。重新推演后可以再次提交。":"判断机制边界，再提交答案。";
  $("quest-submit").disabled=true;
 }
-$("quest-hint").addEventListener("click",()=>{
- const result=revealNextHint(progress,challenge,activeStep.id);
- if(result.exhausted)return;
- progress=result.progress;save();render();
+$("quest-hint").addEventListener("click",async()=>{
+ try {
+  const result=revealNextHint(progress,challenge,activeStep.id);
+  if(result.exhausted)return;
+  progress=result.progress;await save();render();
+ } catch(error) {
+  $("quest-save-status").textContent="保存失败："+error.message;
+ }
 });
-$("quest-submit").addEventListener("click",()=>{
+$("quest-submit").addEventListener("click",async()=>{
  if(!activeStep||!selected)return;
  const step=activeStep,correct=selected===step.answer;
  progress=recordAttempt(progress,step.id);
  progress=setStepData(progress,step.id,{lastOptionId:selected,correctOptionId:step.answer});
  if(correct)progress=completeStep(progress,challenge,step.id);
- save();
+ try { await save(); } catch(error) {
+  $("quest-save-status").textContent="保存失败："+error.message;
+  $("quest-submit").disabled=false;
+  return;
+ }
  if(correct){
   $("quest-feedback").className="rn-quest-feedback good";
   $("quest-feedback").textContent="推理正确。"+(step.explanation||"该能力点验证通过。");

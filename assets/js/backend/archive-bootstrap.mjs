@@ -2,7 +2,6 @@ import { createLearningProgressStore } from "../learning-progress.mjs";
 import { BACKEND_CONFIG } from "./config.mjs";
 import { createSupabaseAuthClient } from "./auth.mjs";
 import { createLearningSyncService } from "./sync-engine.mjs";
-import { startLocalLearningArchive } from "./local-archive.mjs";
 
 let bootstrapPromise = null;
 let archiveStore = null;
@@ -29,7 +28,7 @@ export function startArchiveBootstrap() {
   syncService = createLearningSyncService(authClient, archiveStore);
   stopSyncRuntime = syncService.start();
 
-  bootstrapPromise = startLocalLearningArchive(archiveStore).then(() => {
+  bootstrapPromise = archiveStore.load().then(() => {
     bootstrapError = null;
     // Do not block page navigation on network activity. initialize() is
     // best-effort and leaves the local-first learning path available.

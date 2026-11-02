@@ -1,7 +1,11 @@
-import { createLearningStateStorage } from "./learning-state-storage.mjs";
+import {
+  getLearningRepository,
+  isLearningRepositoryAvailable,
+} from "./backend/learning-repository.mjs";
+import { fingerprintLearningEvent, normalizeLearningEvent } from "./learning-event-schema.mjs";
+export { fingerprintLearningEvent, normalizeLearningEvent } from "./learning-event-schema.mjs";
 
 const SCHEMA_VERSION = 1;
-const STORAGE_KEY = "knowverse:learning-progress";
 const DAY_MS = 86_400_000;
 
 const timestamp = () => new Date().toISOString();
@@ -20,38 +24,6 @@ function normalizeEventReferences(value) {
   ))].slice(0, MAX_CAUSAL_REFERENCES);
 }
 
-/** Normalize historic events into the current envelope without inventing causal links. */
-export function normalizeLearningEvent(event) {
-  if (!asObject(event) || typeof event.id !== "string" ||
-      !event.id.trim() || event.id.length > 240) return null;
-  const normalized = {
-    ...clone(event),
-    eventSchemaVersion: EVENT_SCHEMA_VERSION,
-    causationEventIds: normalizeEventReferences(event.causationEventIds),
-    targetGapEventIds: normalizeEventReferences(event.targetGapEventIds),
-    gapObservationId: typeof event.gapObservationId === "string" && event.gapObservationId.trim()
-      ? event.gapObservationId
-      : null,
-  };
-  if (normalized.type === "attempt" && normalized.correct === false && normalized.gapId &&
-      !normalized.gapObservationId) {
-    normalized.gapObservationId = normalized.id;
-  }
-  return normalized;
-}
-
-/** Stable JSON fingerprint: object key order is transport detail, not event meaning. */
-export function fingerprintLearningEvent(value) {
-  if (Array.isArray(value)) {
-    return "[" + value.map(fingerprintLearningEvent).join(",") + "]";
-  }
-  if (value && typeof value === "object") {
-    return "{" + Object.keys(value).sort().map(key =>
-      JSON.stringify(key) + ":" + fingerprintLearningEvent(value[key])
-    ).join(",") + "}";
-  }
-  return JSON.stringify(value);
-}
 
 function observationId(event) {
   return event.gapObservationId || event.id;
@@ -222,20 +194,6 @@ function normalizeSnapshot(value) {
   };
 }
 
-function readStorage(storage, key) {
-  if (!storage) return emptySnapshot();
-  try {
-    const raw = storage.getItem(key);
-    if (!raw) return emptySnapshot();
-    const parsed = JSON.parse(raw);
-    if (!asObject(parsed) || parsed.schemaVersion !== SCHEMA_VERSION || !Array.isArray(parsed.events)) {
-      return emptySnapshot();
-    }
-    return normalizeSnapshot(parsed);
-  } catch {
-    return emptySnapshot();
-  }
-}
 
 function pointsForStep(challenge, definition, progressStep) {
   const scoring = challenge.scoring || {};
@@ -363,110 +321,65 @@ export function createChallengeLearningEvents(challenge, previous, next, options
 }
 
 export function createLearningProgressStore(options = {}) {
-  let storage = options.storage;
-  if (typeof storage === "undefined") {
-    try { storage = globalThis.localStorage || null; } catch { storage = null; }
-  }
-  storage = createLearningStateStorage(storage);
-  const key = options.key || STORAGE_KEY;
-  const available = Boolean(storage &&
-    typeof storage.getItem === "function" &&
-    typeof storage.setItem === "function");
-
-  function save(snapshot) {
-    if (!available) return false;
-    try {
-      storage.setItem(key, JSON.stringify(snapshot));
-      return true;
-    } catch {
-      return false;
-    }
-  }
+  const repositoryPromise = options.repository
+    ? Promise.resolve(options.repository)
+    : getLearningRepository();
+  const available = isLearningRepositoryAvailable();
 
   return {
     available,
-    load() { return available ? readStorage(storage, key) : emptySnapshot(); },
-    appendMany(newEvents, appendOptions = {}) {
-      if (!available) return false;
-      if (!Array.isArray(newEvents) || !newEvents.length) return true;
-      const snapshot = readStorage(storage, key);
-      const known = new Map(snapshot.events.map(event => [event.id, fingerprintLearningEvent(event)]));
-      const remoteIds = new Set(snapshot.remoteEventIds || []);
-      const added = [];
-      const normalizedIncoming = [];
-      const existingIds = new Set(snapshot.events.map(event => event.id));
-      for (const rawEvent of newEvents) {
-        if (!asObject(rawEvent) || typeof rawEvent.id !== "string" || !rawEvent.id) continue;
-        if ((rawEvent.causationEventIds?.length || 0) > MAX_CAUSAL_REFERENCES ||
-            (rawEvent.targetGapEventIds?.length || 0) > MAX_CAUSAL_REFERENCES) return false;
-        const event = normalizeLearningEvent(rawEvent);
-        if (!event) continue;
-        const existing = known.get(event.id);
-        if (existing && existing !== fingerprintLearningEvent(event)) {
-          // A stable event ID must always describe the same immutable fact.
-          return false;
-        }
-        normalizedIncoming.push(event);
-        if (!existing) known.set(event.id, fingerprintLearningEvent(event));
-      }
-      for (const event of normalizedIncoming) {
-        if (!existingIds.has(event.id)) {
-          snapshot.events.push(clone(event));
-          added.push(clone(event));
-          existingIds.add(event.id);
-        }
-        if (appendOptions.remote === true) remoteIds.add(event.id);
-        else remoteIds.delete(event.id);
-      }
-      snapshot.remoteEventIds = [...remoteIds];
-      snapshot.updatedAt = timestamp();
-      const saved = save(snapshot);
-      if (saved && added.length && appendOptions.remote !== true && typeof window !== "undefined") {
-        storage.afterCommit(() => window.dispatchEvent(new CustomEvent("knowverse:learning-events-appended", {
-          detail: { events: added, remote: false }
-        })));
-      }
-      return saved;
+    async load() {
+      if (!available) throw new Error("当前浏览器不支持 IndexedDB，无法读取学习档案。");
+      const repository = await repositoryPromise;
+      const events = await repository.events.list();
+      return normalizeSnapshot({ schemaVersion: SCHEMA_VERSION, events });
     },
-    exportJSON() {
+    async appendMany(newEvents, appendOptions = {}) {
+      if (!available) throw new Error("当前浏览器不支持 IndexedDB，学习事件未写入。");
+      if (!Array.isArray(newEvents) || !newEvents.length) return true;
+      const normalized = newEvents.map(normalizeLearningEvent);
+      if (normalized.some(event => !event)) throw new TypeError("学习事件格式无效，未写入任何记录。");
+      const repository = await repositoryPromise;
+      if (appendOptions.remote === true) {
+        await repository.events.mergeRemote(
+          normalized.map(event => ({ event_id: event.id, event_payload: event })),
+          appendOptions.accountId || null
+        );
+      } else {
+        await repository.commit({ events: normalized, accountId: appendOptions.accountId || null });
+      }
+      return true;
+    },
+    async exportJSON() {
+      const data = await this.load();
       return JSON.stringify({
         format: "knowverse-learning-progress",
         schemaVersion: SCHEMA_VERSION,
         exportedAt: timestamp(),
-        data: this.load(),
+        data,
       }, null, 2);
     },
-    importJSON(raw, importOptions = {}) {
-      if (!available) throw new Error("当前浏览器不支持本地存储。");
+    async importJSON(raw, importOptions = {}) {
+      if (!available) throw new Error("当前浏览器不支持 IndexedDB。");
       const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
       const envelope = asObject(parsed);
-      if (!envelope || envelope.format !== "knowverse-learning-progress" || envelope.schemaVersion !== SCHEMA_VERSION) {
-        throw new Error("文件格式或版本不受支持。请使用 KNOWVERSE 导出的 JSON 文件。");
+      if (!envelope || envelope.format !== "knowverse-learning-progress" ||
+          envelope.schemaVersion !== SCHEMA_VERSION || !asObject(envelope.data) ||
+          envelope.data.schemaVersion !== SCHEMA_VERSION || !Array.isArray(envelope.data.events)) {
+        throw new Error("文件格式、版本或学习事件数据无效。原有本地档案未改变。");
       }
-      const incoming = normalizeSnapshot(envelope.data);
-      if (!asObject(envelope.data) || envelope.data.schemaVersion !== SCHEMA_VERSION) {
-        throw new Error("学习记录数据不完整或版本不匹配。");
+      if (importOptions.replace === true) {
+        throw new Error("学习事件是追加式证据，导入不允许覆盖或删除现有事件；请使用合并导入。");
       }
-      const replace = importOptions.replace === true;
-      const current = replace ? emptySnapshot() : this.load();
-      const known = new Set(current.events.map(event => event.id));
-      const importedIds = new Set(incoming.events.map(event => event.id));
-      for (const event of incoming.events) {
-        if (!known.has(event.id)) {
-          current.events.push(clone(event));
-          known.add(event.id);
-        }
-      }
-      current.remoteEventIds = (current.remoteEventIds || []).filter(id => !importedIds.has(id));
-      current.updatedAt = timestamp();
-      if (!current.events.length && incoming.events.length) current.events = incoming.events;
-      if (!save(current)) throw new Error("写入本地存储失败，可能是浏览器空间不足。");
-      if (incoming.events.length && typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("knowverse:learning-events-appended", {
-          detail: { events: incoming.events, remote: false, imported: true }
-        }));
-      }
-      return { imported: incoming.events.length, total: current.events.length, mode: replace ? "replace" : "merge" };
+      const incoming = envelope.data.events.map(normalizeLearningEvent);
+      if (incoming.some(event => !event)) throw new Error("导入文件包含无效学习事件，未写入任何记录。");
+      const repository = await repositoryPromise;
+      const result = await repository.events.append(incoming);
+      return {
+        imported: result.inserted,
+        total: await repository.events.count(),
+        mode: "merge",
+      };
     },
   };
 }

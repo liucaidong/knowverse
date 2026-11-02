@@ -51,16 +51,21 @@ V3 不再通过客户端墙上时钟或合并后的事件数组顺序推断因�
 
 **学习活动和掌握证据明确分离。** 探索三维场景、运行实验或打开课程不会直接让知识点涨分。当前 17 件作品关联到 12 个知识专题、15 个 competency；14 个 checkpoint 与 3 个结构化 challenge 入口负责产生可验证证据。
 
-## 本机学习日志与云端归档
+## 本机学习日志与云端归档（Phase D）
 
-当前事件日志只使用一个当前存储键和 Event Schema V3，不读取旧 V1/V2 存储键，也不执行旧档案复制迁移。V2 历史事件通过一次前向云端迁移和本机 envelope 规范化进入 V3，不维护双 schema 运行时：
+Phase D 使用两层数据库：IndexedDB v4 是当前设备完整学习数据库，Supabase PostgreSQL 是已同步数据的云端权威存储。领域引擎通过 assets/js/backend/learning-repository.mjs 统一读写；业务模块不直接操作浏览器 Storage API 或云端 REST。
 
-- 物理根键：`knowverse:learning-state`
-- 内部逻辑记录：`knowverse:learning-progress`、`knowverse:challenge/<challengeId>`、`knowverse:review-session/<sessionId>`、`knowverse:learning-plan:preferences`
+本地数据库包含 learningEvents（完整追加式事件日志）、learningDocuments（挑战现场、活动复习现场和规划偏好）、outbox（待服务端确认的本机事件）、syncMetadata 与 devices（账户绑定、设备 ID、游标、同步状态与 lease），以及 conflicts 和 migrationMetadata。
 
-学习事件、挑战进度、活动复习现场与规划偏好由 `assets/js/learning-state-storage.mjs` 统一保存在单个 `knowverse:learning-state` envelope 中。各领域引擎沿用同步读写 API；涉及多条逻辑记录的挑战/复习动作通过 `transaction()` 一次提交；Outbox 和档案捕获通知仅在根键成功提交后发出，避免回滚后留下不存在于本机事件日志中的上传队列记录。Supabase Auth 会话键不进入此 envelope。IndexedDB 只保存可靠上传队列、设备序列、同步游标、可恢复挑战/复习/偏好文档及冲突，不再承担第二份本机领域状态镜像。云端同步成功后，本机 Outbox 只有收到服务端确认才会清除；挑战与复习现场通过文档 revision / compare-and-swap 同步，并发冲突必须由用户明确选择。
+一次学习动作产生的事件、状态文档和 Outbox 在同一个 IndexedDB transaction 内提交。文档使用 localRevision 乐观锁；多标签页过期写入会失败，不会静默覆盖。事件历史按索引游标读取，不做固定条数截断。相同时间戳下按服务端序列、设备 ID 与设备序列稳定排序。
 
-事件日志不会按固定数量静默截断。浏览器存储受站点配额限制；写入失败会显示失败状态。学习档案支持 JSON 导入与导出；导出文件包含个人学习记录，应由本人妥善保管，不要提交到公开仓库。
+云端正常同步由 sync_commit_learning_batch 在一个 PostgreSQL 事务里提交事件和文档；文档 CAS 冲突使整批回滚。只有服务端确认后才清理 Outbox。显式「从云端恢复」保持 pull-only，不会先上传本机未同步内容。冲突保留 local / remote 两份版本，必须由用户明确选择。
+
+本机数据库绑定单一账户。Repository 在每次业务读写时检查当前 Supabase 会话和本机绑定账户；切换到账户 B 时不会读取或覆盖账户 A 的本机学习数据。建议不同账户使用不同浏览器 Profile。认证会话和 PKCE 始终独立于学习数据迁移。
+
+Phase C 的旧 LocalStorage envelope 只通过一次性迁移器读取：验证 allowlist、SHA-256 指纹、原子导入、回读核验和迁移标记后，才清理旧学习键。Promise Realm 的独立存档也纳入迁移；Auth / PKCE 键不会被清理。详见 docs/backend/phase-d-migration.md。
+
+重要数据仍应及时同步到云端并导出备份；浏览器可能受站点配额和用户清理影响。详细数据模型见 docs/backend/phase-d-local-database.md 与 phase-d-supabase-data-model.md。
 
 ## 掌握度和置信度
 
@@ -149,7 +154,7 @@ WebKit 手机视口属于浏览器引擎的自动化视口测试，不等同于�
 - 不把个人学习事件写入仓库静态 JSON。
 - 不生成没有验证题的虚假掌握分。
 - 不把三个产品主线重写为一个大型应用；采用统一事件协议与轻量采集模块。
-- 当前本机领域状态已收敛为单一 LocalStorage envelope，并通过事务一次提交挑战/复习现场和对应事件；IndexedDB 只用于 Outbox、游标和 CAS 文档。领域引擎继续使用同步 API，因此这不是把领域状态改造成异步 IndexedDB 主存储。云端恢复采用 pull-only 路径，冲突显式保留；实体 iPhone Safari 仍需人工验收。
+- 当前学习事件与可恢复现场均以 IndexedDB v4 为本机权威，事件 + 文档 + Outbox 原子提交；云端 Push 使用单一 PostgreSQL 批次 RPC，Restore 为 pull-only，账户切换由 Repository 拒绝。实体 Mac / iPhone Safari 与真实双账户 JWT RLS 仍需人工验收。
 
 
 ## 统一作品学习接入（2026-11-01）
@@ -180,7 +185,7 @@ WebKit 手机视口属于浏览器引擎的自动化视口测试，不等同于�
 
 ### 当前存储边界
 
-事件日志只有一个当前 Event Schema V3。领域状态由 LocalStorage 的单一 envelope 提供同步读写和事务提交；首次加载只收拢仍在使用的当前逻辑键，不引入旧事件 schema 回退。IndexedDB 管理可靠云同步队列和版本化档案文档，不做领域状态双写。实体设备恢复走显式 pull-only 流程，设备验收步骤见 `docs/backend/phase-c-real-device-acceptance.md`。
+IndexedDB v4 是本机 canonical learning database；学习事件追加式保存，挑战现场、活动复习和偏好作为版本化文档保存。所有领域读写通过 LearningRepository，使用异步 API。Phase C LocalStorage 仅用于一次性迁移，旧事件 schema 不进入运行时双读/双写。Supabase 以原子批次 RPC 同步事件和文档；显式云端恢复为 pull-only，CAS 冲突保留双方版本。实体设备验收见 docs/backend/phase-d-real-device-acceptance.md。
 
 ## 主动学习规划系统（2026-11-01）
 

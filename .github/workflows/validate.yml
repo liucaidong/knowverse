@@ -13,6 +13,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install browser test and IndexedDB test dependencies
+        run: npm install --no-save fake-indexeddb@6.2.7 playwright
       - name: Build public concept pages and registry-backed catalogues
         run: node scripts/build-public-content.mjs
       - name: Build static site shell, nested navigation and single account control
@@ -51,8 +53,10 @@ jobs:
         run: node scripts/verify-monorepo-product.mjs
       - name: Test reusable learning challenge engine and registry
         run: node --test scripts/verify-challenge-engine.mjs
-      - name: Test the unified transactional learning-state envelope
-        run: node --test scripts/verify-learning-state-storage.mjs
+      - name: Test Phase D transactional IndexedDB repository, migration and account isolation
+        run: node --test scripts/verify-local-learning-database.mjs scripts/verify-learning-state-storage.mjs
+      - name: Test Phase D backend and Supabase security contracts
+        run: node --test scripts/verify-backend-contract.mjs
       - name: Test learning mastery graph, event log, diagnostics and review scheduling
         run: node --test scripts/verify-learning-progress.mjs
       - name: Test Learning Intelligence V3 causal graph, review lifecycle and independent verification
@@ -65,7 +69,6 @@ jobs:
         run: node --test scripts/verify-learning-planner.mjs
       - name: Parse learning and review browser modules
         run: |
-          node --check assets/js/learning-state-storage.mjs
           node --check assets/js/learning-progress.mjs
           node --check assets/js/learning-progress-page.mjs
           node --check assets/js/review-engine.mjs
@@ -78,13 +81,14 @@ jobs:
           node --check assets/js/site-shell.mjs
           node --check assets/js/knowledge-context.mjs
           node --check scripts/validate-site-architecture.mjs
-      - name: Validate cloud archive security and sync contracts
-        run: node --test scripts/verify-backend-contract.mjs
       - name: Parse backend browser modules
         run: |
           node --check assets/js/backend/config.mjs
           node --check assets/js/backend/auth.mjs
+          node --check assets/js/learning-event-schema.mjs
           node --check assets/js/backend/local-event-store.mjs
+          node --check assets/js/backend/learning-repository.mjs
+          node --check assets/js/backend/phase-c-migration.mjs
           node --check assets/js/backend/sync-engine.mjs
           node --check assets/js/backend/local-archive.mjs
           node --check assets/js/backend/archive-bootstrap.mjs
@@ -95,7 +99,6 @@ jobs:
           node --check assets/js/rn-architecture-quest.mjs
       - name: Install Playwright browsers for cross-engine review flow
         run: |
-          npm install --no-save playwright
           npx playwright install --with-deps chromium webkit
       - name: Browser E2E · Chromium desktop and WebKit mobile viewport
         run: node --test scripts/e2e-learning-intelligence.mjs
@@ -117,7 +120,6 @@ jobs:
           node --check assets/js/monorepo-graph-model.mjs
           node --check assets/js/monorepo-quest-core.mjs
           node --check assets/js/challenge-engine.mjs
-          node --check assets/js/learning-state-storage.mjs
           node --check assets/js/learning-progress.mjs
           node --check assets/js/learning-progress-page.mjs
           node --check assets/js/promise-quest.mjs

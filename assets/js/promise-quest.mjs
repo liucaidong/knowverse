@@ -27,9 +27,22 @@ function getCurrentStep() {
   return index < 0 ? null : challenge.steps[index];
 }
 
-function saveProgress() {
-  const saved = store.save(progress);
-  updateDashboard(saved);
+async function saveProgress() {
+  await store.save(progress);
+  updateDashboard(true);
+}
+
+
+function showSaveError(error) {
+  const message = error?.message || "本地学习数据库写入失败。";
+  const status = $("save-status");
+  status.textContent = "保存失败 · " + message;
+  status.classList.add("is-error");
+  const feedback = $("step-feedback");
+  if (feedback) {
+    feedback.className = "pq-feedback is-bad";
+    feedback.textContent = "学习记录未能保存：" + message;
+  }
 }
 
 function updateDashboard(saved = store?.available ?? false) {
@@ -41,7 +54,7 @@ function updateDashboard(saved = store?.available ?? false) {
   $("stat-score").textContent = summary.earnedPoints + " / " + summary.maxPoints;
   $("save-status").textContent = saved
     ? "进度已保存在当前设备；关闭页面后仍可继续。"
-    : "当前浏览器未开放本地存储；刷新后将无法恢复本次进度。";
+    : "当前浏览器不支持 IndexedDB；刷新后将无法恢复本次进度。";
   challenge.steps.forEach((step, index) => {
     const item = getStepProgress(progress, step.id);
     const bar = document.querySelector('[data-progress-step="' + index + '"]');
@@ -133,7 +146,7 @@ function renderStep(index) {
       button.classList.add("was-wrong");
     }
     if (state.data?.correctOptionId === option.id) button.classList.add("is-correct");
-    button.addEventListener("click", () => chooseOption(step, option));
+    button.addEventListener("click", () => chooseOption(step, option).catch(showSaveError));
     options.append(button);
   });
 
@@ -154,7 +167,7 @@ function renderStep(index) {
   updateDashboard();
 }
 
-function chooseOption(step, option) {
+async function chooseOption(step, option) {
   const state = getStepProgress(progress, step.id);
   if (state.status !== "active") return;
 
@@ -169,7 +182,7 @@ function chooseOption(step, option) {
       misconceptions: previousMistakes,
     });
     progress = completeStep(progress, challenge, step.id);
-    saveProgress();
+    await saveProgress();
 
     document.querySelectorAll(".pq-option").forEach(button => {
       button.disabled = true;
@@ -194,7 +207,7 @@ function chooseOption(step, option) {
       lastGapId: option.gapId || null,
       misconceptions: mistakes,
     });
-    saveProgress();
+    await saveProgress();
 
     document.querySelectorAll(".pq-option").forEach(button => {
       if (button.dataset.optionId === option.id) {
@@ -208,13 +221,13 @@ function chooseOption(step, option) {
   }
 }
 
-function revealHint() {
+async function revealHint() {
   const step = getCurrentStep();
   if (!step) return;
   const result = revealNextHint(progress, challenge, step.id);
   if (result.exhausted) return;
   progress = result.progress;
-  saveProgress();
+  await saveProgress();
   renderHints(step, getStepProgress(progress, step.id));
 }
 
@@ -274,11 +287,11 @@ function continueQuest() {
   renderStep(next);
 }
 
-function resetQuest() {
+async function resetQuest() {
   if (!window.confirm("确定要重置当前 Promise 挑战的关卡进度吗？历史作答、提示、已识别薄弱点和复习验证记录会保留，不会被删除。")) return;
-  store.clear(challenge.id);
+  await store.clear(challenge.id);
   progress = resetChallengeProgress(challenge);
-  saveProgress();
+  await saveProgress();
   renderStep(0);
 }
 
@@ -293,17 +306,17 @@ async function boot() {
     throw new Error("Promise challenge definition is missing or incomplete.");
   }
   store = createChallengeProgressStore();
-  progress = store.load(challenge);
+  progress = await store.load(challenge);
 
   world = mountPromiseQuestWorld($("promise-world"));
   if (!world.supported) $("scene-fallback").hidden = false;
 
-  $("hint-next").addEventListener("click", revealHint);
+  $("hint-next").addEventListener("click", () => revealHint().catch(showSaveError));
   $("step-continue").addEventListener("click", continueQuest);
-  $("reset-quest").addEventListener("click", resetQuest);
-  $("restart-quest").addEventListener("click", resetQuest);
+  $("reset-quest").addEventListener("click", () => resetQuest().catch(showSaveError));
+  $("restart-quest").addEventListener("click", () => resetQuest().catch(showSaveError));
 
-  updateDashboard(store.save(progress));
+  await saveProgress();
   const index = getCurrentIndex();
   if (index < 0) showComplete();
   else renderStep(index);

@@ -35,39 +35,135 @@ function createCloudMock() {
         devices.add(body.p_device_id);
         return { registered: true, device_id: body.p_device_id };
       }
-      if (name === "sync_push_learning_events") {
-        assert.ok(devices.has(body.p_device_id), "device must be registered before push");
-        const confirmed = [];
-        let inserted = 0;
-        for (const row of body.p_events || []) {
+      if (name === "sync_commit_learning_batch") {
+        assert.ok(devices.has(body.p_device_id), "device must be registered before commit");
+        assert.equal(body.p_expected_user_id, "archive-test-user", "active account must match the expected account");
+        const incomingEvents = body.p_events || [];
+        const incomingDocuments = body.p_documents || [];
+        assert.ok(incomingEvents.length <= 100);
+        assert.ok(incomingDocuments.length <= 50);
+
+        // Preflight document CAS and immutable event IDs before mutating either
+        // table. This models the server RPC's all-or-nothing transaction.
+        const conflicts = [];
+        for (const row of incomingDocuments) {
+          const current = documents.get(row.document_id);
+          const same = current && JSON.stringify(current.document_payload) === JSON.stringify(row.document_payload);
+          if (same) continue;
+          if ((!current && Number(row.base_revision) !== 0) ||
+              (current && Number(row.base_revision) !== current.revision)) {
+            if (current) conflicts.push({ ...current });
+            else conflicts.push({
+              document_id: row.document_id,
+              document_type: row.document_type,
+              document_key: row.document_key,
+              revision: 0,
+              document_seq: 0,
+              device_id: body.p_device_id,
+              updated_at: new Date().toISOString(),
+              document_payload: {},
+            });
+          }
+        }
+        if (conflicts.length) {
+          return {
+            status: "conflict",
+            events: { confirmed: [], inserted: 0 },
+            documents: { confirmed: [], conflicts },
+          };
+        }
+
+        const eventPreflight = [];
+        const seenIds = new Set();
+        const seenSequences = new Set();
+        for (const row of incomingEvents) {
           const payload = row.event_payload;
           assert.equal(row.event_id, payload.id);
           assert.ok(Number(row.device_seq) > 0);
+          assert.equal(seenIds.has(row.event_id), false, "batch event IDs must be unique");
+          seenIds.add(row.event_id);
           const existing = eventsById.get(row.event_id);
           if (existing) {
-            assert.deepEqual(existing.event_payload, payload, "same event id must have identical payload");
-            confirmed.push({ event_id: row.event_id, user_seq: existing.user_seq, duplicate: true });
+            assert.deepEqual(existing.event_payload, payload, "same event ID must retain identical payload");
+            eventPreflight.push({ row, existing, duplicate: true });
             continue;
           }
-          const deviceSequenceKey = body.p_device_id + ":" + row.device_seq;
-          assert.equal(deviceSequences.has(deviceSequenceKey), false, "device sequence must be unique");
-          deviceSequences.set(deviceSequenceKey, row.event_id);
+          const sequenceKey = body.p_device_id + ":" + row.device_seq;
+          assert.equal(seenSequences.has(sequenceKey), false, "device sequence must be unique within the batch");
+          seenSequences.add(sequenceKey);
+          assert.equal(deviceSequences.has(sequenceKey), false, "device sequence must be unique");
+          eventPreflight.push({ row, duplicate: false });
+        }
+
+        const confirmedDocuments = [];
+        for (const row of incomingDocuments) {
+          const current = documents.get(row.document_id);
+          if (current && JSON.stringify(current.document_payload) === JSON.stringify(row.document_payload)) {
+            confirmedDocuments.push({
+              document_id: row.document_id,
+              local_revision: row.local_revision,
+              revision: current.revision,
+              document_seq: current.document_seq,
+            });
+            continue;
+          }
           const record = {
-            event_id: row.event_id,
+            document_id: row.document_id,
+            document_type: row.document_type,
+            document_key: row.document_key,
+            revision: current ? current.revision + 1 : 1,
+            document_seq: ++documentSequence,
+            device_id: body.p_device_id,
+            updated_at: new Date().toISOString(),
+            document_payload: row.document_payload,
+          };
+          documents.set(row.document_id, record);
+          confirmedDocuments.push({
+            document_id: row.document_id,
+            local_revision: row.local_revision,
+            revision: record.revision,
+            document_seq: record.document_seq,
+          });
+        }
+
+        const confirmedEvents = [];
+        let inserted = 0;
+        for (const item of eventPreflight) {
+          if (item.duplicate) {
+            confirmedEvents.push({
+              event_id: item.row.event_id,
+              user_seq: item.existing.user_seq,
+              duplicate: true,
+            });
+            continue;
+          }
+          const record = {
+            event_id: item.row.event_id,
             user_seq: ++eventSequence,
             device_id: body.p_device_id,
-            device_seq: Number(row.device_seq),
-            occurred_at: payload.at,
-            event_payload: payload,
+            device_seq: Number(item.row.device_seq),
+            occurred_at: item.row.event_payload.at,
+            event_payload: item.row.event_payload,
           };
+          deviceSequences.set(body.p_device_id + ":" + item.row.device_seq, item.row.event_id);
           events.push(record);
-          eventsById.set(row.event_id, record);
-          confirmed.push({ event_id: row.event_id, user_seq: record.user_seq, duplicate: false });
+          eventsById.set(item.row.event_id, record);
+          confirmedEvents.push({
+            event_id: item.row.event_id,
+            user_seq: record.user_seq,
+            duplicate: false,
+          });
           inserted += 1;
         }
-        return { confirmed, inserted };
+        return {
+          status: "committed",
+          events: { confirmed: confirmedEvents, inserted },
+          documents: { confirmed: confirmedDocuments, conflicts: [] },
+          committed_at: new Date().toISOString(),
+        };
       }
-      if (name === "sync_pull_learning_events") {
+      if (name === "sync_pull_learning_events_for_account") {
+        assert.equal(body.p_expected_user_id, "archive-test-user");
         const after = Number(body.p_after_user_seq || 0);
         const limit = Math.max(1, Math.min(100, Number(body.p_page_size || 100)));
         const page = events.filter(row => row.user_seq > after).slice(0, limit);
@@ -85,48 +181,8 @@ function createCloudMock() {
           has_more: events.some(row => row.user_seq > next),
         };
       }
-      if (name === "sync_push_learning_documents") {
-        assert.ok(devices.has(body.p_device_id), "device must be registered before document push");
-        const confirmed = [];
-        const conflicts = [];
-        for (const row of body.p_documents || []) {
-          const current = documents.get(row.document_id);
-          const payloadString = JSON.stringify(row.document_payload);
-          if (current && JSON.stringify(current.document_payload) === payloadString) {
-            confirmed.push({
-              document_id: row.document_id,
-              local_revision: row.local_revision,
-              revision: current.revision,
-              document_seq: current.document_seq,
-            });
-            continue;
-          }
-          if ((!current && Number(row.base_revision) !== 0) ||
-              (current && Number(row.base_revision) !== current.revision)) {
-            if (current) conflicts.push({ ...current });
-            continue;
-          }
-          const record = {
-            document_id: row.document_id,
-            document_type: row.document_type,
-            document_key: row.document_key,
-            revision: current ? current.revision + 1 : 1,
-            document_seq: ++documentSequence,
-            device_id: body.p_device_id,
-            updated_at: new Date().toISOString(),
-            document_payload: row.document_payload,
-          };
-          documents.set(row.document_id, record);
-          confirmed.push({
-            document_id: row.document_id,
-            local_revision: row.local_revision,
-            revision: record.revision,
-            document_seq: record.document_seq,
-          });
-        }
-        return { confirmed, conflicts, written: confirmed.length };
-      }
-      if (name === "sync_pull_learning_documents") {
+      if (name === "sync_pull_learning_documents_for_account") {
+        assert.equal(body.p_expected_user_id, "archive-test-user");
         const after = Number(body.p_after_document_seq || 0);
         const limit = Math.max(1, Math.min(100, Number(body.p_page_size || 100)));
         const page = [...documents.values()]
@@ -144,7 +200,6 @@ function createCloudMock() {
     },
   };
 }
-
 async function startServer() {
   const cloud = createCloudMock();
   const server = createServer(async (request, response) => {
@@ -269,16 +324,20 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
       "2032-04-01T10:00:00.000Z",
       { correct: false, gapId: "thenable-get-vs-call", attemptNumber: 1 },
     );
-    await mac.page.evaluate(value => {
-      window.archiveHarness.storage.setItem("knowverse:challenge/promise-mechanism-quest", JSON.stringify({
-        engineVersion: 1,
-        challengeId: "promise-mechanism-quest",
-        runId: "mac-run",
-        status: "in-progress",
-        currentStep: "thenable-adoption",
-        steps: [{ id: "thenable-adoption", status: "active", attempts: 1, hintsUsed: 0, data: {} }],
-      }));
-      window.archiveHarness.addEvent(value);
+    await mac.page.evaluate(async value => {
+      await window.archiveHarness.putDocument({
+        type: "challenge_progress",
+        key: "promise-mechanism-quest",
+        payload: {
+          engineVersion: 1,
+          challengeId: "promise-mechanism-quest",
+          runId: "mac-run",
+          status: "in-progress",
+          currentStep: "thenable-adoption",
+          steps: [{ id: "thenable-adoption", status: "active", attempts: 1, hintsUsed: 0, data: {} }],
+        },
+      });
+      await window.archiveHarness.addEvent(value);
     }, failedAttempt);
     await mac.page.waitForFunction(async () => {
       const status = await window.archiveHarness.status();
@@ -300,9 +359,9 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
     assert.equal(phoneFirstSync.status, "synced");
     assert.equal(phoneFirstSync.pulled, 1);
     assert.equal(phoneFirstSync.pulledDocuments, 1);
-    const phoneState = await phone.page.evaluate(() => ({
-      events: window.archiveHarness.store.load().events,
-      challenge: JSON.parse(window.archiveHarness.storage.getItem("knowverse:challenge/promise-mechanism-quest") || "null"),
+    const phoneState = await phone.page.evaluate(async () => ({
+      events: await window.archiveHarness.listEvents(),
+      challenge: (await window.archiveHarness.getDocument("challenge_progress", "promise-mechanism-quest"))?.payload || null,
     }));
     assert.equal(phoneState.events.length, 1);
     assert.equal(phoneState.events[0].gapId, "thenable-get-vs-call");
@@ -333,10 +392,13 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
         gapId: "thenable-get-vs-call",
       },
     );
-    await phone.page.evaluate(({ value, activeEvent }) => {
-      window.archiveHarness.addEvent(value);
-      window.archiveHarness.addEvent(activeEvent);
-      window.archiveHarness.storage.setItem("knowverse:review-session/phone-review", JSON.stringify({
+    await phone.page.evaluate(async ({ value, activeEvent }) => {
+      await window.archiveHarness.addEvent(value);
+      await window.archiveHarness.addEvent(activeEvent);
+      await window.archiveHarness.putDocument({
+        type: "review_session",
+        key: "phone-review",
+        payload: {
         schemaVersion: 1,
         sessionId: "phone-review",
         sessionType: "review",
@@ -346,8 +408,12 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
         status: "passed",
         attempts: 1,
         hintsUsed: 0,
-      }));
-      window.archiveHarness.storage.setItem("knowverse:review-session/phone-review-active", JSON.stringify({
+      },
+      });
+      await window.archiveHarness.putDocument({
+        type: "review_session",
+        key: "phone-review-active",
+        payload: {
         schemaVersion: 1,
         sessionId: "phone-review-active",
         sessionType: "review",
@@ -361,11 +427,13 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
         selectedOptionId: null,
         startedAt: "2026-11-02T07:30:00.000Z",
         finishedAt: null,
-      }));
-      window.archiveHarness.storage.setItem("knowverse:learning-plan:preferences", JSON.stringify({
-        dailyMinutes: 40,
-        focusTopicId: "promise",
-      }));
+      },
+      });
+      await window.archiveHarness.putDocument({
+        type: "plan_preferences",
+        key: "preferences",
+        payload: { dailyMinutes: 40, focusTopicId: "promise" },
+      });
     }, { value: reviewPass, activeEvent: activeReviewStarted });
     const phoneSync = await phone.page.evaluate(() => window.archiveHarness.sync());
     assert.ok(["synced", "syncing"].includes(phoneSync.status));
@@ -382,8 +450,10 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
       const originalRequest = auth.request.bind(auth);
       let releaseProfile;
       let firstProfile = true;
+      let profileCalls = 0;
       const profileGate = new Promise(resolveGate => { releaseProfile = resolveGate; });
       auth.request = async (path, options) => {
+        if (path.endsWith("/get_learning_sync_profile")) profileCalls += 1;
         if (firstProfile && path.endsWith("/get_learning_sync_profile")) {
           firstProfile = false;
           await profileGate;
@@ -392,13 +462,17 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
         return originalRequest(path, options);
       };
       window.archiveHarness.releaseProfile = releaseProfile;
+      window.archiveHarness.profileCalls = () => profileCalls;
       // Hold an in-flight background sync before profile authorization. The
-      // explicit restore must queue behind it rather than return "syncing".
+      // explicit restore must queue behind it rather than run concurrently.
       window.archiveHarness.initialSync = service.sync();
       window.archiveHarness.queuedRestore = service.restoreFromCloud();
     });
     await freshIPhone.page.waitForFunction(() =>
-      window.archiveHarness.syncStatuses.includes("restore-queued"), null, { timeout: 5000 });
+      window.archiveHarness.syncStatuses.includes("syncing") &&
+      window.archiveHarness.profileCalls() === 1, null, { timeout: 5000 });
+    assert.equal(await freshIPhone.page.evaluate(() => window.archiveHarness.profileCalls()), 1,
+      "Restore must remain queued while the initial Sync is inside the profile request");
     await freshIPhone.page.evaluate(() => window.archiveHarness.releaseProfile());
     const coldFlow = await freshIPhone.page.evaluate(async () => ({
       initialSync: await window.archiveHarness.initialSync,
@@ -409,11 +483,11 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
     assert.equal(coldRestore.status, "restored");
     assert.equal(coldRestore.restoredEvents, 3);
     assert.equal(coldRestore.restoredDocuments, 4);
-    const restoredIPhoneState = await freshIPhone.page.evaluate(() => ({
-      events: window.archiveHarness.store.load().events,
-      challenge: JSON.parse(window.archiveHarness.storage.getItem("knowverse:challenge/promise-mechanism-quest") || "null"),
-      activeReview: JSON.parse(window.archiveHarness.storage.getItem("knowverse:review-session/phone-review-active") || "null"),
-      preferences: JSON.parse(window.archiveHarness.storage.getItem("knowverse:learning-plan:preferences") || "null"),
+    const restoredIPhoneState = await freshIPhone.page.evaluate(async () => ({
+      events: await window.archiveHarness.listEvents(),
+      challenge: (await window.archiveHarness.getDocument("challenge_progress", "promise-mechanism-quest"))?.payload || null,
+      activeReview: (await window.archiveHarness.getDocument("review_session", "phone-review-active"))?.payload || null,
+      preferences: (await window.archiveHarness.getDocument("plan_preferences", "preferences"))?.payload || null,
     }));
     assert.equal(restoredIPhoneState.events.length, 3);
     assert.equal(restoredIPhoneState.challenge.currentStep, "thenable-adoption");
@@ -425,16 +499,16 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
     assert.ok(["synced", "syncing"].includes(macPull.status));
     // The shared background sync may have pulled this page before the explicit
     // call above. Assert the durable end state, not a timing-sensitive delta.
-    await mac.page.waitForFunction(() => {
-      const events = window.archiveHarness.store.load().events;
+    await mac.page.waitForFunction(async () => {
+      const events = await window.archiveHarness.listEvents();
       return events.length === 3 &&
-        Boolean(window.archiveHarness.storage.getItem("knowverse:review-session/phone-review-active"));
+        Boolean(await window.archiveHarness.getDocument("review_session", "phone-review-active"));
     }, null, { timeout: 10000 });
-    const macMerged = await mac.page.evaluate(() => ({
-      events: window.archiveHarness.store.load().events,
-      review: JSON.parse(window.archiveHarness.storage.getItem("knowverse:review-session/phone-review") || "null"),
-      activeReview: JSON.parse(window.archiveHarness.storage.getItem("knowverse:review-session/phone-review-active") || "null"),
-      preferences: JSON.parse(window.archiveHarness.storage.getItem("knowverse:learning-plan:preferences") || "null"),
+    const macMerged = await mac.page.evaluate(async () => ({
+      events: await window.archiveHarness.listEvents(),
+      review: (await window.archiveHarness.getDocument("review_session", "phone-review"))?.payload || null,
+      activeReview: (await window.archiveHarness.getDocument("review_session", "phone-review-active"))?.payload || null,
+      preferences: (await window.archiveHarness.getDocument("plan_preferences", "preferences"))?.payload || null,
     }));
     assert.equal(macMerged.events.length, 3);
     assert.ok(macMerged.events.some(row => row.type === "attempt" && row.correct === false));
@@ -471,11 +545,15 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
       null, { timeout: 12000 });
     await waitUntil(() => cloud.events.length === 4, "offline event to be acknowledged by cloud sync");
 
-    await mac.page.evaluate(() => {
-      const key = "knowverse:challenge/promise-mechanism-quest";
-      const value = JSON.parse(window.archiveHarness.storage.getItem(key));
-      value.currentStep = "mac-second-step";
-      window.archiveHarness.storage.setItem(key, JSON.stringify(value));
+    await mac.page.evaluate(async () => {
+      const row = await window.archiveHarness.getDocument("challenge_progress", "promise-mechanism-quest");
+      const value = { ...row.payload, currentStep: "mac-second-step" };
+      await window.archiveHarness.putDocument({
+        type: "challenge_progress",
+        key: "promise-mechanism-quest",
+        payload: value,
+        expectedLocalRevision: row.localRevision,
+      });
     });
     await mac.page.evaluate(() => window.archiveHarness.capture());
     const macEdit = await mac.page.evaluate(() => window.archiveHarness.sync());
@@ -483,13 +561,15 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
     await waitUntil(() => cloud.documents.get("challenge_progress:promise-mechanism-quest")?.revision === 2,
       "Mac challenge revision 2 to reach the cloud");
 
-    const phoneBase = await phone.page.evaluate(() => JSON.parse(window.archiveHarness.storage.getItem(
-      "knowverse:challenge/promise-mechanism-quest"
-    )));
-    phoneBase.currentStep = "iphone-second-step";
-    await phone.page.evaluate(value => window.archiveHarness.storage.setItem(
-      "knowverse:challenge/promise-mechanism-quest", JSON.stringify(value)
-    ), phoneBase);
+    const phoneBase = await phone.page.evaluate(async () =>
+      window.archiveHarness.getDocument("challenge_progress", "promise-mechanism-quest"));
+    const phonePayload = { ...phoneBase.payload, currentStep: "iphone-second-step" };
+    await phone.page.evaluate(value => window.archiveHarness.putDocument({
+      type: "challenge_progress",
+      key: "promise-mechanism-quest",
+      payload: value.payload,
+      expectedLocalRevision: value.localRevision,
+    }), { payload: phonePayload, localRevision: phoneBase.localRevision });
 
     await phone.page.evaluate(() => window.archiveHarness.capture());
     const conflictSync = await phone.page.evaluate(() => window.archiveHarness.sync());

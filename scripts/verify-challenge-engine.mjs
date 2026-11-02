@@ -1,6 +1,14 @@
+import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import test from "node:test";
+import test, { beforeEach } from "node:test";
+import { deleteLocalDatabaseForTests } from "../assets/js/backend/local-event-store.mjs";
+import { resetLearningRepositoryForTests } from "../assets/js/backend/learning-repository.mjs";
+
+beforeEach(async () => {
+  resetLearningRepositoryForTests();
+  await deleteLocalDatabaseForTests();
+});
 import {
   completeStep,
   createChallengeProgress,
@@ -12,7 +20,6 @@ import {
   setStepData,
   summarizeChallenge,
 } from "../assets/js/challenge-engine.mjs";
-import { createLearningStateStorage } from "../assets/js/learning-state-storage.mjs";
 
 const challenge = {
   id: "sample-quest",
@@ -66,7 +73,7 @@ test("records attempts and progressive hints, then calculates a transparent scor
   assert.equal(getStepProgress(progress, "second").status, "active");
 });
 
-test("stores challenge-specific activity data and preserves it after reload", () => {
+test("stores challenge-specific activity data and preserves it after reload", async () => {
   let progress = createChallengeProgress(challenge);
   progress = setStepData(progress, "first", { completedNodeIds: ["contracts"] });
   const storageData = new Map();
@@ -75,14 +82,15 @@ test("stores challenge-specific activity data and preserves it after reload", ()
     setItem: (key, value) => storageData.set(key, value),
     removeItem: key => storageData.delete(key),
   };
-  const store = createChallengeProgressStore({ storage });
-  assert.equal(store.save(progress), true);
+  const store = createChallengeProgressStore();
+  await store.load(challenge);
+  assert.equal(await store.save(progress), true);
 
-  const restored = store.load(challenge);
+  const restored = await store.load(challenge);
   assert.deepEqual(getStepProgress(restored, "first").data, { completedNodeIds: ["contracts"] });
   assert.equal(getStepProgress(restored, "first").status, "active");
-  assert.equal(store.clear(challenge.id), true);
-  assert.equal(store.load(challenge).steps[0].data.completedNodeIds, undefined);
+  assert.equal(await store.clear(challenge.id), true);
+  assert.equal((await store.load(challenge)).steps[0].data.completedNodeIds, undefined);
 });
 
 test("prevents skipping locked steps and sanitizes incompatible saved progress", () => {
@@ -111,15 +119,15 @@ test("unlocks every step in order and marks the challenge completed", () => {
   assert.equal(summary.earnedPoints, 240);
 });
 
-test("works without browser storage", () => {
-  const store = createChallengeProgressStore({ storage: null });
-  assert.equal(store.available, false);
-  assert.equal(store.save(createChallengeProgress(challenge)), false);
-  assert.equal(store.clear(challenge.id), false);
+test("reports IndexedDB availability without a synchronous storage fallback", async () => {
+  const store = createChallengeProgressStore();
+  assert.equal(store.available, true);
+  await store.load(challenge);
+  assert.equal(await store.save(createChallengeProgress(challenge)), true);
 });
 
 
-test("challenge event and progress checkpoint commit as one learning-state transaction", () => {
+test("challenge event, progress document and Outbox commit as one IndexedDB transaction", async () => {
   const storageData = new Map();
   let writes = 0;
   const storage = {
@@ -127,15 +135,17 @@ test("challenge event and progress checkpoint commit as one learning-state trans
     setItem: (key, value) => { writes += 1; storageData.set(key, value); },
     removeItem: key => storageData.delete(key),
   };
-  const store = createChallengeProgressStore({ storage });
-  const initial = store.load(challenge);
+  const store = createChallengeProgressStore();
+  const initial = await store.load(challenge);
   const completed = completeStep(initial, challenge, "first");
-  const before = writes;
 
-  assert.equal(store.save(completed), true);
-  assert.equal(writes - before, 1, "challenge state and its evidence event share one envelope commit");
-  const state = createLearningStateStorage(storage);
-  assert.equal(JSON.parse(state.getItem("knowverse:challenge/sample-quest")).steps[0].status, "completed");
-  const events = JSON.parse(state.getItem("knowverse:learning-progress")).events;
+  assert.equal(await store.save(completed), true);
+  const { countLearningEvents, countOutbox, getLearningDocument } = await import("../assets/js/backend/local-event-store.mjs");
+  assert.equal(await countLearningEvents(), 1);
+  assert.equal(await countOutbox(), 1);
+  const state = await getLearningDocument("challenge_progress", "sample-quest");
+  assert.equal(state.payload.steps[0].status, "completed");
+  const progressStore = (await import("../assets/js/learning-progress.mjs")).createLearningProgressStore();
+  const events = (await progressStore.load()).events;
   assert.ok(events.some(event => event.type === "completed" && event.stepId === "first"));
 });

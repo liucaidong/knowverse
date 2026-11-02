@@ -8,7 +8,7 @@ const store = createLearningProgressStore();
 const planPreferencesStore = createLearningPlanPreferencesStore();
 let worksManifest;
 let checkpointRegistry;
-let planPreferences = planPreferencesStore.load();
+let planPreferences = { dailyMinutes: 25, focusTopicId: "all" };
 let adaptivePlan;
 let knowledge;
 let learningMap;
@@ -79,7 +79,7 @@ function renderMetrics() {
   $("first-run-callout").hidden = summary.attempts + summary.completions > 0;
   $("storage-status").textContent = store.available
     ? "学习事件先保存在本机，并镜像到 IndexedDB 同步队列。云端账户配置后可跨设备同步；JSON 导出仍可作为独立备份。"
-    : "当前浏览器未开放本地存储，学习事件无法持久保存。请使用支持 localStorage 的常规浏览器窗口。";
+    : "当前浏览器不支持 IndexedDB，学习事件无法持久保存。请使用支持 IndexedDB 的常规浏览器。";
 }
 
 function renderTopicOverview() {
@@ -359,10 +359,10 @@ function renderEvents() {
   });
 }
 
-function renderAdaptivePlan() {
+function renderAdaptivePlan(snapshot) {
   adaptivePlan = buildAdaptiveLearningPlan({
     learningMap, challengeRegistry, worksManifest, checkpointRegistry,
-    snapshot: store.load(), preferences: planPreferences,
+    snapshot, preferences: planPreferences,
   });
   const summary = $("plan-summary");
   const host = $("plan-actions");
@@ -407,17 +407,18 @@ function renderAdaptivePlan() {
     if (link) {
       link.classList.add("lp-plan-link");
       if (action.startedToday) link.textContent = "继续打开学习资源 ↗";
-      link.addEventListener("click", () => {
-        try { recordLearningPlanAction(store, action, "started"); }
-        catch (error) { setText("plan-status", error.message); }
+      link.addEventListener("click", async () => {
+        try { await recordLearningPlanAction(store, action, "started"); }
+        catch (error) { setText("plan-status", "保存失败：" + error.message); }
       });
       footer.append(link);
     }
     const done = element("button", "lp-data-button", action.startedToday ? "标记已完成" : "完成此学习步骤");
     done.type = "button";
-    done.addEventListener("click", () => {
-      try { recordLearningPlanAction(store, action, "completed"); refresh(); }
-      catch (error) { window.alert(error.message || "无法保存学习计划进度。"); }
+    done.addEventListener("click", async () => {
+      done.disabled = true;
+      try { await recordLearningPlanAction(store, action, "completed"); await refresh(); }
+      catch (error) { done.disabled = false; window.alert(error.message || "无法保存学习计划进度。"); }
     });
     footer.append(done);
     if (action.startedToday) footer.append(element("span", "lp-plan-started", "进行中"));
@@ -446,9 +447,10 @@ function renderAdaptivePlan() {
   }
 }
 
-function refresh() {
-  insights = deriveLearningInsights(learningMap, challengeRegistry, store.load());
-  renderAdaptivePlan();
+async function refresh() {
+  const snapshot = await store.load();
+  insights = deriveLearningInsights(learningMap, challengeRegistry, snapshot);
+  renderAdaptivePlan(snapshot);
   renderMetrics();
   renderTopicOverview();
   renderTopicChoices();
@@ -459,8 +461,8 @@ function refresh() {
   renderEvents();
 }
 
-function exportData() {
-  const payload = store.exportJSON();
+async function exportData() {
+  const payload = await store.exportJSON();
   const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const anchor = element("a");
@@ -473,33 +475,33 @@ function exportData() {
 }
 
 function wireDataActions() {
-  $("export-progress").addEventListener("click", exportData);
-  $("export-progress-bottom").addEventListener("click", exportData);
+  $("export-progress").addEventListener("click", () => exportData().catch(error => window.alert("导出失败：" + error.message)));
+  $("export-progress-bottom").addEventListener("click", () => exportData().catch(error => window.alert("导出失败：" + error.message)));
   $("import-progress").addEventListener("click", () => $("import-file").click());
   $("import-file").addEventListener("change", async event => {
     const file = event.target.files?.[0];
     if (!file) return;
     try {
-      const result = store.importJSON(await file.text(), { replace: false });
+      const result = await store.importJSON(await file.text(), { replace: false });
       window.alert("已合并 " + result.imported + " 条学习事件；当前共有 " + result.total + " 条记录。");
-      refresh();
+      await refresh();
     } catch (error) {
       window.alert("导入失败：" + error.message);
     } finally {
       event.target.value = "";
     }
   });
-  $("plan-time-budget").addEventListener("change", event => {
+  $("plan-time-budget").addEventListener("change", async event => {
     planPreferences = { ...planPreferences, dailyMinutes: Number(event.target.value) };
-    if (!planPreferencesStore.save(planPreferences)) window.alert("无法保存计划偏好；本次页面仍会使用当前选择。");
-    refresh();
+    try { await planPreferencesStore.save(planPreferences); await refresh(); }
+    catch (error) { window.alert("无法保存计划偏好：" + error.message); }
   });
-  $("plan-focus-topic").addEventListener("change", event => {
+  $("plan-focus-topic").addEventListener("change", async event => {
     planPreferences = { ...planPreferences, focusTopicId: event.target.value };
-    if (!planPreferencesStore.save(planPreferences)) window.alert("无法保存计划偏好；本次页面仍会使用当前选择。");
-    refresh();
+    try { await planPreferencesStore.save(planPreferences); await refresh(); }
+    catch (error) { window.alert("无法保存计划偏好：" + error.message); }
   });
-  $("plan-rebuild").addEventListener("click", refresh);
+  $("plan-rebuild").addEventListener("click", () => refresh().catch(error => setText("plan-status", error.message)));
   document.querySelectorAll("[data-scroll]").forEach(button => {
     button.addEventListener("click", () => {
       const target = document.querySelector(button.dataset.scroll);
@@ -517,8 +519,10 @@ async function boot() {
     });
   }
   if (!store.available) {
-    setText("storage-status", "当前浏览器未开放本地存储；学习事件无法持久保存。");
+    setText("storage-status", "当前浏览器不支持 IndexedDB；学习事件无法持久保存。");
   }
+  await store.load();
+  planPreferences = await planPreferencesStore.load();
   const [knowledgeResponse, mapResponse, challengeResponse, worksResponse, checkpointResponse] = await Promise.all([
     fetch(new URL("content/knowledge.json", siteRoot), { headers: { Accept: "application/json" } }),
     fetch(new URL("content/learning-map.json", siteRoot), { headers: { Accept: "application/json" } }),
@@ -538,7 +542,7 @@ async function boot() {
   selectedTopicId = learningMap.topics[0]?.id || null;
   selectedCompetencyId = learningMap.topics[0]?.competencies[0]?.id || null;
   wireDataActions();
-  refresh();
+  await refresh();
 }
 
 boot().catch(error => {

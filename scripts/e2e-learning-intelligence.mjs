@@ -86,12 +86,22 @@ async function exerciseReview(browser, label, viewport) {
   await page.addInitScript(event => {
     const marker = "knowverse:e2e-learning-seeded";
     if (localStorage.getItem(marker)) return;
-    localStorage.setItem("knowverse:learning-progress", JSON.stringify({
+    const rootKey = "knowverse:learning-state";
+    const envelope = JSON.parse(localStorage.getItem(rootKey) || JSON.stringify({
+      format: "knowverse-learning-state",
+      schemaVersion: 1,
+      revision: 0,
+      records: {},
+    }));
+    envelope.revision += 1;
+    envelope.records["knowverse:learning-progress"] = JSON.stringify({
       schemaVersion: 1,
       createdAt: event.at,
       updatedAt: event.at,
       events: [event],
-    }));
+      remoteEventIds: [],
+    });
+    localStorage.setItem(rootKey, JSON.stringify(envelope));
     localStorage.setItem(marker, "1");
   }, seedGap);
 
@@ -101,16 +111,22 @@ async function exerciseReview(browser, label, viewport) {
   assert.match(await page.locator("#question-title").innerText(), /Get 与 Call：同步边界/);
 
   await page.locator('[data-option-id="a"]').click();
-  await page.locator("#answer-feedback").waitFor();
-  assert.match(await page.locator("#answer-feedback").innerText(), /还不正确/);
+  await page.waitForFunction(() =>
+    document.querySelector("#answer-feedback")?.innerText.includes("这次判断还不正确。")
+  );
   assert.equal(await page.locator("#next-variant").isVisible(), true);
 
   await page.locator("#next-variant").click();
-  await page.locator("#question-title").waitFor();
-  assert.match(await page.locator("#question-title").innerText(), /Get 与 Call：输出顺序验证/);
+  await page.waitForFunction(() =>
+    document.querySelector("#question-title")?.innerText.includes("Get 与 Call：输出顺序验证")
+  );
   await page.locator('[data-option-id="b"]').click();
+  await page.waitForFunction(() =>
+    document.querySelector("#answer-feedback")?.innerText.includes("独立验证通过")
+  );
   assert.match(await page.locator("#answer-feedback").innerText(), /精确纠正/);
 
+  await page.waitForFunction(() => document.querySelectorAll(".rw-history-row").length === 2);
   const historyCount = await page.locator(".rw-history-row").count();
   assert.equal(historyCount, 2, label + ": review sessions should persist independently");
   await page.goto(baseURL + "/review/", { waitUntil: "domcontentloaded" });
@@ -119,6 +135,10 @@ async function exerciseReview(browser, label, viewport) {
   await page.goto(baseURL + "/progress/", { waitUntil: "domcontentloaded" });
   await page.locator("#hero-tested").waitFor();
   await page.locator("#gap-list").waitFor();
+  await page.waitForFunction(() =>
+    document.querySelector("#gap-list")?.innerText.includes("没有尚未纠正的概念误区") &&
+    document.querySelector("#hero-tested")?.innerText.replaceAll(" ", "").includes("1/15")
+  );
   assert.match(await page.locator("#gap-list").innerText(), /没有尚未纠正的概念误区/);
   assert.match(await page.locator("#hero-tested").innerText(), /1\s*\/\s*15/);
   assert.deepEqual(pageErrors, [], label + ": uncaught browser exceptions");

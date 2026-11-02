@@ -28,13 +28,12 @@ export function createLearningCheckpointEngine(options = {}) {
   const definitions = new Map(checkpoints.map(item => [item.id, item]));
   const sessions = new Map();
 
-  function append(events) {
-    if (!store.available || !store.appendMany(events)) {
-      throw new Error("学习检查点无法保存。请检查浏览器本地存储空间，并先导出学习档案备份。");
-    }
+  async function append(events) {
+    if (!store.available) throw new Error("当前浏览器不支持 IndexedDB，学习检查点无法保存。");
+    await store.appendMany(events);
   }
 
-  function start(checkpointId) {
+  async function start(checkpointId) {
     const definition = definitions.get(String(checkpointId));
     if (!definition) throw new RangeError("Unknown learning checkpoint: " + checkpointId);
     const sessionId = makeId();
@@ -44,7 +43,7 @@ export function createLearningCheckpointEngine(options = {}) {
       competencyId: definition.competencyId, variantId: definition.id,
       status: "active", startedAt
     };
-    append([{
+    await append([{
       id: sessionId + ":started", eventSchemaVersion: 3, type: "checkpoint_started",
       at: startedAt, topicId: definition.topicId,
       challengeId: "checkpoint:" + definition.workId,
@@ -59,7 +58,7 @@ export function createLearningCheckpointEngine(options = {}) {
     return { ...session, definition: JSON.parse(JSON.stringify(definition)) };
   }
 
-  function submit(sessionId, optionId) {
+  async function submit(sessionId, optionId) {
     const session = sessions.get(String(sessionId));
     if (!session || session.status !== "active") throw new Error("检查点会话已结束或不存在。");
     const definition = definitions.get(session.checkpointId);
@@ -89,7 +88,7 @@ export function createLearningCheckpointEngine(options = {}) {
       gapId: null, scorePct: 100, earnedPoints: 100, maximumPoints: 100, independent: true,
       causationEventIds: [sessionId + ":started", sessionId + ":attempt"]
     });
-    append(events);
+    await append(events);
     session.status = correct ? "passed" : "needs-review";
     session.finishedAt = at;
     return {

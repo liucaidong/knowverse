@@ -1,6 +1,14 @@
+import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import test from "node:test";
+import test, { beforeEach } from "node:test";
+import { deleteLocalDatabaseForTests } from "../assets/js/backend/local-event-store.mjs";
+import { resetLearningRepositoryForTests } from "../assets/js/backend/learning-repository.mjs";
+
+beforeEach(async () => {
+  resetLearningRepositoryForTests();
+  await deleteLocalDatabaseForTests();
+});
 import { createLearningCheckpointEngine } from "../assets/js/learning-checkpoint-engine.mjs";
 import { createLearningProgressStore, deriveLearningInsights } from "../assets/js/learning-progress.mjs";
 import { createReviewSessionEngine } from "../assets/js/review-engine.mjs";
@@ -60,47 +68,45 @@ test("checkpoint errors create precise gaps but only independent Review can reso
     readJSON("../content/review-assessments.json"),
   ]);
   const checkpoint = checkpointRegistry.checkpoints.find(item => item.id === "cp-monorepo-cache");
-  const storage = memoryStorage();
-  const store = createLearningProgressStore({ storage });
+  const store = createLearningProgressStore();
   const engine = createLearningCheckpointEngine({ store, registry: [checkpoint] });
-  const session = engine.start(checkpoint.id);
+  const session = await engine.start(checkpoint.id);
   const wrong = checkpoint.options.find(item => item.gapId);
-  const result = engine.submit(session.sessionId, wrong.id);
+  const result = await engine.submit(session.sessionId, wrong.id);
   assert.equal(result.correct, false);
-  let insight = deriveLearningInsights(map, challenges, store.load(), new Date("2026-11-01T12:00:00.000Z"));
+  let insight = deriveLearningInsights(map, challenges, await store.load(), new Date("2026-11-01T12:00:00.000Z"));
   let node = insight.competencyInsights.find(item => item.id === checkpoint.competencyId);
   assert.equal(node.evidenceCount, 0);
   assert.equal(node.status, "weak");
   assert.equal(node.activeGaps[0].id, "build-cache-input-coverage");
 
-  const second = engine.start(checkpoint.id);
-  engine.submit(second.sessionId, checkpoint.answer);
-  insight = deriveLearningInsights(map, challenges, store.load(), new Date("2026-11-01T12:00:00.000Z"));
+  const second = await engine.start(checkpoint.id);
+  await engine.submit(second.sessionId, checkpoint.answer);
+  insight = deriveLearningInsights(map, challenges, await store.load(), new Date("2026-11-01T12:00:00.000Z"));
   node = insight.competencyInsights.find(item => item.id === checkpoint.competencyId);
   assert.equal(node.evidenceCount, 1);
   assert.equal(insight.gaps.length, 1, "checkpoint success must not clear a diagnosed gap");
 
-  const review = createReviewSessionEngine({ storage, progressStore: store, registry: reviewRegistry });
-  const reviewA = review.start({ competencyId: checkpoint.competencyId, gapId: "build-cache-input-coverage" });
+  const review = createReviewSessionEngine({ progressStore: store, registry: reviewRegistry });
+  const reviewA = await review.start({ competencyId: checkpoint.competencyId, gapId: "build-cache-input-coverage" });
   assert.equal(reviewA.hintsUsed, 0);
   const wrongReviewOption = reviewA.options.find(option => option.gapId === "build-cache-input-coverage");
-  assert.equal(review.submit(reviewA.sessionId, wrongReviewOption.id).correct, false);
-  const reviewB = review.start({ competencyId: checkpoint.competencyId, gapId: "build-cache-input-coverage" });
+  assert.equal((await review.submit(reviewA.sessionId, wrongReviewOption.id)).correct, false);
+  const reviewB = await review.start({ competencyId: checkpoint.competencyId, gapId: "build-cache-input-coverage" });
   assert.notEqual(reviewB.variantId, reviewA.variantId);
-  assert.equal(review.submit(reviewB.sessionId, reviewB.answer).correct, true);
-  insight = deriveLearningInsights(map, challenges, store.load(), new Date("2026-11-01T12:00:00.000Z"));
+  assert.equal((await review.submit(reviewB.sessionId, reviewB.answer)).correct, true);
+  insight = deriveLearningInsights(map, challenges, await store.load(), new Date("2026-11-01T12:00:00.000Z"));
   assert.ok(insight.resolvedGaps.some(item => item.id === "build-cache-input-coverage"));
 });
 
 test("a correct checkpoint creates one independent no-hint evidence variant", async () => {
   const registry = await readJSON("../content/learning-checkpoints.json");
   const checkpoint = registry.checkpoints.find(item => item.id === "cp-promise-identity");
-  const storage = memoryStorage();
-  const store = createLearningProgressStore({ storage });
+  const store = createLearningProgressStore();
   const engine = createLearningCheckpointEngine({ store, registry: [checkpoint] });
-  const session = engine.start(checkpoint.id);
-  assert.equal(engine.submit(session.sessionId, checkpoint.answer).correct, true);
-  const events = store.load().events;
+  const session = await engine.start(checkpoint.id);
+  assert.equal((await engine.submit(session.sessionId, checkpoint.answer)).correct, true);
+  const events = (await store.load()).events;
   assert.equal(events.filter(item => item.type === "assessment_passed").length, 1);
   const passed = events.find(item => item.type === "assessment_passed");
   assert.equal(passed.sessionType, "checkpoint");

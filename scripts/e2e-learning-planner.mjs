@@ -53,13 +53,13 @@ test("Chromium desktop: the daily plan respects prerequisites and advances from 
     assert.match(await page.locator("#plan-summary").textContent(), /今日安排/);
     await firstCard.getByRole("button", { name:"完成此学习步骤" }).click();
     await page.waitForFunction(async () => {
-      const { createLearningStateStorage } = await import("/assets/js/learning-state-storage.mjs");
-      const data = JSON.parse(createLearningStateStorage().getItem("knowverse:learning-progress") || "{}");
-      return (data.events || []).some(event => event.type === "plan_action_completed");
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const data = await (await getLearningRepository()).events.list();
+      return data.some(event => event.type === "plan_action_completed");
     });
     const snapshot = await page.evaluate(async () => {
-      const { createLearningStateStorage } = await import("/assets/js/learning-state-storage.mjs");
-      return JSON.parse(createLearningStateStorage().getItem("knowverse:learning-progress"));
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      return { events: await (await getLearningRepository()).events.list() };
     });
     assert.equal(snapshot.events.filter(event => event.type === "plan_action_completed").length, 1);
     assert.equal(snapshot.events.some(event => event.type === "completed" || event.type === "assessment_passed"), false);
@@ -85,10 +85,27 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
     await page.locator("#plan-actions .lp-plan-card").first().waitFor({ state:"visible" });
     await page.locator("#plan-time-budget").selectOption("15");
-    assert.equal(await page.locator("#plan-actions .lp-plan-card").count(), 1);
+    await page.waitForFunction(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const preference = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
+      return preference?.payload?.dailyMinutes === 15 &&
+        document.querySelectorAll("#plan-actions .lp-plan-card").length === 1;
+    });
     await page.locator("#plan-focus-topic").selectOption("monorepo");
-    const preference = await page.evaluate(async () => { const { createLearningStateStorage } = await import("/assets/js/learning-state-storage.mjs"); return JSON.parse(createLearningStateStorage().getItem("knowverse:learning-plan:preferences")); });
+    await page.waitForFunction(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const preference = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
+      const firstTitle = document.querySelector("#plan-actions .lp-plan-card h3")?.textContent?.trim();
+      return preference?.payload?.focusTopicId === "monorepo" && firstTitle === "工作区依赖声明";
+    });
+    await page.reload({ waitUntil:"domcontentloaded" });
+    await page.locator("#plan-actions .lp-plan-card").first().waitFor({ state:"visible" });
+    const preference = await page.evaluate(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      return (await getLearningRepository()).documents.get("plan_preferences", "preferences").then(row => row.payload);
+    });
     assert.deepEqual(preference, { dailyMinutes:15, focusTopicId:"monorepo" });
+    assert.equal(await page.locator("#plan-actions .lp-plan-card").count(), 1);
     assert.equal((await page.locator("#plan-actions .lp-plan-card h3").first().textContent()).trim(), "工作区依赖声明");
     const box = await page.locator(".lp-plan-shell").boundingBox();
     assert.ok(box && box.width <= 390, "learning plan must fit the mobile viewport");

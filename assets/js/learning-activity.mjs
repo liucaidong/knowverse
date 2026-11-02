@@ -29,7 +29,9 @@ export function startLearningActivityTelemetry(options = {}) {
       destinationPath: control?.getAttribute?.("href")
         ? new URL(control.getAttribute("href"), location.href).pathname : null
     };
-    if (!store.appendMany([event])) console.warn("[KNOWVERSE] Learning activity could not be persisted; export a backup and check browser storage quota.");
+    store.appendMany([event]).catch(error => {
+      console.error("[KNOWVERSE] 学习活动写入 IndexedDB 失败：", error);
+    });
   }
 
   record("page_view");

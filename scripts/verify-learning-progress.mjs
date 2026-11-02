@@ -1,5 +1,13 @@
+import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { beforeEach } from "node:test";
+import { deleteLocalDatabaseForTests } from "../assets/js/backend/local-event-store.mjs";
+import { resetLearningRepositoryForTests } from "../assets/js/backend/learning-repository.mjs";
+
+beforeEach(async () => {
+  resetLearningRepositoryForTests();
+  await deleteLocalDatabaseForTests();
+});
 import {
   completeStep,
   createChallengeProgressStore,
@@ -62,21 +70,24 @@ test("challenge progress changes create idempotent attempt, hint and completion 
   assert.equal(events.find(item => item.type === "completed").scorePct, 77);
 });
 
-test("local progress store merges imports and deduplicates event ids", () => {
-  const storage = memoryStorage();
-  const store = createLearningProgressStore({ storage });
+test("local progress store merges imports and deduplicates event ids", async () => {
+  const store = createLearningProgressStore();
   const event = {
     id: "run:completed:thenable", type: "completed", at: "2026-11-01T10:00:00.000Z",
     challengeId: challenge.id, stepId: "thenable", competencyIds: ["thenable-adoption"],
   };
-  assert.equal(store.appendMany([event, event]), true);
-  const exported = store.exportJSON();
-  const second = createLearningProgressStore({ storage: memoryStorage() });
-  const imported = second.importJSON(exported);
+  assert.equal(await store.appendMany([event, event]), true);
+  const exported = await store.exportJSON();
+  const { deleteLocalDatabaseForTests } = await import("../assets/js/backend/local-event-store.mjs");
+  const { resetLearningRepositoryForTests } = await import("../assets/js/backend/learning-repository.mjs");
+  await deleteLocalDatabaseForTests();
+  resetLearningRepositoryForTests();
+  const second = createLearningProgressStore();
+  const imported = await second.importJSON(exported);
   assert.equal(imported.imported, 1);
   assert.equal(imported.total, 1);
-  second.importJSON(exported);
-  assert.equal(second.load().events.length, 1);
+  await second.importJSON(exported);
+  assert.equal((await second.load()).events.length, 1);
 });
 
 test("mastery stays unverified without evidence and does not treat a failed attempt as a completion", () => {
@@ -168,37 +179,35 @@ test("published map has valid challenge links, unique competency ids and acyclic
   }
 });
 
-test("challenge engine appends learning history and reset never erases it", () => {
-  const storage = memoryStorage();
-  const challengeStore = createChallengeProgressStore({ storage });
-  let state = challengeStore.load(challenge);
+test("challenge engine appends learning history and reset never erases it", async () => {
+  const challengeStore = createChallengeProgressStore();
+  let state = await challengeStore.load(challenge);
   state = recordAttempt(state, "thenable");
   state = setStepData(state, "thenable", { lastOptionId: "wrong", lastGapId: "thenable-get-vs-call" });
-  assert.equal(challengeStore.save(state), true);
+  assert.equal(await challengeStore.save(state), true);
 
   state = recordAttempt(state, "thenable");
   state = setStepData(state, "thenable", { correctOptionId: "right", lastGapId: null });
   state = completeStep(state, challenge, "thenable");
-  assert.equal(challengeStore.save(state), true);
+  assert.equal(await challengeStore.save(state), true);
 
-  const progressStore = createLearningProgressStore({ storage });
-  const beforeReset = progressStore.load();
+  const progressStore = createLearningProgressStore();
+  const beforeReset = await progressStore.load();
   assert.equal(beforeReset.events.filter(event => event.type === "attempt").length, 2);
   assert.equal(beforeReset.events.filter(event => event.type === "completed").length, 1);
   assert.equal(beforeReset.events.find(event => event.type === "attempt" && event.gapId).gapId, "thenable-get-vs-call");
 
-  challengeStore.clear(challenge.id);
+  await challengeStore.clear(challenge.id);
   state = resetChallengeProgress(challenge);
-  assert.equal(challengeStore.save(state), true);
-  const afterReset = progressStore.load();
+  await challengeStore.save(state);
+  const afterReset = await progressStore.load();
   assert.equal(afterReset.events.length, beforeReset.events.length);
   assert.equal(afterReset.events.filter(event => event.type === "completed").length, 1);
 });
 
 
-test("event IDs are immutable: same ID with a different payload is rejected atomically", () => {
-  const storage = memoryStorage();
-  const store = createLearningProgressStore({ storage });
+test("event IDs are immutable: same ID with a different payload is rejected atomically", async () => {
+  const store = createLearningProgressStore();
   const original = {
     id: "immutable-event:1",
     type: "attempt",
@@ -215,22 +224,22 @@ test("event IDs are immutable: same ID with a different payload is rejected atom
     correct: false,
     gapId: "thenable-get-vs-call",
   };
-  assert.equal(store.appendMany([original]), true);
-  const stored = store.load().events[0];
+  assert.equal(await store.appendMany([original]), true);
+  const stored = (await store.load()).events[0];
   assert.equal(stored.eventSchemaVersion, 3);
   assert.equal(stored.gapObservationId, original.id);
   assert.deepEqual(stored.causationEventIds, []);
   assert.deepEqual(stored.targetGapEventIds, []);
 
-  assert.equal(store.appendMany([{ ...original }]), true);
-  assert.equal(store.load().events.length, 1);
+  assert.equal(await store.appendMany([{ ...original }]), true);
+  assert.equal((await store.load()).events.length, 1);
 
   // JSONB / RPC transports may reorder object keys without changing the fact.
   const reordered = Object.fromEntries(Object.entries(original).reverse());
-  assert.equal(store.appendMany([reordered]), true);
-  assert.equal(store.load().events.length, 1);
+  assert.equal(await store.appendMany([reordered]), true);
+  assert.equal((await store.load()).events.length, 1);
 
-  assert.equal(store.appendMany([{ ...original, correct: true, gapId: null }]), false);
-  assert.equal(store.load().events.length, 1);
-  assert.equal(store.load().events[0].correct, false);
+  await assert.rejects(store.appendMany([{ ...original, correct: true, gapId: null }]), /内容不可变/);
+  assert.equal((await store.load()).events.length, 1);
+  assert.equal((await store.load()).events[0].correct, false);
 });

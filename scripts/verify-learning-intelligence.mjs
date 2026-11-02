@@ -1,8 +1,15 @@
+import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
-import test from "node:test";
+import test, { beforeEach } from "node:test";
+import { countLearningEvents, countOutbox, deleteLocalDatabaseForTests, getLearningDocument } from "../assets/js/backend/local-event-store.mjs";
+import { resetLearningRepositoryForTests } from "../assets/js/backend/learning-repository.mjs";
+
+beforeEach(async () => {
+  resetLearningRepositoryForTests();
+  await deleteLocalDatabaseForTests();
+});
 import { readFile } from "node:fs/promises";
 import { createLearningProgressStore, deriveLearningInsights } from "../assets/js/learning-progress.mjs";
-import { createLearningStateStorage } from "../assets/js/learning-state-storage.mjs";
 import { createReviewSessionEngine } from "../assets/js/review-engine.mjs";
 
 function memoryStorage(seed = {}) {
@@ -85,29 +92,24 @@ const testRegistry = {
   ],
 };
 
-test("learning snapshots accept only the current schema", () => {
-  const storage = memoryStorage({
-    "knowverse:learning-progress": JSON.stringify({ schemaVersion: 0, events: [{ id: "stale" }] }),
-  });
-  const store = createLearningProgressStore({ storage });
-  assert.equal(store.load().schemaVersion, 1);
-  assert.equal(store.load().events.length, 0);
-  assert.equal(store.appendMany([{ ...campaignFailure, id: "current-event" }]), true);
-  assert.equal(store.load().events.length, 1);
-  assert.ok(createLearningStateStorage(storage).getItem("knowverse:learning-progress"));
+test("learning progress is read asynchronously from the IndexedDB event journal", async () => {
+  const store = createLearningProgressStore({ storage: memoryStorage() });
+  assert.equal((await store.load()).schemaVersion, 1);
+  assert.equal((await store.load()).events.length, 0);
+  assert.equal(await store.appendMany([{ ...campaignFailure, id: "current-event" }]), true);
+  assert.equal((await store.load()).events.length, 1);
 });
 
-
-test("cloud-received events never re-enter the local upload queue snapshot", () => {
-  const source = createLearningProgressStore({ storage: memoryStorage() });
+test("cloud-received events never re-enter the local upload queue", async () => {
+  const source = createLearningProgressStore();
   const remote = { ...campaignFailure, id: "remote-event" };
-  assert.equal(source.appendMany([remote], { remote: true }), true);
-  assert.deepEqual(source.load().remoteEventIds, ["remote-event"]);
-  const exported = JSON.parse(source.exportJSON());
-  assert.deepEqual(exported.data.remoteEventIds, ["remote-event"]);
+  assert.equal(await source.appendMany([remote], { remote: true }), true);
+  assert.equal(await countLearningEvents(), 1);
+  assert.equal(await countOutbox(), 0);
+  assert.equal((await source.load()).events[0].id, "remote-event");
 });
 
-test("event history is not silently truncated at an arbitrary event count", () => {
+test("event history is not silently truncated at an arbitrary event count", async () => {
   const store = createLearningProgressStore({ storage: memoryStorage() });
   const events = Array.from({ length: 5200 }, (_, index) => ({
     id: "event-" + index,
@@ -119,15 +121,16 @@ test("event history is not silently truncated at an arbitrary event count", () =
     sessionType: "exploration",
     sessionId: "session-1",
   }));
-  assert.equal(store.appendMany(events), true);
-  assert.equal(store.load().events.length, 5200);
-  assert.equal(store.load().events[0].id, "event-0");
-  assert.equal(store.load().events.at(-1).id, "event-5199");
+  assert.equal(await store.appendMany(events), true);
+  const snapshot = await store.load();
+  assert.equal(snapshot.events.length, 5200);
+  assert.equal(snapshot.events[0].id, "event-0");
+  assert.equal(snapshot.events.at(-1).id, "event-5199");
 });
 
-test("exploration activity never counts as mastery evidence", () => {
+test("exploration activity never counts as mastery evidence", async () => {
   const store = createLearningProgressStore({ storage: memoryStorage() });
-  store.appendMany([{
+  await store.appendMany([{
     id: "gallery-view",
     type: "activity",
     at: "2026-11-01T10:00:00.000Z",
@@ -137,73 +140,73 @@ test("exploration activity never counts as mastery evidence", () => {
     competencyIds: [],
     sessionType: "exploration",
   }]);
-  const result = deriveLearningInsights(fixtureMap, { challenges: [] }, store.load(), new Date("2026-11-01T11:00:00.000Z"));
+  const result = deriveLearningInsights(fixtureMap, { challenges: [] }, await store.load(), new Date("2026-11-01T11:00:00.000Z"));
   assert.equal(result.competencyInsights[0].evidenceCount, 0);
   assert.equal(result.competencyInsights[0].masteryScore, null);
   assert.equal(result.competencyInsights[0].status, "unverified");
 });
 
-test("a hint-assisted pass leaves the gap pending; a different no-hint review variant resolves only that gap", () => {
+test("a hint-assisted pass leaves the gap pending; a different no-hint review variant resolves only that gap", async () => {
   const storage = memoryStorage();
   const progressStore = createLearningProgressStore({ storage });
-  assert.equal(progressStore.appendMany([campaignFailure]), true);
+  assert.equal(await progressStore.appendMany([campaignFailure]), true);
   const engine = createReviewSessionEngine({ storage, progressStore, registry: testRegistry });
 
-  const first = engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call" });
+  const first = await engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call" });
   assert.equal(first.variantId, "review-variant-a");
-  const hint = engine.revealHint(first.sessionId);
+  const hint = await engine.revealHint(first.sessionId);
   assert.equal(hint.hint, testRegistry.assessments[0].hints[0]);
-  const assisted = engine.submit(first.sessionId, "right");
+  const assisted = await engine.submit(first.sessionId, "right");
   assert.equal(assisted.correct, true);
   assert.equal(assisted.session.hintsUsed, 1);
 
-  let result = deriveLearningInsights(fixtureMap, { challenges: [] }, progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
+  let result = deriveLearningInsights(fixtureMap, { challenges: [] }, await progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
   assert.equal(result.gaps.length, 1);
   assert.equal(result.gaps[0].lifecycle, "pending-verification");
   assert.equal(result.competencyInsights[0].status, "weak");
   assert.equal(result.reviewQueue[0].kind, "gap");
 
-  const second = engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call" });
+  const second = await engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call" });
   assert.equal(second.variantId, "review-variant-b");
-  const independent = engine.submit(second.sessionId, "right");
+  const independent = await engine.submit(second.sessionId, "right");
   assert.equal(independent.correct, true);
   assert.equal(independent.session.hintsUsed, 0);
 
-  result = deriveLearningInsights(fixtureMap, { challenges: [] }, progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
+  result = deriveLearningInsights(fixtureMap, { challenges: [] }, await progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
   assert.equal(result.gaps.length, 0);
   assert.equal(result.resolvedGaps.length, 1);
   assert.equal(result.resolvedGaps[0].id, "thenable-get-vs-call");
   assert.equal(result.resolvedGaps[0].verificationVariantId, "review-variant-b");
   assert.equal(result.competencyInsights[0].status, "initial");
-  assert.equal(engine.getHistory().length, 2);
+  assert.equal((await engine.getHistory()).length, 2);
 
   const importedStorage = memoryStorage();
   const importedStore = createLearningProgressStore({ storage: importedStorage });
-  const importResult = importedStore.importJSON(progressStore.exportJSON());
+  const importResult = await importedStore.importJSON(await progressStore.exportJSON());
   const importedEngine = createReviewSessionEngine({ storage: importedStorage, progressStore: importedStore, registry: testRegistry });
-  assert.equal(importResult.total, progressStore.load().events.length);
-  assert.equal(importedEngine.getHistory().length, 2);
-  assert.deepEqual(importedEngine.getHistory().map(item => item.variantId).sort(), ["review-variant-a","review-variant-b"]);
+  assert.equal(importResult.total, (await progressStore.load()).events.length);
+  assert.equal((await importedEngine.getHistory()).length, 2);
+  assert.deepEqual((await importedEngine.getHistory()).map(item => item.variantId).sort(), ["review-variant-a","review-variant-b"]);
 });
 
-test("same-variant no-hint repetition cannot clear a pending gap", () => {
+test("same-variant no-hint repetition cannot clear a pending gap", async () => {
   const storage = memoryStorage();
   const progressStore = createLearningProgressStore({ storage });
-  progressStore.appendMany([campaignFailure]);
+  await progressStore.appendMany([campaignFailure]);
   const engine = createReviewSessionEngine({ storage, progressStore, registry: testRegistry });
-  const assisted = engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-a" });
-  engine.revealHint(assisted.sessionId);
-  engine.submit(assisted.sessionId, "right");
-  const repeat = engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-a" });
-  engine.submit(repeat.sessionId, "right");
-  const result = deriveLearningInsights(fixtureMap, { challenges: [] }, progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
+  const assisted = await engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-a" });
+  await engine.revealHint(assisted.sessionId);
+  await engine.submit(assisted.sessionId, "right");
+  const repeat = await engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-a" });
+  await engine.submit(repeat.sessionId, "right");
+  const result = deriveLearningInsights(fixtureMap, { challenges: [] }, await progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
   assert.equal(result.gaps.length, 1);
   assert.equal(result.gaps[0].lifecycle, "pending-verification");
 });
 
 
 
-test("gap correction follows explicit causal IDs, not timestamps or merged event arrival order", () => {
+test("gap correction follows explicit causal IDs, not timestamps or merged event arrival order", async () => {
   const failure = {
     ...campaignFailure,
     id: "campaign-failure:1",
@@ -273,7 +276,7 @@ test("gap correction follows explicit causal IDs, not timestamps or merged event
   assert.equal(withNewFailure.gaps[0].count, 1);
 });
 
-test("a pass with a target ID but no complete causal chain cannot clear the gap", () => {
+test("a pass with a target ID but no complete causal chain cannot clear the gap", async () => {
   const failure = { ...campaignFailure, id: "causal-failure", gapObservationId: "causal-failure" };
   const pass = {
     ...campaignFailure,
@@ -299,7 +302,7 @@ test("a pass with a target ID but no complete causal chain cannot clear the gap"
 
 
 
-test("concurrent same-variant passes from disconnected devices are not independent evidence", () => {
+test("concurrent same-variant passes from disconnected devices are not independent evidence", async () => {
   const failure = {
     ...campaignFailure,
     id: "concurrent-source-failure",
@@ -348,7 +351,7 @@ test("concurrent same-variant passes from disconnected devices are not independe
 
 
 
-test("a targeted pass for one competency cannot close the same gap in another competency", () => {
+test("a targeted pass for one competency cannot close the same gap in another competency", async () => {
   const dualMap = structuredClone(fixtureMap);
   dualMap.topics[0].competencies.push({
     id: "promise-resolution",
@@ -454,15 +457,15 @@ test("the assessment catalog covers every tracked gap/competency pair with two t
 });
 
 
-test("a generic competency review cannot accidentally resolve a specific active gap", () => {
+test("a generic competency review cannot accidentally resolve a specific active gap", async () => {
   const storage = memoryStorage();
   const progressStore = createLearningProgressStore({ storage });
-  progressStore.appendMany([campaignFailure]);
+  await progressStore.appendMany([campaignFailure]);
   const engine = createReviewSessionEngine({ storage, progressStore, registry: testRegistry });
-  const session = engine.start({ competencyId: "thenable-adoption" });
-  const result = engine.submit(session.sessionId, "right");
+  const session = await engine.start({ competencyId: "thenable-adoption" });
+  const result = await engine.submit(session.sessionId, "right");
   assert.equal(result.correct, true);
-  const snapshot = progressStore.load();
+  const snapshot = await progressStore.load();
   const genericPass = snapshot.events.find(event => event.type === "assessment_passed");
   assert.equal(genericPass.gapId, null);
   const insight = deriveLearningInsights(fixtureMap, { challenges: [] }, snapshot, new Date("2026-11-01T12:00:00.000Z"));
@@ -471,49 +474,50 @@ test("a generic competency review cannot accidentally resolve a specific active 
 });
 
 
-test("a failed targeted review must be followed by a different variant, not a retry of the same item", () => {
+test("a failed targeted review must be followed by a different variant, not a retry of the same item", async () => {
   const storage = memoryStorage();
   const progressStore = createLearningProgressStore({ storage });
-  progressStore.appendMany([campaignFailure]);
+  await progressStore.appendMany([campaignFailure]);
   const engine = createReviewSessionEngine({ storage, progressStore, registry: testRegistry });
 
-  const failed = engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-a" });
-  engine.submit(failed.sessionId, "wrong");
+  const failed = await engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-a" });
+  await engine.submit(failed.sessionId, "wrong");
 
-  const retry = engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-a" });
-  engine.submit(retry.sessionId, "right");
-  let insight = deriveLearningInsights(fixtureMap, { challenges: [] }, progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
+  const retry = await engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-a" });
+  await engine.submit(retry.sessionId, "right");
+  let insight = deriveLearningInsights(fixtureMap, { challenges: [] }, await progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
   assert.equal(insight.gaps.length, 1, "same-variant retry must not resolve the gap");
 
-  const different = engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-b" });
-  engine.submit(different.sessionId, "right");
-  insight = deriveLearningInsights(fixtureMap, { challenges: [] }, progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
+  const different = await engine.start({ competencyId: "thenable-adoption", gapId: "thenable-get-vs-call", variantId: "review-variant-b" });
+  await engine.submit(different.sessionId, "right");
+  insight = deriveLearningInsights(fixtureMap, { challenges: [] }, await progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
   assert.equal(insight.gaps.length, 0, "a new no-hint variant should resolve the gap");
 });
 
 
-test("review session and event journal commit together for start, hint and answer", () => {
-  const raw = memoryStorage();
-  let writes = 0;
-  const originalSetItem = raw.setItem.bind(raw);
-  raw.setItem = (key, value) => { writes += 1; originalSetItem(key, value); };
-  const progressStore = createLearningProgressStore({ storage: raw });
-  const engine = createReviewSessionEngine({ storage: raw, progressStore, registry: testRegistry });
-  const baseline = writes;
+test("review start, hint, and answer atomically persist documents with append-only events", async () => {
+  const progressStore = createLearningProgressStore();
+  const engine = createReviewSessionEngine({ progressStore, registry: testRegistry });
 
-  const session = engine.start({ competencyId: "thenable-adoption" });
-  assert.equal(writes - baseline, 1, "review session + review_started event must commit once");
-  const afterStart = writes;
-  engine.revealHint(session.sessionId);
-  assert.equal(writes - afterStart, 1, "active session + hint event must commit once");
-  const afterHint = writes;
-  const result = engine.submit(session.sessionId, "right");
+  const session = await engine.start({ competencyId: "thenable-adoption" });
+  assert.equal(await countLearningEvents(), 1);
+  let document = await getLearningDocument("review_session", session.sessionId);
+  assert.equal(document.payload.status, "active");
+  assert.equal(await countOutbox(), 1);
+
+  await engine.revealHint(session.sessionId);
+  assert.equal(await countLearningEvents(), 2);
+  assert.equal((await getLearningDocument("review_session", session.sessionId)).payload.hintsUsed, 1);
+  assert.equal(await countOutbox(), 2);
+
+  const result = await engine.submit(session.sessionId, "right");
   assert.equal(result.correct, true);
-  assert.equal(writes - afterHint, 1, "attempt + pass events + active-session removal must commit once");
-
-  const state = createLearningStateStorage(raw);
-  assert.equal(state.getItem("knowverse:review-session/" + session.sessionId), null);
-  const sessionEvents = JSON.parse(state.getItem("knowverse:learning-progress")).events
-    .filter(event => event.sessionId === session.sessionId);
-  assert.deepEqual(sessionEvents.map(event => event.type), ["review_started", "hint_revealed", "attempt", "assessment_passed"]);
+  assert.equal(await countLearningEvents(), 4);
+  document = await getLearningDocument("review_session", session.sessionId);
+  assert.equal(document.payload._deleted, true);
+  assert.equal(await countOutbox(), 4);
+  const events = (await progressStore.load()).events.filter(item => item.sessionId === session.sessionId);
+  assert.deepEqual(events.map(item => item.type), [
+    "review_started", "hint_revealed", "attempt", "assessment_passed",
+  ]);
 });

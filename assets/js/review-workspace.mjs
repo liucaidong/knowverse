@@ -3,8 +3,7 @@ import { createReviewSessionEngine } from "./review-engine.mjs";
 
 const root = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
-const storage = (() => { try { return localStorage; } catch { return null; } })();
-const progressStore = createLearningProgressStore({ storage });
+const progressStore = createLearningProgressStore();
 let map;
 let registry;
 let assessments;
@@ -30,13 +29,13 @@ function competencyFor(id) {
   }
   return null;
 }
-function insightsNow() {
-  return deriveLearningInsights(map, registry, progressStore.load());
+async function insightsNow() {
+  return deriveLearningInsights(map, registry, await progressStore.load());
 }
-function renderHistory() {
+async function renderHistory() {
   const host = $("history-list");
   host.replaceChildren();
-  const rows = engine.getHistory().slice().sort((a,b) => Date.parse(b.startedAt)-Date.parse(a.startedAt)).slice(0,6);
+  const rows = (await engine.getHistory()).slice().sort((a,b) => Date.parse(b.startedAt)-Date.parse(a.startedAt)).slice(0,6);
   if (!rows.length) {
     host.append(el("div","rw-empty","当前设备还没有复习会话。"));
     return;
@@ -48,14 +47,31 @@ function renderHistory() {
     const competency = competencyFor(item.competencyId);
     copy.append(el("strong","",competency?.title || item.competencyId));
     copy.append(el("small","",(item.targetGapId ? "薄弱点 · "+item.targetGapId : "知识点巩固")+" · "+item.variantId));
-    row.append(copy,el("em","",item.status==="passed"?"通过":item.status==="failed"?"未通过":"进行中"));
+    row.append(copy);
+    if (item.status === "active") {
+      const resume = el("button", "rw-history-resume", "继续复习 →");
+      resume.type = "button";
+      resume.addEventListener("click", async () => {
+        try {
+          session = await engine.get(item.sessionId);
+          if (!session) throw new Error("这条复习现场已结束或不存在。");
+          targetCompetencyId = session.competencyId;
+          targetGapId = session.targetGapId || null;
+          renderSession();
+          setFeedback("已恢复上次复习现场。你的选项、提示进度和作答状态均已从学习数据库读取。");
+        } catch (error) { setFeedback(error.message, "bad"); }
+      });
+      row.append(resume);
+    } else {
+      row.append(el("em","",item.status==="passed"?"通过":"未通过"));
+    }
     host.append(row);
   });
 }
-function renderPicker() {
+async function renderPicker() {
   const host = $("target-list");
   host.replaceChildren();
-  const insight = insightsNow();
+  const insight = await insightsNow();
   map.topics.forEach(topic => {
     topic.competencies.forEach(competency => {
       const state = insight.competencyInsights.find(row=>row.id===competency.id);
@@ -66,7 +82,7 @@ function renderPicker() {
       const gapCount = state?.activeGaps?.length || 0;
       copy.append(el("small","",topic.title+" · "+(statusName[state?.status]||"待验证")+" · "+(gapCount?gapCount+" 个待纠正薄弱点":"无未解决薄弱点")));
       button.append(copy,el("em","",state?.masteryScore===null||state?.masteryScore===undefined?"开始验证":state.masteryScore+"% →"));
-      button.addEventListener("click",()=>startSession({competencyId:competency.id}));
+      button.addEventListener("click",()=>startSession({competencyId:competency.id}).catch(error=>setFeedback(error.message,"bad")));
       host.append(button);
     });
   });
@@ -104,7 +120,7 @@ function renderSession() {
     button.append(el("span","rw-option-mark",String.fromCharCode(65+index)),el("span","",option.label));
     if (session.status!=="active" && option.id===session.answer) button.classList.add("correct");
     else if (option.id===session.selectedOptionId && session.status==="failed") button.classList.add("wrong");
-    button.addEventListener("click",()=>submitAnswer(option.id));
+    button.addEventListener("click",()=>submitAnswer(option.id).catch(error=>console.error("[KNOWVERSE] Review submission failed:",error)));
     host.append(button);
   });
   $("reveal-hint").disabled = session.status!=="active" || session.hintsUsed >= session.hints.length;
@@ -119,34 +135,35 @@ function setFeedback(message,kind) {
   node.textContent=message;
   node.className="rw-feedback"+(kind?" "+kind:"");
 }
-function startSession(input) {
+async function startSession(input) {
   try {
     targetCompetencyId=input.competencyId;
     targetGapId=input.gapId || null;
-    session=engine.start(input);
+    session=await engine.start(input);
     renderSession();
     setFeedback("先独立推演，不要急着展开提示。选项提交后，本次会话会单独结束并记录验证结果。");
     $("hint-list").replaceChildren();
     $("answer-explanation").hidden=true;
     $("next-variant").hidden=true;
-    renderHistory();
+    await renderHistory();
     $("review-session").scrollIntoView({behavior:"smooth",block:"start"});
   } catch(error) {
     window.alert(error.message);
+    throw error;
   }
 }
-function revealHint() {
+async function revealHint() {
   try {
-    const result=engine.revealHint(session.sessionId);
+    const result=await engine.revealHint(session.sessionId);
     session=result.session;
     if(result.hint) $("hint-list").append(el("li","",result.hint));
     renderSession();
     setFeedback("已展开提示。提示不会阻止完成本题，但本次通过会被标记为辅助验证。");
-  } catch(error) { setFeedback(error.message,"bad"); }
+  } catch(error) { setFeedback(error.message,"bad"); throw error; }
 }
-function submitAnswer(optionId) {
+async function submitAnswer(optionId) {
   try {
-    const result=engine.submit(session.sessionId,optionId);
+    const result=await engine.submit(session.sessionId,optionId);
     session=result.session;
     renderSession();
     const explanation=$("answer-explanation");
@@ -157,24 +174,25 @@ function submitAnswer(optionId) {
     } else if (session.hintsUsed) {
       setFeedback("本题通过，得分 "+result.scorePct+"%。这是提示辅助证据；薄弱点会保持“待独立确认”，请使用另一个变体且不展开提示。","good");
     } else {
-      const latest=insightsNow();
+      const latest=await insightsNow();
       const resolved=targetGapId && !latest.gaps.some(gap=>gap.id===targetGapId && gap.competencyId===targetCompetencyId);
       setFeedback(resolved
         ? "独立验证通过，薄弱点「"+targetGapId+"」已由不同题型的无提示证据精确纠正。"
         : "独立验证通过，已记录新的知识掌握证据。再使用不同变体复核，可提高掌握置信度。","good");
     }
-    renderPicker();
-    renderHistory();
+    await renderPicker();
+    await renderHistory();
     $("next-variant").textContent="用另一个题型再次验证 →";
     $("next-variant").hidden=false;
-  } catch(error) { setFeedback(error.message,"bad"); }
+  } catch(error) { setFeedback(error.message,"bad"); throw error; }
 }
 function wire() {
-  $("reveal-hint").addEventListener("click",revealHint);
-  $("next-variant").addEventListener("click",()=>startSession({competencyId:targetCompetencyId,gapId:targetGapId}));
+  $("reveal-hint").addEventListener("click",()=>revealHint().catch(error=>console.error("[KNOWVERSE] Hint save failed:",error)));
+  $("next-variant").addEventListener("click",()=>startSession({competencyId:targetCompetencyId,gapId:targetGapId}).catch(error=>console.error("[KNOWVERSE] Review start failed:",error)));
 }
 async function boot() {
-  if (!progressStore.available) throw new Error("当前浏览器未开放 localStorage，无法保存复习会话。");
+  if (!progressStore.available) throw new Error("当前浏览器不支持 IndexedDB，无法保存复习会话。");
+  await progressStore.load(); // Opens the repository and completes the Phase C migration before rendering.
   const [mapResponse,challengeResponse,assessmentResponse]=await Promise.all([
     fetch(new URL("content/learning-map.json",root)),
     fetch(new URL("content/challenges.json",root)),
@@ -182,13 +200,24 @@ async function boot() {
   ]);
   if(!mapResponse.ok||!challengeResponse.ok||!assessmentResponse.ok) throw new Error("复习注册表载入失败。");
   [map,registry,assessments]=await Promise.all([mapResponse.json(),challengeResponse.json(),assessmentResponse.json()]);
-  engine=createReviewSessionEngine({storage,registry:assessments});
+  engine=createReviewSessionEngine({registry:assessments});
   wire();
   const competencyId=params.get("competencyId");
   const gapId=params.get("gapId");
-  renderPicker();
-  renderHistory();
-  if(competencyId) startSession({competencyId,gapId});
+  await renderPicker();
+  await renderHistory();
+  if(competencyId) {
+    await startSession({competencyId,gapId});
+  } else {
+    const active = await engine.getActiveSessions();
+    if (active.length) {
+      session = active[0];
+      targetCompetencyId = session.competencyId;
+      targetGapId = session.targetGapId || null;
+      renderSession();
+      setFeedback("已从学习数据库自动恢复最近一次未完成的复习现场。");
+    }
+  }
 }
 boot().catch(error=>{
   console.error("[KNOWVERSE] review workspace unavailable:",error);

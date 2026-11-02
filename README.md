@@ -58,7 +58,7 @@ Promise、TypeScript Monorepo、React Native 新架构这 3 个专题已有明�
 - **Canonical Registries**：`content/navigation.json`、`routes.json`、`knowledge.json`、`concepts.json`、`learning-map.json`、`works.json`、`learning-checkpoints.json`、`review-assessments.json`、`sources.json`。
 - **Build-time Site Shell**：`scripts/build-public-content.mjs` 生成概念页和目录；`scripts/build-site-shell.mjs` 生成静态导航、账户入口、搜索容器与页脚。首屏不依赖 JavaScript 才能看到正确导航。
 - **Learning Intelligence**：追加式学习事件、掌握/置信度 reducer、Gap 生命周期、独立复习和可解释规划。
-- **Personal Data**：统一事务式本机学习状态包、IndexedDB Outbox / CAS 档案与 Supabase/RLS/受控 RPC；认证、账户白名单和云端恢复分开处理。
+- **Personal Data**：IndexedDB v4 事务式本机学习数据库、Supabase 原子批次同步与 RLS/受控 RPC；认证、账户白名单和云端恢复分开处理。
 - **AI Augmentation**：后续通过服务端代理、来源引用、Schema 和评估门控引入，不直接拥有掌握度裁决权。
 
 ## 开发与验证
@@ -89,7 +89,7 @@ node --test scripts/e2e-site-navigation.mjs
 | 12 个专题、16 个概念页、3 个正式能力图谱 | 已登记；覆盖范围公开说明 |
 | 三条体验主线及 17 个作品 | 已有作品登记；状态以 `content/works.json` 为准 |
 | 本地学习事件、掌握分析、Gap、复习与规划 | 已实现，并由现有自动化测试覆盖 |
-| Supabase 云端学习档案 | 代码与安全契约已实现；账户白名单、环境配置和运行时同步状态仍需实际验证 |
+| Supabase 云端学习档案 | Phase D 数据库迁移已应用；真实 OAuth 双设备、双账户 RLS 与实体 iPhone Safari 仍需验收 |
 | AI 导师、来源驱动多模态问答、私人资料中心、持续视频辅导 | 规划中的增强能力，不作为当前已上线能力 |
 
 ## 产品原则

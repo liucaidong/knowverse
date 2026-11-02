@@ -1,6 +1,14 @@
+import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import test from "node:test";
+import test, { beforeEach } from "node:test";
+import { deleteLocalDatabaseForTests } from "../assets/js/backend/local-event-store.mjs";
+import { resetLearningRepositoryForTests } from "../assets/js/backend/learning-repository.mjs";
+
+beforeEach(async () => {
+  resetLearningRepositoryForTests();
+  await deleteLocalDatabaseForTests();
+});
 import {
   buildAdaptiveLearningPlan,
   createLearningPlanPreferencesStore,
@@ -140,19 +148,18 @@ test("an overdue competency is scheduled for review before new learning", async 
 
 test("finishing a foundation step advances to practice without creating mastery evidence", async () => {
   const f = await fixtures();
-  const storage = memoryStorage();
-  const store = createLearningProgressStore({ storage });
-  const initial = plan(f, store.load(), { dailyMinutes: 40, focusTopicId: "all" });
+  const store = createLearningProgressStore();
+  const initial = plan(f, await store.load(), { dailyMinutes: 40, focusTopicId: "all" });
   const lesson = initial.actions.find(item => item.competencyId === "thenable-adoption");
   assert.ok(lesson);
   assert.equal(lesson.type, "learn");
-  recordLearningPlanAction(store, lesson, "completed", { at: NOW });
-  const next = plan(f, store.load(), { dailyMinutes: 40, focusTopicId: "all" });
+  await recordLearningPlanAction(store, lesson, "completed", { at: NOW });
+  const next = plan(f, await store.load(), { dailyMinutes: 40, focusTopicId: "all" });
   const action = next.actions.find(item => item.competencyId === "thenable-adoption");
   assert.ok(action);
   assert.equal(action.type, "practice");
   assert.equal(action.resourceType, "checkpoint");
-  const mastery = deriveLearningInsights(f.learningMap, f.challengeRegistry, store.load(), NOW)
+  const mastery = deriveLearningInsights(f.learningMap, f.challengeRegistry, await store.load(), NOW)
     .competencyInsights.find(item => item.id === "thenable-adoption");
   assert.equal(mastery.evidenceCount, 0);
   assert.equal(mastery.masteryScore, null);
@@ -160,28 +167,28 @@ test("finishing a foundation step advances to practice without creating mastery 
 
 test("foundation completion persists across days but never becomes mastery evidence", async () => {
   const f = await fixtures();
-  const store = createLearningProgressStore({ storage: memoryStorage() });
-  const initial = plan(f, store.load());
+  const store = createLearningProgressStore();
+  const initial = plan(f, await store.load());
   const lesson = initial.actions.find(item => item.competencyId === "thenable-adoption");
-  recordLearningPlanAction(store, lesson, "completed", { at: NOW });
-  const tomorrow = plan(f, store.load(), { dailyMinutes: 25, focusTopicId: "all" }, new Date("2026-11-02T12:00:00.000Z"));
+  await recordLearningPlanAction(store, lesson, "completed", { at: NOW });
+  const tomorrow = plan(f, await store.load(), { dailyMinutes: 25, focusTopicId: "all" }, new Date("2026-11-02T12:00:00.000Z"));
   const nextStep = tomorrow.actions.find(item => item.competencyId === "thenable-adoption");
   assert.ok(nextStep);
   assert.equal(nextStep.type, "practice");
-  const state = deriveLearningInsights(f.learningMap, f.challengeRegistry, store.load(), NOW)
+  const state = deriveLearningInsights(f.learningMap, f.challengeRegistry, await store.load(), NOW)
     .competencyInsights.find(item => item.id === "thenable-adoption");
   assert.equal(state.evidenceCount, 0);
 });
 
 test("completed action time is deducted from the same day's budget", async () => {
   const f = await fixtures();
-  const store = createLearningProgressStore({ storage: memoryStorage() });
+  const store = createLearningProgressStore();
   const preferences = { dailyMinutes: 15, focusTopicId: "all" };
-  const initial = plan(f, store.load(), preferences);
+  const initial = plan(f, await store.load(), preferences);
   const lesson = initial.actions[0];
   assert.equal(lesson.estimatedMinutes, 12);
-  recordLearningPlanAction(store, lesson, "completed", { at: NOW });
-  const after = plan(f, store.load(), preferences);
+  await recordLearningPlanAction(store, lesson, "completed", { at: NOW });
+  const after = plan(f, await store.load(), preferences);
   assert.equal(after.completedMinutesToday, 12);
   assert.equal(after.remainingMinutes, 3);
   assert.equal(after.actions.length, 0, "a 15-minute plan must not schedule another 12-minute task after 12 minutes were used");
@@ -190,32 +197,30 @@ test("completed action time is deducted from the same day's budget", async () =>
 
 test("started and completed plan steps are idempotent and do not count as assessment evidence", async () => {
   const f = await fixtures();
-  const storage = memoryStorage();
-  const store = createLearningProgressStore({ storage });
-  const action = plan(f, store.load()).actions[0];
-  recordLearningPlanAction(store, action, "started", { at: NOW });
-  recordLearningPlanAction(store, action, "started", { at: NOW });
-  recordLearningPlanAction(store, action, "completed", { at: NOW });
-  recordLearningPlanAction(store, action, "completed", { at: NOW });
-  const events = store.load().events;
+  const store = createLearningProgressStore();
+  const action = plan(f, await store.load()).actions[0];
+  await recordLearningPlanAction(store, action, "started", { at: NOW });
+  await recordLearningPlanAction(store, action, "started", { at: NOW });
+  await recordLearningPlanAction(store, action, "completed", { at: NOW });
+  await recordLearningPlanAction(store, action, "completed", { at: NOW });
+  const events = (await store.load()).events;
   assert.equal(events.filter(item => item.type === "plan_action_started").length, 1);
   assert.equal(events.filter(item => item.type === "plan_action_completed").length, 1);
-  const result = plan(f, store.load());
+  const result = plan(f, await store.load());
   assert.equal(result.completedTodayCount, 1);
   assert.ok(!result.actions.some(item => item.actionId === action.actionId));
-  const insights = deriveLearningInsights(f.learningMap, f.challengeRegistry, store.load(), NOW);
+  const insights = deriveLearningInsights(f.learningMap, f.challengeRegistry, await store.load(), NOW);
   assert.equal(insights.summary.testedCount, 0);
 });
 
-test("preferences are validated and persisted independently of the learning event log", () => {
-  const storage = memoryStorage();
-  const preferences = createLearningPlanPreferencesStore({ storage });
-  assert.deepEqual(preferences.load(), { dailyMinutes: 25, focusTopicId: "all" });
-  assert.equal(preferences.save({ dailyMinutes: 40, focusTopicId: "promise" }), true);
-  assert.deepEqual(preferences.load(), { dailyMinutes: 40, focusTopicId: "promise" });
+test("preferences are validated and persisted independently of the learning event log", async () => {
+  const preferences = createLearningPlanPreferencesStore();
+  assert.deepEqual(await preferences.load(), { dailyMinutes: 25, focusTopicId: "all" });
+  assert.equal(await preferences.save({ dailyMinutes: 40, focusTopicId: "promise" }), true);
+  assert.deepEqual(await preferences.load(), { dailyMinutes: 40, focusTopicId: "promise" });
   assert.deepEqual(
-    createLearningPlanPreferencesStore({ storage: memoryStorage({ "knowverse:learning-plan:preferences": "{broken" }) }).load(),
-    { dailyMinutes: 25, focusTopicId: "all" }
+    await createLearningPlanPreferencesStore().load(),
+    { dailyMinutes: 40, focusTopicId: "promise" }
   );
 });
 

@@ -2,6 +2,8 @@ import { BACKEND_CONFIG } from "./config.mjs";
 import {
   acknowledgeArchiveDocuments,
   acknowledgeOutbox,
+  acquireSyncLease,
+  bindLocalAccount,
   countOutbox,
   getArchiveMeta,
   getDocumentSyncCursor,
@@ -9,72 +11,99 @@ import {
   getSyncCursor,
   listOutbox,
   listPendingArchiveDocuments,
-  persistLearningEvents,
-  reconcileLocalSnapshot,
+  mergeRemoteLearningEvents,
+  releaseSyncLease,
   setArchiveMeta,
   setDocumentSyncCursor,
   setSyncCursor,
 } from "./local-event-store.mjs";
-import {
-  applyRemoteLearningArchiveDocument,
-  captureLocalLearningArchive,
-} from "./local-archive.mjs";
+import { applyRemoteLearningArchiveDocument } from "./local-archive.mjs";
 
 const cleanEvent = event => Object.fromEntries(Object.entries(event || {}).filter(([key]) => !key.startsWith("_")));
 const dispatchStatus = detail => {
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("knowverse:sync-state", { detail }));
-  }
+  if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:sync-state", { detail }));
 };
 const isOnline = () => typeof navigator === "undefined" || navigator.onLine !== false;
+const operationOwner = globalThis.crypto?.randomUUID?.()
+  || "sync-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
 
 export function createLearningSyncService(auth, progressStore, config = BACKEND_CONFIG) {
   let running = false;
   let scheduled = false;
-  let rerunRequested = false;
   let retryAttempt = 0;
   let retryTimer = null;
+  let serial = Promise.resolve();
+
+  function enqueue(operation) {
+    const task = serial.then(operation, operation);
+    serial = task.catch(() => {});
+    return task;
+  }
+
+  async function withLease(operation, action) {
+    if (running) throw new Error("同步服务内部锁状态异常：同一标签页并发操作未被串行化。");
+    const acquired = await acquireSyncLease("learning-sync", operationOwner, 900000);
+    if (!acquired) {
+      const result = { status: "syncing", reason: "another-tab-holds-the-sync-lease" };
+      dispatchStatus(result);
+      return result;
+    }
+    running = true;
+    try { return await action(); }
+    finally {
+      running = false;
+      await releaseSyncLease("learning-sync", operationOwner);
+    }
+  }
 
   async function profile() {
     return auth.request("/rest/v1/rpc/get_learning_sync_profile", { method: "POST", body: {} });
   }
 
-  async function pushEvents(device) {
-    let pushed = 0;
+  async function ensureAccountAndDevice(session, account) {
+    const userId = session.user?.id || account.user_id;
+    if (!userId || userId !== account.user_id) {
+      throw new Error("Supabase 会话用户与服务器学习档案用户不匹配，已停止同步。");
+    }
+    await bindLocalAccount(userId);
+    const device = await getLocalDevice();
+    await auth.request("/rest/v1/rpc/register_device", {
+      method: "POST",
+      body: {
+        p_device_id: device.id,
+        p_label: "KNOWVERSE 浏览器设备",
+        p_platform: typeof navigator !== "undefined" &&
+          /iPhone|Android|Mobile/i.test(navigator.userAgent || "") ? "mobile-web" : "desktop-web",
+      },
+    });
+    return { userId, device };
+  }
+
+  /**
+   * A single server RPC commits the event batch and document batch inside one
+   * PostgreSQL transaction. The local Outbox is acknowledged only afterward.
+   */
+  async function pushChanges(device, userId) {
+    let pushedEvents = 0;
+    let pushedDocuments = 0;
+    const conflictIds = new Set();
     for (let page = 0; page < 100; page += 1) {
-      const batch = await listOutbox(100);
-      if (!batch.length) break;
-      const result = await auth.request("/rest/v1/rpc/sync_push_learning_events", {
+      const [eventBatch, documentBatch] = await Promise.all([
+        listOutbox(100),
+        listPendingArchiveDocuments(50),
+      ]);
+      if (!eventBatch.length && !documentBatch.length) break;
+      const result = await auth.request("/rest/v1/rpc/sync_commit_learning_batch", {
         method: "POST",
         body: {
           p_device_id: device.id,
-          p_events: batch.map(row => ({
+          p_expected_user_id: userId,
+          p_events: eventBatch.map(row => ({
             event_id: row.id,
             device_seq: row.deviceSeq,
             event_payload: cleanEvent(row.event),
           })),
-        },
-      });
-      const confirmed = (result?.confirmed || []).map(item => item.event_id).filter(Boolean);
-      if (!confirmed.length) throw new Error("云端没有确认本批学习事件，Outbox 已保留以便重试。");
-      await acknowledgeOutbox(confirmed);
-      pushed += confirmed.length;
-      if (confirmed.length < batch.length) break;
-    }
-    return pushed;
-  }
-
-  async function pushDocuments(device) {
-    let pushed = 0;
-    const conflictIds = new Set();
-    for (let page = 0; page < 100; page += 1) {
-      const batch = await listPendingArchiveDocuments(50);
-      if (!batch.length) break;
-      const result = await auth.request("/rest/v1/rpc/sync_push_learning_documents", {
-        method: "POST",
-        body: {
-          p_device_id: device.id,
-          p_documents: batch.map(row => ({
+          p_documents: documentBatch.map(row => ({
             document_id: row.id,
             document_type: row.type,
             document_key: row.key,
@@ -84,45 +113,64 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
           })),
         },
       });
-      const confirmed = Array.isArray(result?.confirmed) ? result.confirmed : [];
-      const rejected = Array.isArray(result?.conflicts) ? result.conflicts : [];
-      if (confirmed.length) {
-        await acknowledgeArchiveDocuments(confirmed);
-        pushed += confirmed.length;
+      const eventResult = result?.events || {};
+      const documentResult = result?.documents || {};
+      const confirmedEvents = Array.isArray(eventResult.confirmed) ? eventResult.confirmed : [];
+      const confirmedDocuments = Array.isArray(documentResult.confirmed) ? documentResult.confirmed : [];
+      const rejectedDocuments = Array.isArray(documentResult.conflicts) ? documentResult.conflicts : [];
+      if (result?.status === "conflict") {
+        for (const remote of rejectedDocuments) {
+          await applyRemoteLearningArchiveDocument(remote, userId);
+        }
+        for (const remote of rejectedDocuments) conflictIds.add(remote.document_id);
+        return { pushedEvents, pushedDocuments, conflictIds: [...conflictIds], blocked: true };
       }
-      for (const remote of rejected) {
-        const applied = await applyRemoteLearningArchiveDocument(remote);
+      if (result?.status !== "committed") {
+        throw new Error("服务端没有返回可确认的原子批次提交状态；本地 Outbox 和文档均未确认。");
+      }
+      if (eventBatch.length && !confirmedEvents.length) {
+        throw new Error("服务端未确认本批学习事件；原子批次失败，本地 Outbox 保留。");
+      }
+      if (documentBatch.length && !confirmedDocuments.length && !rejectedDocuments.length) {
+        throw new Error("服务端未确认本批学习文档；原子批次失败，本地文档保留。");
+      }
+      if (confirmedEvents.length) {
+        await acknowledgeOutbox(confirmedEvents);
+        pushedEvents += confirmedEvents.length;
+      }
+      if (confirmedDocuments.length) {
+        await acknowledgeArchiveDocuments(confirmedDocuments);
+        pushedDocuments += confirmedDocuments.length;
+      }
+      for (const remote of rejectedDocuments) {
+        const applied = await applyRemoteLearningArchiveDocument(remote, userId);
         if (applied.status === "conflict") conflictIds.add(remote.document_id);
       }
-      if (!confirmed.length && !rejected.length) {
-        throw new Error("云端没有确认学习档案文档，待同步文档已保留。");
-      }
-      if (rejected.length || confirmed.length < batch.length) break;
+      if (rejectedDocuments.length || confirmedEvents.length < eventBatch.length ||
+          confirmedDocuments.length < documentBatch.length) break;
     }
-    return { pushed, conflictIds: [...conflictIds] };
+    return { pushedEvents, pushedDocuments, conflictIds: [...conflictIds] };
   }
 
   async function pullEvents(userId) {
     let cursor = await getSyncCursor(userId);
     let pulled = 0;
-    for (let page = 0; page < 20; page += 1) {
+    for (let page = 0; page < 100; page += 1) {
       const previousCursor = cursor;
-      const result = await auth.request("/rest/v1/rpc/sync_pull_learning_events", {
+      const result = await auth.request("/rest/v1/rpc/sync_pull_learning_events_for_account", {
         method: "POST",
-        body: { p_after_user_seq: cursor, p_page_size: 100 },
+        body: { p_expected_user_id: userId, p_after_user_seq: cursor, p_page_size: 100 },
       });
       const rows = Array.isArray(result?.events) ? result.events : [];
-      const remoteEvents = rows.map(row => row.event_payload);
-      if (remoteEvents.some(event => !event || typeof event.id !== "string" || !event.id)) {
+      if (rows.some(row => !row?.event_payload || row.event_id !== row.event_payload.id ||
+          !Number.isSafeInteger(Number(row.user_seq)))) {
         throw new Error("云端事件页包含无效记录；同步游标未推进。");
       }
-      if (remoteEvents.length) {
-        if (!progressStore.appendMany(remoteEvents, { remote: true })) {
-          throw new Error("云端事件已读取，但合并到本地学习档案失败；同步游标未推进。");
-        }
-        pulled += remoteEvents.length;
-      }
+      if (rows.length) pulled += await mergeRemoteLearningEvents(rows, userId);
       const nextCursor = Number(result?.next_cursor ?? cursor);
+      if (!Number.isSafeInteger(nextCursor) || nextCursor < cursor) {
+        throw new Error("云端事件游标无效或倒退；本地游标未改变。");
+      }
       if (nextCursor > cursor) {
         cursor = nextCursor;
         await setSyncCursor(userId, cursor);
@@ -136,19 +184,22 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
     let cursor = await getDocumentSyncCursor(userId);
     let pulled = 0;
     const conflictIds = new Set();
-    for (let page = 0; page < 20; page += 1) {
+    for (let page = 0; page < 100; page += 1) {
       const previousCursor = cursor;
-      const result = await auth.request("/rest/v1/rpc/sync_pull_learning_documents", {
+      const result = await auth.request("/rest/v1/rpc/sync_pull_learning_documents_for_account", {
         method: "POST",
-        body: { p_after_document_seq: cursor, p_page_size: 100 },
+        body: { p_expected_user_id: userId, p_after_document_seq: cursor, p_page_size: 100 },
       });
       const rows = Array.isArray(result?.documents) ? result.documents : [];
       for (const remote of rows) {
-        const applied = await applyRemoteLearningArchiveDocument(remote);
+        const applied = await applyRemoteLearningArchiveDocument(remote, userId);
         if (applied.status === "conflict") conflictIds.add(remote.document_id);
         if (applied.status === "applied") pulled += 1;
       }
       const nextCursor = Number(result?.next_cursor ?? cursor);
+      if (!Number.isSafeInteger(nextCursor) || nextCursor < cursor) {
+        throw new Error("云端学习文档游标无效或倒退；本地游标未改变。");
+      }
       if (nextCursor > cursor) {
         cursor = nextCursor;
         await setDocumentSyncCursor(userId, cursor);
@@ -158,165 +209,109 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
     return { pulled, cursor, conflictIds: [...conflictIds] };
   }
 
-  async function restoreFromCloud() {
-    // The page-wide automatic sync may already be running when a learner taps
-    // Restore. Queue behind that operation rather than reporting success early
-    // or turning the explicit pull-only action into a push-first sync.
-    if (running) dispatchStatus({ status: "restore-queued" });
-    while (running) await new Promise(resolve => setTimeout(resolve, 25));
+  async function restoreOperation() {
     if (!config.enabled) return { status: "local-only", reason: "backend-not-configured" };
     if (!isOnline()) {
       const result = { status: "offline", reason: "network-unavailable" };
       dispatchStatus(result);
       return result;
     }
-
-    running = true;
-    dispatchStatus({ status: "restoring" });
-    try {
-      const session = await auth.getSession();
-      if (!session) {
-        const result = { status: "signed-out" };
+    return withLease("restore", async () => {
+      dispatchStatus({ status: "restoring" });
+      try {
+        const session = await auth.getSession();
+        if (!session) {
+          const result = { status: "signed-out" };
+          dispatchStatus(result);
+          return result;
+        }
+        const account = await profile();
+        if (!account?.authorized) {
+          const result = { status: "pending-authorization", user: session.user || null };
+          dispatchStatus(result);
+          return result;
+        }
+        const { userId, device } = await ensureAccountAndDevice(session, account);
+        // Restore is pull-only. No local Outbox or dirty document is pushed here.
+        const [pulledEvents, pulledDocuments] = await Promise.all([
+          pullEvents(userId),
+          pullDocuments(userId),
+        ]);
+        const result = {
+          status: "restored",
+          restoredEvents: pulledEvents.pulled,
+          restoredDocuments: pulledDocuments.pulled,
+          conflicts: new Set(pulledDocuments.conflictIds).size,
+          cursor: pulledEvents.cursor,
+          documentCursor: pulledDocuments.cursor,
+          deviceId: device.id,
+        };
+        await setArchiveMeta("last-cloud-restore-at", new Date().toISOString());
         dispatchStatus(result);
         return result;
-      }
-
-      const account = await profile();
-      if (!account?.authorized) {
-        const result = { status: "pending-authorization", user: session.user || null };
+      } catch (error) {
+        const result = { status: "error", operation: "restore", message: error.message || "云端恢复失败" };
         dispatchStatus(result);
-        return result;
+        throw error;
       }
-
-      const userId = session.user?.id || account.user_id || "current";
-      const boundUserId = await getArchiveMeta("bound-user-id");
-      if (boundUserId && boundUserId !== userId) {
-        throw new Error("此浏览器的本地学习档案已绑定另一个账户。为保护不同账户的数据隔离，不能把另一个账户的云端档案恢复到此设备。");
-      }
-      if (!boundUserId) await setArchiveMeta("bound-user-id", userId);
-
-      const device = await getLocalDevice();
-      await auth.request("/rest/v1/rpc/register_device", {
-        method: "POST",
-        body: {
-          p_device_id: device.id,
-          p_label: "KNOWVERSE 浏览器设备",
-          p_platform: typeof navigator !== "undefined" && /iPhone|Android|Mobile/i.test(navigator.userAgent || "") ? "mobile-web" : "desktop-web",
-        },
-      });
-
-      // Capture local active sessions before pulling. On a genuinely fresh
-      // device this is empty; on a used device it gives CAS a base to detect
-      // divergence instead of silently replacing local work with cloud data.
-      await captureLocalLearningArchive(progressStore);
-      const pulledEvents = await pullEvents(userId);
-      const pulledDocuments = await pullDocuments(userId);
-      const result = {
-        status: "restored",
-        restoredEvents: pulledEvents.pulled,
-        restoredDocuments: pulledDocuments.pulled,
-        conflicts: new Set(pulledDocuments.conflictIds).size,
-        cursor: pulledEvents.cursor,
-        documentCursor: pulledDocuments.cursor,
-      };
-      await setArchiveMeta("last-cloud-restore-at", new Date().toISOString());
-      dispatchStatus(result);
-      return result;
-    } catch (error) {
-      const result = { status: "error", operation: "restore", message: error.message || "云端恢复失败" };
-      dispatchStatus(result);
-      throw error;
-    } finally {
-      running = false;
-      if (rerunRequested) {
-        rerunRequested = false;
-        scheduleSync(1200);
-      }
-    }
+    });
   }
 
-  async function sync() {
-    if (running) {
-      rerunRequested = true;
-      return { status: "syncing" };
-    }
+  async function syncOperation() {
     if (!config.enabled) return { status: "local-only", reason: "backend-not-configured" };
     if (!isOnline()) {
       const result = { status: "offline", reason: "network-unavailable" };
       dispatchStatus(result);
       return result;
     }
-    running = true;
-    dispatchStatus({ status: "syncing" });
-    try {
-      const session = await auth.getSession();
-      if (!session) {
-        const result = { status: "signed-out" };
+    return withLease("sync", async () => {
+      dispatchStatus({ status: "syncing" });
+      try {
+        const session = await auth.getSession();
+        if (!session) {
+          const result = { status: "signed-out" };
+          dispatchStatus(result);
+          return result;
+        }
+        const account = await profile();
+        if (!account?.authorized) {
+          const result = { status: "pending-authorization", user: session.user || null };
+          dispatchStatus(result);
+          return result;
+        }
+        const { userId, device } = await ensureAccountAndDevice(session, account);
+        const pushed = await pushChanges(device, userId);
+        const [pulledEvents, pulledDocuments, pendingEvents] = await Promise.all([
+          pullEvents(userId),
+          pullDocuments(userId),
+          countOutbox(),
+        ]);
+        const result = {
+          status: "synced",
+          pushed: pushed.pushedEvents,
+          pulled: pulledEvents.pulled,
+          pushedDocuments: pushed.pushedDocuments,
+          pulledDocuments: pulledDocuments.pulled,
+          conflicts: new Set([...pushed.conflictIds, ...pulledDocuments.conflictIds]).size,
+          pending: pendingEvents,
+          cursor: pulledEvents.cursor,
+          documentCursor: pulledDocuments.cursor,
+          deviceId: device.id,
+        };
+        await setArchiveMeta("last-successful-sync", new Date().toISOString());
+        await setArchiveMeta("last-sync-error", null);
+        retryAttempt = 0;
         dispatchStatus(result);
         return result;
-      }
-
-      const account = await profile();
-      if (!account?.authorized) {
-        const result = { status: "pending-authorization", user: session.user || null };
+      } catch (error) {
+        const result = { status: "error", message: error.message || "同步失败" };
+        await setArchiveMeta("last-sync-error", result.message);
         dispatchStatus(result);
-        return result;
+        retryAttempt = Math.min(8, retryAttempt + 1);
+        scheduleSync();
+        throw error;
       }
-
-      const userId = session.user?.id || account.user_id || "current";
-      const boundUserId = await getArchiveMeta("bound-user-id");
-      if (boundUserId && boundUserId !== userId) {
-        throw new Error("此浏览器的本地学习档案已绑定另一个账户。为保护不同账户的数据隔离，当前账户不会自动上传这份档案；请先在原账户导出备份。");
-      }
-      if (!boundUserId) await setArchiveMeta("bound-user-id", userId);
-
-      const device = await getLocalDevice();
-      await auth.request("/rest/v1/rpc/register_device", {
-        method: "POST",
-        body: {
-          p_device_id: device.id,
-          p_label: "KNOWVERSE 浏览器设备",
-          p_platform: typeof navigator !== "undefined" && /iPhone|Android|Mobile/i.test(navigator.userAgent || "") ? "mobile-web" : "desktop-web",
-        },
-      });
-
-      await captureLocalLearningArchive(progressStore);
-      await reconcileLocalSnapshot(progressStore.load());
-      const pushedEvents = await pushEvents(device);
-      const pushedDocuments = await pushDocuments(device);
-      const pulledEvents = await pullEvents(userId);
-      const pulledDocuments = await pullDocuments(userId);
-      const pendingEvents = await countOutbox();
-      const result = {
-        status: "synced",
-        pushed: pushedEvents,
-        pulled: pulledEvents.pulled,
-        pushedDocuments: pushedDocuments.pushed,
-        pulledDocuments: pulledDocuments.pulled,
-        conflicts: new Set([...pushedDocuments.conflictIds, ...pulledDocuments.conflictIds]).size,
-        pending: pendingEvents,
-        cursor: pulledEvents.cursor,
-        documentCursor: pulledDocuments.cursor,
-      };
-      await setArchiveMeta("last-successful-sync", new Date().toISOString());
-      await setArchiveMeta("last-sync-error", null);
-      retryAttempt = 0;
-      dispatchStatus(result);
-      return result;
-    } catch (error) {
-      const result = { status: "error", message: error.message || "同步失败" };
-      await setArchiveMeta("last-sync-error", result.message).catch(() => {});
-      dispatchStatus(result);
-      retryAttempt = Math.min(8, retryAttempt + 1);
-      scheduleSync();
-      throw error;
-    } finally {
-      running = false;
-      if (rerunRequested) {
-        rerunRequested = false;
-        scheduleSync(1200);
-      }
-    }
+    });
   }
 
   async function initialize() {
@@ -325,8 +320,14 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
       dispatchStatus(result);
       return result;
     }
-    await captureLocalLearningArchive(progressStore);
     return sync();
+  }
+
+  function sync() {
+    return enqueue(syncOperation);
+  }
+  function restoreFromCloud() {
+    return enqueue(restoreOperation);
   }
 
   function scheduleSync(delay) {
@@ -336,9 +337,8 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
     retryTimer = setTimeout(() => {
       scheduled = false;
       retryTimer = null;
-      sync().catch(() => {
-        retryAttempt = Math.min(8, retryAttempt + 1);
-        scheduleSync();
+      sync().catch(error => {
+        dispatchStatus({ status: "error", message: error.message || "同步重试失败" });
       });
     }, wait);
   }
@@ -346,31 +346,29 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
   function start() {
     if (typeof window === "undefined") return () => {};
     const onEvents = event => {
-      if (event.detail?.remote || !config.enabled) return;
-      persistLearningEvents(event.detail?.events || [], { queue: true })
-        .then(() => scheduleSync(1200))
-        .catch(error => dispatchStatus({ status: "error", message: "学习事件进入 Outbox 失败：" + error.message }));
+      if (!event.detail?.remote) scheduleSync(1200);
     };
-    const onArchive = () => {
-      if (!config.enabled) return;
-      captureLocalLearningArchive(progressStore)
-        .then(() => scheduleSync(1200))
-        .catch(error => dispatchStatus({ status: "error", message: "学习档案写入失败：" + error.message }));
-    };
+    const onArchive = () => scheduleSync(1200);
     const onOnline = () => scheduleSync(0);
     const onVisibility = () => {
       if (document.visibilityState === "visible") scheduleSync(0);
     };
+    const onStorageUpgrade = () => dispatchStatus({
+      status: "error",
+      message: "另一个标签页阻塞了 IndexedDB 数据库升级。请关闭旧版本标签页后刷新。",
+    });
     window.addEventListener("knowverse:learning-events-appended", onEvents);
     window.addEventListener("knowverse:learning-archive-capture", onArchive);
     window.addEventListener("knowverse:learning-archive-delete", onArchive);
     window.addEventListener("online", onOnline);
+    window.addEventListener("knowverse:database-upgrade-blocked", onStorageUpgrade);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
       window.removeEventListener("knowverse:learning-events-appended", onEvents);
       window.removeEventListener("knowverse:learning-archive-capture", onArchive);
       window.removeEventListener("knowverse:learning-archive-delete", onArchive);
       window.removeEventListener("online", onOnline);
+      window.removeEventListener("knowverse:database-upgrade-blocked", onStorageUpgrade);
       document.removeEventListener("visibilitychange", onVisibility);
       if (retryTimer) clearTimeout(retryTimer);
     };

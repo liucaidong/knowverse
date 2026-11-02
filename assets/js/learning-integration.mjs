@@ -99,10 +99,10 @@ function mountCheckpoint(work, checkpoint, store) {
       const button = create("button", "kv-li-option", option.label);
       button.type = "button";
       button.dataset.optionId = option.id;
-      button.addEventListener("click", () => {
+      button.addEventListener("click", async () => {
         for (const item of options.querySelectorAll("button")) item.disabled = true;
         try {
-          const result = engine.submit(activeSession.sessionId, option.id);
+          const result = await engine.submit(activeSession.sessionId, option.id);
           const feedback = create("div", "kv-li-feedback " + (result.correct ? "good" : "bad"));
           feedback.append(create("strong", "", result.correct ? "验证通过 · 已记录独立证据" : "还需要补强这个概念"));
           feedback.append(create("p", "kv-li-explanation", result.explanation));
@@ -124,7 +124,8 @@ function mountCheckpoint(work, checkpoint, store) {
           actions.append(done);
           content.append(actions);
         } catch (error) {
-          content.append(create("div", "kv-li-feedback bad", error.message || "保存失败，请检查浏览器本地存储。"));
+          content.append(create("div", "kv-li-feedback bad", error.message || "保存失败，请检查本地 IndexedDB。"));
+          for (const item of options.querySelectorAll("button")) item.disabled = false;
         }
       });
       options.append(button);
@@ -132,14 +133,14 @@ function mountCheckpoint(work, checkpoint, store) {
     content.append(options);
   }
 
-  launcher.addEventListener("click", () => {
+  launcher.addEventListener("click", async () => {
     if (!store.available) {
       overlay.hidden = false;
-      content.replaceChildren(create("div", "kv-li-feedback bad", "当前浏览器未开放本地存储，无法保存检查结果。"));
+      content.replaceChildren(create("div", "kv-li-feedback bad", "当前浏览器不支持 IndexedDB，无法保存检查结果。"));
       return;
     }
     try {
-      activeSession = engine.start(checkpoint.id);
+      activeSession = await engine.start(checkpoint.id);
       renderQuestion();
       overlay.hidden = false;
       close.focus();

@@ -1,30 +1,18 @@
-import { createLearningStateStorage } from "./learning-state-storage.mjs";
+import {
+  getLearningRepository,
+  isLearningRepositoryAvailable,
+} from "./backend/learning-repository.mjs";
 import {
   createLearningProgressStore,
   getGapReviewPredecessorEventIds,
   getOpenGapObservationEventIds,
 } from "./learning-progress.mjs";
 
-const SESSION_PREFIX = "knowverse:review-session/";
 const clone = value => JSON.parse(JSON.stringify(value));
 const nowIso = () => new Date().toISOString();
 const makeId = () => "review-" + Date.now().toString(36) + "-" +
   (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
 
-function getStorage(candidate) {
-  if (typeof candidate !== "undefined") return createLearningStateStorage(candidate);
-  try { return createLearningStateStorage(globalThis.localStorage || null); } catch { return null; }
-}
-function readJSON(storage, key, fallback) {
-  try {
-    const raw = storage?.getItem(key);
-    return raw ? JSON.parse(raw) : clone(fallback);
-  } catch { return clone(fallback); }
-}
-function writeJSON(storage, key, value) {
-  if (!storage || typeof storage.setItem !== "function") return false;
-  try { storage.setItem(key, JSON.stringify(value)); return true; } catch { return false; }
-}
 function validateRegistry(registry) {
   if (!registry || !Array.isArray(registry.assessments) || !registry.assessments.length) {
     throw new TypeError("Review assessment registry is empty.");
@@ -41,13 +29,16 @@ function validateRegistry(registry) {
 }
 
 export function createReviewSessionEngine(options = {}) {
-  const storage = getStorage(options.storage);
-  const progressStore = options.progressStore || createLearningProgressStore({ storage });
+  const repositoryPromise = options.repository
+    ? Promise.resolve(options.repository)
+    : getLearningRepository();
+  const progressStore = options.progressStore || createLearningProgressStore({ repository: options.repository });
   const assessments = validateRegistry(options.registry || { assessments: options.assessments || [] });
   const definitions = new Map(assessments.map(item => [item.id, item]));
 
-  function history() {
-    const events = progressStore.load().events.filter(event =>
+  async function history() {
+    const snapshot = await progressStore.load();
+    const events = snapshot.events.filter(event =>
       event.sessionType === "review" && typeof event.sessionId === "string"
     );
     const sessions = new Map();
@@ -88,21 +79,11 @@ export function createReviewSessionEngine(options = {}) {
     }
     return [...sessions.values()];
   }
-  function persistSession(session) {
-    const key = SESSION_PREFIX + session.sessionId;
-    if (session.status !== "active") {
-      try { storage?.removeItem?.(key); } catch { /* The append-only event log remains authoritative. */ }
-      if (typeof window !== "undefined") storage.afterCommit(() => window.dispatchEvent(new CustomEvent("knowverse:learning-archive-delete", { detail: { type: "review_session", key: session.sessionId } })));
-      return;
-    }
-    if (!writeJSON(storage, key, session)) {
-      throw new Error("复习会话无法写入本地存储。请先导出学习档案并检查浏览器空间。");
-    }
-    if (typeof window !== "undefined") storage.afterCommit(() => window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "review_session", key: session.sessionId } })));
-  }
-  function appendEvent(session, type, suffix, fields = {}) {
+
+  function makeEvent(session, type, suffix, fields = {}) {
     const definition = definitions.get(session.variantId);
-    const event = {
+    if (!definition) throw new Error("复习题注册表已变化，无法创建本次学习证据。");
+    return {
       id: session.sessionId + ":" + suffix,
       eventSchemaVersion: 3,
       type,
@@ -122,20 +103,30 @@ export function createReviewSessionEngine(options = {}) {
       targetGapEventIds: session.targetGapEventIds || [],
       ...fields,
     };
-    if (!progressStore.appendMany([event])) {
-      throw new Error("学习事件写入失败。请先导出学习档案并检查浏览器空间。");
-    }
-    return event;
   }
 
-  function start(input = {}) {
+  async function getRecord(sessionId) {
+    const repository = await repositoryPromise;
+    const stored = await repository.documents.get("review_session", String(sessionId));
+    const session = stored?.payload;
+    if (!session || session._deleted === true || session.schemaVersion !== 1 ||
+        !definitions.has(session.variantId)) return null;
+    return { session: clone(session), localRevision: Number(stored.localRevision) || 0 };
+  }
+
+  async function get(sessionId) {
+    return (await getRecord(sessionId))?.session || null;
+  }
+
+  async function start(input = {}) {
     const competencyId = String(input.competencyId || "");
     const targetGapId = input.gapId ? String(input.gapId) : null;
     const candidates = assessments.filter(item =>
       item.competencyId === competencyId && (!targetGapId || (item.gapIds || []).includes(targetGapId))
     );
     if (!candidates.length) throw new Error("没有找到与该知识点 / 薄弱点匹配的复习题。");
-    const snapshot = progressStore.load();
+
+    const snapshot = await progressStore.load();
     const targetGapEventIds = targetGapId
       ? getOpenGapObservationEventIds(snapshot, competencyId, targetGapId)
       : [];
@@ -145,7 +136,8 @@ export function createReviewSessionEngine(options = {}) {
     if (targetGapId && !targetGapEventIds.length) {
       throw new Error("没有找到仍待验证的错误事件。请重新执行关联挑战，或刷新学习进度后再开始针对性复习。");
     }
-    const used = history().filter(item =>
+
+    const used = (await history()).filter(item =>
       item.competencyId === competencyId && item.targetGapId === targetGapId
     );
     const usedIds = new Set(used.map(item => item.variantId));
@@ -155,6 +147,7 @@ export function createReviewSessionEngine(options = {}) {
         (used.find(item => item.variantId === a.id)?.startedAt || "") <
         (used.find(item => item.variantId === b.id)?.startedAt || "") ? -1 : 1
       )[0];
+
     const session = {
       schemaVersion: 1,
       sessionId: makeId(),
@@ -179,46 +172,57 @@ export function createReviewSessionEngine(options = {}) {
       startedAt: nowIso(),
       finishedAt: null,
     };
-    storage.transaction(() => {
-      persistSession(session);
-      appendEvent(session, "review_started", "started", {
-        reviewMode: targetGapId ? "targeted-gap" : "competency",
-        causationEventIds: predecessorEventIds,
-        targetGapEventIds,
-      });
+    const started = makeEvent(session, "review_started", "started", {
+      reviewMode: targetGapId ? "targeted-gap" : "competency",
+      causationEventIds: predecessorEventIds,
+      targetGapEventIds,
+    });
+    const repository = await repositoryPromise;
+    await repository.commit({
+      events: [started],
+      documents: [{
+        type: "review_session",
+        key: session.sessionId,
+        payload: session,
+        expectedLocalRevision: 0,
+      }],
     });
     return clone(session);
   }
 
-  function get(sessionId) {
-    if (!storage) return null;
-    const session = readJSON(storage, SESSION_PREFIX + String(sessionId), null);
-    if (!session || session.schemaVersion !== 1 || !definitions.has(session.variantId)) return null;
-    return session;
-  }
-
-  function revealHint(sessionId) {
-    const session = get(sessionId);
+  async function revealHint(sessionId) {
+    const stored = await getRecord(sessionId);
+    const session = stored?.session;
     if (!session || session.status !== "active") throw new Error("当前复习会话已结束。");
     const definition = definitions.get(session.variantId);
-    if (session.hintsUsed >= (definition.hints || []).length) return { session, hint: null, exhausted: true };
+    if (session.hintsUsed >= (definition.hints || []).length) {
+      return { session, hint: null, exhausted: true };
+    }
     const priorHintEventIds = (session.hintEventIds || []).slice();
     session.hintsUsed += 1;
     const hint = definition.hints[session.hintsUsed - 1];
     session.hintEventIds = [...priorHintEventIds, sessionId + ":hint:" + session.hintsUsed];
-    storage.transaction(() => {
-      persistSession(session);
-      appendEvent(session, "hint_revealed", "hint:" + session.hintsUsed, {
-        hintNumber: session.hintsUsed,
-        hintsUsed: session.hintsUsed,
-        causationEventIds: [sessionId + ":started", ...priorHintEventIds].slice(-20),
-      });
+    const event = makeEvent(session, "hint_revealed", "hint:" + session.hintsUsed, {
+      hintNumber: session.hintsUsed,
+      hintsUsed: session.hintsUsed,
+      causationEventIds: [sessionId + ":started", ...priorHintEventIds].slice(-20),
+    });
+    const repository = await repositoryPromise;
+    await repository.commit({
+      events: [event],
+      documents: [{
+        type: "review_session",
+        key: session.sessionId,
+        payload: session,
+        expectedLocalRevision: stored.localRevision,
+      }],
     });
     return { session: clone(session), hint, exhausted: false };
   }
 
-  function submit(sessionId, optionId) {
-    const session = get(sessionId);
+  async function submit(sessionId, optionId) {
+    const stored = await getRecord(sessionId);
+    const session = stored?.session;
     if (!session || session.status !== "active") throw new Error("当前复习会话已结束或不存在。");
     const definition = definitions.get(session.variantId);
     const selected = definition.options.find(option => option.id === optionId);
@@ -229,34 +233,38 @@ export function createReviewSessionEngine(options = {}) {
     const scorePct = correct ? Math.max(55, 100 - Math.max(0, session.attempts - 1) * 15 - session.hintsUsed * 20) : 0;
     const gapId = session.targetGapId || (!correct ? (selected.gapId || definition.gapIds?.[0] || null) : null);
     const fields = {
-      correct,
-      selectedOptionId: optionId,
-      gapId,
-      attempts: session.attempts,
-      hintsUsed: session.hintsUsed,
+      correct, selectedOptionId: optionId, gapId,
+      attempts: session.attempts, hintsUsed: session.hintsUsed,
     };
     const attemptEventId = sessionId + ":attempt:" + session.attempts;
-    storage.transaction(() => {
-      appendEvent(session, "attempt", "attempt:" + session.attempts, {
-        ...fields,
-        gapObservationId: !correct && gapId ? attemptEventId : null,
-        causationEventIds: [sessionId + ":started", ...(session.hintEventIds || [])].slice(-20),
-      });
-      session.status = correct ? "passed" : "failed";
-      session.finishedAt = nowIso();
-      if (correct) {
-        appendEvent(session, "assessment_passed", "passed", {
-          gapId,
-          scorePct,
-          earnedPoints: scorePct,
-          maximumPoints: 100,
-          attempts: session.attempts,
-          hintsUsed: session.hintsUsed,
-          independent: session.hintsUsed === 0,
-          causationEventIds: [sessionId + ":started", attemptEventId, ...(session.hintEventIds || [])].slice(-20),
-        });
-      }
-      persistSession(session);
+    const events = [makeEvent(session, "attempt", "attempt:" + session.attempts, {
+      ...fields,
+      gapObservationId: !correct && gapId ? attemptEventId : null,
+      causationEventIds: [sessionId + ":started", ...(session.hintEventIds || [])].slice(-20),
+    })];
+    session.status = correct ? "passed" : "failed";
+    session.finishedAt = nowIso();
+    if (correct) {
+      events.push(makeEvent(session, "assessment_passed", "passed", {
+        gapId,
+        scorePct,
+        earnedPoints: scorePct,
+        maximumPoints: 100,
+        attempts: session.attempts,
+        hintsUsed: session.hintsUsed,
+        independent: session.hintsUsed === 0,
+        causationEventIds: [sessionId + ":started", attemptEventId, ...(session.hintEventIds || [])].slice(-20),
+      }));
+    }
+    const repository = await repositoryPromise;
+    await repository.commit({
+      events,
+      documents: [{
+        type: "review_session",
+        key: session.sessionId,
+        payload: { _deleted: true, deletedAt: nowIso() },
+        expectedLocalRevision: stored.localRevision,
+      }],
     });
     return {
       session: clone(session),
@@ -270,14 +278,22 @@ export function createReviewSessionEngine(options = {}) {
   }
 
   return {
-    available: Boolean(storage && typeof storage.getItem === "function" && typeof storage.setItem === "function"),
+    available: isLearningRepositoryAvailable(),
     start,
     get,
     revealHint,
     submit,
     getHistory: history,
-    getAssessment(sessionId) {
-      const session = get(sessionId);
+    async getActiveSessions() {
+      const repository = await repositoryPromise;
+      const rows = await repository.documents.list();
+      const active = rows
+        .filter(row => row.type === "review_session" && row.payload?.status === "active" && row.payload?._deleted !== true)
+        .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));
+      return active.map(row => clone(row.payload)).filter(row => definitions.has(row.variantId));
+    },
+    async getAssessment(sessionId) {
+      const session = await get(sessionId);
       return session ? clone(definitions.get(session.variantId)) : null;
     },
   };

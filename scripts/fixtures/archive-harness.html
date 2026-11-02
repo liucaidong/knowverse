@@ -1,16 +1,14 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>KNOWVERSE archive E2E harness</title></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>KNOWVERSE Phase D archive E2E harness</title></head>
 <body>
 <script type="module">
 import { createLearningProgressStore } from "/assets/js/learning-progress.mjs";
-import { createLearningStateStorage } from "/assets/js/learning-state-storage.mjs";
+import { getLearningRepository } from "/assets/js/backend/learning-repository.mjs";
 import { createLearningSyncService } from "/assets/js/backend/sync-engine.mjs";
-import { getArchiveStatus, listArchiveConflicts } from "/assets/js/backend/local-event-store.mjs";
-import { captureLocalLearningArchive, resolveLocalLearningArchiveConflict } from "/assets/js/backend/local-archive.mjs";
 
-const storage = createLearningStateStorage();
-const store = createLearningProgressStore({ storage });
+const repository = await getLearningRepository();
+const store = createLearningProgressStore({ repository });
 const auth = {
   getSession: async () => ({ user: { id: "archive-test-user", email: "archive@example.test" } }),
   request: async (path, options = {}) => {
@@ -31,18 +29,21 @@ const autoStart = new URLSearchParams(location.search).get("manualRestore") !== 
 const stop = autoStart ? service.start() : () => {};
 window.archiveHarness = {
   store,
-  storage,
+  repository,
   auth,
   service,
   syncStatuses,
   sync: () => service.sync(),
   restoreFromCloud: () => service.restoreFromCloud(),
-  capture: () => captureLocalLearningArchive(store),
-  stop,
+  capture: () => repository.sync.status(),
   addEvent: event => store.appendMany([event]),
-  status: () => getArchiveStatus(),
-  conflicts: () => listArchiveConflicts(),
-  resolve: (id, choice) => resolveLocalLearningArchiveConflict(id, choice)
+  putDocument: document => repository.documents.put(document),
+  getDocument: (type, key) => repository.documents.get(type, key),
+  listEvents: () => repository.events.list(),
+  status: () => repository.sync.status(),
+  conflicts: () => repository.documents.conflicts(),
+  resolve: (id, choice) => repository.documents.resolveConflict(id, choice),
+  stop,
 };
 window.archiveReady = true;
 </script>
