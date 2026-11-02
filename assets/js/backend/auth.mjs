@@ -26,12 +26,15 @@ async function readResponse(response) {
   const raw = await response.text();
   const data = parseJson(raw) ?? raw;
   if (!response.ok) {
-    const message = data && typeof data === "object"
-      ? data.msg || data.message || data.error_description || data.error || response.statusText
-      : String(data || response.statusText);
+    const nested = data && typeof data === "object" && data.error && typeof data.error === "object"
+      ? data.error : data;
+    const message = nested && typeof nested === "object"
+      ? nested.msg || nested.message || nested.error_description || data?.message ||
+        (typeof data?.error === "string" ? data.error : response.statusText)
+      : String(nested || response.statusText);
     const error = new Error("Supabase 请求失败 (" + response.status + "): " + message);
     error.status = response.status;
-    error.code = data?.code || data?.error_code || null;
+    error.code = data?.code || data?.error_code || data?.error?.code || data?.error_code || null;
     throw error;
   }
   return data;

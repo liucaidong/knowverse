@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f5f8f7">
+  <meta name="description" content="KNOWVERSE Personal AI Learning Agent · 学习者画像、目标、规划、任务执行与动态复习">
+  <title>个人智能学习 Agent · KNOWVERSE</title>
+  <link rel="stylesheet" href="../assets/css/v2.css">
+  <link rel="stylesheet" href="../assets/css/site-architecture.css">
+  <link rel="stylesheet" href="../assets/css/learning-agent.css">
+</head>
+<body data-root="../"><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="3.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+    <a class="mark" href="../">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
+    <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区"><div class="kv-nav-group" data-group-id="knowledge" data-active-routes="knowledge.overview knowledge.overview">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="knowledge.overview" href="../knowledge/">知识体系</a>
+      <button class="kv-nav-toggle" type="button" aria-label="展开知识体系二级菜单" aria-expanded="false" aria-controls="kv-menu-knowledge"><span aria-hidden="true">⌄</span></button></div>
+    <div class="kv-nav-submenu" id="kv-menu-knowledge" hidden><section class="kv-nav-section"><h2 class="kv-nav-section-title">知识导航</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="knowledge.overview" href="../knowledge/">全部知识领域</a><a class="kv-nav-subitem" data-route-id="learning.today" href="../progress/#adaptive-plan">我的学习路径</a><a class="kv-nav-subitem" data-route-id="learning.mastery" href="../progress/#knowledge-map">知识关系图</a><a class="kv-nav-subitem" data-route-id="knowledge.sources" href="../provenance/">来源与参考</a></div></section><section class="kv-nav-section"><h2 class="kv-nav-section-title">知识专题</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="topic.promise" href="../knowledge/promise/">JavaScript · Promise</a><a class="kv-nav-subitem" data-route-id="topic.monorepo" href="../knowledge/monorepo/">TypeScript · Monorepo</a><a class="kv-nav-subitem" data-route-id="topic.react-native" href="../knowledge/react-native/">React Native · 新架构</a><a class="kv-nav-subitem" data-route-id="topic.ai-education" href="../knowledge/ai-education/">AI · 多模态教育</a><a class="kv-nav-subitem" data-route-id="topic.ai-agents" href="../knowledge/ai-agents/">AI Agent · 系统工程</a><a class="kv-nav-subitem" data-route-id="topic.model-infra" href="../knowledge/model-infra/">模型 · 算力与工具</a><a class="kv-nav-subitem" data-route-id="topic.database" href="../knowledge/database/">数据库 · 进化与内核</a><a class="kv-nav-subitem" data-route-id="topic.finance" href="../knowledge/finance/">金融学 · 案例与量化</a><a class="kv-nav-subitem" data-route-id="topic.creative" href="../knowledge/creative/">WebGL · 知识交互</a><a class="kv-nav-subitem" data-route-id="topic.math" href="../knowledge/math/">数学 · 离散与线代</a><a class="kv-nav-subitem" data-route-id="topic.language" href="../knowledge/language/">语言 · 英语与东北话</a><a class="kv-nav-subitem" data-route-id="topic.engineering" href="../knowledge/engineering/">工程治理 · 开发工作流</a></div></section></div>
+  </div><div class="kv-nav-group" data-group-id="experience" data-active-routes="experience.overview experience.overview experience.lab experience.gallery experience.puzzles">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="experience.overview" href="../works/">实践体验</a>
+      <button class="kv-nav-toggle" type="button" aria-label="展开实践体验二级菜单" aria-expanded="false" aria-controls="kv-menu-experience"><span aria-hidden="true">⌄</span></button></div>
+    <div class="kv-nav-submenu" id="kv-menu-experience" hidden><section class="kv-nav-section"><h2 class="kv-nav-section-title">三种学习方式</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="experience.lab" href="../lab/">01 · 原理实验室</a><a class="kv-nav-subitem" data-route-id="experience.gallery" href="../gallery/">02 · 沉浸式知识展厅</a><a class="kv-nav-subitem" data-route-id="experience.puzzles" href="../puzzles/">03 · 知识解谜世界</a></div></section><section class="kv-nav-section"><h2 class="kv-nav-section-title">作品目录</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="experience.overview" href="../works/">全部互动作品</a></div></section></div>
+  </div><div class="kv-nav-group" data-group-id="learning" data-active-routes="learning.overview learning.overview learning.today learning.mastery learning.gaps learning.review learning.history learning.agent">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="learning.overview" href="../progress/">学习成长</a>
+      <button class="kv-nav-toggle" type="button" aria-label="展开学习成长二级菜单" aria-expanded="false" aria-controls="kv-menu-learning"><span aria-hidden="true">⌄</span></button></div>
+    <div class="kv-nav-submenu" id="kv-menu-learning" hidden><section class="kv-nav-section"><h2 class="kv-nav-section-title">我的学习成长</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="learning.today" href="../progress/#adaptive-plan">今日学习计划</a><a class="kv-nav-subitem" data-route-id="learning.agent" href="../agent/">个人智能学习 Agent</a><a class="kv-nav-subitem" data-route-id="learning.mastery" href="../progress/#knowledge-map">知识掌握图谱</a><a class="kv-nav-subitem" data-route-id="learning.gaps" href="../progress/#weak-points">薄弱点诊断</a><a class="kv-nav-subitem" data-route-id="learning.review" href="../review/">独立复习工作台</a><a class="kv-nav-subitem" data-route-id="learning.history" href="../progress/#challenge-history">学习历史</a></div></section></div>
+  </div></div>
+    <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
+    <button class="search-trigger" id="search-open" type="button" aria-label="全站搜索知识与作品">搜索 <span>⌘ K</span></button>
+    <details class="kv-global-account" id="kv-global-account" data-status="anonymous">
+    <summary class="kv-account-trigger" aria-label="打开全站账户与同步状态">
+      <span class="kv-account-dot" data-status="neutral" aria-hidden="true"></span>
+      <span class="kv-account-label"><small>ACCOUNT / SYNC</small><strong class="kv-account-state" data-kv-account-state>GitHub 登录</strong></span>
+      <span class="kv-account-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="kv-account-panel" aria-label="账户面板">
+      <strong class="kv-account-panel-title">一个账户，贯穿整个 KNOWVERSE</strong>
+      <p class="kv-account-scope">公开知识、实验、展厅和挑战无需登录。身份认证与云端学习档案授权是两个独立状态。</p>
+      <p class="kv-account-message" data-kv-account-message>当前设备可以直接学习；登录后可在获授权时同步个人学习档案。</p>
+      <p class="kv-account-identity" data-kv-account-identity hidden></p>
+      <button class="kv-account-action primary" type="button" data-kv-sign-in disabled>使用 GitHub 登录</button>
+      <noscript><p class="kv-account-scope">账户操作需要启用 JavaScript；本页导航与知识内容仍可直接访问。</p></noscript>
+      <button class="kv-account-action" type="button" data-kv-sign-out hidden>退出登录</button>
+      <a class="kv-account-manage" href="../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
+    </div>
+  </details>
+  </nav></header>
+  <div class="la-page">
+    <section class="la-hero">
+      <div class="la-container">
+        <div class="la-hero-grid">
+          <div>
+            <span class="la-kicker">PERSONAL AI LEARNING AGENT / PHASE E</span>
+            <h1>从“下一步学什么”，<br><em>到真正掌握。</em></h1>
+            <p>Agent 读取真实学习事件与知识依赖，生成可解释计划、编排可执行任务，并依据独立验证结果动态调整。模型建议不拥有学习证据的裁定权。</p>
+          </div>
+          <div class="la-hero-status">
+            <span class="la-status-dot"></span>
+            <strong id="la-ai-availability">正在检查学习服务…</strong>
+            <small>本地学习和规则规划不依赖云端 AI Provider。</small>
+          </div>
+        </div>
+        <div class="la-metrics" id="la-metrics">
+          <article class="la-metric"><span>验证知识点</span><strong>—</strong><small>真实评估证据</small></article>
+          <article class="la-metric"><span>稳定掌握</span><strong>—</strong><small>独立验证通过</small></article>
+          <article class="la-metric"><span>待补强</span><strong>—</strong><small>未关闭薄弱点</small></article>
+          <article class="la-metric"><span>近 7 日证据</span><strong>—</strong><small>学习成长趋势</small></article>
+        </div>
+      </div>
+    </section>
+
+    <main class="la-container la-main">
+      <div id="la-workspace-loading" class="la-loading">正在连接本地学习数据库与知识注册表…</div>
+      <div id="la-workspace" hidden>
+        <section class="la-section" id="la-agent-workspace">
+          <div class="la-section-title">
+            <div><span class="la-eyebrow">01 / AGENT WORKSPACE</span><h2>你的学习指挥中心</h2></div>
+            <span class="la-explain">AI 建议 · 规则校验 · 人工确认</span>
+          </div>
+          <div class="la-agent-grid">
+            <div class="la-chat-panel">
+              <div class="la-panel-head">
+                <div><strong>KNOWVERSE Learning Agent</strong><small>与目标、掌握状态和任务计划相连</small></div>
+                <span class="la-live-label">LEARNING CONTEXT</span>
+              </div>
+              <div id="la-messages" class="la-messages" aria-live="polite"></div>
+              <form id="la-chat-form" class="la-chat-form">
+                <label class="la-sr-only" for="la-chat-input">输入学习指令</label>
+                <textarea id="la-chat-input" rows="2" maxlength="4000" placeholder="例如：帮我重新规划今天的 Promise 学习；为什么现在需要复习 thenable？"></textarea>
+                <div class="la-chat-controls">
+                  <label class="la-consent"><input id="la-ai-consent" type="checkbox"><span>本轮允许使用云端 AI</span></label>
+                  <button class="la-button primary" id="la-send" type="submit">发送指令 ↗</button>
+                </div>
+                <p id="la-ai-consent-note" class="la-privacy-note">未勾选时只在本机运行规则引擎，不向模型发送学习数据。</p>
+                <p id="la-chat-status" class="la-chat-status">本地学习数据始终保存在 IndexedDB；模型不能写入掌握度。</p>
+              </form>
+            </div>
+            <aside class="la-context-panel">
+              <div class="la-panel-head"><div><strong>当前学习画像</strong><small>由学习事件和评估结果推导</small></div></div>
+              <div id="la-profile-summary" class="la-profile-summary"></div>
+              <div class="la-context-subhead">需要关注的薄弱点</div>
+              <div id="la-gaps" class="la-gaps"></div>
+              <div class="la-context-subhead">目标掌握进度</div>
+              <div id="la-profile-goals" class="la-profile-goals"></div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="la-section" id="la-learning-goals">
+          <div class="la-section-title">
+            <div><span class="la-eyebrow">02 / LEARNING GOALS</span><h2>学习目标</h2></div>
+            <span class="la-explain">目标进度按知识掌握证据计算，不按完成页面计数</span>
+          </div>
+          <div class="la-goal-layout">
+            <form id="la-create-goal" class="la-form-card">
+              <div class="la-card-title"><strong>创建学习目标</strong><span>LEARNER-DEFINED</span></div>
+              <label for="la-goal-title">目标名称</label>
+              <input id="la-goal-title" type="text" maxlength="120" placeholder="例如：精通 ES Promise" required>
+              <label for="la-goal-description">目标描述</label>
+              <textarea id="la-goal-description" rows="2" maxlength="2000" placeholder="你希望解决什么问题或达到什么能力？"></textarea>
+              <label for="la-goal-topics">关联知识专题（可多选）</label>
+              <select id="la-goal-topics" multiple size="4" required></select>
+              <div class="la-form-row">
+                <div><label for="la-goal-date">目标完成日期</label><input id="la-goal-date" type="date"></div>
+                <div><label for="la-goal-minutes">每日投入</label><select id="la-goal-minutes"><option value="15">15 分钟</option><option value="25" selected>25 分钟</option><option value="40">40 分钟</option><option value="60">60 分钟</option><option value="90">90 分钟</option></select></div>
+              </div>
+              <div class="la-form-row">
+                <div><label for="la-goal-priority">优先级</label><select id="la-goal-priority"><option value="1">1 · 低</option><option value="2">2 · 较低</option><option value="3" selected>3 · 普通</option><option value="4">4 · 高</option><option value="5">5 · 最高</option></select></div>
+                <div><label for="la-goal-criteria">验收标准</label><input id="la-goal-criteria" type="text" maxlength="1000" value="关联知识点达到稳定掌握，且不存在未解决的关键薄弱点。"></div>
+              </div>
+              <button class="la-button primary full" type="submit">创建目标并纳入规划</button>
+              <p class="la-form-note">目标创建后不会自动改变现有计划；生成新计划后才会调整优先级。</p>
+            </form>
+            <div id="la-goals-list" class="la-goals-list">
+              <p class="la-empty-small">正在读取学习目标…</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="la-section" id="la-adaptive-plan">
+          <div class="la-section-title">
+            <div><span class="la-eyebrow">03 / ADAPTIVE PLANNING</span><h2>自适应学习计划</h2></div>
+            <button class="la-button primary" id="la-regenerate-plan" type="button">重新分析并规划 ↻</button>
+          </div>
+          <div class="la-preference-bar">
+            <div><label for="la-daily-minutes">每日可用时间</label><select id="la-daily-minutes"><option value="15">15 分钟</option><option value="25">25 分钟</option><option value="40">40 分钟</option><option value="60">60 分钟</option><option value="90">90 分钟</option><option value="120">120 分钟</option></select></div>
+            <div><label for="la-weekly-days">每周学习频率</label><select id="la-weekly-days"><option value="1">1 天</option><option value="2">2 天</option><option value="3">3 天</option><option value="4">4 天</option><option value="5">5 天</option><option value="6">6 天</option><option value="7">7 天</option></select></div>
+            <div><label for="la-pref-topics">优先专题</label><select id="la-pref-topics"><option value="all">自动平衡所有目标</option></select></div>
+            <button class="la-button subtle" id="la-save-preferences" type="button">保存偏好</button>
+          </div>
+          <div class="la-plan-columns">
+            <div class="la-plan-column">
+              <div class="la-column-heading"><strong>待确认的计划提案</strong><span>PROPOSED</span></div>
+              <div id="la-plan-proposal"><p class="la-empty-small">当前没有待确认提案。</p></div>
+            </div>
+            <div class="la-plan-column">
+              <div class="la-column-heading"><strong>当前任务执行</strong><span>ORCHESTRATED</span></div>
+              <div id="la-active-tasks"><p class="la-empty-small">接受计划后会在此显示任务。</p></div>
+            </div>
+          </div>
+        </section>
+
+        <section class="la-section">
+          <div class="la-section-title">
+            <div><span class="la-eyebrow">04 / LEARNER PROFILE</span><h2>行为与成长轨迹</h2></div>
+            <span class="la-explain">偏好可修改 · 能力由证据推导 · 每条结论可追溯</span>
+          </div>
+          <div class="la-profile-footer">
+            <p>画像指标只统计本地与已授权云端同步的学习事件。浏览、点击、AI 对话和普通任务完成不会被当成知识掌握证据。</p>
+            <a href="../progress/" class="la-link">查看完整掌握图谱与历史记录 ↗</a>
+          </div>
+        </section>
+      </div>
+    </main>
+    <footer class="la-footer kv-shared-footer"><div class="la-container">KNOWVERSE / PERSONAL AI LEARNING AGENT · Local-first learning · Evidence-driven mastery</div><div class="kv-footer-links" aria-label="全站快捷入口"><a href="../knowledge/">知识体系</a><a href="../works/">实践体验</a><a href="../progress/">学习成长</a><a href="https://github.com/liucaidong/knowverse" target="_blank" rel="noopener">GitHub ↗</a></div></footer>
+  </div>
+  <script src="../assets/js/backend/public-config.js"></script>
+  <script type="module" src="../assets/js/learning-agent/workspace.mjs"></script>
+<script defer src="../assets/js/v2.js"></script>
+<div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="全站搜索">
+    <div class="searchbox"><div class="searchheading"><strong>搜索 KNOWVERSE 知识宇宙</strong><button id="search-close" type="button">关闭 ✕</button></div>
+    <input id="search-input" type="search" placeholder="搜索 Promise、Monorepo、React Native、AI…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div>
+</body>
+</html>

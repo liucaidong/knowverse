@@ -89,7 +89,7 @@ for (const group of navigation.groups) {
     if (section.dynamic) assert.equal(section.dynamic, "knowledge.topics", `unsupported dynamic section: ${section.dynamic}`);
   }
 }
-const requiredRoutes = ["knowledge.overview","knowledge.sources","experience.overview","experience.lab","experience.gallery","experience.puzzles","learning.overview","learning.today","learning.mastery","learning.gaps","learning.review","learning.history","account.archive"];
+const requiredRoutes = ["knowledge.overview","knowledge.sources","experience.overview","experience.lab","experience.gallery","experience.puzzles","learning.overview","learning.agent","learning.today","learning.mastery","learning.gaps","learning.review","learning.history","account.archive"];
 for (const id of requiredRoutes) assert.ok(routeById.has(id), `required route missing: ${id}`);
 
 assert.ok(Array.isArray(knowledge.topics), "knowledge topics are required");

@@ -67,6 +67,8 @@ jobs:
         run: node --test scripts/verify-react-native-domain.mjs
       - name: Test explainable adaptive learning planner and prerequisite scheduling
         run: node --test scripts/verify-learning-planner.mjs
+      - name: Test Phase E learner profile, goals, plan versions, task orchestration and Agent security
+        run: node --test scripts/verify-phase-e.mjs
       - name: Parse learning and review browser modules
         run: |
           node --check assets/js/learning-progress.mjs
@@ -77,6 +79,15 @@ jobs:
           node --check assets/js/learning-checkpoint-engine.mjs
           node --check assets/js/learning-integration.mjs
           node --check assets/js/learning-planner.mjs
+          node --check assets/js/learning-agent/learner-profile.mjs
+          node --check assets/js/learning-agent/goal-manager.mjs
+          node --check assets/js/learning-agent/plan-manager.mjs
+          node --check assets/js/learning-agent/task-orchestrator.mjs
+          node --check assets/js/learning-agent/agent-tools.mjs
+          node --check assets/js/learning-agent/agent-provider.mjs
+          node --check assets/js/learning-agent/agent-session-store.mjs
+          node --check assets/js/learning-agent/local-agent.mjs
+          node --check assets/js/learning-agent/workspace.mjs
           node --input-type=module --check < assets/js/v2.js
           node --check assets/js/site-shell.mjs
           node --check assets/js/knowledge-context.mjs
@@ -111,6 +122,8 @@ jobs:
         run: node --test scripts/e2e-cross-device-archive.mjs
       - name: Browser E2E · Adaptive daily learning plan
         run: node --test scripts/e2e-learning-planner.mjs
+      - name: Browser E2E · Personal AI Learning Agent, goal lifecycle, offline task restore and WebKit mobile
+        run: node --test scripts/e2e-learning-agent.mjs
       - name: Browser E2E · React Native domain across all three pillars
         run: node --test scripts/e2e-react-native-domain.mjs
       - name: Parse Monorepo browser modules

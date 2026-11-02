@@ -19,7 +19,7 @@ function normalizePreferences(value = {}) {
   const minutes = Number(value.dailyMinutes);
   const focusTopicId = typeof value.focusTopicId === "string" ? value.focusTopicId : "all";
   return {
-    dailyMinutes: [15, 25, 40, 60].includes(minutes) ? minutes : DEFAULT_PREFERENCES.dailyMinutes,
+    dailyMinutes: Number.isInteger(minutes) ? clamp(minutes, 10, 240) : DEFAULT_PREFERENCES.dailyMinutes,
     focusTopicId: focusTopicId || "all",
   };
 }
@@ -59,14 +59,21 @@ function planActivity(snapshot, today) {
   const completedLearningCompetencies = new Set();
   let completedMinutes = 0;
   for (const event of snapshot?.events || []) {
-    if (event.sessionType !== "planning" || typeof event.actionId !== "string") continue;
-    if (event.planActionType === "learn" && event.type === "plan_action_completed") {
+    if (typeof event.actionId !== "string") continue;
+    const legacyPlanEvent = event.sessionType === "planning";
+    const orchestratedTaskEvent = event.sessionType === "orchestration";
+    if (!legacyPlanEvent && !orchestratedTaskEvent) continue;
+    const wasCompleted = event.type === "plan_action_completed" || event.type === "learning_task_completed";
+    const wasStarted = event.type === "plan_action_started" || event.type === "learning_task_in_progress";
+    if (wasCompleted && (event.planActionType === "learn" || event.taskType === "read")) {
       for (const competencyId of event.competencyIds || []) completedLearningCompetencies.add(competencyId);
     }
+    // Completion is terminal for this action regardless of which calendar day
+    // it was actually completed. Budget accounting remains scoped to planDate.
+    if (wasCompleted) completed.add(event.actionId);
     if (event.planDate !== today) continue;
-    if (event.type === "plan_action_started") started.add(event.actionId);
-    if (event.type === "plan_action_completed") {
-      completed.add(event.actionId);
+    if (wasStarted) started.add(event.actionId);
+    if (wasCompleted) {
       completedMinutes += Number.isFinite(Number(event.estimatedMinutes)) ? Math.max(0, Number(event.estimatedMinutes)) : 0;
     }
   }
@@ -367,15 +374,67 @@ export function buildAdaptiveLearningPlan(options = {}) {
     if (action) candidates.push(action);
   }
 
-  candidates.sort((a, b) => b.priority - a.priority || a.estimatedMinutes - b.estimatedMinutes ||
-    a.topicTitle.localeCompare(b.topicTitle, "zh-CN"));
+  // Multi-goal prioritization is an overlay on the existing deterministic
+  // prerequisite/mastery/review engine. Goal state never becomes mastery evidence.
+  const activeGoals = (Array.isArray(options.goals) ? options.goals : [])
+    .filter(goal => goal && goal.status === "active");
+  const goalTargets = activeGoals.map(goal => {
+    const competencyIds = new Set(goal.competencyIds || []);
+    for (const item of allCompetencies) {
+      if ((goal.topicIds || []).includes(item.topicId)) competencyIds.add(item.id);
+    }
+    return { goal, competencyIds };
+  });
+  for (const candidate of candidates) {
+    const matches = goalTargets.filter(item => item.competencyIds.has(candidate.competencyId));
+    candidate.linkedGoalIds = matches.map(item => item.goal.goalId);
+    if (!matches.length) continue;
+    const best = Math.max(...matches.map(({ goal }) => {
+      const priority = clamp(Number(goal.priority) || 3, 1, 5);
+      const days = goal.targetAt ? daysUntil(goal.targetAt, now) : Infinity;
+      const urgency = days < 0 ? 12 : days <= 7 ? 9 : days <= 30 ? 5 : 0;
+      return priority * 3 + urgency;
+    }));
+    candidate.priority += best;
+    candidate.priorityReasons.push(matches.length > 1
+      ? "同时推进 " + matches.length + " 个学习目标"
+      : "属于当前主动学习目标");
+    const soonestDeadline = matches.map(item => item.goal.targetAt).filter(Boolean).sort()[0];
+    if (soonestDeadline) candidate.goalDeadline = soonestDeadline;
+  }
+
   const dailyMinutes = preferences.dailyMinutes;
   const selected = [];
-  let remaining = Math.max(0, dailyMinutes - activity.completedMinutes);
+  const requestedBudget = Number(options.budgetMinutes);
+  const budgetMinutes = Number.isFinite(requestedBudget)
+    ? clamp(requestedBudget, 0, 10_000)
+    : dailyMinutes;
+  const maxActions = Number.isInteger(Number(options.maxActions))
+    ? clamp(Number(options.maxActions), 1, 30)
+    : 3;
+  let remaining = Math.max(0, budgetMinutes - activity.completedMinutes);
   const seenCompetencies = new Set();
-  for (const candidate of candidates) {
-    if (activity.completed.has(candidate.actionId) || seenCompetencies.has(candidate.competencyId)) continue;
-    if (candidate.estimatedMinutes > remaining) continue;
+  const coveredGoals = new Set();
+  const pending = candidates.filter(candidate =>
+    !activity.completed.has(candidate.actionId) &&
+    !seenCompetencies.has(candidate.competencyId) &&
+    candidate.estimatedMinutes <= remaining
+  );
+  while (pending.length && selected.length < maxActions) {
+    // A small coverage bonus prevents a high-priority single goal from
+    // monopolizing every slot when another active goal has valid work ready.
+    pending.sort((a, b) => {
+      const score = item => item.priority + item.linkedGoalIds
+        .filter(goalId => !coveredGoals.has(goalId)).length * 7;
+      return score(b) - score(a) || a.estimatedMinutes - b.estimatedMinutes ||
+        a.topicTitle.localeCompare(b.topicTitle, "zh-CN");
+    });
+    const index = pending.findIndex(candidate =>
+      !seenCompetencies.has(candidate.competencyId) &&
+      candidate.estimatedMinutes <= remaining
+    );
+    if (index < 0) break;
+    const [candidate] = pending.splice(index, 1);
     selected.push({
       ...candidate,
       completedToday: false,
@@ -383,8 +442,8 @@ export function buildAdaptiveLearningPlan(options = {}) {
       sequence: selected.length + 1,
     });
     seenCompetencies.add(candidate.competencyId);
+    candidate.linkedGoalIds.forEach(goalId => coveredGoals.add(goalId));
     remaining -= candidate.estimatedMinutes;
-    if (selected.length >= 3) break;
   }
 
   const completedToday = [...activity.completed];
@@ -421,6 +480,8 @@ export function buildAdaptiveLearningPlan(options = {}) {
     preferences,
     headline,
     dailyMinutes,
+    budgetMinutes,
+    maxActions,
     plannedMinutes: selected.reduce((sum, item) => sum + item.estimatedMinutes, 0),
     remainingMinutes: Math.max(0, remaining),
     actions: selected,

@@ -40,6 +40,13 @@ async function startServer() {
         "content-type": mime[extname(file)] || "application/octet-stream",
         "cache-control": "no-store",
         "x-content-type-options": "nosniff",
+        // WebKit may resolve module-relative registry reads through a distinct
+        // loopback origin while the test server is under automation. The
+        // fixture server serves only static test assets, so explicit wildcard
+        // CORS keeps browser-engine behavior deterministic.
+        "access-control-allow-origin": "*",
+        "access-control-allow-methods": "GET, HEAD, OPTIONS",
+        "access-control-allow-headers": "*",
       });
       response.end(body);
     } catch {

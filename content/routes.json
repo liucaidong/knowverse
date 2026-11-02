@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-02",
+  "updated": "2026-11-03",
   "description": "全站 canonical route 注册表。页面链接只由稳定 route ID 或专题/概念注册表构建；所有内部页面路径均相对仓库根目录。",
   "routes": [
     {
@@ -50,6 +50,12 @@
       "label": "学习成长总览",
       "path": "./progress/",
       "pageType": "progress"
+    },
+    {
+      "id": "learning.agent",
+      "label": "个人智能学习 Agent",
+      "path": "./agent/",
+      "pageType": "learning-agent"
     },
     {
       "id": "learning.today",

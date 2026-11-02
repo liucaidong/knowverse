@@ -86,7 +86,8 @@
         "learning.mastery",
         "learning.gaps",
         "learning.review",
-        "learning.history"
+        "learning.history",
+        "learning.agent"
       ],
       "sections": [
         {
@@ -95,6 +96,10 @@
             {
               "label": "今日学习计划",
               "routeId": "learning.today"
+            },
+            {
+              "label": "个人智能学习 Agent",
+              "routeId": "learning.agent"
             },
             {
               "label": "知识掌握图谱",
