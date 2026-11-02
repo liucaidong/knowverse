@@ -112,16 +112,18 @@ function mountGlobalAccount(root, nav) {
     "公开知识内容和互动作品无需登录。登录用于关联个人学习档案与云端同步；GitHub OAuth 仅请求 read:user。身份认证成功不代表自动获得云端同步权限，云端仍受账户白名单、RLS 与受控 RPC 限制。"));
   const message = make("p", "kv-account-message", "未登录时仍可在当前设备学习，学习记录继续保存在本机。");
   const identity = make("p", "kv-account-identity", "");
-  const signIn = make("button", "kv-account-action primary", "使用 GitHub 登录（全站）");
+  const signIn = make("button", "kv-account-quick-login", "GitHub 登录");
   signIn.type = "button";
+  signIn.title = "GitHub 登录后，同一会话在 KNOWVERSE 全站共享";
+  signIn.setAttribute("aria-label", "GitHub 登录 KNOWVERSE 全站账户");
   signIn.disabled = !BACKEND_CONFIG.enabled;
   const signOut = make("button", "kv-account-action", "退出全站账户");
   signOut.type = "button";
   signOut.hidden = true;
   const archive = makeLink(panel, "管理学习档案与云端同步 ↗", "progress/#cloud-account", root, "kv-account-manage");
-  panel.append(message, identity, signIn, signOut);
+  panel.append(message, identity, signOut);
   details.append(summary, panel);
-  nav.append(details);
+  nav.append(details, signIn);
 
   async function refresh() {
     identity.textContent = "";
@@ -131,10 +133,12 @@ function mountGlobalAccount(root, nav) {
       state.textContent = "云端未配置";
       message.textContent = "云端账户尚未启用；公开内容和本地学习功能无需登录。";
       signIn.disabled = true;
+      signIn.textContent = "云端未配置";
       signOut.hidden = true;
       return;
     }
     signIn.disabled = false;
+    signIn.textContent = "GitHub 登录";
     try {
       const session = await auth.getSession();
       if (!session) {
@@ -143,6 +147,7 @@ function mountGlobalAccount(root, nav) {
         details.dataset.status = "anonymous";
         dot.dataset.status = "anonymous";
         signIn.hidden = false;
+        signIn.textContent = "GitHub 登录";
         signOut.hidden = true;
         return;
       }
@@ -162,19 +167,20 @@ function mountGlobalAccount(root, nav) {
       details.dataset.status = "warning";
       dot.dataset.status = "warning";
       signIn.hidden = false;
+      signIn.textContent = "重试 GitHub 登录";
       signOut.hidden = true;
     }
   }
 
   signIn.addEventListener("click", async () => {
     signIn.disabled = true;
-    signIn.textContent = "正在跳转到 GitHub…";
+    signIn.textContent = "正在跳转…";
     try {
       await auth.signInWithGitHub(root, location.href);
     } catch (error) {
       message.textContent = error.message || "GitHub 登录启动失败。";
       signIn.disabled = false;
-      signIn.textContent = "重新尝试 GitHub 登录";
+      signIn.textContent = "重试 GitHub 登录";
     }
   });
   signOut.addEventListener("click", async () => {
