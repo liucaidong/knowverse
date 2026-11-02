@@ -154,3 +154,19 @@ test("one shared archive runtime auto-syncs from every page and powers the accou
   assert.match(bootstrap, /bootstrapError/);
   assert.match(panel, /runtime.bootstrapError/);
 });
+
+
+test("archive document migration is complete and contains no duplicated SQL fragments", async () => {
+  const migration = await read("supabase/migrations/20261101110000_learning_archive_documents.sql");
+  const count = fragment => migration.split(fragment).length - 1;
+
+  assert.equal(count("create or replace function private.normalize_learning_event_envelope()"), 1);
+  assert.equal(count("create table if not exists public.learning_archive_documents"), 1);
+  assert.equal(count("create or replace function public.sync_push_learning_documents("), 1);
+  assert.equal(count("create or replace function public.sync_pull_learning_documents("), 1);
+  assert.ok(migration.includes("v_schema_text not in ('2', '3')"));
+  assert.ok(migration.includes("when jsonb_typeof(event_payload -> 'causationEventIds') = 'array' then"));
+  assert.ok(migration.includes("create trigger normalize_learning_event_envelope"));
+  assert.ok(!migration.includes("~ '^[0-9]+\n"));
+  assert.ok(migration.trimEnd().endsWith("Mastery state remains event-derived.';"));
+});
