@@ -53,7 +53,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
   errorBox.hidden = true;
   const actions = node("div", "kv-backend-actions");
   const accountGuide = node("p", "kv-backend-account-guide",
-    "登录与退出统一使用页面顶部的「全站账户」入口。本面板只负责学习档案状态、主动同步与冲突处理。");
+    "登录和退出登录统一使用页面顶部的「全站账户」入口。本面板只负责学习档案状态、主动同步与冲突处理。");
   const sync = node("button", "lp-data-button", "立即同步");
   sync.type = "button";
   actions.append(sync);
