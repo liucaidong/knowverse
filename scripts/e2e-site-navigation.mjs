@@ -44,6 +44,13 @@ test("desktop navigation has one static shell, nested menus and one global accou
     assert.equal(await page.locator("#kv-menu-experience").isVisible(),true);
     await page.getByRole("link",{name:"01 · 原理实验室"}).click();
     await page.waitForURL("**/lab/");
+    // The shared shell is loaded by an asynchronous module after navigation; wait for
+    // its current-route hydration rather than racing the URL transition.
+    await page.waitForFunction(
+      () => document.querySelector('[data-group-id="experience"] .kv-nav-link')?.getAttribute("aria-current") === "page",
+      null,
+      { timeout: 5000 }
+    );
     assert.equal(await page.locator('[data-group-id="experience"] .kv-nav-link').getAttribute("aria-current"),"page");
     await page.locator("#kv-global-account > summary").click();
     assert.equal(await page.locator(".kv-account-panel").isVisible(),true);
