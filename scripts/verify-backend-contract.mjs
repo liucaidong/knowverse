@@ -159,12 +159,12 @@ test("archive document migration is complete and contains no duplicated SQL frag
   const migration = await read("supabase/migrations/20261101110000_learning_archive_documents.sql");
   const count = pattern => (migration.match(pattern) || []).length;
 
-  assert.equal(count(/create or replace function private\\.normalize_learning_event_envelope\\(\\)/gi), 1);
-  assert.equal(count(/create table if not exists public\\.learning_archive_documents/gi), 1);
-  assert.equal(count(/create or replace function public\\.sync_push_learning_documents\\(/gi), 1);
-  assert.equal(count(/create or replace function public\\.sync_pull_learning_documents\\(/gi), 1);
-  assert.match(migration, /v_schema_text not in \\('2', '3'\\)/i);
-  assert.match(migration, /when jsonb_typeof\\(event_payload -> 'causationEventIds'\\) = 'array' then\\s+case/i);
+  assert.equal(count(/create or replace function private\.normalize_learning_event_envelope\(\)/gi), 1);
+  assert.equal(count(/create table if not exists public\.learning_archive_documents/gi), 1);
+  assert.equal(count(/create or replace function public\.sync_push_learning_documents\(/gi), 1);
+  assert.equal(count(/create or replace function public\.sync_pull_learning_documents\(/gi), 1);
+  assert.match(migration, /v_schema_text not in \('2', '3'\)/i);
+  assert.match(migration, /when jsonb_typeof\(event_payload -> 'causationEventIds'\) = 'array' then\s+case/i);
   assert.match(migration, /create trigger normalize_learning_event_envelope/i);
   assert.ok(migration.trimEnd().endsWith("Mastery state remains event-derived.';"));
 });

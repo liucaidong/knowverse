@@ -21,6 +21,7 @@ set schema_version = case
         end
       else '[]'::jsonb
     end;
+
 alter table public.learning_events
   drop constraint if exists learning_events_schema_version_check;
 alter table public.learning_events
