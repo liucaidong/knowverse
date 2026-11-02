@@ -7,7 +7,6 @@ import {
 } from "./local-event-store.mjs";
 import { resolveLocalLearningArchiveConflict } from "./local-archive.mjs";
 
-const siteRoot = new URL("../../../", import.meta.url);
 const node = (tag, className, text) => {
   const element = document.createElement(tag);
   if (className) element.className = className;

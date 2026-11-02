@@ -2,6 +2,10 @@ import { BACKEND_CONFIG } from "./config.mjs";
 
 const AUTH_RETURN_TO_KEY = "knowverse:auth-return-to";
 const textEncoder = new TextEncoder();
+
+function notifyAuthState() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("knowverse:auth-state"));
+}
 const base64Url = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)))
   .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 
@@ -60,7 +64,7 @@ export class SupabaseAuthClient {
     };
     try {
       localStorage.setItem(this.config.authStorageKey, JSON.stringify(normalized));
-      window.dispatchEvent(new Event("knowverse:auth-state"));
+      notifyAuthState();
     } catch {
       throw new Error("无法保存登录会话。请检查浏览器本地存储空间和隐私设置。");
     }
@@ -71,7 +75,7 @@ export class SupabaseAuthClient {
     try {
       localStorage.removeItem(this.config.authStorageKey);
       localStorage.removeItem(this.config.pkceStorageKey);
-      window.dispatchEvent(new Event("knowverse:auth-state"));
+      notifyAuthState();
     } catch { /* The next authentication attempt will start a fresh flow. */ }
   }
 
