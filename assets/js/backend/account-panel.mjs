@@ -45,7 +45,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
   header.append(heading, status);
 
   const description = node("p", "kv-backend-description",
-    "学习内容始终先保存在本机。登录同一账户后，学习事件与可恢复的挑战、复习现场及偏好会在设备之间增量同步。");
+    "这是 KNOWVERSE 全站共享账户，不是当前页面的独立登录。登录后，同一会话可用于知识库、实验室、展厅、解谜和学习驾驶舱。公开知识内容无需登录；登录用于个人学习档案云端同步，学习内容仍优先保存在本机。");
   const account = node("div", "kv-backend-account", "正在读取账户…");
   const metrics = node("div", "kv-backend-metrics");
   const detailList = node("dl", "kv-backend-details");
@@ -53,7 +53,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
   const errorBox = node("p", "kv-backend-error");
   errorBox.hidden = true;
   const actions = node("div", "kv-backend-actions");
-  const signIn = node("button", "lp-data-button primary", "使用 GitHub 登录");
+  const signIn = node("button", "lp-data-button primary", "使用 GitHub 登录（全站共享账户）");
   signIn.type = "button";
   const sync = node("button", "lp-data-button", "立即同步");
   sync.type = "button";
@@ -69,7 +69,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
   conflictSection.append(conflictList);
 
   const hint = node("p", "kv-backend-hint",
-    "安全边界：浏览器只使用 Supabase Publishable Key；云端数据由账户白名单、RLS 与受控 RPC 隔离。退出登录不会删除本地学习记录。");
+    "安全边界：GitHub OAuth 仅请求 read:user，不申请 GitHub 仓库读写权限。云端数据由账户白名单、RLS 与受控 RPC 隔离；退出全站账户不会删除本地学习记录。");
   shell.append(header, description, account, metrics, detailList, lastSync, errorBox, actions, conflictSection, hint);
   host.replaceChildren(shell);
 
