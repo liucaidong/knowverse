@@ -72,7 +72,7 @@ export async function getLocalDevice() {
 }
 
 /**
- * The localStorage event journal is the single local source of truth.
+ * The versioned LearningStateStorage envelope is the single local domain-state source.
  * IndexedDB stores only the durable upload queue, device sequence and archive documents.
  */
 export async function persistLearningEvents(events, options = {}) {
@@ -507,12 +507,13 @@ export async function resolveArchiveConflict(conflictId, choice) {
 }
 
 export async function getArchiveStatus(eventCount = 0) {
-  const [pendingEvents, documents, conflicts, lastSyncAt, lastSyncError] = await Promise.all([
+  const [pendingEvents, documents, conflicts, lastSyncAt, lastSyncError, lastRestoreAt] = await Promise.all([
     countOutbox(),
     listArchiveDocuments(1000),
     listArchiveConflicts(),
     getArchiveMeta("last-successful-sync"),
     getArchiveMeta("last-sync-error"),
+    getArchiveMeta("last-cloud-restore-at"),
   ]);
   let device = null;
   try { device = await getLocalDevice(); } catch { /* IndexedDB availability is reported below. */ }
@@ -525,6 +526,7 @@ export async function getArchiveStatus(eventCount = 0) {
     pendingDocuments: documents.filter(item => item.dirty && !item.conflict).length,
     conflicts: conflicts.length,
     lastSyncAt: lastSyncAt || null,
+    lastRestoreAt: lastRestoreAt || null,
     lastSyncError: lastSyncError || null,
   };
 }

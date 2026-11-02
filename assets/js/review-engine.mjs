@@ -1,3 +1,4 @@
+import { createLearningStateStorage } from "./learning-state-storage.mjs";
 import {
   createLearningProgressStore,
   getGapReviewPredecessorEventIds,
@@ -11,8 +12,8 @@ const makeId = () => "review-" + Date.now().toString(36) + "-" +
   (globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2));
 
 function getStorage(candidate) {
-  if (candidate) return candidate;
-  try { return globalThis.localStorage || null; } catch { return null; }
+  if (typeof candidate !== "undefined") return createLearningStateStorage(candidate);
+  try { return createLearningStateStorage(globalThis.localStorage || null); } catch { return null; }
 }
 function readJSON(storage, key, fallback) {
   try {
@@ -91,13 +92,13 @@ export function createReviewSessionEngine(options = {}) {
     const key = SESSION_PREFIX + session.sessionId;
     if (session.status !== "active") {
       try { storage?.removeItem?.(key); } catch { /* The append-only event log remains authoritative. */ }
-      if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-delete", { detail: { type: "review_session", key: session.sessionId } }));
+      if (typeof window !== "undefined") storage.afterCommit(() => window.dispatchEvent(new CustomEvent("knowverse:learning-archive-delete", { detail: { type: "review_session", key: session.sessionId } })));
       return;
     }
     if (!writeJSON(storage, key, session)) {
       throw new Error("复习会话无法写入本地存储。请先导出学习档案并检查浏览器空间。");
     }
-    if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "review_session", key: session.sessionId } }));
+    if (typeof window !== "undefined") storage.afterCommit(() => window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "review_session", key: session.sessionId } })));
   }
   function appendEvent(session, type, suffix, fields = {}) {
     const definition = definitions.get(session.variantId);
@@ -178,11 +179,13 @@ export function createReviewSessionEngine(options = {}) {
       startedAt: nowIso(),
       finishedAt: null,
     };
-    persistSession(session);
-    appendEvent(session, "review_started", "started", {
-      reviewMode: targetGapId ? "targeted-gap" : "competency",
-      causationEventIds: predecessorEventIds,
-      targetGapEventIds,
+    storage.transaction(() => {
+      persistSession(session);
+      appendEvent(session, "review_started", "started", {
+        reviewMode: targetGapId ? "targeted-gap" : "competency",
+        causationEventIds: predecessorEventIds,
+        targetGapEventIds,
+      });
     });
     return clone(session);
   }
@@ -203,11 +206,13 @@ export function createReviewSessionEngine(options = {}) {
     session.hintsUsed += 1;
     const hint = definition.hints[session.hintsUsed - 1];
     session.hintEventIds = [...priorHintEventIds, sessionId + ":hint:" + session.hintsUsed];
-    persistSession(session);
-    appendEvent(session, "hint_revealed", "hint:" + session.hintsUsed, {
-      hintNumber: session.hintsUsed,
-      hintsUsed: session.hintsUsed,
-      causationEventIds: [sessionId + ":started", ...priorHintEventIds].slice(-20),
+    storage.transaction(() => {
+      persistSession(session);
+      appendEvent(session, "hint_revealed", "hint:" + session.hintsUsed, {
+        hintNumber: session.hintsUsed,
+        hintsUsed: session.hintsUsed,
+        causationEventIds: [sessionId + ":started", ...priorHintEventIds].slice(-20),
+      });
     });
     return { session: clone(session), hint, exhausted: false };
   }
@@ -231,26 +236,28 @@ export function createReviewSessionEngine(options = {}) {
       hintsUsed: session.hintsUsed,
     };
     const attemptEventId = sessionId + ":attempt:" + session.attempts;
-    appendEvent(session, "attempt", "attempt:" + session.attempts, {
-      ...fields,
-      gapObservationId: !correct && gapId ? attemptEventId : null,
-      causationEventIds: [sessionId + ":started", ...(session.hintEventIds || [])].slice(-20),
-    });
-    session.status = correct ? "passed" : "failed";
-    session.finishedAt = nowIso();
-    if (correct) {
-      appendEvent(session, "assessment_passed", "passed", {
-        gapId,
-        scorePct,
-        earnedPoints: scorePct,
-        maximumPoints: 100,
-        attempts: session.attempts,
-        hintsUsed: session.hintsUsed,
-        independent: session.hintsUsed === 0,
-        causationEventIds: [sessionId + ":started", attemptEventId, ...(session.hintEventIds || [])].slice(-20),
+    storage.transaction(() => {
+      appendEvent(session, "attempt", "attempt:" + session.attempts, {
+        ...fields,
+        gapObservationId: !correct && gapId ? attemptEventId : null,
+        causationEventIds: [sessionId + ":started", ...(session.hintEventIds || [])].slice(-20),
       });
-    }
-    persistSession(session);
+      session.status = correct ? "passed" : "failed";
+      session.finishedAt = nowIso();
+      if (correct) {
+        appendEvent(session, "assessment_passed", "passed", {
+          gapId,
+          scorePct,
+          earnedPoints: scorePct,
+          maximumPoints: 100,
+          attempts: session.attempts,
+          hintsUsed: session.hintsUsed,
+          independent: session.hintsUsed === 0,
+          causationEventIds: [sessionId + ":started", attemptEventId, ...(session.hintEventIds || [])].slice(-20),
+        });
+      }
+      persistSession(session);
+    });
     return {
       session: clone(session),
       correct,

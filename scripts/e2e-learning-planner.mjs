@@ -52,11 +52,15 @@ test("Chromium desktop: the daily plan respects prerequisites and advances from 
     assert.equal(firstCompetency, "thenable 解析与 Promise 采用");
     assert.match(await page.locator("#plan-summary").textContent(), /今日安排/);
     await firstCard.getByRole("button", { name:"完成此学习步骤" }).click();
-    await page.waitForFunction(() => {
-      const data = JSON.parse(localStorage.getItem("knowverse:learning-progress") || "{}");
+    await page.waitForFunction(async () => {
+      const { createLearningStateStorage } = await import("/assets/js/learning-state-storage.mjs");
+      const data = JSON.parse(createLearningStateStorage().getItem("knowverse:learning-progress") || "{}");
       return (data.events || []).some(event => event.type === "plan_action_completed");
     });
-    const snapshot = await page.evaluate(() => JSON.parse(localStorage.getItem("knowverse:learning-progress")));
+    const snapshot = await page.evaluate(async () => {
+      const { createLearningStateStorage } = await import("/assets/js/learning-state-storage.mjs");
+      return JSON.parse(createLearningStateStorage().getItem("knowverse:learning-progress"));
+    });
     assert.equal(snapshot.events.filter(event => event.type === "plan_action_completed").length, 1);
     assert.equal(snapshot.events.some(event => event.type === "completed" || event.type === "assessment_passed"), false);
     assert.equal(await page.locator("#hero-tested").textContent(), "0 / 15");
@@ -83,7 +87,7 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
     await page.locator("#plan-time-budget").selectOption("15");
     assert.equal(await page.locator("#plan-actions .lp-plan-card").count(), 1);
     await page.locator("#plan-focus-topic").selectOption("monorepo");
-    const preference = await page.evaluate(() => JSON.parse(localStorage.getItem("knowverse:learning-plan:preferences")));
+    const preference = await page.evaluate(async () => { const { createLearningStateStorage } = await import("/assets/js/learning-state-storage.mjs"); return JSON.parse(createLearningStateStorage().getItem("knowverse:learning-plan:preferences")); });
     assert.deepEqual(preference, { dailyMinutes:15, focusTopicId:"monorepo" });
     assert.equal((await page.locator("#plan-actions .lp-plan-card h3").first().textContent()).trim(), "工作区依赖声明");
     const box = await page.locator(".lp-plan-shell").boundingBox();

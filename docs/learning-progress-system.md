@@ -55,12 +55,10 @@ V3 不再通过客户端墙上时钟或合并后的事件数组顺序推断因�
 
 当前事件日志只使用一个当前存储键和 Event Schema V3，不读取旧 V1/V2 存储键，也不执行旧档案复制迁移。V2 历史事件通过一次前向云端迁移和本机 envelope 规范化进入 V3，不维护双 schema 运行时：
 
-- 学习事件日志：`knowverse:learning-progress`
-- 活动中的挑战：`knowverse:challenge/<challengeId>`
-- 活动中的复习：`knowverse:review-session/<sessionId>`
-- 规划偏好：`knowverse:learning-plan:preferences`
+- 物理根键：`knowverse:learning-state`
+- 内部逻辑记录：`knowverse:learning-progress`、`knowverse:challenge/<challengeId>`、`knowverse:review-session/<sessionId>`、`knowverse:learning-plan:preferences`
 
-本机事件日志是 LocalStorage 中的唯一权威快照。IndexedDB 只保存可靠上传队列、设备序列、同步游标、可恢复挑战/复习/偏好文档及冲突。云端同步成功后，事件由 Supabase 保存；本机 Outbox 只有收到服务端确认才会清除。挑战与复习现场使用文档 revision / compare-and-swap 同步，并发冲突必须由用户明确选择。
+学习事件、挑战进度、活动复习现场与规划偏好由 `assets/js/learning-state-storage.mjs` 统一保存在单个 `knowverse:learning-state` envelope 中。各领域引擎沿用同步读写 API；涉及多条逻辑记录的挑战/复习动作通过 `transaction()` 一次提交；Outbox 和档案捕获通知仅在根键成功提交后发出，避免回滚后留下不存在于本机事件日志中的上传队列记录。Supabase Auth 会话键不进入此 envelope。IndexedDB 只保存可靠上传队列、设备序列、同步游标、可恢复挑战/复习/偏好文档及冲突，不再承担第二份本机领域状态镜像。云端同步成功后，本机 Outbox 只有收到服务端确认才会清除；挑战与复习现场通过文档 revision / compare-and-swap 同步，并发冲突必须由用户明确选择。
 
 事件日志不会按固定数量静默截断。浏览器存储受站点配额限制；写入失败会显示失败状态。学习档案支持 JSON 导入与导出；导出文件包含个人学习记录，应由本人妥善保管，不要提交到公开仓库。
 
@@ -151,7 +149,7 @@ WebKit 手机视口属于浏览器引擎的自动化视口测试，不等同于�
 - 不把个人学习事件写入仓库静态 JSON。
 - 不生成没有验证题的虚假掌握分。
 - 不把三个产品主线重写为一个大型应用；采用统一事件协议与轻量采集模块。
-- 当前事件主档仍为单一 LocalStorage 快照；IndexedDB 用于可靠 Outbox、游标和 CAS 档案文档。跨设备可同步事件与挑战 / 复习现场，但领域引擎仍是同步 LocalStorage 读写；完整 IndexedDB 单事务领域状态迁移尚未交付。
+- 当前本机领域状态已收敛为单一 LocalStorage envelope，并通过事务一次提交挑战/复习现场和对应事件；IndexedDB 只用于 Outbox、游标和 CAS 文档。领域引擎继续使用同步 API，因此这不是把领域状态改造成异步 IndexedDB 主存储。云端恢复采用 pull-only 路径，冲突显式保留；实体 iPhone Safari 仍需人工验收。
 
 
 ## 统一作品学习接入（2026-11-01）
@@ -182,7 +180,7 @@ WebKit 手机视口属于浏览器引擎的自动化视口测试，不等同于�
 
 ### 当前存储边界
 
-事件日志只有一个当前 schema。LocalStorage 提供现有领域引擎需要的同步读写；IndexedDB 管理可靠云同步队列和版本化档案文档。旧键迁移、跨 schema 回退、兼容复制状态机均不属于当前产品。
+事件日志只有一个当前 Event Schema V3。领域状态由 LocalStorage 的单一 envelope 提供同步读写和事务提交；首次加载只收拢仍在使用的当前逻辑键，不引入旧事件 schema 回退。IndexedDB 管理可靠云同步队列和版本化档案文档，不做领域状态双写。实体设备恢复走显式 pull-only 流程，设备验收步骤见 `docs/backend/phase-c-real-device-acceptance.md`。
 
 ## 主动学习规划系统（2026-11-01）
 

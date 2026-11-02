@@ -58,7 +58,7 @@ Promise、TypeScript Monorepo、React Native 新架构这 3 个专题已有明�
 - **Canonical Registries**：`content/navigation.json`、`routes.json`、`knowledge.json`、`concepts.json`、`learning-map.json`、`works.json`、`learning-checkpoints.json`、`review-assessments.json`、`sources.json`。
 - **Build-time Site Shell**：`scripts/build-public-content.mjs` 生成概念页和目录；`scripts/build-site-shell.mjs` 生成静态导航、账户入口、搜索容器与页脚。首屏不依赖 JavaScript 才能看到正确导航。
 - **Learning Intelligence**：追加式学习事件、掌握/置信度 reducer、Gap 生命周期、独立复习和可解释规划。
-- **Personal Data**：本地优先归档、IndexedDB Outbox 与 Supabase/RLS/受控 RPC；认证与云端档案授权分开处理。
+- **Personal Data**：统一事务式本机学习状态包、IndexedDB Outbox / CAS 档案与 Supabase/RLS/受控 RPC；认证、账户白名单和云端恢复分开处理。
 - **AI Augmentation**：后续通过服务端代理、来源引用、Schema 和评估门控引入，不直接拥有掌握度裁决权。
 
 ## 开发与验证

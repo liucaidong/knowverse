@@ -158,6 +158,83 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
     return { pulled, cursor, conflictIds: [...conflictIds] };
   }
 
+  async function restoreFromCloud() {
+    // The page-wide automatic sync may already be running when a learner taps
+    // Restore. Queue behind that operation rather than reporting success early
+    // or turning the explicit pull-only action into a push-first sync.
+    if (running) dispatchStatus({ status: "restore-queued" });
+    while (running) await new Promise(resolve => setTimeout(resolve, 25));
+    if (!config.enabled) return { status: "local-only", reason: "backend-not-configured" };
+    if (!isOnline()) {
+      const result = { status: "offline", reason: "network-unavailable" };
+      dispatchStatus(result);
+      return result;
+    }
+
+    running = true;
+    dispatchStatus({ status: "restoring" });
+    try {
+      const session = await auth.getSession();
+      if (!session) {
+        const result = { status: "signed-out" };
+        dispatchStatus(result);
+        return result;
+      }
+
+      const account = await profile();
+      if (!account?.authorized) {
+        const result = { status: "pending-authorization", user: session.user || null };
+        dispatchStatus(result);
+        return result;
+      }
+
+      const userId = session.user?.id || account.user_id || "current";
+      const boundUserId = await getArchiveMeta("bound-user-id");
+      if (boundUserId && boundUserId !== userId) {
+        throw new Error("此浏览器的本地学习档案已绑定另一个账户。为保护不同账户的数据隔离，不能把另一个账户的云端档案恢复到此设备。");
+      }
+      if (!boundUserId) await setArchiveMeta("bound-user-id", userId);
+
+      const device = await getLocalDevice();
+      await auth.request("/rest/v1/rpc/register_device", {
+        method: "POST",
+        body: {
+          p_device_id: device.id,
+          p_label: "KNOWVERSE 浏览器设备",
+          p_platform: typeof navigator !== "undefined" && /iPhone|Android|Mobile/i.test(navigator.userAgent || "") ? "mobile-web" : "desktop-web",
+        },
+      });
+
+      // Capture local active sessions before pulling. On a genuinely fresh
+      // device this is empty; on a used device it gives CAS a base to detect
+      // divergence instead of silently replacing local work with cloud data.
+      await captureLocalLearningArchive(progressStore);
+      const pulledEvents = await pullEvents(userId);
+      const pulledDocuments = await pullDocuments(userId);
+      const result = {
+        status: "restored",
+        restoredEvents: pulledEvents.pulled,
+        restoredDocuments: pulledDocuments.pulled,
+        conflicts: new Set(pulledDocuments.conflictIds).size,
+        cursor: pulledEvents.cursor,
+        documentCursor: pulledDocuments.cursor,
+      };
+      await setArchiveMeta("last-cloud-restore-at", new Date().toISOString());
+      dispatchStatus(result);
+      return result;
+    } catch (error) {
+      const result = { status: "error", operation: "restore", message: error.message || "云端恢复失败" };
+      dispatchStatus(result);
+      throw error;
+    } finally {
+      running = false;
+      if (rerunRequested) {
+        rerunRequested = false;
+        scheduleSync(1200);
+      }
+    }
+  }
+
   async function sync() {
     if (running) {
       rerunRequested = true;
@@ -299,5 +376,5 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
     };
   }
 
-  return { initialize, sync, start };
+  return { initialize, sync, restoreFromCloud, start };
 }

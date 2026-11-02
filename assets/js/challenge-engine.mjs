@@ -1,3 +1,4 @@
+import { createLearningStateStorage } from "./learning-state-storage.mjs";
 import { createChallengeLearningEvents, createLearningProgressStore } from "./learning-progress.mjs";
 
 const ENGINE_VERSION = 1;
@@ -192,6 +193,7 @@ export function createChallengeProgressStore(options = {}) {
       storage = null;
     }
   }
+  storage = createLearningStateStorage(storage);
   const usable = storage &&
     typeof storage.getItem === "function" &&
     typeof storage.setItem === "function" &&
@@ -217,6 +219,7 @@ export function createChallengeProgressStore(options = {}) {
     save(progress) {
       if (!usable) return false;
       try {
+        return storage.transaction(() => {
         const key = prefix + encodeURIComponent(progress.challengeId);
         const raw = storage.getItem(key);
         const previous = raw ? JSON.parse(raw) : null;
@@ -226,8 +229,9 @@ export function createChallengeProgressStore(options = {}) {
           if (events.length && !learningStore.appendMany(events)) return false;
         }
         storage.setItem(key, JSON.stringify(progress));
-        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "challenge_progress", key: progress.challengeId } }));
+        if (typeof window !== "undefined") storage.afterCommit(() => window.dispatchEvent(new CustomEvent("knowverse:learning-archive-capture", { detail: { type: "challenge_progress", key: progress.challengeId } })));
         return true;
+        });
       } catch {
         return false;
       }

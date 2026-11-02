@@ -1,3 +1,4 @@
+import { createLearningStateStorage } from "../learning-state-storage.mjs";
 import {
   deleteArchiveDocument,
   getLocalDevice,
@@ -12,7 +13,7 @@ const REVIEW_PREFIX = "knowverse:review-session/";
 const PREFERENCES_KEY = "knowverse:learning-plan:preferences";
 
 function getStorage() {
-  try { return globalThis.localStorage || null; } catch { return null; }
+  try { return createLearningStateStorage(globalThis.localStorage || null); } catch { return null; }
 }
 
 function storageKey(type, key) {

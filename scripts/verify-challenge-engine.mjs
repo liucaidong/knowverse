@@ -12,6 +12,7 @@ import {
   setStepData,
   summarizeChallenge,
 } from "../assets/js/challenge-engine.mjs";
+import { createLearningStateStorage } from "../assets/js/learning-state-storage.mjs";
 
 const challenge = {
   id: "sample-quest",
@@ -115,4 +116,26 @@ test("works without browser storage", () => {
   assert.equal(store.available, false);
   assert.equal(store.save(createChallengeProgress(challenge)), false);
   assert.equal(store.clear(challenge.id), false);
+});
+
+
+test("challenge event and progress checkpoint commit as one learning-state transaction", () => {
+  const storageData = new Map();
+  let writes = 0;
+  const storage = {
+    getItem: key => storageData.get(key) ?? null,
+    setItem: (key, value) => { writes += 1; storageData.set(key, value); },
+    removeItem: key => storageData.delete(key),
+  };
+  const store = createChallengeProgressStore({ storage });
+  const initial = store.load(challenge);
+  const completed = completeStep(initial, challenge, "first");
+  const before = writes;
+
+  assert.equal(store.save(completed), true);
+  assert.equal(writes - before, 1, "challenge state and its evidence event share one envelope commit");
+  const state = createLearningStateStorage(storage);
+  assert.equal(JSON.parse(state.getItem("knowverse:challenge/sample-quest")).steps[0].status, "completed");
+  const events = JSON.parse(state.getItem("knowverse:learning-progress")).events;
+  assert.ok(events.some(event => event.type === "completed" && event.stepId === "first"));
 });

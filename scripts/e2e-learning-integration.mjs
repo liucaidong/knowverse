@@ -39,7 +39,7 @@ test("Chromium desktop: work activity and a successful checkpoint are recorded",
     await page.locator("#kv-learning-checkpoint").waitFor({state:"visible"});
     await page.locator('[data-option-id="b"]').click();
     await page.getByText("验证通过 · 已记录独立证据").waitFor();
-    const events=await page.evaluate(()=>JSON.parse(localStorage.getItem("knowverse:learning-progress")).events);
+    const events=await page.evaluate(async()=>{const {createLearningStateStorage}=await import("/assets/js/learning-state-storage.mjs");return JSON.parse(createLearningStateStorage().getItem("knowverse:learning-progress")).events;});
     assert.ok(events.some(e=>e.type==="activity"&&e.stepId==="page_view"&&e.workId==="promise-identity"));
     assert.ok(events.some(e=>e.type==="assessment_passed"&&e.sessionType==="checkpoint"&&e.workId==="promise-identity"));
     assert.deepEqual(errors,[]);
@@ -60,7 +60,7 @@ test("WebKit mobile: a wrong answer records a gap and links to targeted review",
     await page.locator('[data-option-id="a"]').click();
     await page.getByText("还需要补强这个概念").waitFor();
     await page.getByRole("link",{name:"前往针对性复习"}).waitFor();
-    const events=await page.evaluate(()=>JSON.parse(localStorage.getItem("knowverse:learning-progress")).events);
+    const events=await page.evaluate(async()=>{const {createLearningStateStorage}=await import("/assets/js/learning-state-storage.mjs");return JSON.parse(createLearningStateStorage().getItem("knowverse:learning-progress")).events;});
     assert.ok(events.some(e=>e.type==="attempt"&&e.correct===false&&e.gapId==="build-cache-input-coverage"));
     assert.deepEqual(errors,[]);
     await context.close();

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 import { createLearningProgressStore, deriveLearningInsights } from "../assets/js/learning-progress.mjs";
+import { createLearningStateStorage } from "../assets/js/learning-state-storage.mjs";
 import { createReviewSessionEngine } from "../assets/js/review-engine.mjs";
 
 function memoryStorage(seed = {}) {
@@ -93,7 +94,7 @@ test("learning snapshots accept only the current schema", () => {
   assert.equal(store.load().events.length, 0);
   assert.equal(store.appendMany([{ ...campaignFailure, id: "current-event" }]), true);
   assert.equal(store.load().events.length, 1);
-  assert.ok(storage.getItem("knowverse:learning-progress"));
+  assert.ok(createLearningStateStorage(storage).getItem("knowverse:learning-progress"));
 });
 
 
@@ -488,4 +489,31 @@ test("a failed targeted review must be followed by a different variant, not a re
   engine.submit(different.sessionId, "right");
   insight = deriveLearningInsights(fixtureMap, { challenges: [] }, progressStore.load(), new Date("2026-11-01T12:00:00.000Z"));
   assert.equal(insight.gaps.length, 0, "a new no-hint variant should resolve the gap");
+});
+
+
+test("review session and event journal commit together for start, hint and answer", () => {
+  const raw = memoryStorage();
+  let writes = 0;
+  const originalSetItem = raw.setItem.bind(raw);
+  raw.setItem = (key, value) => { writes += 1; originalSetItem(key, value); };
+  const progressStore = createLearningProgressStore({ storage: raw });
+  const engine = createReviewSessionEngine({ storage: raw, progressStore, registry: testRegistry });
+  const baseline = writes;
+
+  const session = engine.start({ competencyId: "thenable-adoption" });
+  assert.equal(writes - baseline, 1, "review session + review_started event must commit once");
+  const afterStart = writes;
+  engine.revealHint(session.sessionId);
+  assert.equal(writes - afterStart, 1, "active session + hint event must commit once");
+  const afterHint = writes;
+  const result = engine.submit(session.sessionId, "right");
+  assert.equal(result.correct, true);
+  assert.equal(writes - afterHint, 1, "attempt + pass events + active-session removal must commit once");
+
+  const state = createLearningStateStorage(raw);
+  assert.equal(state.getItem("knowverse:review-session/" + session.sessionId), null);
+  const sessionEvents = JSON.parse(state.getItem("knowverse:learning-progress")).events
+    .filter(event => event.sessionId === session.sessionId);
+  assert.deepEqual(sessionEvents.map(event => event.type), ["review_started", "hint_revealed", "attempt", "assessment_passed"]);
 });

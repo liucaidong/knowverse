@@ -4,11 +4,13 @@
 <body>
 <script type="module">
 import { createLearningProgressStore } from "/assets/js/learning-progress.mjs";
+import { createLearningStateStorage } from "/assets/js/learning-state-storage.mjs";
 import { createLearningSyncService } from "/assets/js/backend/sync-engine.mjs";
 import { getArchiveStatus, listArchiveConflicts } from "/assets/js/backend/local-event-store.mjs";
-import { resolveLocalLearningArchiveConflict } from "/assets/js/backend/local-archive.mjs";
+import { captureLocalLearningArchive, resolveLocalLearningArchiveConflict } from "/assets/js/backend/local-archive.mjs";
 
-const store = createLearningProgressStore();
+const storage = createLearningStateStorage();
+const store = createLearningProgressStore({ storage });
 const auth = {
   getSession: async () => ({ user: { id: "archive-test-user", email: "archive@example.test" } }),
   request: async (path, options = {}) => {
@@ -23,10 +25,19 @@ const auth = {
   }
 };
 const service = createLearningSyncService(auth, store, { enabled: true });
-const stop = service.start();
+const syncStatuses = [];
+window.addEventListener("knowverse:sync-state", event => syncStatuses.push(event.detail?.status));
+const autoStart = new URLSearchParams(location.search).get("manualRestore") !== "1";
+const stop = autoStart ? service.start() : () => {};
 window.archiveHarness = {
   store,
+  storage,
+  auth,
+  service,
+  syncStatuses,
   sync: () => service.sync(),
+  restoreFromCloud: () => service.restoreFromCloud(),
+  capture: () => captureLocalLearningArchive(store),
   stop,
   addEvent: event => store.appendMany([event]),
   status: () => getArchiveStatus(),

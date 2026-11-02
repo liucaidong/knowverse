@@ -1,3 +1,5 @@
+import { createLearningStateStorage } from "./learning-state-storage.mjs";
+
 const SCHEMA_VERSION = 1;
 const STORAGE_KEY = "knowverse:learning-progress";
 const DAY_MS = 86_400_000;
@@ -365,6 +367,7 @@ export function createLearningProgressStore(options = {}) {
   if (typeof storage === "undefined") {
     try { storage = globalThis.localStorage || null; } catch { storage = null; }
   }
+  storage = createLearningStateStorage(storage);
   const key = options.key || STORAGE_KEY;
   const available = Boolean(storage &&
     typeof storage.getItem === "function" &&
@@ -419,9 +422,9 @@ export function createLearningProgressStore(options = {}) {
       snapshot.updatedAt = timestamp();
       const saved = save(snapshot);
       if (saved && added.length && appendOptions.remote !== true && typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("knowverse:learning-events-appended", {
+        storage.afterCommit(() => window.dispatchEvent(new CustomEvent("knowverse:learning-events-appended", {
           detail: { events: added, remote: false }
-        }));
+        })));
       }
       return saved;
     },

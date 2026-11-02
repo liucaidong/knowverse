@@ -51,6 +51,8 @@ jobs:
         run: node scripts/verify-monorepo-product.mjs
       - name: Test reusable learning challenge engine and registry
         run: node --test scripts/verify-challenge-engine.mjs
+      - name: Test the unified transactional learning-state envelope
+        run: node --test scripts/verify-learning-state-storage.mjs
       - name: Test learning mastery graph, event log, diagnostics and review scheduling
         run: node --test scripts/verify-learning-progress.mjs
       - name: Test Learning Intelligence V3 causal graph, review lifecycle and independent verification
@@ -63,6 +65,7 @@ jobs:
         run: node --test scripts/verify-learning-planner.mjs
       - name: Parse learning and review browser modules
         run: |
+          node --check assets/js/learning-state-storage.mjs
           node --check assets/js/learning-progress.mjs
           node --check assets/js/learning-progress-page.mjs
           node --check assets/js/review-engine.mjs
@@ -100,7 +103,7 @@ jobs:
         run: node --test scripts/e2e-site-navigation.mjs
       - name: Browser E2E · Work checkpoint and learning telemetry
         run: node --test scripts/e2e-learning-integration.mjs
-      - name: Browser E2E · Mac + iPhone archive sync, offline recovery and conflict resolution
+      - name: Browser E2E · Mac + WebKit iPhone cold restore, offline recovery and CAS conflict resolution
         run: node --test scripts/e2e-cross-device-archive.mjs
       - name: Browser E2E · Adaptive daily learning plan
         run: node --test scripts/e2e-learning-planner.mjs
@@ -114,6 +117,7 @@ jobs:
           node --check assets/js/monorepo-graph-model.mjs
           node --check assets/js/monorepo-quest-core.mjs
           node --check assets/js/challenge-engine.mjs
+          node --check assets/js/learning-state-storage.mjs
           node --check assets/js/learning-progress.mjs
           node --check assets/js/learning-progress-page.mjs
           node --check assets/js/promise-quest.mjs

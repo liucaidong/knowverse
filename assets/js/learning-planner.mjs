@@ -1,3 +1,4 @@
+import { createLearningStateStorage } from "./learning-state-storage.mjs";
 import { deriveLearningInsights } from "./learning-progress.mjs";
 
 const PREFERENCES_KEY = "knowverse:learning-plan:preferences";
@@ -25,6 +26,7 @@ export function createLearningPlanPreferencesStore(options = {}) {
   if (typeof storage === "undefined") {
     try { storage = globalThis.localStorage || null; } catch { storage = null; }
   }
+  storage = createLearningStateStorage(storage);
   const key = options.key || PREFERENCES_KEY;
   const available = Boolean(storage && typeof storage.getItem === "function" && typeof storage.setItem === "function");
   return {

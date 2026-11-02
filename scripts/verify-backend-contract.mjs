@@ -76,6 +76,16 @@ test("sync engine acknowledges Outbox only after server confirmation", async () 
   assert.ok(sync.includes("persistLearningEvents(event.detail?.events || [], { queue: true })"));
   assert.match(sync, /setSyncCursor/);
   assert.match(sync, /previousCursor/);
+  assert.match(sync, /async function restoreFromCloud\(\)/);
+  const restore = sync.slice(sync.indexOf("async function restoreFromCloud()"), sync.indexOf("async function sync()"));
+  assert.match(restore, /pullEvents\(userId\)/);
+  assert.match(restore, /pullDocuments\(userId\)/);
+  assert.match(restore, /captureLocalLearningArchive/);
+  assert.match(restore, /bound-user-id/);
+  assert.match(restore, /while \(running\)/);
+  assert.match(restore, /setTimeout\(resolve, 25\)/);
+  assert.doesNotMatch(restore, /pushEvents|pushDocuments|reconcileLocalSnapshot/,
+    "explicit restore must not upload local data before the user chooses to sync");
 });
 
 
@@ -87,7 +97,8 @@ test("one current IndexedDB archive stores events, Outbox, documents and conflic
     assert.match(store, new RegExp('STORE_' + name.toUpperCase()));
   }
   assert.doesNotMatch(store, /STORE_MIGRATIONS|getMigrationRecord|setMigrationRecord|STORE_EVENTS/);
-  assert.match(store, /localStorage event journal is the single local source of truth/i);
+  assert.match(store, /LearningStateStorage envelope is the single local domain-state source/i);
+  assert.match(archive, /createLearningStateStorage/);
   assert.doesNotMatch(archive, /legacy|compatibility|migrateLegacyLocalStorage|knowverse:learning-progress:v1/);
   for (const type of ["challenge_progress", "review_session", "plan_preferences"]) assert.ok(store.includes(type));
   assert.match(archive, /hydrateLearningArchiveDocuments/);
@@ -153,6 +164,7 @@ test("learning journal uses one current schema and never falls back to legacy ke
   const source = await read("assets/js/learning-progress.mjs");
   assert.match(source, /const SCHEMA_VERSION = 1/);
   assert.match(source, /const STORAGE_KEY = "knowverse:learning-progress"/);
+  assert.match(source, /createLearningStateStorage/);
   assert.doesNotMatch(source, /LEGACY_STORAGE_KEY|parsedLegacy|schemaVersion === 0|schemaVersion === 2/);
   assert.match(source, /EVENT_SCHEMA_VERSION = 3/);
   assert.match(source, /normalizeLearningEvent/);
@@ -177,10 +189,13 @@ test("one shared archive runtime auto-syncs from every page and powers the accou
   assert.match(panel, /getArchiveRuntime/);
   assert.doesNotMatch(panel, /createLearningSyncService|syncService\.start\(\)/);
   assert.match(panel, /立即同步/);
+  assert.match(panel, /从云端恢复/);
+  assert.match(panel, /最近云端恢复/);
   assert.match(bootstrap, /BACKEND_CONFIG/);
   assert.match(bootstrap, /stopSyncRuntime?.()/);
   assert.match(bootstrap, /bootstrapError/);
   assert.match(panel, /runtime.bootstrapError/);
+  assert.match(bootstrap, /createLearningSyncService/);
 });
 
 
@@ -195,4 +210,40 @@ test("single baseline defines each archive object exactly once", async () => {
   assert.match(migration, /security invoker/i);
   assert.equal((migration.match(/security definer/gi) || []).length, 2);
   assert.match(migration, /revoke all on function public.rls_auto_enable\(\)/i);
+});
+
+
+test("all local learning domains share one versioned atomic persistence envelope", async () => {
+  const storage = await read("assets/js/learning-state-storage.mjs");
+  const challenge = await read("assets/js/challenge-engine.mjs");
+  const review = await read("assets/js/review-engine.mjs");
+  const planner = await read("assets/js/learning-planner.mjs");
+  assert.match(storage, /LEARNING_STATE_STORAGE_KEY = "knowverse:learning-state"/);
+  assert.match(storage, /transaction\(callback\)/);
+  assert.match(storage, /afterCommit\(callback\)/);
+  assert.match(storage, /External effects \(Outbox enqueue/);
+  assert.match(storage, /storage\.setItem\(LEARNING_STATE_STORAGE_KEY/);
+  assert.match(storage, /Supabase Auth keys are never included/);
+  assert.match(challenge, /createLearningStateStorage/);
+  assert.match(challenge, /return storage\.transaction\(\(\) =>/);
+  assert.match(review, /createLearningStateStorage/);
+  assert.match(review, /storage\.transaction\(\(\) =>/);
+  assert.match(planner, /createLearningStateStorage/);
+});
+
+
+test("a clean WebKit mobile profile exercises pull-only recovery of active learning state", async () => {
+  const e2e = await read("scripts/e2e-cross-device-archive.mjs");
+  const fixture = await read("scripts/fixtures/archive-harness.html");
+  assert.match(e2e, /import \{ chromium, webkit, devices \} from "playwright"/);
+  assert.match(e2e, /WebKit iPhone cold start/);
+  assert.match(e2e, /restoreFromCloud\(\)/);
+  assert.match(e2e, /activeReview\.status, "active"/);
+  assert.match(e2e, /restoredDocuments, 4/);
+  assert.match(fixture, /createLearningStateStorage/);
+  assert.match(fixture, /restoreFromCloud: \(\) => service\.restoreFromCloud\(\)/);
+  assert.match(e2e, /initialSync = service\.sync\(\)/);
+  assert.match(e2e, /queuedRestore = service\.restoreFromCloud\(\)/);
+  assert.match(fixture, /manualRestore/);
+  assert.match(fixture, /capture: \(\) => captureLocalLearningArchive\(store\)/);
 });
