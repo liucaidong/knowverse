@@ -53,7 +53,7 @@ jobs:
         run: node --test scripts/verify-challenge-engine.mjs
       - name: Test learning mastery graph, event log, diagnostics and review scheduling
         run: node --test scripts/verify-learning-progress.mjs
-      - name: Test Learning Intelligence V2 migration, review lifecycle and independent verification
+      - name: Test Learning Intelligence V3 causal graph, review lifecycle and independent verification
         run: node --test scripts/verify-learning-intelligence.mjs
       - name: Verify work-to-knowledge learning integration and checkpoints
         run: node --test scripts/verify-learning-integration.mjs

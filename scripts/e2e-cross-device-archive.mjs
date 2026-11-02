@@ -200,9 +200,22 @@ async function newDevice(browser, label) {
   const context = await browser.newContext({ viewport: { width: 1440, height: 960 } });
   const page = await context.newPage();
   const errors = [];
-  page.on("pageerror", error => errors.push(error.message));
-  await page.goto(baseURL + "/scripts/fixtures/archive-harness.html", { waitUntil: "domcontentloaded" });
-  await page.waitForFunction(() => window.archiveReady === true);
+  page.on("pageerror", error => errors.push(error.stack || error.message));
+  page.on("console", message => {
+    if (message.type() === "error") errors.push("console: " + message.text());
+  });
+  const response = await page.goto(baseURL + "/scripts/fixtures/archive-harness.html", { waitUntil: "domcontentloaded" });
+  try {
+    await page.waitForFunction(() => window.archiveReady === true, null, { timeout: 8000 });
+  } catch (error) {
+    const state = await page.evaluate(() => ({
+      href: location.href,
+      ready: window.archiveReady,
+      body: document.body.innerText,
+    }));
+    throw new Error("Archive harness failed to initialize (HTTP " + response?.status() + "): " +
+      JSON.stringify({ state, errors }) + "\n" + error.message);
+  }
   return { context, page, errors, label };
 }
 
@@ -263,6 +276,10 @@ test("Mac + iPhone: offline-first archive, event merge, idempotency, document CA
     assert.equal(macFirstSync.pushed, 1);
     assert.equal(macFirstSync.pushedDocuments, 1);
     assert.equal(cloud.events.length, 1);
+    assert.equal(cloud.events[0].event_payload.eventSchemaVersion, 3);
+    assert.equal(cloud.events[0].event_payload.gapObservationId, failedAttempt.id);
+    assert.deepEqual(cloud.events[0].event_payload.targetGapEventIds, []);
+    assert.deepEqual(cloud.events[0].event_payload.causationEventIds, []);
     assert.equal(cloud.documents.size, 1);
 
     const phoneFirstSync = await phone.page.evaluate(() => window.archiveHarness.sync());

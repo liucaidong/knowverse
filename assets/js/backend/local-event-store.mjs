@@ -1,3 +1,8 @@
+import {
+  fingerprintLearningEvent,
+  normalizeLearningEvent,
+} from "../learning-progress.mjs";
+
 const DB_NAME = "knowverse-learning-archive";
 const DB_VERSION = 1;
 const STORE_OUTBOX = "outbox";
@@ -72,7 +77,7 @@ export async function getLocalDevice() {
  */
 export async function persistLearningEvents(events, options = {}) {
   if (options.queue !== true || !Array.isArray(events) || !events.length) return true;
-  const validEvents = events.filter(event => event && typeof event.id === "string" && event.id);
+  const validEvents = events.map(normalizeLearningEvent).filter(Boolean);
   if (!validEvents.length) return true;
   const db = await openDatabase();
   try {
@@ -101,6 +106,15 @@ export async function persistLearningEvents(events, options = {}) {
               deviceSeq,
               queuedAt: new Date().toISOString(),
             });
+          } else {
+            const previous = normalizeLearningEvent(existing.result.event);
+            if (!previous || fingerprintLearningEvent(previous) !== fingerprintLearningEvent(event)) {
+              transaction.abort();
+              return;
+            }
+            if (fingerprintLearningEvent(existing.result.event) !== fingerprintLearningEvent(event)) {
+              outbox.put({ ...existing.result, event });
+            }
           }
           finish();
         };
@@ -124,11 +138,25 @@ export async function reconcileLocalSnapshot(snapshot) {
 export async function listOutbox(limit = 100) {
   const db = await openDatabase();
   try {
-    const transaction = db.transaction(STORE_OUTBOX, "readonly");
-    const request = transaction.objectStore(STORE_OUTBOX).getAll();
+    const transaction = db.transaction(STORE_OUTBOX, "readwrite");
+    const store = transaction.objectStore(STORE_OUTBOX);
+    const request = store.getAll();
     const rows = await requestValue(request);
+    const rowById = new Map(rows.map(row => [row.id, row]));
+    const normalized = rows.map(row => ({
+      ...row,
+      event: normalizeLearningEvent(row.event),
+    }));
+    if (normalized.some(row => !row.event)) {
+      await transactionDone(transaction);
+      throw new Error("本地 Outbox 含无效学习事件，已保留原记录，未继续上传。");
+    }
+    for (const row of normalized) {
+      const original = rowById.get(row.id);
+      if (fingerprintLearningEvent(original?.event) !== fingerprintLearningEvent(row.event)) store.put(row);
+    }
     await transactionDone(transaction);
-    return rows.sort((a, b) => a.deviceSeq - b.deviceSeq)
+    return normalized.sort((a, b) => a.deviceSeq - b.deviceSeq)
       .slice(0, Math.max(1, Math.min(100, limit)));
   } finally {
     db.close();

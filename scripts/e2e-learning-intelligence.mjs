@@ -87,7 +87,7 @@ async function exerciseReview(browser, label, viewport) {
     const marker = "knowverse:e2e-learning-seeded";
     if (localStorage.getItem(marker)) return;
     localStorage.setItem("knowverse:learning-progress", JSON.stringify({
-      schemaVersion: 2,
+      schemaVersion: 1,
       createdAt: event.at,
       updatedAt: event.at,
       events: [event],

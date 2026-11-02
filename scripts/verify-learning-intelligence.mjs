@@ -200,6 +200,204 @@ test("same-variant no-hint repetition cannot clear a pending gap", () => {
   assert.equal(result.gaps[0].lifecycle, "pending-verification");
 });
 
+
+
+test("gap correction follows explicit causal IDs, not timestamps or merged event arrival order", () => {
+  const failure = {
+    ...campaignFailure,
+    id: "campaign-failure:1",
+    at: "2035-01-01T00:00:00.000Z",
+    eventSchemaVersion: 3,
+    gapObservationId: "campaign-failure:1",
+    causationEventIds: [],
+    targetGapEventIds: [],
+  };
+  const targetGapEventIds = [failure.id];
+  const started = {
+    id: "review-causal:started",
+    eventSchemaVersion: 3,
+    type: "review_started",
+    at: "2001-01-01T00:00:00.000Z",
+    topicId: "promise",
+    challengeId: "review-assessment",
+    challengeTitle: "针对性复习",
+    stepId: "review-variant-b",
+    stepTitle: "变体 B",
+    competencyIds: ["thenable-adoption"],
+    sessionId: "review-causal",
+    sessionType: "review",
+    variantId: "review-variant-b",
+    gapId: "thenable-get-vs-call",
+    causationEventIds: [],
+    targetGapEventIds,
+  };
+  const attempt = {
+    ...started,
+    id: "review-causal:attempt:1",
+    type: "attempt",
+    correct: true,
+    hintsUsed: 0,
+    selectedOptionId: "right",
+    causationEventIds: [started.id],
+  };
+  const passed = {
+    ...attempt,
+    id: "review-causal:passed",
+    type: "assessment_passed",
+    scorePct: 100,
+    independent: true,
+    causationEventIds: [started.id, attempt.id],
+  };
+
+  // A cloud merge may deliver the pass before the attempt, start and original failure.
+  const shuffled = { events: [passed, attempt, started, failure] };
+  const result = deriveLearningInsights(
+    fixtureMap, { challenges: [] }, shuffled, new Date("2026-11-01T12:00:00.000Z")
+  );
+  assert.equal(result.gaps.length, 0);
+  assert.equal(result.resolvedGaps.length, 1);
+
+  // A later-arriving failure is not closed merely because its timestamp predates the pass.
+  const nextFailure = {
+    ...failure,
+    id: "campaign-failure:2",
+    at: "1999-01-01T00:00:00.000Z",
+    gapObservationId: "campaign-failure:2",
+  };
+  const withNewFailure = deriveLearningInsights(
+    fixtureMap, { challenges: [] }, { events: [passed, nextFailure, attempt, started, failure] },
+    new Date("2026-11-01T12:00:00.000Z")
+  );
+  assert.equal(withNewFailure.gaps.length, 1);
+  assert.equal(withNewFailure.gaps[0].count, 1);
+});
+
+test("a pass with a target ID but no complete causal chain cannot clear the gap", () => {
+  const failure = { ...campaignFailure, id: "causal-failure", gapObservationId: "causal-failure" };
+  const pass = {
+    ...campaignFailure,
+    id: "orphan-pass",
+    type: "assessment_passed",
+    correct: true,
+    sessionType: "review",
+    sessionId: "orphan-review",
+    variantId: "review-variant-b",
+    gapId: "thenable-get-vs-call",
+    hintsUsed: 0,
+    targetGapEventIds: [failure.id],
+    causationEventIds: [],
+    scorePct: 100,
+  };
+  const result = deriveLearningInsights(
+    fixtureMap, { challenges: [] }, { events: [pass, failure] },
+    new Date("2026-11-01T12:00:00.000Z")
+  );
+  assert.equal(result.gaps.length, 1);
+  assert.equal(result.gaps[0].lifecycle, "detected");
+});
+
+
+
+test("concurrent same-variant passes from disconnected devices are not independent evidence", () => {
+  const failure = {
+    ...campaignFailure,
+    id: "concurrent-source-failure",
+    gapObservationId: "concurrent-source-failure",
+  };
+  const target = [failure.id];
+  const sessionEvents = sessionId => {
+    const started = {
+      ...campaignFailure,
+      id: sessionId + ":started",
+      type: "review_started",
+      sessionId,
+      sessionType: "review",
+      variantId: "review-variant-b",
+      gapId: "thenable-get-vs-call",
+      targetGapEventIds: target,
+      causationEventIds: [],
+    };
+    const attempt = {
+      ...started,
+      id: sessionId + ":attempt:1",
+      type: "attempt",
+      correct: true,
+      hintsUsed: 0,
+      causationEventIds: [started.id],
+    };
+    const passed = {
+      ...attempt,
+      id: sessionId + ":passed",
+      type: "assessment_passed",
+      scorePct: 100,
+      causationEventIds: [started.id, attempt.id],
+    };
+    return [started, attempt, passed];
+  };
+  const [firstStart, firstAttempt, firstPass] = sessionEvents("offline-device-a");
+  const [secondStart, secondAttempt, secondPass] = sessionEvents("offline-device-b");
+  const result = deriveLearningInsights(
+    fixtureMap, { challenges: [] },
+    { events: [firstPass, secondAttempt, secondStart, failure, firstAttempt, secondPass, firstStart] },
+    new Date("2026-11-01T12:00:00.000Z")
+  );
+  assert.equal(result.gaps.length, 1);
+  assert.equal(result.gaps[0].lifecycle, "detected");
+});
+
+
+
+test("a targeted pass for one competency cannot close the same gap in another competency", () => {
+  const dualMap = structuredClone(fixtureMap);
+  dualMap.topics[0].competencies.push({
+    id: "promise-resolution",
+    title: "Promise Resolution Procedure",
+    prerequisites: [],
+    lessonHref: "./knowledge/promise/",
+    challengeHref: "./puzzles/",
+  });
+  const failure = {
+    ...campaignFailure,
+    id: "shared-gap-failure",
+    gapObservationId: "shared-gap-failure",
+    competencyIds: ["thenable-adoption", "promise-resolution"],
+  };
+  const target = [failure.id];
+  const started = {
+    ...campaignFailure,
+    id: "single-competency-review:started",
+    type: "review_started",
+    sessionId: "single-competency-review",
+    sessionType: "review",
+    variantId: "review-variant-b",
+    gapId: "thenable-get-vs-call",
+    competencyIds: ["thenable-adoption"],
+    targetGapEventIds: target,
+    causationEventIds: [],
+  };
+  const attempt = {
+    ...started,
+    id: "single-competency-review:attempt:1",
+    type: "attempt",
+    correct: true,
+    hintsUsed: 0,
+    causationEventIds: [started.id],
+  };
+  const passed = {
+    ...attempt,
+    id: "single-competency-review:passed",
+    type: "assessment_passed",
+    scorePct: 100,
+    causationEventIds: [started.id, attempt.id],
+  };
+  const result = deriveLearningInsights(
+    dualMap, { challenges: [] }, { events: [passed, attempt, started, failure] },
+    new Date("2026-11-01T12:00:00.000Z")
+  );
+  assert.equal(result.gaps.length, 1);
+  assert.equal(result.gaps[0].competencyId, "promise-resolution");
+});
+
 test("the assessment catalog covers every tracked gap/competency pair with two targeted variants", async () => {
   const map = JSON.parse(await readFile(new URL("../content/learning-map.json", import.meta.url), "utf8"));
   const registry = JSON.parse(await readFile(new URL("../content/review-assessments.json", import.meta.url), "utf8"));

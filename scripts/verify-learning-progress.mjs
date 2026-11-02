@@ -194,3 +194,43 @@ test("challenge engine appends learning history and reset never erases it", () =
   assert.equal(afterReset.events.length, beforeReset.events.length);
   assert.equal(afterReset.events.filter(event => event.type === "completed").length, 1);
 });
+
+
+test("event IDs are immutable: same ID with a different payload is rejected atomically", () => {
+  const storage = memoryStorage();
+  const store = createLearningProgressStore({ storage });
+  const original = {
+    id: "immutable-event:1",
+    type: "attempt",
+    at: "2026-11-01T10:00:00.000Z",
+    topicId: "promise",
+    challengeId: "campaign",
+    challengeTitle: "Promise",
+    stepId: "thenable",
+    stepTitle: "Thenable",
+    competencyIds: ["thenable-adoption"],
+    sessionType: "campaign",
+    sessionId: "immutable-event",
+    variantId: "campaign:thenable",
+    correct: false,
+    gapId: "thenable-get-vs-call",
+  };
+  assert.equal(store.appendMany([original]), true);
+  const stored = store.load().events[0];
+  assert.equal(stored.eventSchemaVersion, 3);
+  assert.equal(stored.gapObservationId, original.id);
+  assert.deepEqual(stored.causationEventIds, []);
+  assert.deepEqual(stored.targetGapEventIds, []);
+
+  assert.equal(store.appendMany([{ ...original }]), true);
+  assert.equal(store.load().events.length, 1);
+
+  // JSONB / RPC transports may reorder object keys without changing the fact.
+  const reordered = Object.fromEntries(Object.entries(original).reverse());
+  assert.equal(store.appendMany([reordered]), true);
+  assert.equal(store.load().events.length, 1);
+
+  assert.equal(store.appendMany([{ ...original, correct: true, gapId: null }]), false);
+  assert.equal(store.load().events.length, 1);
+  assert.equal(store.load().events[0].correct, false);
+});

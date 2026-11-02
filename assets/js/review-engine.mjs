@@ -1,4 +1,8 @@
-import { createLearningProgressStore } from "./learning-progress.mjs";
+import {
+  createLearningProgressStore,
+  getGapReviewPredecessorEventIds,
+  getOpenGapObservationEventIds,
+} from "./learning-progress.mjs";
 
 const SESSION_PREFIX = "knowverse:review-session/";
 const clone = value => JSON.parse(JSON.stringify(value));
@@ -99,7 +103,7 @@ export function createReviewSessionEngine(options = {}) {
     const definition = definitions.get(session.variantId);
     const event = {
       id: session.sessionId + ":" + suffix,
-      eventSchemaVersion: 2,
+      eventSchemaVersion: 3,
       type,
       at: nowIso(),
       topicId: definition.topicId,
@@ -112,6 +116,9 @@ export function createReviewSessionEngine(options = {}) {
       sessionType: "review",
       variantId: definition.id,
       gapId: session.targetGapId || fields.gapId || null,
+      gapObservationId: null,
+      causationEventIds: [],
+      targetGapEventIds: session.targetGapEventIds || [],
       ...fields,
     };
     if (!progressStore.appendMany([event])) {
@@ -127,6 +134,16 @@ export function createReviewSessionEngine(options = {}) {
       item.competencyId === competencyId && (!targetGapId || (item.gapIds || []).includes(targetGapId))
     );
     if (!candidates.length) throw new Error("没有找到与该知识点 / 薄弱点匹配的复习题。");
+    const snapshot = progressStore.load();
+    const targetGapEventIds = targetGapId
+      ? getOpenGapObservationEventIds(snapshot, competencyId, targetGapId)
+      : [];
+    const predecessorEventIds = targetGapId
+      ? getGapReviewPredecessorEventIds(snapshot, competencyId, targetGapId, targetGapEventIds)
+      : [];
+    if (targetGapId && !targetGapEventIds.length) {
+      throw new Error("没有找到仍待验证的错误事件。请重新执行关联挑战，或刷新学习进度后再开始针对性复习。");
+    }
     const used = history().filter(item =>
       item.competencyId === competencyId && item.targetGapId === targetGapId
     );
@@ -143,6 +160,8 @@ export function createReviewSessionEngine(options = {}) {
       sessionType: "review",
       competencyId,
       targetGapId,
+      targetGapEventIds,
+      hintEventIds: [],
       variantId: candidate.id,
       topicId: candidate.topicId,
       title: candidate.title,
@@ -160,7 +179,11 @@ export function createReviewSessionEngine(options = {}) {
       finishedAt: null,
     };
     persistSession(session);
-    appendEvent(session, "review_started", "started", { reviewMode: targetGapId ? "targeted-gap" : "competency" });
+    appendEvent(session, "review_started", "started", {
+      reviewMode: targetGapId ? "targeted-gap" : "competency",
+      causationEventIds: predecessorEventIds,
+      targetGapEventIds,
+    });
     return clone(session);
   }
 
@@ -176,12 +199,15 @@ export function createReviewSessionEngine(options = {}) {
     if (!session || session.status !== "active") throw new Error("当前复习会话已结束。");
     const definition = definitions.get(session.variantId);
     if (session.hintsUsed >= (definition.hints || []).length) return { session, hint: null, exhausted: true };
+    const priorHintEventIds = (session.hintEventIds || []).slice();
     session.hintsUsed += 1;
     const hint = definition.hints[session.hintsUsed - 1];
+    session.hintEventIds = [...priorHintEventIds, sessionId + ":hint:" + session.hintsUsed];
     persistSession(session);
     appendEvent(session, "hint_revealed", "hint:" + session.hintsUsed, {
       hintNumber: session.hintsUsed,
       hintsUsed: session.hintsUsed,
+      causationEventIds: [sessionId + ":started", ...priorHintEventIds].slice(-20),
     });
     return { session: clone(session), hint, exhausted: false };
   }
@@ -204,7 +230,12 @@ export function createReviewSessionEngine(options = {}) {
       attempts: session.attempts,
       hintsUsed: session.hintsUsed,
     };
-    appendEvent(session, "attempt", "attempt:" + session.attempts, fields);
+    const attemptEventId = sessionId + ":attempt:" + session.attempts;
+    appendEvent(session, "attempt", "attempt:" + session.attempts, {
+      ...fields,
+      gapObservationId: !correct && gapId ? attemptEventId : null,
+      causationEventIds: [sessionId + ":started", ...(session.hintEventIds || [])].slice(-20),
+    });
     session.status = correct ? "passed" : "failed";
     session.finishedAt = nowIso();
     if (correct) {
@@ -216,6 +247,7 @@ export function createReviewSessionEngine(options = {}) {
         attempts: session.attempts,
         hintsUsed: session.hintsUsed,
         independent: session.hintsUsed === 0,
+        causationEventIds: [sessionId + ":started", attemptEventId, ...(session.hintEventIds || [])].slice(-20),
       });
     }
     persistSession(session);

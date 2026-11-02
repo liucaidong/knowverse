@@ -18,7 +18,7 @@ export function startLearningActivityTelemetry(options = {}) {
 
   function record(action, control = null) {
     const event = {
-      id: sessionId + ":" + (++sequence), eventSchemaVersion: 2, type: "activity",
+      id: sessionId + ":" + (++sequence), eventSchemaVersion: 3, type: "activity",
       at: new Date().toISOString(), topicId,
       challengeId: "activity:" + (workId || topicId),
       challengeTitle: work.title || topicId, stepId: action,

@@ -1,6 +1,6 @@
-# KNOWVERSE 学习智能系统 2.0
+# KNOWVERSE 学习智能系统 3.1
 
-版本：2.0.0 · 2026-11-01
+版本：3.1.0 · 2026-11-02
 
 ## 产品目标
 
@@ -22,7 +22,7 @@
 
 ## 数据与事件模型
 
-学习事件使用 schema V2。公共字段：
+学习事件使用 Event Schema V3。公共字段：
 
 - `id`：幂等事件标识。
 - `eventSchemaVersion`：事件结构版本。
@@ -30,8 +30,13 @@
 - `topicId / challengeId / stepId`：来源定位。
 - `competencyIds`：与知识能力点的显式关系。
 - `sessionId / sessionType / variantId`：区分挑战轮次、独立复习与题目变体。
-- `gapId`：可选的精确概念误区 ID。
-- `scorePct / attempts / hintsUsed`：可解释的验证质量字段。
+- gapId：可选的精确概念误区 ID。
+- gapObservationId：一次错误观察的稳定 ID；错误 attempt 默认使用自身 event ID。
+- targetGapEventIds：复习会话明确针对的错误事件 ID 集合。
+- causationEventIds：事件显式因果前序，最多 20 项。
+- scorePct / attempts / hintsUsed：可解释的验证质量字段。
+
+V3 不再通过客户端墙上时钟或合并后的事件数组顺序推断因果。旧 V2 事件进入 V3 envelope 时保留 event ID，并使用空因果引用；不能证明的历史因果关系不会补造。
 
 已支持事件类型：
 
@@ -44,11 +49,11 @@
 | `assessment_passed` | 独立复习题验证通过 | 是 |
 | `activity` | 原理实验室、展厅或页面交互 | 否 |
 
-**学习活动和掌握证据明确分离。** 探索三维场景、运行实验或打开课程不会直接让知识点涨分。当前 12 件非挑战作品已配置明确、可判定的无提示 checkpoint，并显式映射 competency；两件挑战作品由 Challenge Engine 提供结构化评估。
+**学习活动和掌握证据明确分离。** 探索三维场景、运行实验或打开课程不会直接让知识点涨分。当前 17 件作品关联到 12 个知识专题、15 个 competency；14 个 checkpoint 与 3 个结构化 challenge 入口负责产生可验证证据。
 
 ## 本机学习日志与云端归档
 
-当前事件日志只使用一套 schema 和一个当前键，不读取旧 V1/V2 键，也不执行旧档案复制迁移：
+当前事件日志只使用一个当前存储键和 Event Schema V3，不读取旧 V1/V2 存储键，也不执行旧档案复制迁移。V2 历史事件通过一次前向云端迁移和本机 envelope 规范化进入 V3，不维护双 schema 运行时：
 
 - 学习事件日志：`knowverse:learning-progress`
 - 活动中的挑战：`knowverse:challenge/<challengeId>`
@@ -91,7 +96,7 @@
 - 需要不同变体、无提示的验证通过，才能解除对应 gap。
 - 后续再次答错会重新打开该 gap，重新安排优先复习。
 
-判断复习前后顺序采用追加事件日志顺序，不依赖浏览器时间戳是否处于同一毫秒。
+**Gap 生命周期由显式事件因果决定，不依赖事件到达顺序或客户端时间戳。** 针对性 Review 开始时冻结当前未解决错误的 event ID；后续 attempt / assessment_passed 必须引用该 Review Session 的 started 与正确 attempt。下一轮 Review 会把上轮 review attempt 作为因果前序，重复同变体不能成为独立验证。多设备离线并发产生同变体结果时，因为缺乏先后因果，也不会错误地当成两种独立证据。
 
 ## 独立 Review Session
 
@@ -99,7 +104,7 @@
 
 - 可从知识点或具体 gap 打开。
 - 使用 `content/review-assessments.json` 的题型变体，不重置或覆盖原挑战。
-- 当前覆盖 Promise 五个 competency 与 Monorepo 四个 competency，19 个 gap、20 个 gap-competency 映射，共 40 个针对性验证场景。
+- 当前覆盖 Promise、Monorepo、React Native 三个正式能力图谱，共 15 个 competency、31 个 gap 和 72 个针对性复习变体。
 - 同一 competency 的两种变体均映射其可诊断 gap，使定向复习可以真正切换题型。
 - 每次复习保存 sessionId、sessionType、variantId、答案、尝试、提示和结果。
 - 复习通过、失败、提示和会话开始都进入统一事件历史。
@@ -133,7 +138,8 @@ CI 包含：
 - 当前事件 schema 校验、事件去重和完整历史保留测试；
 - gap 精准匹配、提示辅助、不同变体与独立验证状态测试；
 - mastery / confidence、状态升级和降级、gap-only review queue 测试；
-- 九个 competency、19 个 gap 和 20 组 gap-competency 映射的 40 个 review variant 注册表校验；
+- 15 个 competency、31 个 gap、72 个 review variant 的注册表和因果闭环校验；
+- 乱序合并、V2→V3 envelope 规范化、同 ID 篡改拒绝、并发同变体不计独立验证；
 - Playwright Chromium 桌面端和 WebKit 手机视口的浏览器端闭环测试；
 - 原有 Promise、Monorepo、内容路由、搜索索引及作品工程回归。
 
@@ -145,7 +151,7 @@ WebKit 手机视口属于浏览器引擎的自动化视口测试，不等同于�
 - 不把个人学习事件写入仓库静态 JSON。
 - 不生成没有验证题的虚假掌握分。
 - 不把三个产品主线重写为一个大型应用；采用统一事件协议与轻量采集模块。
-- 当前事件主档为单一 LocalStorage 快照；IndexedDB 仅用于同步队列、游标和 CAS 文档，不复制第二份事件历史。
+- 当前事件主档仍为单一 LocalStorage 快照；IndexedDB 用于可靠 Outbox、游标和 CAS 档案文档。跨设备可同步事件与挑战 / 复习现场，但领域引擎仍是同步 LocalStorage 读写；完整 IndexedDB 单事务领域状态迁移尚未交付。
 
 
 ## 统一作品学习接入（2026-11-01）
@@ -168,7 +174,7 @@ WebKit 手机视口属于浏览器引擎的自动化视口测试，不等同于�
 
 ### 检查点规则
 
-12 件非挑战作品各自注册一个无提示检查点。检查点使用独立的 `sessionType=checkpoint` 和稳定 `variantId`。答错可登记 gap，但 checkpoint 成功不能关闭已有 gap；只有 Review 工作台中不同变体、无提示的独立验证才能完成 gap 生命周期。两件挑战型作品继续由 Challenge Engine 产生 campaign 证据。
+14 个 checkpoint 为对应作品注册无提示检查点。检查点使用独立的 `sessionType=checkpoint` 和稳定 `variantId`。答错可登记 gap，但 checkpoint 成功不能关闭已有 gap；只有 Review 工作台中不同变体、无提示的独立验证才能完成 gap 生命周期。三件挑战型作品继续由 Challenge Engine 产生 campaign 证据。
 
 ### Monorepo 缓存能力
 

@@ -437,7 +437,7 @@ export function recordLearningPlanAction(store, action, status, options = {}) {
   const at = validDate(options.at) ? (options.at instanceof Date ? options.at : new Date(options.at)).toISOString() : new Date().toISOString();
   const event = {
     id: action.actionId + ":" + status,
-    eventSchemaVersion: 2,
+    eventSchemaVersion: 3,
     type: eventType,
     at,
     topicId: action.topicId || "unclassified",

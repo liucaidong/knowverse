@@ -1,14 +1,14 @@
 # KNOWVERSE Supabase 与本地归档架构
 
-本文件是当前实现说明。数据库只有一份初始化基线；浏览器只有当前一套数据键和 IndexedDB 结构。项目不承载旧版本数据，也不实现 V1→V2、旧键复制、双 schema 兼容或迁移状态机。
+本文件是当前实现说明。数据库保留一份已应用初始化基线，并以单一前向迁移升级事件 envelope；浏览器只有当前一套数据键和 IndexedDB 结构。当前运行时只写入 Event Schema V3，不实现 V1/V2 双 schema 兼容或旧键复制状态机。
 
-## 1. 唯一数据库基线
+## 1. 数据库基线与前向迁移
 
 数据库完整定义位于：
 
 - `supabase/migrations/20261102032732_initial_schema.sql`
 
-该文件定义 KNOWVERSE 当前初始数据库的全部自有表、索引、RLS 策略、函数、触发器和授权。其文件版本 `20261102032732` 与远端 `supabase_migrations.schema_migrations` 中唯一的初始基线记录一致。此基线已经应用，后续结构变更必须通过新的、前向增量迁移文件发布；不要重写已应用基线，也不要再创建第二份初始化脚本。
+该文件定义 KNOWVERSE 数据库初始自有表、索引、RLS 策略、函数、触发器和授权。文件版本 20261102032732 是已应用初始化基线；该基线中的事件 envelope 是 V2。当前已额外应用前向迁移 20261102090144_gap_causality_v3.sql，把事件表约束与触发器升级到 V3。远端迁移记录必须与本地文件版本完全一致。不要重写已应用基线。
 
 应用表：
 
@@ -22,7 +22,7 @@
 | `public.user_document_sync_state` | 用户级档案文档序列 |
 | `public.learning_archive_documents` | 挑战进度、复习现场与学习计划偏好的 CAS 文档 |
 
-基线在事件表初始定义中直接声明事件 envelope 字段与约束，不通过 ALTER / 回填 / 双版本读取实现升级。当前事件 envelope 只接受 `eventSchemaVersion = 2`。
+初始化基线仍保留当时的 V2 定义，前向迁移将现有 event payload 补齐 eventSchemaVersion、causationEventIds、targetGapEventIds 与 gapObservationId，并把数据库约束更新为 schema_version = 3。当前数据库仅接受 V3；没有 V2/V3 双版本写入分支。
 
 ## 2. 数据库安全模型
 
@@ -65,7 +65,7 @@
 | `documents` | 当前设备的 CAS 文档、revision 与 dirty 状态 |
 | `conflicts` | 需要用户明确选择的本机/云端冲突 |
 
-本机事件日志只有 LocalStorage 一份权威副本。事件新增时进入 IndexedDB Outbox；首次登录或重新同步时会按事件 ID 幂等补齐 Outbox，服务端确认后才删除队列项。远端事件写入当前事件日志，不回流到 Outbox。
+本机事件日志只有 LocalStorage 一份权威副本。事件新增时进入 IndexedDB Outbox；首次登录或重新同步时会按事件 ID 幂等补齐 Outbox，服务端确认后才删除队列项。Outbox 读取时会把未发送的旧事件 envelope 规范化为 V3，保留 event ID / device sequence；相同 ID 但 payload 不同会拒绝。远端事件写入当前事件日志，不回流到 Outbox。
 
 挑战、复习和偏好仍通过当前 LocalStorage 接口供同步式领域引擎即时读取，同时其可恢复文档写入 IndexedDB 并同步到云端。云端文档使用 `revision` compare-and-swap；任何冲突都保留两端内容，由用户明确选择，不使用静默 last-write-wins。
 
@@ -76,7 +76,8 @@
 3. 只有服务端确认的事件才从 Outbox 删除。
 4. 拉取只使用 `user_seq` 游标，不使用设备墙上时钟排序。
 5. `event_id` 相同但 payload 不同会被拒绝；设备序列冲突会被拒绝。
-6. 网络失败时 Outbox 保留，在线恢复后重试；重试是幂等的。
+6. V3 的 causationEventIds / targetGapEventIds 最多 20 项，gapObservationId 标识一次精确错误观察。
+7. 网络失败时 Outbox 保留，在线恢复后重试；重试是幂等的。
 
 ## 5. 文档同步规则
 
@@ -90,13 +91,13 @@ GitHub OAuth 使用 Supabase Auth PKCE。登录成功不等于可同步；必须
 
 ## 7. 维护流程
 
-- 数据库初始结构由 `supabase/migrations/20261102032732_initial_schema.sql` 定义，远端只登记这一条初始版本。
+- 数据库初始结构由 supabase/migrations/20261102032732_initial_schema.sql 定义；当前远端另有 20261102090144_gap_causality_v3.sql 前向迁移，迁移列表须与仓库一致。
 - 新环境先创建 Supabase 项目，再通过 Supabase CLI link 并 `supabase db push`。推送前检查 Project Ref 和迁移列表。
-- 已应用的基线不可编辑。后续改表、策略、函数或索引时，新增一个时间戳递增的前向迁移；本项目不维护多版本兼容分支、回填旧 schema 或双初始化脚本。
+- 已应用的基线与前向迁移都不可回写。后续改表、策略、函数或索引时，再新增时间戳前向迁移；当前运行时只接受 V3，不维护多版本写入分支。
 - 每个新迁移先在 PostgreSQL 17 空白数据库按完整迁移链执行，再部署到开发环境。对测试环境可重置数据库后按迁移链从零重建；不对生产环境执行远端 reset。
 - Supabase 托管的 `auth`、`storage`、`extensions` schema 由平台管理。KNOWVERSE 只重建自己拥有的 `public` / `private` 对象，不删除 Auth 用户或平台内部对象。
 - 本地 IndexedDB 结构是当前版本 1 数据库；不提供旧库升级链。开发期改变 store 结构时，发布新的数据库名称并要求测试浏览器清除站点数据，不部署多套旧结构兼容路径。
 
 ## 8. 当前验收边界
 
-仓库 CI 覆盖 SQL 静态安全契约、IndexedDB Outbox、文档 CAS、离线重试、双浏览器模拟与领域学习测试。模拟 RPC E2E 不等于真实 Supabase Postgres/RLS 集成测试。真实验收还应在 Mac 与 iPhone 的独立浏览器环境中使用同一 GitHub 账户，确认事件与挑战/复习文档双向同步、Outbox 清零，以及双端并发修改需要显式解决冲突。
+仓库 CI 覆盖 SQL 静态安全契约、IndexedDB Outbox、文档 CAS、离线重试、双浏览器模拟与领域学习测试。V3 前向迁移已应用至当前 Supabase Postgres，远端事件表 schema version 约束及默认值均为 3；真实 Mac 与 iPhone Safari 的账户授权、事件双向同步、活动会话恢复和冲突选择仍需设备实测。自动化 WebKit 移动视口不等于真实 iPhone 设备验收。

@@ -8,6 +8,177 @@ const asObject = value => value && typeof value === "object" && !Array.isArray(v
 const asCount = value => Number.isSafeInteger(value) && value > 0 ? value : 0;
 const validDate = value => typeof value === "string" && Number.isFinite(Date.parse(value));
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+const EVENT_SCHEMA_VERSION = 3;
+const MAX_CAUSAL_REFERENCES = 20;
+
+function normalizeEventReferences(value) {
+  if (!Array.isArray(value)) return [];
+  return [...new Set(value.filter(id =>
+    typeof id === "string" && id.trim().length > 0 && id.length <= 240
+  ))].slice(0, MAX_CAUSAL_REFERENCES);
+}
+
+/** Normalize historic events into the current envelope without inventing causal links. */
+export function normalizeLearningEvent(event) {
+  if (!asObject(event) || typeof event.id !== "string" ||
+      !event.id.trim() || event.id.length > 240) return null;
+  const normalized = {
+    ...clone(event),
+    eventSchemaVersion: EVENT_SCHEMA_VERSION,
+    causationEventIds: normalizeEventReferences(event.causationEventIds),
+    targetGapEventIds: normalizeEventReferences(event.targetGapEventIds),
+    gapObservationId: typeof event.gapObservationId === "string" && event.gapObservationId.trim()
+      ? event.gapObservationId
+      : null,
+  };
+  if (normalized.type === "attempt" && normalized.correct === false && normalized.gapId &&
+      !normalized.gapObservationId) {
+    normalized.gapObservationId = normalized.id;
+  }
+  return normalized;
+}
+
+/** Stable JSON fingerprint: object key order is transport detail, not event meaning. */
+export function fingerprintLearningEvent(value) {
+  if (Array.isArray(value)) {
+    return "[" + value.map(fingerprintLearningEvent).join(",") + "]";
+  }
+  if (value && typeof value === "object") {
+    return "{" + Object.keys(value).sort().map(key =>
+      JSON.stringify(key) + ":" + fingerprintLearningEvent(value[key])
+    ).join(",") + "}";
+  }
+  return JSON.stringify(value);
+}
+
+function observationId(event) {
+  return event.gapObservationId || event.id;
+}
+
+function resolvingPassForObservation(failure, eventById, competencyId) {
+  const targetId = observationId(failure);
+  for (const candidate of eventById.values()) {
+    if (candidate.type !== "assessment_passed" || candidate.sessionType !== "review" ||
+        candidate.gapId !== failure.gapId ||
+        !(candidate.competencyIds || []).includes(competencyId) ||
+        !Array.isArray(candidate.targetGapEventIds) ||
+        !candidate.targetGapEventIds.includes(targetId) ||
+        Number(candidate.hintsUsed) !== 0 ||
+        !candidate.variantId || candidate.variantId === (failure.variantId ||
+          failure.challengeId + ":" + failure.stepId)) {
+      continue;
+    }
+
+    const parents = candidate.causationEventIds || [];
+    const start = parents.map(id => eventById.get(id)).find(event =>
+      event?.type === "review_started" &&
+      event.sessionType === "review" &&
+      event.sessionId === candidate.sessionId &&
+      (event.competencyIds || []).includes(competencyId) &&
+      (event.targetGapEventIds || []).includes(targetId)
+    );
+    if (!start) continue;
+
+    const previousVariants = (start.causationEventIds || [])
+      .map(id => eventById.get(id))
+      .filter(event =>
+        event?.type === "attempt" &&
+        event.sessionType === "review" &&
+        event.gapId === failure.gapId
+      )
+      .map(event => event.variantId)
+      .filter(Boolean);
+    if (previousVariants.includes(candidate.variantId)) continue;
+
+    const attempt = parents.map(id => eventById.get(id)).find(event =>
+      event?.type === "attempt" &&
+      event.sessionType === "review" &&
+      event.sessionId === candidate.sessionId &&
+      (event.competencyIds || []).includes(competencyId) &&
+      event.variantId === candidate.variantId &&
+      event.correct === true &&
+      Number(event.hintsUsed) === 0 &&
+      (event.causationEventIds || []).includes(start.id) &&
+      (event.targetGapEventIds || []).includes(targetId)
+    );
+    if (!attempt) continue;
+
+    const sameVariantConcurrentPass = [...eventById.values()].some(otherPass => {
+      if (otherPass.id === candidate.id ||
+          otherPass.type !== "assessment_passed" ||
+          otherPass.sessionType !== "review" ||
+          otherPass.gapId !== failure.gapId ||
+          !(otherPass.competencyIds || []).includes(competencyId) ||
+          otherPass.variantId !== candidate.variantId ||
+          Number(otherPass.hintsUsed) !== 0 ||
+          !(otherPass.targetGapEventIds || []).includes(targetId)) return false;
+      const otherParents = otherPass.causationEventIds || [];
+      const otherStart = otherParents.map(id => eventById.get(id)).find(event =>
+        event?.type === "review_started" && event.sessionId === otherPass.sessionId &&
+        (event.competencyIds || []).includes(competencyId) &&
+        (event.targetGapEventIds || []).includes(targetId)
+      );
+      const otherAttempt = otherParents.map(id => eventById.get(id)).find(event =>
+        event?.type === "attempt" && event.sessionId === otherPass.sessionId &&
+        event.sessionType === "review" && event.correct === true &&
+        (event.competencyIds || []).includes(competencyId) &&
+        event.variantId === otherPass.variantId
+      );
+      if (!otherStart || !otherAttempt) return false;
+      const candidateFollowsOther = causallyDependsOn(start, otherAttempt.id, eventById);
+      const otherFollowsCandidate = causallyDependsOn(otherStart, attempt.id, eventById);
+      return !candidateFollowsOther && !otherFollowsCandidate;
+    });
+    if (sameVariantConcurrentPass) continue;
+    return candidate;
+  }
+  return null;
+}
+
+function causallyDependsOn(event, targetId, eventById, visited = new Set()) {
+  if (!event || visited.has(event.id)) return false;
+  visited.add(event.id);
+  for (const parentId of event.causationEventIds || []) {
+    if (parentId === targetId) return true;
+    if (causallyDependsOn(eventById.get(parentId), targetId, eventById, visited)) return true;
+  }
+  return false;
+}
+
+/** Return the frontier of prior targeted-review attempts for the currently open observations. */
+export function getGapReviewPredecessorEventIds(snapshot, competencyId, gapId, targetIds = []) {
+  const targets = new Set(targetIds);
+  if (!targets.size) return [];
+  const events = (snapshot?.events || []).map(normalizeLearningEvent).filter(Boolean);
+  const byId = new Map(events.map(event => [event.id, event]));
+  const attempts = events.filter(event =>
+    event.type === "attempt" &&
+    event.sessionType === "review" &&
+    event.gapId === gapId &&
+    (event.competencyIds || []).includes(String(competencyId))
+  );
+  return attempts.filter(candidate =>
+    !attempts.some(other => other.id !== candidate.id && causallyDependsOn(other, candidate.id, byId))
+  ).map(event => event.id).slice(-MAX_CAUSAL_REFERENCES);
+}
+
+function openGapObservationEvents(events, competencyId, gapId) {
+  const byId = new Map(events.map(event => [event.id, event]));
+  return events.filter(event =>
+    event.type === "attempt" &&
+    event.correct === false &&
+    event.gapId === gapId &&
+    (event.competencyIds || []).includes(competencyId)
+  ).filter(event => !resolvingPassForObservation(event, byId, String(competencyId)));
+}
+
+/** Return exact failed-attempt event IDs still awaiting independent correction. */
+export function getOpenGapObservationEventIds(snapshot, competencyId, gapId) {
+  const events = (snapshot?.events || []).map(normalizeLearningEvent).filter(Boolean);
+  return openGapObservationEvents(events, String(competencyId), String(gapId))
+    .map(observationId)
+    .slice(-MAX_CAUSAL_REFERENCES);
+}
 
 function makeRunFallback() {
   const random = globalThis.crypto?.randomUUID?.() || Math.random().toString(36).slice(2);
@@ -32,13 +203,12 @@ function normalizeSnapshot(value) {
     typeof event.challengeId === "string" &&
     typeof event.stepId === "string" &&
     Array.isArray(event.competencyIds)
-  ).map(event => ({
+  ).map(event => normalizeLearningEvent({
     ...event,
-    eventSchemaVersion: 2,
     sessionType: event.sessionType || (event.type === "activity" ? "exploration" : "campaign"),
     sessionId: event.sessionId || event.runId || null,
     variantId: event.variantId || null,
-  }));
+  })).filter(Boolean);
   return {
     schemaVersion: SCHEMA_VERSION,
     createdAt: validDate(source.createdAt) ? source.createdAt : timestamp(),
@@ -105,8 +275,12 @@ export function createChallengeLearningEvents(challenge, previous, next, options
       const selectedOption = selectedOptionId ? optionsById.get(selectedOptionId) : null;
       const gapId = correct ? null :
         (selectedOption?.gapId || (isLatest && typeof data.lastGapId === "string" ? data.lastGapId : null));
+      const attemptId = runId + ":attempt:" + definition.id + ":" + number;
+      const previousAttemptId = number > 1
+        ? runId + ":attempt:" + definition.id + ":" + (number - 1)
+        : null;
       events.push({
-        id: runId + ":attempt:" + definition.id + ":" + number,
+        id: attemptId,
         type: "attempt",
         at: now,
         topicId: challenge.topic || "unclassified",
@@ -120,6 +294,9 @@ export function createChallengeLearningEvents(challenge, previous, next, options
         selectedOptionId: selectedOptionId || null,
         gapId: gapId || null,
         hintsUsed: asCount(current.hintsUsed),
+        gapObservationId: gapId ? attemptId : null,
+        causationEventIds: previousAttemptId ? [previousAttemptId] : [],
+        targetGapEventIds: [],
       });
     }
 
@@ -137,6 +314,8 @@ export function createChallengeLearningEvents(challenge, previous, next, options
         stepTitle: definition.title || definition.id,
         competencyIds,
         hintNumber: number,
+        causationEventIds: [],
+        targetGapEventIds: [],
       });
     }
 
@@ -157,11 +336,21 @@ export function createChallengeLearningEvents(challenge, previous, next, options
         maximumPoints: score.maximum,
         attempts: score.attempts,
         hintsUsed: score.hintsUsed,
+        causationEventIds: [
+          ...Array.from({ length: score.attempts }, (_, index) =>
+            runId + ":attempt:" + definition.id + ":" + (index + 1)),
+          ...Array.from({ length: score.hintsUsed }, (_, index) =>
+            runId + ":hint:" + definition.id + ":" + (index + 1)),
+        ].slice(-MAX_CAUSAL_REFERENCES),
+        targetGapEventIds: [],
       });
     }
   }
   for (const event of events) {
-    event.eventSchemaVersion = 2;
+    event.eventSchemaVersion = EVENT_SCHEMA_VERSION;
+    event.causationEventIds = normalizeEventReferences(event.causationEventIds);
+    event.targetGapEventIds = normalizeEventReferences(event.targetGapEventIds);
+    event.gapObservationId = event.gapObservationId || null;
     event.sessionId = event.sessionId || runId;
     event.sessionType = "campaign";
     event.variantId = event.variantId || challenge.id + ":" + event.stepId;
@@ -198,15 +387,30 @@ export function createLearningProgressStore(options = {}) {
       if (!available) return false;
       if (!Array.isArray(newEvents) || !newEvents.length) return true;
       const snapshot = readStorage(storage, key);
-      const known = new Set(snapshot.events.map(event => event.id));
+      const known = new Map(snapshot.events.map(event => [event.id, fingerprintLearningEvent(event)]));
       const remoteIds = new Set(snapshot.remoteEventIds || []);
       const added = [];
-      for (const event of newEvents) {
-        if (!asObject(event) || typeof event.id !== "string") continue;
-        if (!known.has(event.id)) {
+      const normalizedIncoming = [];
+      const existingIds = new Set(snapshot.events.map(event => event.id));
+      for (const rawEvent of newEvents) {
+        if (!asObject(rawEvent) || typeof rawEvent.id !== "string" || !rawEvent.id) continue;
+        if ((rawEvent.causationEventIds?.length || 0) > MAX_CAUSAL_REFERENCES ||
+            (rawEvent.targetGapEventIds?.length || 0) > MAX_CAUSAL_REFERENCES) return false;
+        const event = normalizeLearningEvent(rawEvent);
+        if (!event) continue;
+        const existing = known.get(event.id);
+        if (existing && existing !== fingerprintLearningEvent(event)) {
+          // A stable event ID must always describe the same immutable fact.
+          return false;
+        }
+        normalizedIncoming.push(event);
+        if (!existing) known.set(event.id, fingerprintLearningEvent(event));
+      }
+      for (const event of normalizedIncoming) {
+        if (!existingIds.has(event.id)) {
           snapshot.events.push(clone(event));
           added.push(clone(event));
-          known.add(event.id);
+          existingIds.add(event.id);
         }
         if (appendOptions.remote === true) remoteIds.add(event.id);
         else remoteIds.delete(event.id);
@@ -286,8 +490,10 @@ function addDays(dateString, days) {
 export function deriveLearningInsights(learningMap, challengeRegistry, snapshot, nowValue = new Date()) {
   const now = nowValue instanceof Date ? nowValue : new Date(nowValue);
   const nowMs = now.getTime();
-  const events = Array.isArray(snapshot?.events) ? snapshot.events.filter(event => validDate(event.at)) : [];
-  const orderedEvents = events.slice().sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+  const events = Array.isArray(snapshot?.events)
+    ? snapshot.events.map(normalizeLearningEvent).filter(event => event && validDate(event.at))
+    : [];
+  const eventById = new Map(events.map(event => [event.id, event]));
   const challenges = new Map((challengeRegistry?.challenges || []).map(item => [item.id, item]));
   const topicDefinitions = Array.isArray(learningMap?.topics) ? learningMap.topics : [];
   const competencies = topicDefinitions.flatMap(topic =>
@@ -370,49 +576,19 @@ export function deriveLearningInsights(learningMap, challengeRegistry, snapshot,
     const resolvedGaps = [];
     for (const gapId of new Set(failedAttempts.map(event => event.gapId))) {
       const failures = failedAttempts.filter(event => event.gapId === gapId);
-      const lastFailure = failures[failures.length - 1];
-      const lastFailureIndex = events.indexOf(lastFailure);
-      const afterFailure = events.filter((event, eventIndex) =>
-        eventIndex > lastFailureIndex &&
-        event.sessionType === "review" &&
-        (event.competencyIds || []).includes(definition.id) &&
-        event.gapId === gapId
-      );
-      let latestValidatedVariant = lastFailure.variantId || lastFailure.challengeId + ":" + lastFailure.stepId;
-      let independentPass = null;
-      for (const reviewEvent of afterFailure) {
-        if (
-          reviewEvent.type === "attempt" &&
-          reviewEvent.correct === false &&
-          typeof reviewEvent.variantId === "string" &&
-          reviewEvent.variantId
-        ) {
-          latestValidatedVariant = reviewEvent.variantId;
-          continue;
-        }
-        if (reviewEvent.type !== "assessment_passed") continue;
-        if (
-          Number.isFinite(Number(reviewEvent.hintsUsed)) &&
-          Number(reviewEvent.hintsUsed) === 0 &&
-          typeof reviewEvent.variantId === "string" &&
-          reviewEvent.variantId.length > 0 &&
-          reviewEvent.variantId !== latestValidatedVariant
-        ) {
-          independentPass = reviewEvent;
-          break;
-        }
-        if (typeof reviewEvent.variantId === "string" && reviewEvent.variantId) {
-          latestValidatedVariant = reviewEvent.variantId;
-        }
-      }
-      const assistedOrSameVariantPass = afterFailure.some(event => event.type === "assessment_passed");
-      const latestReviewActivity = afterFailure[afterFailure.length - 1] || null;
+      const resolutions = failures.map(failure => ({
+        failure,
+        pass: resolvingPassForObservation(failure, eventById, String(definition.id)),
+      }));
+      const unresolved = resolutions.filter(item => !item.pass).map(item => item.failure);
+      const resolved = resolutions.filter(item => item.pass);
       const mapGap = gapDefinitions.get(gapId);
+      const lastFailure = unresolved.at(-1) || failures.at(-1);
       const baseGap = {
         id: gapId,
         label: mapGap?.label || gapId,
         description: mapGap?.description || "",
-        count: failures.length,
+        count: unresolved.length,
         lastSeenAt: lastFailure.at,
         topicId: definition.topicId,
         topicTitle: definition.topicTitle,
@@ -423,22 +599,66 @@ export function deriveLearningInsights(learningMap, challengeRegistry, snapshot,
         challengeHref: definition.challengeHref || null,
         targetGapId: gapId,
         lastFailureVariantId: lastFailure.variantId || lastFailure.challengeId + ":" + lastFailure.stepId,
-        verificationVariantId: independentPass?.variantId || null,
+        verificationVariantId: null,
       };
-      if (independentPass) {
-        resolvedGaps.push({ ...baseGap, lifecycle: "resolved", lifecycleLabel: "已独立纠正", resolvedAt: independentPass.at });
-      } else {
-        let lifecycle = "detected";
-        let lifecycleLabel = "待复习";
-        if (assistedOrSameVariantPass) {
-          lifecycle = "pending-verification";
-          lifecycleLabel = "已纠正 · 待独立确认";
-        } else if (latestReviewActivity?.type === "review_started") {
-          lifecycle = "reviewing";
-          lifecycleLabel = "复习进行中";
+
+      if (!unresolved.length) {
+        if (resolved.length) {
+          const latestResolution = resolved.at(-1);
+          resolvedGaps.push({
+            ...baseGap,
+            count: failures.length,
+            lifecycle: "resolved",
+            lifecycleLabel: "已独立纠正",
+            resolvedAt: latestResolution.pass.at,
+            verificationVariantId: latestResolution.pass.variantId || null,
+          });
         }
-        activeGaps.push({ ...baseGap, lifecycle, lifecycleLabel });
+        continue;
       }
+
+      const unresolvedIds = new Set(unresolved.map(observationId));
+      const targetedPasses = events.filter(event =>
+        event.type === "assessment_passed" &&
+        event.sessionType === "review" &&
+        (event.competencyIds || []).includes(definition.id) &&
+        (event.targetGapEventIds || []).some(id => unresolvedIds.has(id))
+      );
+      const assistedOrSameVariantPass = targetedPasses.find(event => {
+        if (Number(event.hintsUsed) !== 0) return true;
+        return unresolved.some(failure =>
+          (event.targetGapEventIds || []).includes(observationId(failure)) &&
+          event.variantId === (failure.variantId || failure.challengeId + ":" + failure.stepId)
+        );
+      }) || null;
+
+      const reviewingSession = events.find(event => {
+        if (event.type !== "review_started" || event.sessionType !== "review" ||
+            !(event.targetGapEventIds || []).some(id => unresolvedIds.has(id))) return false;
+        const hasAnswer = events.some(item =>
+          item.sessionId === event.sessionId &&
+          item.sessionType === "review" &&
+          item.type === "attempt"
+        );
+        return !hasAnswer;
+      });
+
+      let lifecycle = "detected";
+      let lifecycleLabel = "待复习";
+      if (assistedOrSameVariantPass) {
+        lifecycle = "pending-verification";
+        lifecycleLabel = "已纠正 · 待独立确认";
+      } else if (reviewingSession) {
+        lifecycle = "reviewing";
+        lifecycleLabel = "复习进行中";
+      }
+
+      activeGaps.push({
+        ...baseGap,
+        verificationVariantId: assistedOrSameVariantPass?.variantId || null,
+        lifecycle,
+        lifecycleLabel,
+      });
     }
 
     let status = "unverified";

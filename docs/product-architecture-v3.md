@@ -1,6 +1,6 @@
 # KNOWVERSE 3.0 · Personal Learning Platform 产品与技术实施方案
 
-版本：3.0 · 2026-11-01  
+版本：3.1 · 2026-11-02
 基准仓库：`liucaidong/knowverse`  
 产品定位：个人智能学习系统
 
@@ -54,14 +54,16 @@ KNOWVERSE 不再以知识笔记或互动作品目录为最终定位，而是成�
 
 ## 3. 当前仓库基线
 
-截至 2026-11-01 main 分支：
+截至 2026-11-02 main 分支：
 
-- 3 条体验主线，14 件已上线作品：原理实验室 7、展厅 3、解谜世界 4。
-- 12 个知识专题、92 条可检索内容记录、22 张 Mermaid 全景图。
-- 学习图谱当前覆盖 Promise 5 个能力点与 Monorepo 4 个能力点。
-- 19 个薄弱点、40 个针对性复习场景、12 个非挑战作品检查点、2 个结构化挑战作品。
-- V2 学习事件、掌握度与置信度分离、gap 生命周期、独立 Review Session 和确定性主动规划。
-- 学习档案仍以当前浏览器 LocalStorage 为兼容事实源；尚无真实账户或生产云同步。
+- 3 条体验主线、17 件作品，使用统一 Work Registry 与 Canonical Route Registry。
+- 135 个静态 Shell 页面、42 个 canonical routes、16 个 Concept 详情页。
+- 12 个知识专题、13 个来源、113 条搜索记录。
+- 三个正式能力图谱：Promise、Monorepo、React Native；共 15 个 Competency、31 个 Gap。
+- 14 个无提示 Checkpoint、3 个结构化 Challenge、72 个 Review 变体。
+- 学习闭环包含掌握度、置信度、Gap 生命周期、独立 Review、个性化复习和确定性 Adaptive Planner。
+- Supabase GitHub OAuth / 白名单 / RLS / RPC / Outbox / CAS 文档同步已部署；Event Schema V3 已应用到云端。
+- 因果 reducer 不再以时间戳或合并数组顺序判断 Gap 纠正；进行中状态通过版本化档案文档同步。
 
 ## 4. 目标技术架构
 
@@ -139,7 +141,7 @@ Future AI Services
 - 页面发布白名单，隔离 Migration 和后端工程文件。
 - 不配置云端时继续本地运行。
 
-当前存储边界：挑战与复习引擎使用当前 LocalStorage 快照完成同步式现场读取；IndexedDB 专注于 Outbox、设备序列、游标和云端 CAS 文档。事件历史只有一份本机权威副本，不维护双事件镜像或旧键迁移状态。
+当前存储边界：挑战与复习引擎仍使用 LocalStorage 完成同步式现场读写；IndexedDB 管理 Outbox、设备序列、游标和云端 CAS 文档。事件历史只有一份本机权威副本；旧 Outbox 事件在上传前规范化为当前 V3 envelope。
 
 验收：
 - 相同事件安全重试不重复插入。
@@ -149,23 +151,29 @@ Future AI Services
 - 未授权用户不能访问个人事件。
 - 断网时本地学习可继续，恢复后可补传。
 
-### Phase C · 快照恢复与因果一致性
+### Phase C · 快照恢复与因果一致性（因果协议已交付，领域事务迁移待完成）
 
 目标：让 Mac 与 iPhone 之间恢复的不只是历史事件，也包括进行中的挑战、复习会话和精确薄弱点状态。
 
-交付：
-- 将挑战状态、Review Session 和本地事件仓库迁移至 IndexedDB。
-- 所有涉及持久化成功的接口异步化，UI 只在事务提交后显示保存成功。
-- 单一当前 schema 的学习事件日志、IndexedDB Outbox 与 CAS 文档持久化。
-- Event Schema V3：causation_event_ids、gap_observation_id、target_gap_event_ids。
-- 快照 revision 乐观锁，禁止 Last Write Wins 静默覆盖。
-- 跨设备 gap reducer 明确处理无法排序的并发证据。
+已交付：
+- Event Schema V3 已在 Supabase 应用前向迁移：causationEventIds、gapObservationId、targetGapEventIds。
+- 旧 V2 事实事件保留原 event ID 并规范化 V3；不虚构历史因果关系。
+- 挑战 / 检查点失败形成稳定 gap observation；Review 开始时冻结目标事件 ID。
+- 只有可沿 event ID 追溯到 started + 正确 attempt 的无提示不同变体通过，才解除对应 gap。
+- 同变体串行重试和缺乏因果先后的并发同变体结果均不计作独立纠正。
+- 事件 ID 内容不可变；本地和 Outbox 都拒绝同 ID 不同 payload。
+- 快照 revision 乐观锁和 CAS 文档冲突已存在，禁止 Last Write Wins 静默覆盖。
+
+仍待完成：
+- 将挑战状态、Review Session 和本地事件仓库迁移至 IndexedDB 单事务；领域接口异步化，UI 只在事务提交后显示保存成功。
+- 在真实 Mac + iPhone Safari 上实测 OAuth 白名单、离线补传、活动会话恢复、并发冲突和 Outbox 清空。
 
 验收：
-- Mac 离线挑战完成后，iPhone 登录同一用户可恢复事件与当前状态。
-- 同一挑战跨设备并发修改可发现 revision 冲突。
+- 事件合并顺序及客户端时间戳变化不影响 gap reducer 结果。
+- 同一事件 ID 不同内容必须拒绝，服务器确认前 Outbox 不删除。
 - 只有针对目标 gap 的独立、无提示、不同变体验证才能关闭该 gap。
-- 无法确定因果顺序时进入待重新验证，不静默标为纠正。
+- 无法确定因果先后的并发同变体结果不静默标为纠正。
+- 真实设备端到端恢复与并发冲突测试完成后，Phase C 才能整体标记完成。
 
 ### Phase D · 第三个完整知识领域
 

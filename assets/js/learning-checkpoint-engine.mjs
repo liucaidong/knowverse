@@ -45,14 +45,15 @@ export function createLearningCheckpointEngine(options = {}) {
       status: "active", startedAt
     };
     append([{
-      id: sessionId + ":started", eventSchemaVersion: 2, type: "checkpoint_started",
+      id: sessionId + ":started", eventSchemaVersion: 3, type: "checkpoint_started",
       at: startedAt, topicId: definition.topicId,
       challengeId: "checkpoint:" + definition.workId,
       challengeTitle: definition.title || definition.workId,
       stepId: definition.id, stepTitle: definition.title || definition.id,
       competencyIds: [definition.competencyId], sessionId,
       sessionType: "checkpoint", variantId: definition.id,
-      hintsUsed: 0, workId: definition.workId
+      hintsUsed: 0, workId: definition.workId,
+      gapObservationId: null, causationEventIds: [], targetGapEventIds: []
     }]);
     sessions.set(sessionId, session);
     return { ...session, definition: JSON.parse(JSON.stringify(definition)) };
@@ -67,22 +68,26 @@ export function createLearningCheckpointEngine(options = {}) {
     const correct = optionId === definition.answer;
     const at = new Date().toISOString();
     const base = {
-      eventSchemaVersion: 2, at, topicId: definition.topicId,
+      eventSchemaVersion: 3, at, topicId: definition.topicId,
       challengeId: "checkpoint:" + definition.workId,
       challengeTitle: definition.title || definition.workId,
       stepId: definition.id, stepTitle: definition.title || definition.id,
       competencyIds: [definition.competencyId], sessionId,
       sessionType: "checkpoint", variantId: definition.id, workId: definition.workId,
       attempts: 1, attemptNumber: 1, hintsUsed: 0,
-      selectedOptionId: optionId, correct
+      selectedOptionId: optionId, correct,
+      causationEventIds: [sessionId + ":started"],
+      targetGapEventIds: [],
     };
     const events = [{
       ...base, id: sessionId + ":attempt", type: "attempt",
-      gapId: correct ? null : (selected.gapId || null)
+      gapId: correct ? null : (selected.gapId || null),
+      gapObservationId: !correct && selected.gapId ? sessionId + ":attempt" : null
     }];
     if (correct) events.push({
       ...base, id: sessionId + ":passed", type: "assessment_passed",
-      gapId: null, scorePct: 100, earnedPoints: 100, maximumPoints: 100, independent: true
+      gapId: null, scorePct: 100, earnedPoints: 100, maximumPoints: 100, independent: true,
+      causationEventIds: [sessionId + ":started", sessionId + ":attempt"]
     });
     append(events);
     session.status = correct ? "passed" : "needs-review";

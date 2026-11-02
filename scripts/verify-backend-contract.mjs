@@ -37,10 +37,22 @@ test("single initial schema is the complete database source of truth", async () 
   assert.match(sql, /create policy "update own authorized archive documents"/i);
 });
 
-test("repository carries one migration whose version matches the remote baseline", async () => {
+test("repository preserves the applied baseline and adds one forward event-envelope migration", async () => {
   const { readdir } = await import("node:fs/promises");
-  const migrations = (await readdir(new URL("../supabase/migrations/", import.meta.url))).filter(name => name.endsWith(".sql"));
-  assert.deepEqual(migrations, ["20261102032732_initial_schema.sql"]);
+  const migrations = (await readdir(new URL("../supabase/migrations/", import.meta.url)))
+    .filter(name => name.endsWith(".sql")).sort();
+  assert.deepEqual(migrations, [
+    "20261102032732_initial_schema.sql",
+    "20261102090144_gap_causality_v3.sql",
+  ]);
+  const forward = await read("supabase/migrations/20261102090144_gap_causality_v3.sql");
+  assert.match(forward, /schema_version set default 3/i);
+  assert.match(forward, /check \(schema_version = 3\)/i);
+  assert.match(forward, /targetGapEventIds/i);
+  assert.match(forward, /gapObservationId/i);
+  assert.match(forward, /security invoker/i);
+  assert.match(forward, /payload_hash = encode/i);
+  assert.doesNotMatch(forward, /security definer/i);
 });
 
 test("local event journal keeps cloud events out of the outbound queue", async () => {
@@ -142,7 +154,10 @@ test("learning journal uses one current schema and never falls back to legacy ke
   assert.match(source, /const SCHEMA_VERSION = 1/);
   assert.match(source, /const STORAGE_KEY = "knowverse:learning-progress"/);
   assert.doesNotMatch(source, /LEGACY_STORAGE_KEY|parsedLegacy|schemaVersion === 0|schemaVersion === 2/);
-  assert.match(source, /eventSchemaVersion: 2/);
+  assert.match(source, /EVENT_SCHEMA_VERSION = 3/);
+  assert.match(source, /normalizeLearningEvent/);
+  assert.match(source, /stable event ID must always describe the same immutable fact/);
+  assert.match(source, /fingerprintLearningEvent/);
 });
 
 test("one document conflict is counted once when both push and pull report the same revision", async () => {
