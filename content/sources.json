@@ -1,0 +1,150 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-11-02",
+  "description": "可追溯的官方规范、文档与参考来源注册表。概念仅引用已登记来源；未建立来源关系的专题不会被自动补齐。",
+  "sources": [
+    {
+      "id": "ecma-262-promise",
+      "title": "ECMAScript 2026 · Promise Objects",
+      "publisher": "TC39",
+      "url": "https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-objects",
+      "kind": "specification",
+      "topics": [
+        "promise"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "mdn-using-promises",
+      "title": "Using Promises",
+      "publisher": "MDN Web Docs",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises",
+      "kind": "reference",
+      "topics": [
+        "promise"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "mdn-microtask-guide",
+      "title": "HTML DOM · Microtask guide",
+      "publisher": "MDN Web Docs",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide",
+      "kind": "reference",
+      "topics": [
+        "promise"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "node-microtask-order",
+      "title": "Node.js · When to use queueMicrotask vs process.nextTick",
+      "publisher": "Node.js",
+      "url": "https://nodejs.org/api/process.html#when-to-use-queuemicrotask-vs-processnexttick",
+      "kind": "reference",
+      "topics": [
+        "promise"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "pnpm-workspaces",
+      "title": "pnpm · Workspaces",
+      "publisher": "pnpm",
+      "url": "https://pnpm.io/workspaces",
+      "kind": "documentation",
+      "topics": [
+        "monorepo"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "typescript-project-references",
+      "title": "TypeScript · Project References",
+      "publisher": "Microsoft TypeScript",
+      "url": "https://www.typescriptlang.org/docs/handbook/project-references.html",
+      "kind": "documentation",
+      "topics": [
+        "monorepo"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "nx-affected",
+      "title": "Nx · Affected",
+      "publisher": "Nx",
+      "url": "https://nx.dev/docs/features/ci-features/affected",
+      "kind": "documentation",
+      "topics": [
+        "monorepo"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "rush-build-cache",
+      "title": "Rush · Build Cache",
+      "publisher": "Rush",
+      "url": "https://rushjs.io/pages/maintainer/build_cache/",
+      "kind": "documentation",
+      "topics": [
+        "monorepo"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "react-native-architecture",
+      "title": "React Native · New Architecture Overview",
+      "publisher": "React Native",
+      "url": "https://reactnative.dev/architecture/overview",
+      "kind": "documentation",
+      "topics": [
+        "react-native"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "react-native-codegen",
+      "title": "React Native · What is Codegen?",
+      "publisher": "React Native",
+      "url": "https://reactnative.dev/docs/the-new-architecture/what-is-codegen",
+      "kind": "documentation",
+      "topics": [
+        "react-native"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "react-native-fabric",
+      "title": "React Native · Fabric Renderer",
+      "publisher": "React Native",
+      "url": "https://reactnative.dev/architecture/fabric-renderer",
+      "kind": "documentation",
+      "topics": [
+        "react-native"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "react-native-threading",
+      "title": "React Native · Threading Model",
+      "publisher": "React Native",
+      "url": "https://reactnative.dev/architecture/threading-model",
+      "kind": "documentation",
+      "topics": [
+        "react-native"
+      ],
+      "accessed": "2026-11-02"
+    },
+    {
+      "id": "react-native-hermes",
+      "title": "React Native · Hermes",
+      "publisher": "React Native",
+      "url": "https://reactnative.dev/docs/hermes",
+      "kind": "documentation",
+      "topics": [
+        "react-native"
+      ],
+      "accessed": "2026-11-02"
+    }
+  ]
+}

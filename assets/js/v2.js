@@ -94,10 +94,7 @@
     }
     if (event.key === "Escape") hideSearch();
   });
-  document.getElementById("mobile-menu")?.addEventListener("click", () => {
-    document.querySelector(".navlinks")?.classList.toggle("open");
-  });
-
+  // Mobile navigation is owned by the shared static site shell.
   const diagrams = [...document.querySelectorAll(".mermaid")];
   if (diagrams.length) {
     import("https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.esm.min.mjs").then(module => {

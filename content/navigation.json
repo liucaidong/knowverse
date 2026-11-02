@@ -1,41 +1,76 @@
 {
-  "version": "1.0.0",
-  "description": "KNOWVERSE 全站导航与产品架构的唯一入口定义。知识专题由 content/knowledge.json 动态生成；三条体验主线与学习智能能力在此分组。",
+  "version": "2.0.0",
+  "description": "KNOWVERSE 唯一全站导航事实源。所有二级菜单通过 routeId 引用 content/routes.json；知识专题菜单由 content/knowledge.json 自动生成。",
   "groups": [
     {
       "id": "knowledge",
       "label": "知识体系",
-      "path": "knowledge/",
-      "activePaths": [
-        "knowledge/"
+      "routeId": "knowledge.overview",
+      "activeRouteIds": [
+        "knowledge.overview"
       ],
-      "sections": []
+      "sections": [
+        {
+          "label": "知识导航",
+          "items": [
+            {
+              "label": "全部知识领域",
+              "routeId": "knowledge.overview"
+            },
+            {
+              "label": "我的学习路径",
+              "routeId": "learning.today"
+            },
+            {
+              "label": "知识关系图",
+              "routeId": "learning.mastery"
+            },
+            {
+              "label": "来源与参考",
+              "routeId": "knowledge.sources"
+            }
+          ]
+        },
+        {
+          "label": "知识专题",
+          "dynamic": "knowledge.topics"
+        }
+      ]
     },
     {
       "id": "experience",
       "label": "实践体验",
-      "path": "works/",
-      "activePaths": [
-        "works/",
-        "lab/",
-        "gallery/",
-        "puzzles/"
+      "routeId": "experience.overview",
+      "activeRouteIds": [
+        "experience.overview",
+        "experience.lab",
+        "experience.gallery",
+        "experience.puzzles"
       ],
       "sections": [
         {
-          "label": "三条产品主线",
+          "label": "三种学习方式",
           "items": [
             {
               "label": "01 · 原理实验室",
-              "path": "lab/"
+              "routeId": "experience.lab"
             },
             {
               "label": "02 · 沉浸式知识展厅",
-              "path": "gallery/"
+              "routeId": "experience.gallery"
             },
             {
               "label": "03 · 知识解谜世界",
-              "path": "puzzles/"
+              "routeId": "experience.puzzles"
+            }
+          ]
+        },
+        {
+          "label": "作品目录",
+          "items": [
+            {
+              "label": "全部互动作品",
+              "routeId": "experience.overview"
             }
           ]
         }
@@ -44,36 +79,38 @@
     {
       "id": "learning",
       "label": "学习成长",
-      "path": "progress/",
-      "activePaths": [
-        "progress/",
-        "review/",
-        "timeline/",
-        "provenance/"
+      "routeId": "learning.overview",
+      "activeRouteIds": [
+        "learning.overview",
+        "learning.today",
+        "learning.mastery",
+        "learning.gaps",
+        "learning.review",
+        "learning.history"
       ],
       "sections": [
         {
-          "label": "学习智能引擎",
+          "label": "我的学习成长",
           "items": [
             {
-              "label": "主动学习规划",
-              "path": "progress/#adaptive-plan"
+              "label": "今日学习计划",
+              "routeId": "learning.today"
             },
             {
               "label": "知识掌握图谱",
-              "path": "progress/#knowledge-map"
+              "routeId": "learning.mastery"
             },
             {
-              "label": "复习工作台 · 独立验证",
-              "path": "review/"
+              "label": "薄弱点诊断",
+              "routeId": "learning.gaps"
             },
             {
-              "label": "研究时间线",
-              "path": "timeline/"
+              "label": "独立复习工作台",
+              "routeId": "learning.review"
             },
             {
-              "label": "来源与覆盖范围",
-              "path": "provenance/"
+              "label": "学习历史",
+              "routeId": "learning.history"
             }
           ]
         }

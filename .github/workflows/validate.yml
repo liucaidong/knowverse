@@ -13,7 +13,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Build deterministic full-text search index from source pages
+      - name: Build public concept pages and registry-backed catalogues
+        run: node scripts/build-public-content.mjs
+      - name: Build static site shell, nested navigation and single account control
+        run: node scripts/build-site-shell.mjs
+      - name: Build deterministic full-text search index from final public pages and Concept registry
         run: python3 scripts/build-search-index.py
       - name: Verify generated search index is reproducible
         run: python3 scripts/build-search-index.py --check
@@ -25,8 +29,12 @@ jobs:
         run: python3 scripts/validate-content.py
       - name: Validate V2 knowledge pages and Mermaid panoramas
         run: python3 scripts/validate-v2.py
-      - name: Validate unified navigation, content relations and prerequisite DAGs
+      - name: Validate unified navigation, concept graph, canonical routes and static shell coverage
         run: node scripts/validate-site-architecture.mjs
+      - name: Verify deterministic static shell generator and mobile navigation fixture
+        run: node --test scripts/verify-site-shell.mjs
+      - name: Verify registry-driven Concept pages and public coverage portals
+        run: node --test scripts/verify-public-content.mjs
       - name: Validate Promise deep-dive
         run: python3 scripts/validate-promise.py
       - name: Check Promise semantic examples
@@ -88,6 +96,8 @@ jobs:
           npx playwright install --with-deps chromium webkit
       - name: Browser E2E · Chromium desktop and WebKit mobile viewport
         run: node --test scripts/e2e-learning-intelligence.mjs
+      - name: Browser E2E · Global navigation, mobile drawer and no-JavaScript fallback
+        run: node --test scripts/e2e-site-navigation.mjs
       - name: Browser E2E · Work checkpoint and learning telemetry
         run: node --test scripts/e2e-learning-integration.mjs
       - name: Browser E2E · Mac + iPhone archive sync, offline recovery and conflict resolution

@@ -14,11 +14,20 @@ for name in packages:
  assert (q/name/'src').is_dir(),name
 for target in p.rglob('*.html'):
  text=target.read_text()
- for link in re.findall(r'(?:href|src)=["\']([^"\']+)',text):
+ root_match=re.search(r'''<body[^>]*data-root=["']([^"']+)["']''',text)
+ root_prefix=root_match.group(1) if root_match else None
+ for link in re.findall(r'''(?:href|src)=["']([^"']+)["']''',text):
   if link.startswith(('http','#','data:','mailto:','/')):continue
-  r=(target.parent/link).resolve()
+  local_path=link.split('#',1)[0].split('?',1)[0]
+  if not local_path:continue
+  if root_prefix and local_path.startswith(root_prefix):
+   r=(root/local_path[len(root_prefix):]).resolve()
+  else:
+   r=(target.parent/local_path).resolve()
   assert r.is_relative_to(root),str(r)
+  if r.is_dir():r=r/'index.html'
   assert r.exists(),str(target)+':'+link
+
 assert zipfile.ZipFile(p/'fullstack-project.zip').testzip() is None
 found=json.loads((root/'data/search.json').read_text())
 assert sum(x.get('href')=='knowledge/monorepo/fullstack/' for x in found)==1

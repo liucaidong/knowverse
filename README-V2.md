@@ -1,3 +1,5 @@
+> **历史版本说明（2026-11-02）**：本文保留 KNOWVERSE V2 的原始产品介绍与阶段记录，可能包含过时统计、导航和功能表述。当前产品定位、路由、Concept / Competency、全站 Shell 与实际交付状态以根目录 `README.md`、`docs/product-architecture-v3.md` 和 `content/*.json` 注册表为准。
+
 # KNOWVERSE V2 · 知域知识宇宙
 
 - GitHub Pages：`https://liucaidong.github.io/knowverse/`

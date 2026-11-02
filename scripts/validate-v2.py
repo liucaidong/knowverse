@@ -52,7 +52,12 @@ search = json.loads((root / "data/search.json").read_text(encoding="utf-8"))
 knowledge = json.loads((root / "content/knowledge.json").read_text(encoding="utf-8"))
 metadata = json.loads((root / "content/search-metadata.json").read_text(encoding="utf-8"))
 topic_ids = {topic["id"] for topic in knowledge["topics"]}
-assert len(search) == len(metadata["records"]), "Generated search index and metadata counts differ"
+concepts = json.loads((root / "content/concepts.json").read_text(encoding="utf-8"))
+metadata_hrefs = {item["href"] for item in metadata["records"]}
+search_by_href = {item["href"]: item for item in search}
+concept_hrefs = {f"concept/{item['id']}/" for item in concepts["concepts"]}
+assert metadata_hrefs.issubset(search_by_href), "A curated knowledge search record is missing from the generated index"
+assert set(search_by_href) == metadata_hrefs | concept_hrefs, "Generated search index must contain curated knowledge records plus exactly the registered Concepts"
 assert len(search) >= 40, len(search)
 assert len({item["href"] for item in search}) == len(search), "Duplicate search route"
 for item in search:
@@ -60,6 +65,8 @@ for item in search:
     assert item["body"].strip(), item
     target = root / item["href"]
     assert (target / "index.html").is_file(), item["href"]
+    if item.get("concept_id"):
+        assert item["href"] == f"concept/{item['concept_id']}/", item
 
 print(f"checked {checked} local links, {len(panoramas)} Mermaid panoramas, {len(search)} generated search records")
 if missing:

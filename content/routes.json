@@ -1,0 +1,259 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-11-02",
+  "description": "全站 canonical route 注册表。页面链接只由稳定 route ID 或专题/概念注册表构建；所有内部页面路径均相对仓库根目录。",
+  "routes": [
+    {
+      "id": "home",
+      "label": "首页",
+      "path": "./",
+      "pageType": "home"
+    },
+    {
+      "id": "knowledge.overview",
+      "label": "全部知识领域",
+      "path": "./knowledge/",
+      "pageType": "knowledge-index"
+    },
+    {
+      "id": "knowledge.sources",
+      "label": "来源与参考",
+      "path": "./provenance/",
+      "pageType": "sources"
+    },
+    {
+      "id": "experience.overview",
+      "label": "全部实践体验",
+      "path": "./works/",
+      "pageType": "works-index"
+    },
+    {
+      "id": "experience.lab",
+      "label": "01 · 原理实验室",
+      "path": "./lab/",
+      "pageType": "experience-index"
+    },
+    {
+      "id": "experience.gallery",
+      "label": "02 · 沉浸式知识展厅",
+      "path": "./gallery/",
+      "pageType": "experience-index"
+    },
+    {
+      "id": "experience.puzzles",
+      "label": "03 · 知识解谜世界",
+      "path": "./puzzles/",
+      "pageType": "experience-index"
+    },
+    {
+      "id": "learning.overview",
+      "label": "学习成长总览",
+      "path": "./progress/",
+      "pageType": "progress"
+    },
+    {
+      "id": "learning.today",
+      "label": "今日学习计划",
+      "path": "./progress/#adaptive-plan",
+      "pageType": "learning-plan"
+    },
+    {
+      "id": "learning.mastery",
+      "label": "知识掌握图谱",
+      "path": "./progress/#knowledge-map",
+      "pageType": "mastery-graph"
+    },
+    {
+      "id": "learning.gaps",
+      "label": "薄弱点诊断",
+      "path": "./progress/#weak-points",
+      "pageType": "gap-diagnosis"
+    },
+    {
+      "id": "learning.review",
+      "label": "独立复习工作台",
+      "path": "./review/",
+      "pageType": "review"
+    },
+    {
+      "id": "learning.history",
+      "label": "学习历史",
+      "path": "./progress/#challenge-history",
+      "pageType": "learning-history"
+    },
+    {
+      "id": "account.archive",
+      "label": "个人学习档案",
+      "path": "./progress/#cloud-account",
+      "pageType": "account-archive"
+    },
+    {
+      "id": "topic.promise",
+      "label": "JavaScript · Promise",
+      "path": "./knowledge/promise/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.monorepo",
+      "label": "TypeScript · Monorepo",
+      "path": "./knowledge/monorepo/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.react-native",
+      "label": "React Native · 新架构",
+      "path": "./knowledge/react-native/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.ai-education",
+      "label": "AI · 多模态教育",
+      "path": "./knowledge/ai-education/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.ai-agents",
+      "label": "AI Agent · 系统工程",
+      "path": "./knowledge/ai-agents/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.model-infra",
+      "label": "模型 · 算力与工具",
+      "path": "./knowledge/model-infra/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.database",
+      "label": "数据库 · 进化与内核",
+      "path": "./knowledge/database/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.finance",
+      "label": "金融学 · 案例与量化",
+      "path": "./knowledge/finance/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.creative",
+      "label": "WebGL · 知识交互",
+      "path": "./knowledge/creative/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.math",
+      "label": "数学 · 离散与线代",
+      "path": "./knowledge/math/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.language",
+      "label": "语言 · 英语与东北话",
+      "path": "./knowledge/language/",
+      "pageType": "topic"
+    },
+    {
+      "id": "topic.engineering",
+      "label": "工程治理 · 开发工作流",
+      "path": "./knowledge/engineering/",
+      "pageType": "topic"
+    },
+    {
+      "id": "concept.promise.state-model",
+      "label": "Promise 状态机与解决权",
+      "path": "./concept/promise.state-model/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.promise.thenable-adoption",
+      "label": "thenable 解析与 Promise 采用",
+      "path": "./concept/promise.thenable-adoption/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.promise.microtask-scheduling",
+      "label": "微任务 FIFO 与嵌套入队",
+      "path": "./concept/promise.microtask-scheduling/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.promise.chain-error-propagation",
+      "label": "链式传播与错误恢复",
+      "path": "./concept/promise.chain-error-propagation/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.promise.combinator-semantics",
+      "label": "组合 API 的真实边界",
+      "path": "./concept/promise.combinator-semantics/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.promise.integrated-execution-model",
+      "label": "综合执行时序推演",
+      "path": "./concept/promise.integrated-execution-model/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.monorepo.workspace-resolution",
+      "label": "工作区依赖声明",
+      "path": "./concept/monorepo.workspace-resolution/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.monorepo.build-topology",
+      "label": "依赖图与构建拓扑",
+      "path": "./concept/monorepo.build-topology/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.monorepo.affected-closure",
+      "label": "Affected 反向依赖闭包",
+      "path": "./concept/monorepo.affected-closure/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.monorepo.build-cache-integrity",
+      "label": "构建缓存键完整性",
+      "path": "./concept/monorepo.build-cache-integrity/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.react-native.rn-build-artifacts",
+      "label": "构建产物与启动边界",
+      "path": "./concept/react-native.rn-build-artifacts/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.react-native.rn-jsi-boundaries",
+      "label": "JSI 与跨语言运行时边界",
+      "path": "./concept/react-native.rn-jsi-boundaries/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.react-native.rn-turbomodules-codegen",
+      "label": "TurboModules 与 Codegen 契约",
+      "path": "./concept/react-native.rn-turbomodules-codegen/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.react-native.rn-fabric-render-pipeline",
+      "label": "Fabric 渲染管线",
+      "path": "./concept/react-native.rn-fabric-render-pipeline/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.react-native.rn-threading-priority",
+      "label": "线程模型与事件优先级",
+      "path": "./concept/react-native.rn-threading-priority/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.react-native.rn-integrated-architecture",
+      "label": "新架构综合运行模型",
+      "path": "./concept/react-native.rn-integrated-architecture/",
+      "pageType": "concept"
+    }
+  ]
+}

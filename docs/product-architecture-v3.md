@@ -271,3 +271,42 @@ Future AI Services
 浏览器会话保存在 KNOWVERSE 站点同源存储中，因此同一站点下所有页面共享认证状态。公开知识、文章和互动作品不要求登录；登录的产品用途是关联个人学习档案与云端同步。GitHub OAuth 仅请求 `read:user` 基础身份信息，并不授予应用访问用户仓库的读写权限。身份认证完成也不代表自动获得云端同步资格，云端仍由账户白名单、RLS 和受控 RPC 授权。未登录时本地学习不受影响。
 
 登录从任意页面发起后，完成 OAuth 会返回原页面；退出会清除全站共享账户会话，不删除本机学习数据。
+
+## 10. KNOWVERSE 3.0 全站信息架构与 Concept / Competency 落地（2026-11-02）
+
+本节记录 3.0 第一轮实现，不代表后续 AI 和多模态规划已上线。
+
+### 10.1 三个产品入口与静态 Shell
+
+全站只保留「知识体系 / 实践体验 / 学习成长」三个一级入口。一级名称进入分区总览，箭头按钮只负责展开二级菜单；GitHub 账户是导航最右侧的唯一账户控件，登录、身份、同步提示和退出均归入同一个账户面板。
+
+`content/navigation.json` 通过 `routeId` 引用 `content/routes.json`。`scripts/build-site-shell.mjs` 在构建时生成静态导航、账户入口、搜索容器与页脚；`assets/js/site-shell.mjs` 只负责行为绑定、当前路由状态和账户状态，不再替换旧导航。这样关闭 JavaScript 后，分区入口仍存在。
+
+常规内容与工具页面共享静态 Shell。三个全屏沉浸场景保留原画布和专用控制器，并提供统一退出入口；OAuth callback、自动化 fixture 和教程中的嵌入式示例工程不注入公共导航。
+
+### 10.2 Canonical Route 与内容注册表
+
+新增 `content/routes.json`，定义稳定 route ID、canonical path 和页面类型。导航项使用 route ID，不重复维护 URL。`content/concepts.json` 定义 Concept 独立对象；`content/sources.json` 定义来源对象；Concept 通过显式 ID 连接文章、作品、Competency、Checkpoint、Review Assessment 和来源。
+
+`content/knowledge.json` 仍然只负责 Topic 级事实；`content/works.json` 通过 `knowledge_ids` 和 `learning.competencyIds` 连接专题及能力；`content/learning-map.json` 继续作为 Competency 与先修 DAG 的唯一事实源。
+
+### 10.3 Concept 与 Competency 必须分开
+
+Concept 是可解释、可引用、可连接的知识对象。Competency 是学习者必须表现出来、能够被评估的能力。一个概念可以支持多项能力；能力也可以跨多个概念组合评估。Assessment / Evidence 是评价输入和事实记录，不与 Concept 或 Competency 合并。
+
+第一轮登记 16 个 Concept，其中 15 个与既有 Competency 建立一对一映射；另补充 Promise 状态机与解决权概念，以表达现有教材已有但旧能力图中缺少的知识节点。先修边严格从 `learning-map.json` 映射，不从章节顺序推断。
+
+### 10.4 来源与覆盖透明
+
+第一轮登记 13 条规范和官方文档来源，并由 Concept 引用。12 个专题中 Promise、Monorepo 和 React Native 已建立正式能力模型；其余 9 个专题标记为 `content-only`。它们仍可阅读和探索，但不能因为已有文章就显示虚构的先修关系、掌握状态或覆盖率。
+
+### 10.5 构建与验收
+
+- `scripts/build-public-content.mjs` 从注册表生成专题目录卡片、Concept 页面、来源与覆盖说明。
+- `scripts/build-site-shell.mjs` 为公共页面生成统一静态 Shell，并保留实验工具的原始工作区结构。
+- `scripts/validate-site-architecture.mjs` 校验 route、Concept、Competency、作品、评估、来源引用、先修 DAG、页面覆盖与静态账户入口。
+- `scripts/verify-site-shell.mjs` 测试三分区、嵌套菜单、全站唯一账户和构建幂等性。
+
+以下能力不计入本轮交付：AI 导师代理、模型供应商密钥托管、多模态私人资料中心、连续视频辅导和未完成的跨设备实机验收。它们保持为后续阶段，不在首页冒充为已经上线。
+
+Concept 页面与全站搜索共用同一稳定 ID。scripts/build-search-index.py 从 content/concepts.json 派生概念搜索记录，不单独维护重复的标题、摘要和专题映射。
