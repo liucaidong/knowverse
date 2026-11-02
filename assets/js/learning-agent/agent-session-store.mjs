@@ -8,6 +8,8 @@ const clone = value => JSON.parse(JSON.stringify(value));
 
 export function createAgentSessionStore(options = {}) {
   const repositoryPromise = options.repository ? Promise.resolve(options.repository) : getLearningRepository();
+  const clock = typeof options.clock === "function" ? options.clock : () => new Date();
+  const nowIso = () => clock().toISOString();
 
   async function createSession() {
     const repository = await repositoryPromise;
@@ -42,7 +44,15 @@ export function createAgentSessionStore(options = {}) {
     return rows.filter(row => row.type === MESSAGE_TYPE &&
       !row.payload?._deleted && row.payload.sessionId === sessionId)
       .map(row => row.payload)
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+      .sort((a, b) => {
+        const sequenceA = Number(a.sequence);
+        const sequenceB = Number(b.sequence);
+        if (Number.isInteger(sequenceA) && Number.isInteger(sequenceB) && sequenceA !== sequenceB) {
+          return sequenceA - sequenceB;
+        }
+        return a.createdAt.localeCompare(b.createdAt) ||
+          String(a.messageId).localeCompare(String(b.messageId));
+      });
   }
 
   async function appendMessage(sessionId, role, content, metadata = {}) {
@@ -57,6 +67,7 @@ export function createAgentSessionStore(options = {}) {
     const at = nowIso();
     const message = {
       messageId, sessionId, role, content: content.trim(),
+      sequence: (Number(sessionRow.payload.messageCount) || 0) + 1,
       createdAt: at,
       metadata: {
         mode: metadata.mode || "rules",

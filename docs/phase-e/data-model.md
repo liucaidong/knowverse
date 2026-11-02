@@ -33,7 +33,7 @@ taskId, planId, planDate, actionId, taskType, title, competency/topic, linked go
 
 ## Agent session fields
 
-Session metadata contains title, created / updated / latest-message timestamps, message count, context scope and version. Message documents contain messageId, sessionId, role, text, creation time and bounded metadata. Messages are stored independently rather than inside a growing session JSON document.
+Session metadata contains title, created / updated / latest-message timestamps, message count, context scope and version. Message documents contain messageId, sessionId, monotonically increasing per-session sequence, role, text, creation time and bounded metadata. Message ordering uses sequence first; timestamps are display metadata and are not assumed to have sub-millisecond uniqueness. Messages are stored independently rather than inside a growing session JSON document.
 
 ## Event facts
 

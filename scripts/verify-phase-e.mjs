@@ -328,13 +328,19 @@ test("Agent tool schemas reject unknown data and models cannot mutate learner st
 
 test("Agent session messages are individually versioned documents and append-only", async () => {
   const s = await setup();
-  const store = createAgentSessionStore({ repository: s.repository });
+  const store = createAgentSessionStore({
+    repository: s.repository,
+    clock: () => new Date("2026-11-03T00:00:00.000Z"),
+  });
   const session = await store.latestSession();
   await store.appendMessage(session.sessionId, "user", "请帮我规划 Promise");
   await store.appendMessage(session.sessionId, "assistant", "我会先检查你的掌握证据。", { mode: "rules" });
   const messages = await store.listMessages(session.sessionId);
   assert.equal(messages.length, 2);
   assert.deepEqual(messages.map(item => item.role), ["user", "assistant"]);
+  assert.deepEqual(messages.map(item => item.sequence), [1, 2]);
+  assert.equal(messages[0].createdAt, messages[1].createdAt,
+    "the ordering test intentionally exercises an identical timestamp");
   const documents = await s.repository.documents.list(100);
   assert.equal(documents.filter(item => item.type === "learning_agent_message").length, 2);
   assert.ok(documents.some(item => item.type === "learning_agent_session"));
