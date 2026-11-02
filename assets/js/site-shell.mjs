@@ -210,8 +210,8 @@ function mountGlobalAccount(root, nav) {
 
 export async function mountSiteShell(base = document.body.dataset.root || "./") {
   const root = new URL(base, location.href);
-  const header = document.querySelector(".navwrap");
-  const nav = header?.querySelector(".navbar");
+  const header = document.querySelector(".navwrap, .sitehead");
+  const nav = header?.querySelector(".navbar, .sitehead-inner");
   if (!nav || nav.dataset.kvMounted === "true") return;
   nav.dataset.kvMounted = "true";
 
@@ -221,7 +221,7 @@ export async function mountSiteShell(base = document.body.dataset.root || "./") 
   document.head.append(styles);
   nav.classList.add("kv-navbar");
 
-  const oldLinks = nav.querySelector(".navlinks");
+  const oldLinks = nav.querySelector(".navlinks") || nav.querySelector('nav[aria-label="网站导航"]');
   const links = make("div", "navlinks kv-navlinks");
   links.id = "kv-site-navigation";
   links.setAttribute("aria-label", "全站导航分区");
@@ -258,18 +258,30 @@ export async function mountSiteShell(base = document.body.dataset.root || "./") 
     if (item) links.append(item);
   });
   if (oldLinks) oldLinks.replaceWith(links);
+  else if (nav.querySelector(".back-home")) nav.insertBefore(links, nav.querySelector(".back-home"));
   else nav.append(links);
 
-  const brand = nav.querySelector(".mark");
+  const brand = nav.querySelector(".mark, .brand");
   const search = nav.querySelector("#search-open");
-  const mobile = nav.querySelector("#mobile-menu");
+  let mobile = nav.querySelector("#mobile-menu");
+  const customMobile = !mobile && header.classList.contains("sitehead");
+  if (customMobile) {
+    mobile = make("button", "mobilemenu kv-site-mobile-toggle", "菜单");
+    mobile.id = "mobile-menu";
+    mobile.type = "button";
+    mobile.addEventListener("click", () => {
+      links.classList.toggle("open");
+      mobile.setAttribute("aria-expanded", String(links.classList.contains("open")));
+    });
+    nav.insertBefore(mobile, links);
+  }
   if (brand) brand.href = root.href;
   if (search) search.setAttribute("aria-label", "全站搜索知识与作品");
   if (mobile) {
     mobile.setAttribute("aria-label", "展开全站导航");
     mobile.setAttribute("aria-controls", links.id);
     mobile.setAttribute("aria-expanded", "false");
-    if (!mobile.dataset.kvBound) {
+    if (!customMobile && !mobile.dataset.kvBound) {
       mobile.dataset.kvBound = "true";
       mobile.addEventListener("click", () => {
         mobile.setAttribute("aria-expanded", String(links.classList.contains("open")));

@@ -30,6 +30,11 @@ function insertAfterPageHead(section) {
   if (!main) return;
   if (pageHead) pageHead.insertAdjacentElement("afterend", section);
   else {
+    const breadcrumb = main.querySelector(".breadcrumbs");
+    if (breadcrumb) {
+      breadcrumb.insertAdjacentElement("afterend", section);
+      return;
+    }
     const hero = main.querySelector(".hero");
     if (hero) hero.insertAdjacentElement("afterend", section);
     else main.prepend(section);
