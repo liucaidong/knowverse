@@ -40,13 +40,6 @@ async function startServer() {
         "content-type": mime[extname(file)] || "application/octet-stream",
         "cache-control": "no-store",
         "x-content-type-options": "nosniff",
-        // WebKit may resolve module-relative registry reads through a distinct
-        // loopback origin while the test server is under automation. The
-        // fixture server serves only static test assets, so explicit wildcard
-        // CORS keeps browser-engine behavior deterministic.
-        "access-control-allow-origin": "*",
-        "access-control-allow-methods": "GET, HEAD, OPTIONS",
-        "access-control-allow-headers": "*",
       });
       response.end(body);
     } catch {
@@ -90,6 +83,10 @@ async function exerciseReview(browser, label, viewport) {
   const page = await context.newPage();
   const pageErrors = [];
   page.on("pageerror", error => pageErrors.push(error.message));
+  page.on("requestfailed", request => {
+    pageErrors.push("REQUEST_FAILED " + request.method() + " " + request.url() +
+      " :: " + (request.failure()?.errorText || "unknown"));
+  });
   await page.addInitScript(event => {
     const marker = "knowverse:e2e-learning-seeded";
     if (localStorage.getItem(marker)) return;
@@ -137,8 +134,12 @@ async function exerciseReview(browser, label, viewport) {
   const historyCount = await page.locator(".rw-history-row").count();
   assert.equal(historyCount, 2, label + ": review sessions should persist independently");
   await page.goto(baseURL + "/review/", { waitUntil: "domcontentloaded" });
+  // Wait for the module's three registry fetches and the actual picker render
+  // before reloading. WebKit can otherwise abort in-flight same-origin fetches
+  // when navigation starts immediately after DOMContentLoaded.
+  await page.locator("#target-list .rw-target").first().waitFor({ state: "visible" });
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator("#target-list .rw-target").first().waitFor();
+  await page.locator("#target-list .rw-target").first().waitFor({ state: "visible" });
   await page.goto(baseURL + "/progress/", { waitUntil: "domcontentloaded" });
   await page.locator("#hero-tested").waitFor();
   await page.locator("#gap-list").waitFor();
@@ -148,7 +149,7 @@ async function exerciseReview(browser, label, viewport) {
   );
   assert.match(await page.locator("#gap-list").innerText(), /没有尚未纠正的概念误区/);
   assert.match(await page.locator("#hero-tested").innerText(), /1\s*\/\s*15/);
-  assert.deepEqual(pageErrors, [], label + ": uncaught browser exceptions");
+  assert.deepEqual(pageErrors, [], label + ": uncaught browser exceptions or failed requests");
   await context.close();
 }
 
