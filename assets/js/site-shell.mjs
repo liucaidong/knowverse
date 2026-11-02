@@ -2,144 +2,134 @@ import { BACKEND_CONFIG } from "./backend/config.mjs";
 import { createSupabaseAuthClient } from "./backend/auth.mjs";
 
 const auth = createSupabaseAuthClient();
-const create = (tag, className, value) => {
-  const element = document.createElement(tag);
-  if (className) element.className = className;
-  if (value !== undefined) element.textContent = value;
-  return element;
+const make = (tag, className = "", value) => {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (value !== undefined) node.textContent = value;
+  return node;
 };
 
-function safeUrl(path, siteRoot) {
+function toUrl(path, root) {
   if (typeof path !== "string" || !path) return null;
-  const url = new URL(path.replace(/^\.\//, ""), siteRoot);
-  return url.origin === siteRoot.origin && url.pathname.startsWith(siteRoot.pathname) ? url : null;
+  try {
+    const url = new URL(path.replace(/^\.\//, ""), root);
+    return url.origin === root.origin && url.pathname.startsWith(root.pathname) ? url : null;
+  } catch {
+    return null;
+  }
 }
 
-function isCurrent(path, siteRoot) {
-  const target = safeUrl(path, siteRoot);
+function isCurrent(path, root) {
+  const target = toUrl(path, root);
   return Boolean(target && location.pathname.startsWith(target.pathname));
 }
 
-function addStyles(siteRoot) {
-  if (document.getElementById("knowverse-site-architecture-css")) return;
-  const link = create("link");
-  link.id = "knowverse-site-architecture-css";
-  link.rel = "stylesheet";
-  link.href = new URL("assets/css/site-architecture.css", siteRoot).href;
-  document.head.append(link);
-}
-
-function createAnchor(label, path, siteRoot, active = false) {
-  const url = safeUrl(path, siteRoot);
+function makeLink(parent, label, path, root, className = "kv-nav-subitem") {
+  const url = toUrl(path, root);
   if (!url) return null;
-  const anchor = create("a", "kv-nav-subitem", label);
-  anchor.href = url.href;
-  if (active || isCurrent(path, siteRoot)) anchor.setAttribute("aria-current", "page");
-  return anchor;
+  const link = make("a", className, label);
+  link.href = url.href;
+  if (isCurrent(path, root)) link.setAttribute("aria-current", "page");
+  parent.append(link);
+  return link;
 }
 
-function createMenuGroup({ label, path, sections, activePaths = [] }, siteRoot) {
-  const wrapper = create("div", "kv-nav-group");
-  const top = create("div", "kv-nav-top");
-  const groupActive = isCurrent(path, siteRoot) || activePaths.some(candidate => isCurrent(candidate, siteRoot));
-  const anchor = createAnchor(label, path, siteRoot, groupActive);
-  anchor.className = "kv-nav-link";
-  const toggle = create("button", "kv-nav-toggle", "âŒ„");
-  toggle.type = "button";
-  toggle.setAttribute("aria-label", "å±•å¼€" + label + "èœå•");
-  toggle.setAttribute("aria-expanded", "false");
-  const menu = create("div", "kv-nav-submenu");
-  menu.hidden = true;
-  sections.forEach(section => {
-    if (section.label) menu.append(create("div", "kv-nav-section-title", section.label));
-    const list = create("div", "kv-nav-sublist");
-    section.items.forEach(item => {
-      const link = createAnchor(item.label, item.path, siteRoot);
-      if (link) list.append(link);
-    });
-    if (list.childElementCount) menu.append(list);
+function closeGroups(container) {
+  container.querySelectorAll(".kv-nav-group").forEach(group => {
+    group.classList.remove("is-open");
+    const toggle = group.querySelector(".kv-nav-toggle");
+    const menu = group.querySelector(".kv-nav-submenu");
+    toggle?.setAttribute("aria-expanded", "false");
+    if (menu) menu.hidden = true;
   });
+}
+
+function buildKnowledgeSections(topics) {
+  const categories = new Map();
+  for (const topic of topics) {
+    const label = topic.category || "å…¶ä»–ä¸“é¢˜";
+    if (!categories.has(label)) categories.set(label, []);
+    categories.get(label).push({ label: topic.title, path: topic.href });
+  }
+  return [...categories].map(([label, items]) => ({ label, items }));
+}
+
+function createGroup(group, root, navLinks) {
+  const wrapper = make("div", "kv-nav-group");
+  const top = make("div", "kv-nav-top");
+  const active = isCurrent(group.path, root) ||
+    (group.activePaths || []).some(path => isCurrent(path, root));
+  const main = makeLink(top, group.label, group.path, root, "kv-nav-link");
+  if (!main) return null;
+  if (active) main.setAttribute("aria-current", "page");
+
+  const toggle = make("button", "kv-nav-toggle", "âŒ„");
+  toggle.type = "button";
+  toggle.setAttribute("aria-label", "å±•å¼€" + group.label + "äºŒçº§èœå•");
+  toggle.setAttribute("aria-expanded", "false");
+  const menu = make("div", "kv-nav-submenu");
+  menu.hidden = true;
+
+  for (const section of group.sections || []) {
+    if (section.label) menu.append(make("div", "kv-nav-section-title", section.label));
+    const list = make("div", "kv-nav-sublist");
+    for (const item of section.items || []) makeLink(list, item.label, item.path, root);
+    if (list.childElementCount) menu.append(list);
+  }
+
   toggle.addEventListener("click", () => {
-    const open = toggle.getAttribute("aria-expanded") !== "true";
-    document.querySelectorAll(".kv-nav-group").forEach(group => {
-      group.classList.remove("is-open");
-      group.querySelector(".kv-nav-toggle")?.setAttribute("aria-expanded", "false");
-      const submenu = group.querySelector(".kv-nav-submenu");
-      if (submenu) submenu.hidden = true;
-    });
-    if (open) {
+    const shouldOpen = toggle.getAttribute("aria-expanded") !== "true";
+    closeGroups(navLinks);
+    if (shouldOpen) {
       wrapper.classList.add("is-open");
       toggle.setAttribute("aria-expanded", "true");
       menu.hidden = false;
     }
   });
-  top.append(anchor, toggle);
+  top.append(toggle);
   wrapper.append(top, menu);
   return wrapper;
 }
 
-function buildGroups(knowledgeTopics, navigation, siteRoot) {
-  const knowledgeSections = [];
-  const groupedTopics = new Map();
-  for (const topic of knowledgeTopics) {
-    const key = topic.category || "å…¶ä»–ä¸“é¢˜";
-    if (!groupedTopics.has(key)) groupedTopics.set(key, []);
-    groupedTopics.get(key).push(topic);
-  }
-  for (const [category, topics] of groupedTopics) {
-    knowledgeSections.push({
-      label: category,
-      items: topics.map(topic => ({ label: topic.title, path: topic.href })),
-    });
-  }
-  return (navigation.groups || []).map(group => ({
-    ...group,
-    sections: group.id === "knowledge"
-      ? [...(group.sections || []), ...knowledgeSections]
-      : (group.sections || []),
-  }));
-}
-
-function mountAccount(siteRoot, nav) {
+function mountGlobalAccount(root, nav) {
   nav.querySelector("#kv-global-account")?.remove();
-  const details = create("details", "kv-global-account");
+  const details = make("details", "kv-global-account");
   details.id = "kv-global-account";
-  const summary = create("summary", "kv-account-trigger");
-  const dot = create("span", "kv-account-dot");
+  const summary = make("summary", "kv-account-trigger");
+  const dot = make("span", "kv-account-dot");
   dot.setAttribute("aria-hidden", "true");
-  const label = create("span", "kv-account-label");
-  label.append(create("small", "", "å…¨ç«™è´¦æˆ·"));
-  const state = create("strong", "kv-account-state", "æ­£åœ¨æ£€æŸ¥â€¦");
+  const label = make("span", "kv-account-label");
+  label.append(make("small", "", "å…¨ç«™è´¦æˆ·"));
+  const state = make("strong", "kv-account-state", "æ­£åœ¨æ£€æŸ¥â€¦");
   label.append(state);
-  summary.append(dot, label, create("span", "kv-account-chevron", "âŒ„"));
+  summary.append(dot, label, make("span", "kv-account-chevron", "âŒ„"));
 
-  const panel = create("div", "kv-account-panel");
-  panel.append(create("strong", "kv-account-panel-title", "ä¸€ä¸ªè´¦æˆ·ï¼Œè´¯ç©¿æ•´ä¸ª KNOWVERSE"));
-  panel.append(create("p", "kv-account-scope",
-    "è¿™æ˜¯å…¨ç«™å…±äº«ç™»å½•ï¼Œä¸æ˜¯æŸä¸ªé¡µé¢çš„å•ç‹¬æŽˆæƒã€‚ç™»å½•çŠ¶æ€ä¿å­˜åœ¨å½“å‰ç«™ç‚¹ï¼Œè¿›å…¥çŸ¥è¯†åº“ã€å®žéªŒå®¤ã€å±•åŽ…ã€è§£è°œå’Œå­¦ä¹ é©¾é©¶èˆ±æ—¶å…±ç”¨åŒä¸€è´¦æˆ·ã€‚"));
-  panel.append(create("p", "kv-account-scope",
-    "ç™»å½•ç”¨é€”ï¼šåŒæ­¥ä¸ªäººå­¦ä¹ æ¡£æ¡ˆã€‚å…¬å¼€çŸ¥è¯†å†…å®¹ä¸Žäº’åŠ¨ä½œå“æ— éœ€ç™»å½•ã€‚GitHub OAuth ä»…è¯·æ±‚ read:user åŸºç¡€èº«ä»½ä¿¡æ¯ï¼›äº‘ç«¯æ¡£æ¡ˆåŒæ­¥è¿˜éœ€è¦è´¦æˆ·ç™½åå•æŽˆæƒã€‚"));
-  const message = create("p", "kv-account-message", "æœªç™»å½•æ—¶ä»å¯åœ¨å½“å‰è®¾å¤‡å­¦ä¹ ï¼Œå­¦ä¹ è®°å½•ç»§ç»­ä¿å­˜åœ¨æœ¬æœºã€‚");
-  const identity = create("p", "kv-account-identity", "");
-  const signIn = create("button", "kv-account-action primary", "ä½¿ç”¨ GitHub ç™»å½•ï¼ˆå…¨ç«™ï¼‰");
+  const panel = make("div", "kv-account-panel");
+  panel.append(make("strong", "kv-account-panel-title", "ä¸€ä¸ªè´¦æˆ·ï¼Œè´¯ç©¿æ•´ä¸ª KNOWVERSE"));
+  panel.append(make("p", "kv-account-scope",
+    "è¿™æ˜¯å…¨ç«™å…±äº«ç™»å½•ï¼Œä¸æ˜¯æŸä¸ªé¡µé¢çš„å•ç‹¬æŽˆæƒã€‚åŒä¸€ç«™ç‚¹ä¸‹çš„çŸ¥è¯†åº“ã€å®žéªŒå®¤ã€å±•åŽ…ã€è§£è°œå’Œå­¦ä¹ é©¾é©¶èˆ±å…±ç”¨åŒä¸€è®¤è¯ä¼šè¯ã€‚"));
+  panel.append(make("p", "kv-account-scope",
+    "å…¬å¼€çŸ¥è¯†å†…å®¹å’Œäº’åŠ¨ä½œå“æ— éœ€ç™»å½•ã€‚ç™»å½•ç”¨äºŽå…³è”ä¸ªäººå­¦ä¹ æ¡£æ¡ˆä¸Žäº‘ç«¯åŒæ­¥ï¼›GitHub OAuth ä»…è¯·æ±‚ read:userã€‚èº«ä»½è®¤è¯æˆåŠŸä¸ä»£è¡¨è‡ªåŠ¨èŽ·å¾—äº‘ç«¯åŒæ­¥æƒé™ï¼Œäº‘ç«¯ä»å—è´¦æˆ·ç™½åå•ã€RLS ä¸Žå—æŽ§ RPC é™åˆ¶ã€‚"));
+  const message = make("p", "kv-account-message", "æœªç™»å½•æ—¶ä»å¯åœ¨å½“å‰è®¾å¤‡å­¦ä¹ ï¼Œå­¦ä¹ è®°å½•ç»§ç»­ä¿å­˜åœ¨æœ¬æœºã€‚");
+  const identity = make("p", "kv-account-identity", "");
+  const signIn = make("button", "kv-account-action primary", "ä½¿ç”¨ GitHub ç™»å½•ï¼ˆå…¨ç«™ï¼‰");
   signIn.type = "button";
   signIn.disabled = !BACKEND_CONFIG.enabled;
-  const archive = createAnchor("ç®¡ç†å­¦ä¹ æ¡£æ¡ˆä¸Žäº‘ç«¯åŒæ­¥ â†—", "progress/#cloud-account", siteRoot);
-  archive.className = "kv-account-manage";
-  const signOut = create("button", "kv-account-action", "é€€å‡ºå…¨ç«™è´¦æˆ·");
+  const signOut = make("button", "kv-account-action", "é€€å‡ºå…¨ç«™è´¦æˆ·");
   signOut.type = "button";
   signOut.hidden = true;
-  panel.append(message, identity, signIn, signOut, archive);
+  const archive = makeLink(panel, "ç®¡ç†å­¦ä¹ æ¡£æ¡ˆä¸Žäº‘ç«¯åŒæ­¥ â†—", "progress/#cloud-account", root, "kv-account-manage");
+  panel.append(message, identity, signIn, signOut);
   details.append(summary, panel);
   nav.append(details);
 
   async function refresh() {
+    identity.textContent = "";
     details.dataset.status = "neutral";
     dot.dataset.status = "neutral";
-    identity.textContent = "";
     if (!BACKEND_CONFIG.enabled) {
       state.textContent = "äº‘ç«¯æœªé…ç½®";
-      message.textContent = "å½“å‰ç«™ç‚¹å°šæœªå¯ç”¨ Supabase äº‘ç«¯è´¦æˆ·ï¼›æ— éœ€ç™»å½•å³å¯ä½¿ç”¨å…¬å¼€çŸ¥è¯†å†…å®¹å’Œæœ¬åœ°å­¦ä¹ åŠŸèƒ½ã€‚";
+      message.textContent = "äº‘ç«¯è´¦æˆ·å°šæœªå¯ç”¨ï¼›å…¬å¼€å†…å®¹å’Œæœ¬åœ°å­¦ä¹ åŠŸèƒ½æ— éœ€ç™»å½•ã€‚";
       signIn.disabled = true;
       signOut.hidden = true;
       return;
@@ -149,88 +139,147 @@ function mountAccount(siteRoot, nav) {
       const session = await auth.getSession();
       if (!session) {
         state.textContent = "æœªç™»å½• Â· æœ¬æœºå­¦ä¹ å¯ç”¨";
-        message.textContent = "ç™»å½•åŽå¯ä½¿ç”¨åŒä¸€è´¦æˆ·è®¿é—®å…¨ç«™è´¦æˆ·çŠ¶æ€ï¼Œå¹¶ç”³è¯·è·¨è®¾å¤‡å­¦ä¹ æ¡£æ¡ˆåŒæ­¥ã€‚";
+        message.textContent = "ç™»å½•åŽï¼ŒåŒä¸€è´¦æˆ·çŠ¶æ€ä¼šåœ¨å…¨ç«™é¡µé¢å…±äº«ï¼›è·¨è®¾å¤‡åŒæ­¥è¿˜éœ€äº‘ç«¯æŽˆæƒã€‚";
         details.dataset.status = "anonymous";
         dot.dataset.status = "anonymous";
-        signIn.hidden=false;
-        signOut.hidden=true;
+        signIn.hidden = false;
+        signOut.hidden = true;
         return;
       }
       const user = session.user || {};
-      const displayName = user.user_metadata?.user_name || user.user_metadata?.full_name || user.email || user.id || "å·²è®¤è¯è´¦æˆ·";
-      state.textContent = "å·²å½“å‰ ï¼Œå…¬å­¦ä¸ª";
-      identity.textContent = "å½“å‰ä¸Šä¸ºè´¦æˆ·ï¼š" + displayName;
-      message.textContent = "å½“å‰è´¦æˆ·å¯è§¤åˆ†è´¦æˆ·ææ‰Œï¼Œä¸šå…ˆå¤çš„ä»¬è®´æœ‰äºŽä»¥å…²ï¼Œå±žï¼šä¸ç»„å¸ˆæ¨¡æˆ‘å‰ï¼Œä¸åŠ¨å…³ç™»å½•ä¸‡è¿™é¢„é™¤8à ¹ )úgh¹¨hù¨b9§où..¹aá¹.#¹ki¹.h9¬¢y§oùaî¹§gù¥b9kf9¥b8à ˆŽÂˆ]Z[Ë™]\Ù]œÝ]\ÈH˜]][XØ]YŽÂˆÝ™]\Ù]œÝ]\ÈH˜]][XØ]YŽÂˆÚYÛ’[‹šY[ˆHYNÂˆÚYÛ“Ý]šY[ˆH˜[ÙNÂˆHØ]Ú
-\œ›ÜŠHÂˆÝ]K^ÛÛ[H¹.¤yêëù§*ºacyïkˆŽÂˆY\ÜØYÙK^ÛÛ[H¹¥è9¬åyb-ù¥¬9ænùoeyâ­¹  {ï&ˆˆ
-È
-\œ›Ü‹›Y\ÜØYÙH¹ïdyîç9o ¹n.ŠH
-È¸à ¹k©9 ìù.ézaãy¥¬9ænùoe{ï#9.#yîá9.ë:+­9¥®yo#ù¥'ùo 9 &¹/g9dày¥¬9nlùl!ú+ 9.#yk®y )ù..¹/ey/g9d#y«i9c­ùcíù.èùcez+åxà ˆŽÂˆ]Z[Ë™]\Ù]œÝ]\ÈHØ\›š[™ÈŽÂˆÝ™]\Ù]œÝ]\ÈHØ\›š[™ÈŽÂˆÚYÛ’[‹šY[ˆH˜[ÙNÂˆÚYÛ’[‹™\ØX›YH˜[ÙNÂˆBˆB‚ˆÚYÛ’[‹˜Y]™[\Ý[™\Š˜ÛXÚÈ‹\Þ[˜È
+      const displayName = user.user_metadata?.user_name || user.user_metadata?.full_name ||
+        user.email || user.id || "å·²è®¤è¯è´¦æˆ·";
+      state.textContent = "å·²ç™»å½• Â· å…¨ç«™å…±äº«";
+      identity.textContent = "å½“å‰è´¦æˆ·ï¼š" + displayName;
+      message.textContent = "å…¨ç«™å…±äº«ä¼šè¯æœ‰æ•ˆã€‚æ³¨æ„ï¼šèº«ä»½è®¤è¯æˆåŠŸä¸ç­‰äºŽå·²èŽ·äº‘ç«¯åŒæ­¥ç™½åå•æƒé™ï¼›åŒæ­¥çŠ¶æ€ä»¥å­¦ä¹ æ¡£æ¡ˆé¢æ¿ä¸ºå‡†ã€‚";
+      details.dataset.status = "authenticated";
+      dot.dataset.status = "authenticated";
+      signIn.hidden = true;
+      signOut.hidden = false;
+    } catch (error) {
+      state.textContent = "è´¦æˆ·çŠ¶æ€å¾…ç¡®è®¤";
+      message.textContent = "æ— æ³•åˆ·æ–°ç™»å½•çŠ¶æ€ï¼š" + (error.message || "ç½‘ç»œå¼‚å¸¸") + "ã€‚å¯ä»¥ç¨åŽé‡è¯•ã€‚";
+      details.dataset.status = "warning";
+      dot.dataset.status = "warning";
+      signIn.hidden = false;
+      signOut.hidden = true;
+    }
+  }
 
-HOˆÂˆÚYÛ’[‹™\ØX›YHYNÂˆÚYÛ’[‹^ÛÛ[H¹§«ùd$9æ¡9åfz+íùbª9¢`ŽÂˆžHÂˆ]ØZ]]]œÚYÛ’[•Ú]Ú]XŠÚ]T›ÛÝØØ][Û‹š™YŠNÂˆHØ]Ú
-\œ›ÜŠHÂˆY\ÜØYÙK^ÛÛ[H\œ›Ü‹›Y\ÜØYÙH‘Ú]Xˆ9fï¹âaù )ù/g9dày.+yo%y¦+ùo#ú/æy.#yk®y )ù.#9æ¡;ï"ˆŽÂˆÚYÛ’[‹™\ØX›YH˜[ÙNÂˆÚYÛ’[‹^ÛÛ[H¹g*9ki¹.h9¢`9¦+ùoêùcëùb%ŽÂˆBˆJNÂˆÚYÛ“Ý]˜Y]™[\Ý[™\Š˜ÛXÚÈ‹\Þ[˜È
+  signIn.addEventListener("click", async () => {
+    signIn.disabled = true;
+    signIn.textContent = "æ­£åœ¨è·³è½¬åˆ° GitHubâ€¦";
+    try {
+      await auth.signInWithGitHub(root, location.href);
+    } catch (error) {
+      message.textContent = error.message || "GitHub ç™»å½•å¯åŠ¨å¤±è´¥ã€‚";
+      signIn.disabled = false;
+      signIn.textContent = "é‡æ–°å°è¯• GitHub ç™»å½•";
+    }
+  });
+  signOut.addEventListener("click", async () => {
+    signOut.disabled = true;
+    try {
+      await auth.signOut();
+      details.open = false;
+      await refresh();
+    } catch (error) {
+      message.textContent = error.message || "é€€å‡ºç™»å½•å¤±è´¥ã€‚";
+    } finally {
+      signOut.disabled = false;
+    }
+  });
+  window.addEventListener("storage", event => {
+    if (event.key === BACKEND_CONFIG.authStorageKey) refresh();
+  });
+  window.addEventListener("knowverse:sync-state", event => {
+    const status = event.detail?.status;
+    if (status === "pending-authorization") message.textContent =
+      "GitHub èº«ä»½è®¤è¯å·²å®Œæˆï¼Œä½†è´¦æˆ·å°šæœªèŽ·äº‘ç«¯å­¦ä¹ æ¡£æ¡ˆç™½åå•æŽˆæƒã€‚å…¬å¼€å†…å®¹ä¸Žæœ¬æœºå­¦ä¹ ä¸å—å½±å“ã€‚";
+    if (status === "synced") message.textContent = "å…¨ç«™å…±äº«è´¦æˆ·å·²ç™»å½•ï¼Œäº‘ç«¯å­¦ä¹ æ¡£æ¡ˆåŒæ­¥æˆåŠŸã€‚";
+    if (status === "offline") message.textContent = "å…¨ç«™å…±äº«è´¦æˆ·å·²ç™»å½•ï¼›å½“å‰ç¦»çº¿ï¼Œå­¦ä¹ äº‹ä»¶å°†ç•™åœ¨æœ¬æœºå¹¶ç­‰å¾…åŒæ­¥ã€‚";
+  });
+  refresh();
+}
 
-HOˆÂˆÚYÛ“Ý]™\ØX›YHYNÂˆžHÂˆ]ØZ]]]œÚYÛ“Ý]
+export async function mountSiteShell(base = document.body.dataset.root || "./") {
+  const root = new URL(base, location.href);
+  const header = document.querySelector(".navwrap");
+  const nav = header?.querySelector(".navbar");
+  if (!nav || nav.dataset.kvMounted === "true") return;
+  nav.dataset.kvMounted = "true";
 
-NÂˆ]Z[Ë›Ü[ˆH˜[ÙNÂˆ]ØZ]™Yœ™\Ú
+  const styles = make("link");
+  styles.rel = "stylesheet";
+  styles.href = new URL("assets/css/site-architecture.css", root).href;
+  document.head.append(styles);
+  nav.classList.add("kv-navbar");
 
-NÂˆHØ]Ú
-\œ›ÜŠHÂˆY\ÜØYÙK^ÛÛ[H\œ›Ü‹›Y\ÜØYÙHº` 9aî¹aj9êæyk§¹i!ÈŽÂˆHš[˜[HÂˆÚYÛ“Ý]™\ØX›YH˜[ÙNÂˆBˆJNÂˆÚ[™ÝË˜Y]™[\Ý[™\ŠœÝÜ˜YÙH‹]™[OˆÂˆYˆ
-]™[šÙ^HOOHPÒÑS‘ÐÓÓ‘’QË˜]]ÝÜ˜YÙRÙ^JH™Yœ™\Ú
+  const oldLinks = nav.querySelector(".navlinks");
+  const links = make("div", "navlinks kv-navlinks");
+  links.id = "kv-site-navigation";
+  links.setAttribute("aria-label", "å…¨ç«™å¯¼èˆªåˆ†åŒº");
+  let topics = [];
+  let groups = [
+    { id: "knowledge", label: "çŸ¥è¯†ä½“ç³»", path: "knowledge/", activePaths: ["knowledge/"], sections: [] },
+    { id: "experience", label: "å®žè·µä½“éªŒ", path: "works/", activePaths: ["works/", "lab/", "gallery/", "puzzles/"], sections: [] },
+    { id: "learning", label: "å­¦ä¹ æˆé•¿", path: "progress/", activePaths: ["progress/", "review/", "timeline/", "provenance/"], sections: [] },
+  ];
 
-NÂˆJNÂˆÚ[™ÝË˜Y]™[\Ý[™\ŠšÛ›ÝÝ™\œÙNœÞ[˜Ë\Ý]H‹]™[OˆÂˆÛÛœÝÝ]\ÈH]™[™]Z[ËœÝ]\ÎÂˆYˆ
-Ý]\ÈOOHœ[™[™ËX]]Üš^˜][ÛˆŠHY\ÜØYÙK^ÛÛ[H¹l#ùi#yæ¡9.åy/cy.©:+­ù.+y.#yæ¡9 .ù.©ùæ¡9d+ù.éyal»ï#9aiyo 9am9d#yæ¡;ï#9ak9o 9aiyk®y.#¹kîz,hybc{ï#9§+9§.¹ki¹.h9.#ycåùoí9..¹câ¹i#yoæHŽÂˆYˆ
-Ý]\ÈOOHœÞ[˜ÙYŠHY\ÜØYÙK^ÛÛ[H¹§#yaj9êæykeù­mú` ymì¹odùbcy¢-È‹ˆYˆ
-Ý]\ÈOOH›Ù™›[™HŠHY\ÜØYÙK^ÛÛ[H¹aj9o`ùcëù.éyd#9.#yk®y.#¹ë+9.©:+­ù.+z+ç9iâù/g9cî9cèù.¡¹æ¡;ï#9lg»ï&¹.#y©oyn©¹ëby  yçéy.â¹ë+9.©9.bù.í¹l!¹/çyåfy.#y.+yo%{ï!¹ê#¹n®ºfíùâj{ï ˆŽÂˆJNÂˆ™Yœ™\Ú
+  try {
+    const responses = await Promise.all([
+      fetch(new URL("content/knowledge.json", root)),
+      fetch(new URL("content/navigation.json", root)),
+    ]);
+    for (const response of responses) if (!response.ok) throw new Error("å¯¼èˆªæ³¨å†Œè¡¨ HTTP " + response.status);
+    const [knowledge, navigation] = await Promise.all(responses.map(response => response.json()));
+    if (!Array.isArray(knowledge.topics) || !Array.isArray(navigation.groups)) {
+      throw new Error("å¯¼èˆªæ³¨å†Œè¡¨ç»“æž„æ— æ•ˆ");
+    }
+    topics = knowledge.topics;
+    groups = navigation.groups.map(group => ({
+      ...group,
+      sections: group.id === "knowledge"
+        ? [...(group.sections || []), ...buildKnowledgeSections(topics)]
+        : (group.sections || []),
+    }));
+  } catch (error) {
+    console.warn("[KNOWVERSE] navigation registry unavailable; using safe fallback:", error);
+  }
 
-NÂŸB‚™^Ü\Þ[˜È[˜Ý[Ûˆ[Ý[Ú]TÚ[
-˜\ÙHHØÝ[Y[˜›ÙK™]\Ù]œ›ÛÝ‹‹ÈŠHÂˆÛÛœÝÚ]T›ÛÝH™]ÈT“
-˜\ÙKØØ][Û‹š™YŠNÂˆÛÛœÝXY\ˆHØÝ[Y[œ]Y\žTÙ[XÝÜŠ‹›˜]Ü˜\ŠNÂˆÛÛœÝ˜]ˆHXY\Ëœ]Y\žTÙ[XÝÜŠ‹›˜]˜˜\ˆŠNÂˆYˆ
-[˜]ŠH™]\›ŽÂˆYÝ[\ÊÚ]T›ÛÝ
-NÂˆ˜]‹˜Û\ÜÓ\Ý˜Y
-šÝ‹[˜]˜˜\ˆŠNÂˆÛÛœÝœ˜[™H˜]‹œ]Y\žTÙ[XÝÜŠ‹›X\šÈŠNÂˆÛÛœÝÙX\˜ÚH˜]‹œ]Y\žTÙ[XÝÜŠˆÜÙX\˜Ú[Ü[ˆŠNÂˆÛÛœÝ[Øš[HH˜]‹œ]Y\žTÙ[XÝÜŠˆÛ[Øš[K[Y[HŠNÂˆÛÛœÝÛ[šÜÈH˜]‹œ]Y\žTÙ[XÝÜŠ‹›˜]›[šÜÈŠNÂˆÛÛœÝ[šÜÈHÜ™X]J™]ˆ‹›˜]›[šÜÈÝ‹[˜]›[šÜÈŠNÂˆ[šÜËšYHšÝ‹\Ú]K[˜]šYØ][ÛˆŽÂˆ[šÜËœÙ]]šX]J˜\šXK[X™[‹¹aj9êæykï:"*¹b!¹c.ˆŠNÂˆ]ÜXÜÈH×NÂˆ]˜]šYØ][ÛˆHÂˆÜ›Ý\ÎˆÂˆÈYˆšÛ›ÝÛYÙH‹X™[ˆ¹çéz+á¹/dùìîÈ‹]ˆšÛ›ÝÛYÙKÈ‹XÝ]™T]ÎˆÈšÛ›ÝÛYÙKÈ—HKˆÈYˆ™^\šY[˜ÙH‹X™[ˆ¹k§º-íy/dúj£‹]ˆÛÜšÜËÈ‹XÝ]™T]ÎˆÈÛÜšÜËÈ‹›X‹È‹™Ø[\žKÈ‹œ^ž›\ËÈ—HKˆÈYˆ›X\›š[™È‹X™[ˆ¹ki¹.h9¢$:eoÈ‹]ˆœ›ÙÜ™\ÜËÈ‹XÝ]™T]ÎˆÈœ›ÙÜ™\ÜËÈ‹œ™]šY]ËÈ‹[Y[[™KÈ‹œ›Ý™[˜[˜ÙKÈ—HKˆKˆNÂˆžHÂˆÛÛœÝÚÛ›ÝÛYÙT™\ÜÛœÙK˜]šYØ][Û”™\ÜÛœÙWHH]ØZ]›ÛZ\ÙK˜[
-Âˆ™]Ú
-™]ÈT“
-˜ÛÛ[ÚÛ›ÝÛYÙKšœÛÛˆ‹Ú]T›ÛÝ
-JKˆ™]Ú
-™]ÈT“
-˜ÛÛ[Û˜]šYØ][Û‹šœÛÛˆ‹Ú]T›ÛÝ
-JKˆJNÂˆYˆ
-ZÛ›ÝÛYÙT™\ÜÛœÙK›ÚÊH›ÝÈ™]È\œ›ÜŠšÛ›ÝÛYÙKšœÛÛˆˆ
-ÈÛ›ÝÛYÙT™\ÜÛœÙKœÝ]\ÊNÂˆYˆ
-[˜]šYØ][Û”™\ÜÛœÙK›ÚÊH›ÝÈ™]È\œ›ÜŠ›˜]šYØ][Û‹šœÛÛˆˆ
-È˜]šYØ][Û”™\ÜÛœÙKœÝ]\ÊNÂˆÛÛœÝÚÛ›ÝÛYÙSX[šY™\Ý˜]šYØ][Û“X[šY™\ÝHH]ØZ]›ÛZ\ÙK˜[
-ÂˆÛ›ÝÛYÙT™\ÜÛœÙKšœÛÛŠ
-K˜]šYØ][Û”™\ÜÛœÙKšœÛÛŠ
-KˆJNÂˆYˆ
-\œ˜^Kš\Ð\œ˜^JÛ›ÝÛYÙSX[šY™\ÝÜXÜÊJHÜXÜÈHÛ›ÝÛYÙSX[šY™\ÝÜXÜÎÂˆYˆ
-\œ˜^Kš\Ð\œ˜^J˜]šYØ][Û“X[šY™\Ý™Ü›Ý\ÊJH˜]šYØ][ÛˆH˜]šYØ][Û“X[šY™\ÝÂˆHØ]Ú
-\œ›ÜŠHÂˆÛÛœÛÛKØ\›Š–ÒÓ“ÕÕ‘T”ÑWH˜]šYØ][Ûˆ™YÚ\ÝžH[˜]˜Z[X›Nˆ‹\œ›ÜŠNÂˆBˆ›Üˆ
-ÛÛœÝÜ›Ý\ÙˆZ[Ü›Ý\ÊÜXÜË˜]šYØ][Û‹Ú]T›ÛÝ
-JH[šÜË˜\[™
-Ü™X]SY[QÜ›Ý\
-Ü›Ý\Ú]T›ÛÝ
-JNÂˆÛ[šÜÏËœ™\XÙUÚ]
-[šÜÊNÂˆYˆ
-[Û[šÜÊH˜]‹š[œÙ\™Y›Ü™J[šÜËÙX\˜Ú[
-NÂˆYˆ
-œ˜[™
-Hœ˜[™š™YˆHÚ]T›ÛÝš™YŽÂˆYˆ
-[Øš[JHÂˆ[Øš[K^ÛÛ[Hº#ç9ceHŽÂˆ[Øš[KœÙ]]šX]J˜\šXK[X™[‹¹leyo 9aj9êæykï:"*ˆŠNÂˆ[Øš[KœÙ]]šX]J˜\šXKXÛÛ›ÛÈ‹[šÜËšY
-NÂˆ[Øš[KœÙ]]šX]J˜\šXKY^[™Y‹™˜[ÙHŠNÂˆYˆ
-[[Øš[K™]\Ù]šÝ›Ý[™
-HÂˆ[Øš[K™]\Ù]šÝ›Ý[™HYHŽÂˆ[Øš[K˜Y]™[\Ý[™\Š˜ÛXÚÈ‹
+  groups.forEach(group => {
+    const item = createGroup(group, root, links);
+    if (item) links.append(item);
+  });
+  if (oldLinks) oldLinks.replaceWith(links);
+  else nav.append(links);
 
-HOˆ[Øš[KœÙ]]šX]J˜\šXKY^[™Y‹Ýš[™Ê[šÜË˜Û\ÜÓ\Ý˜ÛÛZ[œÊ›Ü[ˆŠJJJNÂˆBˆBˆYˆ
-ÙX\˜Ú
-HÙX\˜ÚœÙ]]šX]J˜\šXK[X™[‹¹aj9êæy¤'9í(¹çéz+á¹.#¹/g9dàHŠNÂˆ[Ý[XØÛÝ[
-Ú]T›ÛÝ˜]ŠNÂˆØÝ[Y[˜Y]™[\Ý[™\Š˜ÛXÚÈ‹]™[OˆÂˆYˆ
-]™[\™Ù]˜ÛÜÙ\Ý
-‹šÝ‹[˜]‹YÜ›Ý\ŠH]™[\™Ù]˜ÛÜÙ\Ý
-‹šÝ‹YÛØ˜[XXØÛÝ[ŠJH™]\›ŽÂˆ[šÜËœ]Y\žTÙ[XÝÜ[
-‹šÝ‹[˜]‹YÜ›Ý\ŠK™›Ü‘XXÚ
-Ü›Ý\OˆÂˆÜ›Ý\˜Û\ÜÓ\Ýœ™[[Ý™Jš\Ë[Ü[ˆŠNÂˆÜ›Ý\œ]Y\žTÙ[XÝÜŠ‹šÝ‹[˜]‹]ÙÙÛHŠOËœÙ]]šX]J˜\šXKY^[™Y‹™˜[ÙHŠNÂˆÛÛœÝÝX›Y[HHÜ›Ý\œ]Y\žTÙ[XÝÜŠ‹šÝ‹[˜]‹\ÝX›Y[HŠNÂˆYˆ
-ÝX›Y[JHÝX›Y[KšY[ˆHYNÂˆJNÂˆJNÂˆØÝ[Y[˜Y]™[\Ý[™\ŠšÙ^YÝÛˆ‹]™[OˆÂˆYˆ
-]™[šÙ^HOOH‘\ØØ\HŠHÂˆ[šÜËœ]Y\žTÙ[XÝÜ[
-‹šÝ‹[˜]‹YÜ›Ý\ŠK™›Ü‘XXÚ
-Ü›Ý\OˆÂˆÜ›Ý\˜Û\ÜÓ\Ýœ™[[Ý™Jš\Ë[Ü[ˆŠNÂˆÜ›Ý\œ]Y\žTÙ[XÝÜŠ‹šÝ‹[˜]‹]ÙÙÛHŠOËœÙ]]šX]J˜\šXKY^[™Y‹™˜[ÙHŠNÂˆÛÛœÝÝX›Y[HHÜ›Ý\œ]Y\žTÙ[XÝÜŠ‹šÝ‹[˜]‹\ÝX›Y[HŠNÂˆYˆ
-ÝX›Y[JHÝX›Y[KšY[ˆHYNÂˆJNÂˆ˜]‹œ]Y\žTÙ[XÝÜŠ‹šÝ‹YÛØ˜[XXØÛÝ[ŠOËœ™[[Ý™P]šX]J›Ü[ˆŠNÂˆBˆJNÂŸB
+  const brand = nav.querySelector(".mark");
+  const search = nav.querySelector("#search-open");
+  const mobile = nav.querySelector("#mobile-menu");
+  if (brand) brand.href = root.href;
+  if (search) search.setAttribute("aria-label", "å…¨ç«™æœç´¢çŸ¥è¯†ä¸Žä½œå“");
+  if (mobile) {
+    mobile.setAttribute("aria-label", "å±•å¼€å…¨ç«™å¯¼èˆª");
+    mobile.setAttribute("aria-controls", links.id);
+    mobile.setAttribute("aria-expanded", "false");
+    if (!mobile.dataset.kvBound) {
+      mobile.dataset.kvBound = "true";
+      mobile.addEventListener("click", () => {
+        mobile.setAttribute("aria-expanded", String(links.classList.contains("open")));
+      });
+    }
+  }
+
+  mountGlobalAccount(root, nav);
+  document.addEventListener("click", event => {
+    if (event.target.closest(".kv-nav-group") || event.target.closest(".kv-global-account")) return;
+    closeGroups(links);
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+      closeGroups(links);
+      nav.querySelector(".kv-global-account")?.removeAttribute("open");
+    }
+  });
+}
