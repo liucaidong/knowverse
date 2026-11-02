@@ -13,8 +13,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Install browser test and IndexedDB test dependencies
-        run: npm install --no-save fake-indexeddb@6.2.7 playwright
       - name: Build public concept pages and registry-backed catalogues
         run: node scripts/build-public-content.mjs
       - name: Build static site shell, nested navigation and single account control
@@ -51,6 +49,8 @@ jobs:
         run: python3 scripts/validate-monorepo-product.py
       - name: Test Monorepo graph, affected closure and puzzle gates
         run: node scripts/verify-monorepo-product.mjs
+      - name: Install IndexedDB test dependency after static site scanning
+        run: npm install --no-save fake-indexeddb@6.2.7
       - name: Test reusable learning challenge engine and registry
         run: node --test scripts/verify-challenge-engine.mjs
       - name: Test Phase D transactional IndexedDB repository, migration and account isolation
@@ -97,8 +97,9 @@ jobs:
           node --check assets/js/rn-render-pipeline.mjs
           node --check assets/js/rn-architecture-gallery.mjs
           node --check assets/js/rn-architecture-quest.mjs
-      - name: Install Playwright browsers for cross-engine review flow
+      - name: Install Playwright after static validators and browser-module checks
         run: |
+          npm install --no-save playwright
           npx playwright install --with-deps chromium webkit
       - name: Browser E2E · Chromium desktop and WebKit mobile viewport
         run: node --test scripts/e2e-learning-intelligence.mjs
