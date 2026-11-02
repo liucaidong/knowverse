@@ -640,6 +640,8 @@ function bindGoalForm() {
 
 function bindPreferences() {
   const focusSelect = $("la-pref-topics");
+  const saveButton = $("la-save-preferences");
+  const replanButton = $("la-regenerate-plan");
   state.insights.topicInsights.forEach(topic => {
     const option = create("option");
     option.value = topic.id;
@@ -649,22 +651,42 @@ function bindPreferences() {
   $("la-daily-minutes").value = String(state.profile.preferences.dailyMinutes);
   $("la-weekly-days").value = String(state.profile.preferences.weeklyDays);
   $("la-pref-topics").value = state.profile.preferences.preferredTopicIds[0] || "all";
-  $("la-save-preferences").addEventListener("click", async () => {
+  saveButton.addEventListener("click", async () => {
+    if (saveButton.disabled || replanButton.disabled) return;
     const topics = $("la-pref-topics").value;
-    await runAction(async () => {
-      await services.profileStore.savePreferences({
-        ...state.profile.preferences,
-        dailyMinutes: Number($("la-daily-minutes").value),
-        weeklyDays: Number($("la-weekly-days").value),
-        preferredTopicIds: topics === "all" ? [] : [topics],
+    saveButton.disabled = true;
+    replanButton.disabled = true;
+    try {
+      await runAction(async () => {
+        await services.profileStore.savePreferences({
+          ...state.profile.preferences,
+          dailyMinutes: Number($("la-daily-minutes").value),
+          weeklyDays: Number($("la-weekly-days").value),
+          preferredTopicIds: topics === "all" ? [] : [topics],
+        });
       });
-    });
+    } finally {
+      saveButton.disabled = false;
+      replanButton.disabled = false;
+    }
   });
-  $("la-regenerate-plan").addEventListener("click", async () => {
-    const plan = await services.planManager.generate(services.context, "学习者在工作区点击重新规划");
-    await refreshAll();
-    $("la-chat-status").textContent = "已生成计划提案 V" + plan.version + "，尚未生效。";
-    document.getElementById("la-plan-proposal").scrollIntoView({ behavior: "smooth", block: "start" });
+  replanButton.addEventListener("click", async () => {
+    if (saveButton.disabled || replanButton.disabled) return;
+    saveButton.disabled = true;
+    replanButton.disabled = true;
+    replanButton.textContent = "正在重新计算…";
+    try {
+      const plan = await services.planManager.generate(services.context, "学习者在工作区点击重新规划");
+      await refreshAll();
+      $("la-chat-status").textContent = "已生成计划提案 V" + plan.version + "，尚未生效。";
+      document.getElementById("la-plan-proposal").scrollIntoView({ behavior: "smooth", block: "start" });
+    } catch (error) {
+      $("la-chat-status").textContent = "重新规划失败：" + (error.message || "未知错误") + "；原计划保持不变。";
+    } finally {
+      saveButton.disabled = false;
+      replanButton.disabled = false;
+      replanButton.textContent = "重新分析并规划 ↻";
+    }
   });
 }
 

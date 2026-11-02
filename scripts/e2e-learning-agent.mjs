@@ -69,7 +69,27 @@ async function createGoalAndPlan(page) {
   await page.locator("#la-weekly-days").selectOption("5");
   await page.locator("#la-pref-topics").selectOption("promise");
   await page.locator("#la-save-preferences").click();
+  await page.waitForFunction(async () => {
+    const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+    const repository = await getLearningRepository();
+    const preferences = await repository.documents.get("learner_profile", "preferences");
+    return preferences?.payload?.dailyMinutes === 15 &&
+      preferences?.payload?.weeklyDays === 5 &&
+      document.querySelector("#la-save-preferences")?.disabled === false &&
+      document.querySelector("#la-regenerate-plan")?.disabled === false;
+  });
   await page.locator("#la-regenerate-plan").click();
+  await page.waitForFunction(async () => {
+    const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+    const repository = await getLearningRepository();
+    const head = await repository.documents.get("learning_plan_head", "current");
+    const proposalId = head?.payload?.proposedPlanId;
+    if (!proposalId) return false;
+    const proposal = await repository.documents.get("learning_plan", proposalId);
+    return proposal?.payload?.status === "proposed" &&
+      proposal?.payload?.dailyMinutes === 15 &&
+      proposal?.payload?.reason === "学习者在工作区点击重新规划";
+  });
   await page.locator("#la-plan-proposal .la-proposal-card").waitFor({ state: "visible" });
   const proposal = await page.locator("#la-plan-proposal .la-proposal-card").innerText();
   assert.match(proposal, /15 分钟/);
