@@ -1,6 +1,11 @@
 import { BACKEND_CONFIG } from "./config.mjs";
 
+const AUTH_RETURN_TO_KEY = "knowverse:auth-return-to";
 const textEncoder = new TextEncoder();
+
+function notifyAuthState() {
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("knowverse:auth-state"));
+}
 const base64Url = bytes => btoa(String.fromCharCode(...new Uint8Array(bytes)))
   .replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
 
@@ -59,6 +64,7 @@ export class SupabaseAuthClient {
     };
     try {
       localStorage.setItem(this.config.authStorageKey, JSON.stringify(normalized));
+      notifyAuthState();
     } catch {
       throw new Error("无法保存登录会话。请检查浏览器本地存储空间和隐私设置。");
     }
@@ -69,15 +75,25 @@ export class SupabaseAuthClient {
     try {
       localStorage.removeItem(this.config.authStorageKey);
       localStorage.removeItem(this.config.pkceStorageKey);
+      notifyAuthState();
     } catch { /* The next authentication attempt will start a fresh flow. */ }
   }
 
-  async signInWithGitHub(siteRoot) {
+  async signInWithGitHub(siteRoot, returnTo = null) {
     if (!this.enabled) throw new Error("云端服务尚未配置 Supabase URL 与 Publishable Key。");
     if (!globalThis.crypto?.subtle) throw new Error("当前浏览器不支持安全的 OAuth PKCE 登录。");
     const { verifier, challenge } = await createPkcePair();
     localStorage.setItem(this.config.pkceStorageKey, verifier);
-    const callback = new URL("auth/callback/", siteRoot);
+    const root = new URL(siteRoot);
+    const fallback = new URL("progress/", root);
+    let destination = fallback;
+    try {
+      const candidate = returnTo ? new URL(returnTo, root) : fallback;
+      if (candidate.origin === root.origin && candidate.pathname.startsWith(root.pathname) &&
+        !candidate.pathname.includes("/auth/callback/")) destination = candidate;
+    } catch { /* Use the progress fallback. */ }
+    localStorage.setItem(AUTH_RETURN_TO_KEY, destination.href);
+    const callback = new URL("auth/callback/", root);
     const authorize = new URL(this.config.supabaseUrl + "/auth/v1/authorize");
     authorize.searchParams.set("provider", "github");
     authorize.searchParams.set("redirect_to", callback.href);
@@ -191,4 +207,25 @@ export class SupabaseAuthClient {
 
 export function createSupabaseAuthClient(config = BACKEND_CONFIG) {
   return new SupabaseAuthClient(config);
+}
+
+
+export function consumeAuthReturnTo(siteRoot) {
+  const root = new URL(siteRoot);
+  const fallback = new URL("progress/", root);
+  try {
+    const stored = localStorage.getItem(AUTH_RETURN_TO_KEY);
+    localStorage.removeItem(AUTH_RETURN_TO_KEY);
+    if (!stored) return fallback.href;
+    const target = new URL(stored, root);
+    if (target.origin !== root.origin || !target.pathname.startsWith(root.pathname) ||
+      target.pathname.includes("/auth/callback/")) return fallback.href;
+    return target.href;
+  } catch {
+    return fallback.href;
+  }
+}
+
+export function clearAuthReturnTo() {
+  try { localStorage.removeItem(AUTH_RETURN_TO_KEY); } catch { /* Ignore cleanup failure. */ }
 }

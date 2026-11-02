@@ -11,25 +11,29 @@
   import(new URL("assets/js/learning-activity.mjs", new URL(base, location.href)).href)
     .catch(error => console.warn("[KNOWVERSE] learning activity telemetry unavailable:", error));
 
-  import(new URL("assets/js/backend/archive-bootstrap.mjs", new URL(base, location.href)).href)
-    .then(module => module.startArchiveBootstrap())
-    .catch(error => console.warn("[KNOWVERSE] local learning archive unavailable:", error));
+  function loadPublicBackendConfig() {
+    if (globalThis.KNOWVERSE_BACKEND_CONFIG) return Promise.resolve();
+    return new Promise(resolve => {
+      const script = document.createElement("script");
+      script.src = new URL("assets/js/backend/public-config.js", new URL(base, location.href)).href;
+      script.onload = () => resolve();
+      script.onerror = () => resolve();
+      document.head.append(script);
+    });
+  }
 
-  const nav = document.querySelector(".navlinks");
-  if (nav && !nav.querySelector('[data-learning-progress-link]')) {
-    const link = document.createElement("a");
-    link.href = base + "progress/";
-    link.textContent = "学习进度";
-    link.dataset.learningProgressLink = "true";
-    nav.append(link);
-  }
-  if (nav && !nav.querySelector('[data-review-workspace-link]')) {
-    const link = document.createElement("a");
-    link.href = base + "review/";
-    link.textContent = "复习工作台";
-    link.dataset.reviewWorkspaceLink = "true";
-    nav.append(link);
-  }
+  loadPublicBackendConfig().then(() => {
+    const root = new URL(base, location.href);
+    import(new URL("assets/js/backend/archive-bootstrap.mjs", root).href)
+      .then(module => module.startArchiveBootstrap())
+      .catch(error => console.warn("[KNOWVERSE] local learning archive unavailable:", error));
+    import(new URL("assets/js/site-shell.mjs", root).href)
+      .then(module => module.mountSiteShell(base))
+      .catch(error => console.warn("[KNOWVERSE] site navigation unavailable:", error));
+    import(new URL("assets/js/knowledge-context.mjs", root).href)
+      .then(module => module.mountKnowledgeContext(base))
+      .catch(error => console.warn("[KNOWVERSE] knowledge context unavailable:", error));
+  });
 
   function showSearch() {
     if (!overlay) return;

@@ -109,3 +109,15 @@ The third complete knowledge domain is connected to all three learning pillars.
 - Gallery: interactive CSS 3D Build / Startup / Runtime architecture space.
 - Puzzle: six-step architecture boundary challenge using the shared Challenge Engine.
 - Implementation and official reference map: docs/react-native-learning-domain.md.
+
+
+## 统一导航与知识关系（2026-11）
+
+- 全站一级导航统一为「知识体系 / 实践体验 / 学习成长」，一级名称负责进入分区总览，箭头只负责展开二级菜单。
+- `content/navigation.json` 是导航唯一来源；知识专题二级项按 `content/knowledge.json` 的分类动态生成，不再由每个页面手工维护。
+- 体验作品通过 `content/works.json` 中的 `knowledge_ids` 关联知识专题；专题页和文章页从注册表反向呈现关联入口，不复制文章正文。
+- `content/learning-map.json` 只对已经定义能力点与先修关系的专题展示依赖链；未建模专题明确标记为“尚未定义”，不会把文章顺序伪装成学习因果。
+- `assets/js/site-shell.mjs` 统一渲染导航和全站账户入口；`assets/js/knowledge-context.mjs` 负责首页架构说明、专题上下文和文章关联导航。
+- GitHub 登录采用全站共享会话：同一站点来源下的页面共用认证状态，不存在页面级独立登录。公开内容无需登录；登录用于个人学习档案同步。GitHub OAuth 仅请求 `read:user`，云端档案仍受账户白名单、RLS 和受控 RPC 限制。
+- 登录回调会返回发起登录前的站内页面；退出登录会清除全站共享会话，但不会删除本地学习记录。
+- `scripts/validate-site-architecture.mjs` 检查导航分组、站内路由、注册表引用和能力先修图 DAG。

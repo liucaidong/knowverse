@@ -132,7 +132,8 @@ test("account panel exposes local, device, network, sync and conflict state", as
   assert.match(panel, /navigator\.onLine/);
   assert.match(panel, /保留本机版本/);
   assert.match(panel, /采用云端版本/);
-  assert.match(panel, /退出登录/);
+  assert.match(panel, /退出登录统一使用页面顶部的「全站账户」入口/);
+  assert.doesNotMatch(panel, /signIn[.]addEventListener|signOut[.]addEventListener/);
 });
 
 

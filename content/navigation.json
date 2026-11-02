@@ -1,0 +1,83 @@
+{
+  "version": "1.0.0",
+  "description": "KNOWVERSE 全站导航与产品架构的唯一入口定义。知识专题由 content/knowledge.json 动态生成；三条体验主线与学习智能能力在此分组。",
+  "groups": [
+    {
+      "id": "knowledge",
+      "label": "知识体系",
+      "path": "knowledge/",
+      "activePaths": [
+        "knowledge/"
+      ],
+      "sections": []
+    },
+    {
+      "id": "experience",
+      "label": "实践体验",
+      "path": "works/",
+      "activePaths": [
+        "works/",
+        "lab/",
+        "gallery/",
+        "puzzles/"
+      ],
+      "sections": [
+        {
+          "label": "三条产品主线",
+          "items": [
+            {
+              "label": "01 · 原理实验室",
+              "path": "lab/"
+            },
+            {
+              "label": "02 · 沉浸式知识展厅",
+              "path": "gallery/"
+            },
+            {
+              "label": "03 · 知识解谜世界",
+              "path": "puzzles/"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "learning",
+      "label": "学习成长",
+      "path": "progress/",
+      "activePaths": [
+        "progress/",
+        "review/",
+        "timeline/",
+        "provenance/"
+      ],
+      "sections": [
+        {
+          "label": "学习智能引擎",
+          "items": [
+            {
+              "label": "主动学习规划",
+              "path": "progress/#adaptive-plan"
+            },
+            {
+              "label": "知识掌握图谱",
+              "path": "progress/#knowledge-map"
+            },
+            {
+              "label": "复习工作台 · 独立验证",
+              "path": "review/"
+            },
+            {
+              "label": "研究时间线",
+              "path": "timeline/"
+            },
+            {
+              "label": "来源与覆盖范围",
+              "path": "provenance/"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

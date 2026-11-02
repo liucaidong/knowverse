@@ -132,7 +132,7 @@
     }
     renderPillars(works);
     renderTopics(knowledge, document.querySelector('[data-knowledge-catalog="all"]') ? "all" : "featured");
-    renderRelatedExperiences(knowledge, works);
+    // Unified topic/work relationships are rendered by knowledge-context.mjs.
   }).catch(error => {
     console.error("[KNOWVERSE] content graph unavailable:", error);
   });
