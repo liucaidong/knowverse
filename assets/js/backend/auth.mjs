@@ -60,6 +60,7 @@ export class SupabaseAuthClient {
     };
     try {
       localStorage.setItem(this.config.authStorageKey, JSON.stringify(normalized));
+      window.dispatchEvent(new Event("knowverse:auth-state"));
     } catch {
       throw new Error("无法保存登录会话。请检查浏览器本地存储空间和隐私设置。");
     }
@@ -70,6 +71,7 @@ export class SupabaseAuthClient {
     try {
       localStorage.removeItem(this.config.authStorageKey);
       localStorage.removeItem(this.config.pkceStorageKey);
+      window.dispatchEvent(new Event("knowverse:auth-state"));
     } catch { /* The next authentication attempt will start a fresh flow. */ }
   }
 

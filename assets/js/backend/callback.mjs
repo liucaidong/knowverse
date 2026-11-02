@@ -14,5 +14,6 @@ try {
   location.replace(destination);
 } catch (error) {
   title.textContent = "账户验证未完成";
-  message.textContent = error.message + " 请返回学习驾驶舱重新尝试。";
+  clearAuthReturnTo();
+  message.textContent = error.message + " 请返回 KNOWVERSE 重新尝试。";
 }

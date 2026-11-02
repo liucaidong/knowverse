@@ -53,14 +53,11 @@ export async function mountBackendAccountPanel(host, options = {}) {
   const errorBox = node("p", "kv-backend-error");
   errorBox.hidden = true;
   const actions = node("div", "kv-backend-actions");
-  const signIn = node("button", "lp-data-button primary", "使用 GitHub 登录（全站共享账户）");
-  signIn.type = "button";
+  const accountGuide = node("p", "kv-backend-account-guide",
+    "登录与退出统一使用页面顶部的「全站账户」入口。本面板只负责学习档案状态、主动同步与冲突处理。");
   const sync = node("button", "lp-data-button", "立即同步");
   sync.type = "button";
-  const signOut = node("button", "lp-data-button", "退出登录");
-  signOut.type = "button";
-  signOut.hidden = true;
-  actions.append(signIn, sync, signOut);
+  actions.append(sync);
 
   const conflictSection = node("section", "kv-backend-conflicts");
   conflictSection.hidden = true;
@@ -70,7 +67,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
 
   const hint = node("p", "kv-backend-hint",
     "安全边界：GitHub OAuth 仅请求 read:user，不申请 GitHub 仓库读写权限。云端数据由账户白名单、RLS 与受控 RPC 隔离；退出全站账户不会删除本地学习记录。");
-  shell.append(header, description, account, metrics, detailList, lastSync, errorBox, actions, conflictSection, hint);
+  shell.append(header, description, account, accountGuide, metrics, detailList, lastSync, errorBox, actions, conflictSection, hint);
   host.replaceChildren(shell);
 
   function setStatus(label, kind = "neutral") {
@@ -90,8 +87,6 @@ export async function mountBackendAccountPanel(host, options = {}) {
   function setBusy(value) {
     busy = value;
     sync.disabled = value;
-    signIn.disabled = value;
-    signOut.disabled = value;
     sync.textContent = value ? "正在处理…" : "立即同步";
   }
 
@@ -181,9 +176,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
     if (!BACKEND_CONFIG.enabled) {
       setStatus("本地模式");
       account.textContent = "云端尚未配置。无需登录即可继续学习；当前设备上的学习事件、挑战进度与复习现场会保存在本机。";
-      signIn.hidden = true;
       sync.hidden = true;
-      signOut.hidden = true;
       await renderArchive();
       await renderConflicts();
       return;
@@ -193,9 +186,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
     if (!session) {
       setStatus("未登录");
       account.textContent = "当前没有云端账户会话。你可以继续离线学习；登录后才会建立跨设备同步。";
-      signIn.hidden = false;
       sync.hidden = true;
-      signOut.hidden = true;
       await renderArchive();
       await renderConflicts();
       return;
@@ -203,9 +194,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
 
     const user = session.user || {};
     account.textContent = "当前账户：" + (user.email || user.user_metadata?.user_name || user.id || "已认证");
-    signIn.hidden = true;
     sync.hidden = false;
-    signOut.hidden = false;
 
     if (syncNow) {
       setBusy(true);
@@ -238,36 +227,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
     await renderConflicts();
   }
 
-  signIn.addEventListener("click", async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await auth.signInWithGitHub(siteRoot);
-    } catch (error) {
-      setStatus("登录失败", "warning");
-      setError(error.message || "登录失败");
-      setBusy(false);
-    }
-  });
-
   sync.addEventListener("click", () => renderSession({ syncNow: true }));
-  signOut.addEventListener("click", async () => {
-    if (busy) return;
-    setBusy(true);
-    try {
-      await auth.signOut();
-      lastSyncLabel = null;
-      setError("");
-      setStatus("已退出");
-      await renderSession();
-    } catch (error) {
-      setStatus("退出失败", "warning");
-      setError(error.message || "退出失败");
-    } finally {
-      setBusy(false);
-    }
-  });
-
   const onSyncState = async event => {
     if (destroyed) return;
     const detail = event.detail || {};
@@ -291,6 +251,11 @@ export async function mountBackendAccountPanel(host, options = {}) {
     renderArchive().catch(() => {});
     if (!navigator.onLine) setStatus("离线学习", "warning");
   };
+  const onAuthState = () => renderSession();
+  window.addEventListener("knowverse:auth-state", onAuthState);
+  window.addEventListener("storage", event => {
+    if (event.key === BACKEND_CONFIG.authStorageKey) renderSession();
+  });
   window.addEventListener("knowverse:sync-state", onSyncState);
   window.addEventListener("online", onNetwork);
   window.addEventListener("offline", onNetwork);
@@ -306,6 +271,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
 
   return () => {
     destroyed = true;
+    window.removeEventListener("knowverse:auth-state", onAuthState);
     window.removeEventListener("knowverse:sync-state", onSyncState);
     window.removeEventListener("online", onNetwork);
     window.removeEventListener("offline", onNetwork);
