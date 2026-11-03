@@ -67,4 +67,12 @@
 
 ## GitHub Actions / Pages
 
-H1 提交后的 Validate / Pages 结果必须在提交部署后补写此节。冻结时 Phase G Validate #128 / Pages #93 success 仅是历史基线，不能当 H1 CI 成功。
+H1 实施提交：`c395c8cd4009cd642e533289a3a410db651f8619`（feat(phase-h): prepare evidence-driven Promise learning pilot）。
+
+- Validate KNOWVERSE Content #129：success，run id 41608366189；完整工作流 55 steps，无失败：https://github.com/liucaidong/knowverse/actions/runs/41608366189
+- Deploy KNOWVERSE to GitHub Pages #94：success，run id 41608366168：https://github.com/liucaidong/knowverse/actions/runs/41608366168
+- 生产 HTTP：/、/progress/、/agent/、/review/、/knowledge/promise/lesson-03/、/assets/js/learning-integration.mjs、/content/learning-map.json 均为 200。
+- 生产 `assets/js/learning-integration.mjs` SHA-256 = `9ae3aa40023833414296480cc03ef267a2affa992137a9b649c3059af9fb55f3`，与实施提交文件一致；生产 `review/index.html` SHA-256 = `942366473c07105909661df23ae9e6bce4850be8a98b3809d42147d24ddb3b64`，与实施提交文件一致。
+- 线上 lesson-03 已加载共享 Learning Integration；复习页生产文案包含“本地优先 / 同步到云端档案”，不再出现“仅本机”。
+
+Phase G 的 Validate #128 / Pages #93 是历史冻结基线，不能与上述 H1 CI 结果混淆。
