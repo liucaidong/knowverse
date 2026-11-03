@@ -75,11 +75,14 @@ function validateEvidence(task, events, startedAt) {
         const targetId = failure.gapObservationId || failure.id;
         const failedVariant = failure.variantId || failure.challengeId + ":" + failure.stepId;
         if (pass.variantId === failedVariant || !(pass.targetGapEventIds || []).includes(targetId)) return false;
+        // targetGapEventIds is the explicit reference to the original failed
+        // observation. causationEventIds is reserved for the review's causal
+        // predecessors (for example, the prior assisted attempt); requiring the
+        // original failure in both fields breaks a second review session.
         const start = parents.map(id => eventById.get(id)).find(item =>
           item?.type === "review_started" && item.sessionType === "review" &&
           item.sessionId === pass.sessionId && (item.targetGapEventIds || []).includes(targetId) &&
-          (item.competencyIds || []).includes(task.competencyId) &&
-          (item.causationEventIds || []).includes(failure.id));
+          (item.competencyIds || []).includes(task.competencyId));
         if (!start) return false;
         const previousVariants = (start.causationEventIds || [])
           .map(id => eventById.get(id))

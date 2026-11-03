@@ -76,3 +76,45 @@ H1 实施提交：`c395c8cd4009cd642e533289a3a410db651f8619`（feat(phase-h): pr
 - 线上 lesson-03 已加载共享 Learning Integration；复习页生产文案包含“本地优先 / 同步到云端档案”，不再出现“仅本机”。
 
 Phase G 的 Validate #128 / Pages #93 是历史冻结基线，不能与上述 H1 CI 结果混淆。
+
+
+## 2026-11-03 · P0 合成学习者完整 E2E 增补
+
+本节为后续新增验证，不覆盖前文记录的历史提交、历史 CI 运行或生产设备验收状态。
+
+### 新增串联测试
+
+- 新脚本：`scripts/e2e-phase-h1-pilot.mjs`。
+- Playwright Chromium 独立浏览器上下文，无真实账户、无 Supabase 生产连接，独立 IndexedDB。
+- 通过实际 UI 创建学习目标、设定预算、生成计划提案并接受。
+- 通过课程 UI 完成开始、暂停、刷新恢复、继续和确认完成；断言 reader task 不形成 mastery evidence，且能解锁依赖检查点。
+- 通过真实 checkpoint UI 记录一次合成错误，形成 gap observation。
+- 通过 Review UI 走完提示辅助通过、任务保持待独立确认，再用不同变体且无提示的独立正确答案关闭同一 gap。
+- 使用浏览器虚拟时钟前进 4 日验证到期复习调度。该模拟不代表真实经过 4 天，也不代表人类延迟回忆结果。
+- 验证全流程无未捕获页面异常、无失败请求。
+
+### 本次发现并修复的证据校验缺陷
+
+`TaskOrchestrator.validateEvidence` 曾要求原始失败事件 ID 同时出现在 `review_started.targetGapEventIds` 与 `review_started.causationEventIds`。但二者语义不同：前者标识本次要修复的原始错误观察，后者标识复习过程的因果前序（例如上一轮提示辅助 attempt）。这个重复要求会使第二轮复习的合法独立通过无法完成任务。
+
+现已修正校验器，分别检查精确目标事件引用与 Review started/attempt/pass 因果链，并在 `scripts/verify-phase-e.mjs` 增加实际 Review Engine + Task Orchestrator 的两轮复习回归：第一轮提示辅助通过不能关闭 gap；第二轮不同变体无提示通过完成任务并只关闭目标 gap。
+
+### 增补验证结果
+
+- Node 测试：160 例通过，0 失败（原 159 例 + 1 个 Phase E 两轮复习因果回归）。
+- 浏览器 E2E：9 套共 28 例通过，0 失败：
+  - e2e-learning-intelligence：2
+  - e2e-site-navigation：9
+  - e2e-learning-integration：4
+  - e2e-promise-course-learning：2
+  - e2e-phase-h1-pilot：1（新增）
+  - e2e-cross-device-archive：1
+  - e2e-learning-planner：4
+  - e2e-learning-agent：2
+  - e2e-react-native-domain：3
+- 静态构建和站点校验：public content、static shell、search index、Monorepo graph、content routes、Mermaid、site architecture、Promise、Monorepo 和 Fullstack package/lockfile/native config 检查均通过。
+- `.github/workflows/validate.yml` 已新增独立的 P0 synthetic H1 browser E2E 步骤。推送后须以 GitHub Actions 实际结果作为云端 CI 最终状态。
+
+### 边界
+
+以上是自动化机制验证，不是用户本人真实学习试点。E2E 中的答题由测试脚本驱动；虚拟时钟只是调度器模拟；跨设备档案测试采用隔离浏览器/测试后端。实际理解、真实 2/4/7 日回忆、实体 iPhone Safari、生产 OAuth 和真实网络环境的同步仍需独立验证。用户真实学习档案和云端数据未被本轮自动化测试读写。

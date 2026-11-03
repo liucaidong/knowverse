@@ -144,6 +144,8 @@ jobs:
         run: node --test scripts/e2e-learning-integration.mjs
       - name: Browser E2E · Promise course reading task lifecycle and non-mastery evidence
         run: node --test scripts/e2e-promise-course-learning.mjs
+      - name: Browser E2E · Synthetic H1 Promise learner completes the full evidence-driven pilot
+        run: node --test scripts/e2e-phase-h1-pilot.mjs
       - name: Browser E2E · Mac + WebKit iPhone cold restore, offline recovery and CAS conflict resolution
         run: node --test scripts/e2e-cross-device-archive.mjs
       - name: Browser E2E · Adaptive daily learning plan

@@ -9,6 +9,7 @@ import { createLearnerProfileStore, deriveLearnerProfile } from "../assets/js/le
 import { createLearningGoalManager } from "../assets/js/learning-agent/goal-manager.mjs";
 import { createLearningPlanManager } from "../assets/js/learning-agent/plan-manager.mjs";
 import { createLearningTaskOrchestrator, mapPlanActionToTask, LEARNING_TASK_TRANSITIONS } from "../assets/js/learning-agent/task-orchestrator.mjs";
+import { createReviewSessionEngine } from "../assets/js/review-engine.mjs";
 import { createAgentSessionStore } from "../assets/js/learning-agent/agent-session-store.mjs";
 import { AGENT_TOOL_SCHEMAS, executeAgentTool, validateAgentToolInput } from "../assets/js/learning-agent/agent-tools.mjs";
 import { createLearningAgentProvider, validateAgentProviderResponse } from "../assets/js/learning-agent/agent-provider.mjs";
@@ -303,6 +304,71 @@ test("review task requires an exact no-hint causal chain for every unresolved ga
   });
   assert.equal(completed.status, "completed");
   assert.deepEqual(completed.evidenceEventIds, ["review-pass"]);
+});
+
+test("second targeted review preserves gap targets after a hint-assisted pass", async () => {
+  const s = await setup();
+  const originalFailure = learningEvent("original-gap-failure", "attempt", new Date(NOW.getTime() - 3600_000).toISOString(), {
+    correct: false,
+    gapId: "resolved-vs-settled",
+    gapObservationId: "original-gap-failure",
+    variantId: "source-checkpoint-variant",
+    sessionType: "checkpoint",
+  });
+  await s.repository.events.append([originalFailure]);
+  const task = mapPlanActionToTask({
+    actionId: "two-pass-review", type: "repair", title: "解决权与落定状态复习",
+    topicId: "promise", competencyId: "thenable-adoption",
+    estimatedMinutes: 8, planDate: dateKey(NOW), gapId: "resolved-vs-settled",
+    href: "./review/", resourceType: "review",
+  }, "two-pass-review-plan");
+  await s.repository.commit({
+    documents: [{ type: "learning_task", key: task.taskId, payload: task, expectedLocalRevision: 0 }],
+  });
+  await s.taskOrchestrator.start(task.taskId);
+
+  const registry = await readJSON("../content/review-assessments.json");
+  const engine = createReviewSessionEngine({ repository: s.repository, registry });
+  const first = await engine.start({
+    competencyId: "thenable-adoption", gapId: "resolved-vs-settled",
+    taskId: task.taskId, planId: task.planId,
+  });
+  assert.equal(first.variantId, "review-resolved-vs-settled-a");
+  assert.deepEqual(first.targetGapEventIds, [originalFailure.id]);
+  await engine.revealHint(first.sessionId);
+  const assisted = await engine.submit(first.sessionId, "b");
+  assert.equal(assisted.correct, true);
+  assert.equal(assisted.lifecycle, "pending-verification");
+  await s.taskOrchestrator.fail(task.taskId, { reason: "提示辅助通过，等待独立确认" });
+
+  await s.taskOrchestrator.retry(task.taskId);
+  await s.taskOrchestrator.start(task.taskId);
+  const second = await engine.start({
+    competencyId: "thenable-adoption", gapId: "resolved-vs-settled",
+    taskId: task.taskId, planId: task.planId,
+  });
+  assert.equal(second.variantId, "review-resolved-vs-settled-b");
+  const starts = await s.repository.events.list();
+  const secondStart = starts.find(event => event.type === "review_started" && event.sessionId === second.sessionId);
+  assert.ok(secondStart.targetGapEventIds.includes(originalFailure.id),
+    "later review start must keep an explicit reference to the original unresolved observation");
+  assert.ok(secondStart.causationEventIds.includes(first.sessionId + ":attempt:1"),
+    "later review start must chain the prior assisted attempt as a causal predecessor");
+  assert.equal(secondStart.causationEventIds.includes(originalFailure.id), false,
+    "the original target is not a prior review attempt and must not be duplicated into causation refs");
+
+  const independent = await engine.submit(second.sessionId, "b");
+  assert.equal(independent.correct, true);
+  assert.equal(independent.lifecycle, "passed");
+  const completed = await s.taskOrchestrator.complete(task.taskId);
+  assert.equal(completed.status, "completed");
+  assert.ok(completed.evidenceEventIds.length > 0);
+
+  const events = await s.repository.events.list();
+  const insights = deriveLearningInsights(s.learningMap, s.challengeRegistry, { events }, NOW);
+  const competency = insights.competencyInsights.find(item => item.id === "thenable-adoption");
+  assert.equal(competency.activeGaps.some(item => item.id === "resolved-vs-settled"), false,
+    "only the different-variant, no-hint pass should resolve the original gap");
 });
 
 test("Agent tool schemas reject unknown data and models cannot mutate learner state", async () => {
