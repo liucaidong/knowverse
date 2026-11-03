@@ -37,15 +37,38 @@ async function startServer() {
 const { server, baseURL } = await startServer();
 test.after(() => new Promise(resolveServer => server.close(resolveServer)));
 
+async function waitForStrategyMode(page, mode, timeout = 10000) {
+  await page.waitForFunction(async expectedMode => {
+    const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+    const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
+    const pressed = document.querySelector("#strategy-mode-" + expectedMode)?.getAttribute("aria-pressed");
+    const matches = row?.payload?.personalizationMode === expectedMode && pressed === "true";
+    window.__kvStrategyModeStableCount = matches
+      ? Math.min(3, (window.__kvStrategyModeStableCount || 0) + 1)
+      : 0;
+    return window.__kvStrategyModeStableCount >= 3;
+  }, mode, { timeout });
+}
+
 async function traceLearningDocuments(page) {
   const writes = [];
+  const clicks = [];
   page.on("console", message => {
     const value = message.text();
     if (value.startsWith("__KV_DOCUMENT_TRACE__")) writes.push(value.slice("__KV_DOCUMENT_TRACE__".length));
+    if (value.startsWith("__KV_STRATEGY_CLICK__")) clicks.push(value.slice("__KV_STRATEGY_CLICK__".length));
   });
   await page.addInitScript(() => {
+    // These cases verify the local-first IndexedDB contract. Keep them isolated
+    // from the live Supabase project so a browser runner's auth/network state
+    // cannot race the local preference persistence assertions.
+    globalThis.KNOWVERSE_BACKEND_CONFIG = { supabaseUrl: "", publishableKey: "" };
     if (globalThis.__kvDocumentTraceInstalled) return;
     globalThis.__kvDocumentTraceInstalled = true;
+    document.addEventListener("click", event => {
+      const button = event.target?.closest?.("#strategy-mode-default, #strategy-mode-adaptive");
+      if (button) console.info("__KV_STRATEGY_CLICK__" + button.id);
+    }, true);
     const originalPut = IDBObjectStore.prototype.put;
     IDBObjectStore.prototype.put = function(value, ...args) {
       if (this.name === "learningDocuments" &&
@@ -78,7 +101,7 @@ async function traceLearningDocuments(page) {
       return originalDeleteDatabase.call(this, name);
     };
   });
-  return writes;
+  return { writes, clicks };
 }
 
 
@@ -210,25 +233,40 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
-    const documentWrites = await traceLearningDocuments(page);
+    const documentTrace = await traceLearningDocuments(page);
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#strategy-mode-default").click();
+    await page.waitForFunction(() => {
+      const status = document.querySelector("#strategy-control-status")?.textContent || "";
+      return status.startsWith("已切换为默认策略") || status.startsWith("策略设置保存失败");
+    }, { timeout:5000 }).catch(async error => {
+      const state = await page.evaluate(() => ({
+        buttonCount: document.querySelectorAll("#strategy-mode-default").length,
+        button: document.querySelector("#strategy-mode-default")?.outerHTML || null,
+        status: document.querySelector("#strategy-control-status")?.textContent || null,
+        ready: document.documentElement.dataset.learningProgressReady || null,
+      }));
+      throw new Error("Strategy click did not reach its handler: " +
+        JSON.stringify({state, clicks:documentTrace.clicks, writes:documentTrace.writes, errors}) +
+        " | " + error.message);
+    });
     await page.waitForFunction(async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
       return row?.payload?.personalizationMode === "default";
     });
+    assert.ok(documentTrace.clicks.includes("strategy-mode-default"),
+      "default-mode click must reach the document; trace=" + JSON.stringify(documentTrace));
+    const defaultWrite = documentTrace.writes.map(value => JSON.parse(value)).find(item =>
+      item.operation === "put" && item.type === "learner_profile" &&
+      item.key === "preferences" && item.payload?.personalizationMode === "default");
+    assert.ok(defaultWrite, "default preference must be durably written; trace=" + JSON.stringify(documentTrace));
     await page.reload({ waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
     try {
-      await page.waitForFunction(async () => {
-        const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
-        const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
-        return row?.payload?.personalizationMode === "default" &&
-          document.querySelector("#strategy-mode-default")?.getAttribute("aria-pressed") === "true";
-      }, { timeout:5000 });
+      await waitForStrategyMode(page, "default");
     } catch (error) {
       const state = await page.evaluate(async () => {
         const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
@@ -241,7 +279,7 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
         };
       });
       throw new Error("Strategy preference did not survive reload: " +
-        JSON.stringify({ state, documentWrites, errors }) + " | " + error.message);
+        JSON.stringify({ state, writes: documentTrace.writes, clicks: documentTrace.clicks, errors }) + " | " + error.message);
     }
     const modeState = await page.evaluate(async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
@@ -252,15 +290,15 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
       };
     });
     assert.equal(modeState.payload?.personalizationMode, "default",
-      JSON.stringify({ modeState, documentWrites, errors }));
+      JSON.stringify({ modeState, writes: documentTrace.writes, clicks: documentTrace.clicks, errors }));
     assert.equal(await page.locator("#strategy-mode-default").getAttribute("aria-pressed"), "true");
     await page.locator("#strategy-mode-adaptive").click();
+    await page.waitForFunction(() => {
+      const status = document.querySelector("#strategy-control-status")?.textContent || "";
+      return status.startsWith("已启用个性化策略") || status.startsWith("策略设置保存失败");
+    }, { timeout:5000 });
     try {
-      await page.waitForFunction(async () => {
-        const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
-        const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
-        return row?.payload?.personalizationMode === "adaptive";
-      }, { timeout:5000 });
+      await waitForStrategyMode(page, "adaptive");
     } catch (error) {
       const state = await page.evaluate(async () => {
         const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
@@ -272,8 +310,17 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
         };
       });
       throw new Error("Strategy adaptive mode did not persist: " +
-        JSON.stringify({ state, documentWrites, errors }) + " | " + error.message);
+        JSON.stringify({ state, writes: documentTrace.writes, clicks: documentTrace.clicks, errors }) + " | " + error.message);
     }
+    await page.reload({ waitUntil:"domcontentloaded" });
+    await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
+    await waitForStrategyMode(page, "adaptive");
+    assert.ok(documentTrace.clicks.includes("strategy-mode-adaptive"),
+      "adaptive-mode click must reach the document; trace=" + JSON.stringify(documentTrace));
+    const adaptiveWrite = documentTrace.writes.map(value => JSON.parse(value)).find(item =>
+      item.operation === "put" && item.type === "learner_profile" &&
+      item.key === "preferences" && item.payload?.personalizationMode === "adaptive");
+    assert.ok(adaptiveWrite, "adaptive preference must be durably written; trace=" + JSON.stringify(documentTrace));
     assert.deepEqual(errors, []);
     await context.close();
   } finally {
