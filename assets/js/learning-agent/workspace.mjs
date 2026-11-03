@@ -311,7 +311,22 @@ function renderGoals() {
   const host = $("la-goals-list");
   host.replaceChildren();
   if (!state.goals.length) {
-    host.append(create("p", "la-empty-small", "目前还没有学习目标。创建目标后，Planner 将根据它的优先级和知识范围调整每日任务。"));
+    const empty = create("section", "la-goals-empty-state");
+    empty.append(create("span", "la-empty-kicker", "YOUR LEARNING PLAN"));
+    empty.append(create("h3", "", "你的学习目标会出现在这里"));
+    empty.append(create("p", "", "先在左侧建立一个明确目标。KNOWVERSE 不会替你预填目标，也不会在你确认前启动计划。"));
+    const steps = create("ol", "la-goals-empty-steps");
+    [
+      ["选一个专题", "例如 JavaScript · Promise"],
+      ["设定真实时间", "按每天能投入的分钟数规划"],
+      ["检查计划提案", "你接受后才会创建正式任务"],
+    ].forEach(([title,description]) => {
+      const item = create("li");
+      item.append(create("strong", "", title), create("small", "", description));
+      steps.append(item);
+    });
+    empty.append(steps);
+    host.append(empty);
     return;
   }
   state.goals.forEach(goal => {
@@ -923,6 +938,14 @@ async function initialize() {
     : "当前为本地规则模式 · 可使用目标、计划和任务管理";
   $("la-workspace-loading").hidden = true;
   $("la-workspace").hidden = false;
+  // Hash links are used by the guided start page. The workspace is hidden while
+  // IndexedDB hydrates, so native anchor scrolling would otherwise happen too early.
+  const anchorId = decodeURIComponent(location.hash.replace(/^#/, ""));
+  if (["la-learning-goals", "la-adaptive-plan", "la-active-tasks", "la-agent-workspace"].includes(anchorId)) {
+    const target = document.getElementById(anchorId);
+    target?.closest("details")?.setAttribute("open", "");
+    requestAnimationFrame(() => target?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
 }
 
 initialize().catch(error => {

@@ -384,9 +384,10 @@ test("Phase E navigation and database migration remain additive and use existing
     readFile(new URL("../assets/js/backend/local-event-store.mjs", import.meta.url), "utf8"),
   ]);
   assert.ok(routes.routes.some(route => route.id === "learning.agent" && route.path === "./agent/"));
-  const learning = navigation.groups.find(group => group.id === "learning");
-  assert.ok(learning.activeRouteIds.includes("learning.agent"));
-  assert.equal(navigation.groups.length, 3);
+  const start = navigation.groups.find(group => group.id === "start");
+  assert.ok(start.activeRouteIds.includes("learning.agent"));
+  assert.equal(navigation.groups.length, 4);
+  assert.deepEqual(navigation.groups.map(group => group.id), ["start","knowledge","experience","progress"]);
   for (const type of ["learner_profile", "learning_goal", "learning_plan", "learning_plan_head",
     "learning_task", "learning_agent_session", "learning_agent_message"]) {
     assert.ok(migration.includes(type));

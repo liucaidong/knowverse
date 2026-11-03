@@ -54,6 +54,8 @@ async function openWorkspace(browser, viewport) {
   });
   await page.goto(baseURL + "/agent/", { waitUntil: "domcontentloaded" });
   await page.locator("#la-workspace").waitFor({ state: "visible" });
+  // Profile metrics and AI conversation are intentionally hidden in Advanced Features.
+  await page.locator(".la-advanced-details > summary").click();
   await page.locator("#la-metrics .la-metric").first().waitFor({ state: "visible" });
   await page.locator("#la-proactive-summary").waitFor({ state: "visible" });
   await page.waitForFunction(() => document.querySelector("#la-proactive-summary")?.children.length > 0);
@@ -171,6 +173,9 @@ test("Chromium desktop: goal -> adaptive plan -> task pause/restore -> offline c
     assert.equal(persisted.events.some(event => ["completed", "assessment_passed"].includes(event.type)), false,
       "A read task must not create mastery evidence");
 
+    // The AI conversation is optional and collapsed after each page load.
+    await page.locator(".la-advanced-details > summary").click();
+    await page.locator("#la-chat-input").waitFor({ state: "visible" });
     await page.locator("#la-chat-input").fill("目前掌握情况怎么样？");
     await page.locator("#la-send").click();
     await page.waitForFunction(() =>

@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const builder = path.join(root, "scripts/build-site-shell.mjs");
 
-test("build-time shell creates three route-driven nav groups and one account control", async () => {
+test("build-time shell creates four direct navigation destinations and one account control", async () => {
   const fixture = await mkdtemp(path.join(os.tmpdir(), "kv-shell-"));
   try {
     await mkdir(path.join(fixture, "content"), { recursive: true });
@@ -22,17 +22,19 @@ test("build-time shell creates three route-driven nav groups and one account con
     const home = await readFile(path.join(fixture,"index.html"),"utf8");
     const topic = await readFile(path.join(fixture,"knowledge","promise","index.html"),"utf8");
     const custom = await readFile(path.join(fixture,"custom.html"),"utf8");
-    assert.equal((home.match(/data-group-id=/g)||[]).length,3);
+    assert.equal((home.match(/data-group-id=/g)||[]).length,4);
     assert.equal((home.match(/id="kv-global-account"/g)||[]).length,1);
-    assert.ok(home.includes('data-route-id="learning.gaps"'));
-    assert.ok(home.includes('href="./progress/#weak-points"'));
-    assert.ok(home.includes('href="./knowledge/promise/"'));
-    assert.ok(home.includes('data-kv-shell-version="3.0"'));
+    assert.ok(home.includes('data-route-id="learning.start"'));
+    assert.ok(home.includes('href="./start/"'));
+    assert.ok(home.includes('data-group-id="knowledge"'));
+    assert.ok(home.includes('data-group-id="progress"'));
+    assert.doesNotMatch(home, /kv-nav-toggle|kv-nav-submenu/);
+    assert.ok(home.includes('data-kv-shell-version="4.0"'));
     assert.ok(home.includes('href="./assets/css/site-architecture.css"'));
     assert.equal((topic.match(/id="kv-global-account"/g)||[]).length,1);
-    assert.ok(topic.includes('href="../../progress/#weak-points"'));
+    assert.ok(topic.includes('href="../../start/"'));
     assert.ok(custom.includes("workbench-toolbar"));
-    assert.ok(custom.includes('data-kv-shell-version="3.0"'));
+    assert.ok(custom.includes('data-kv-shell-version="4.0"'));
     assert.equal((custom.match(/id="kv-global-account"/g)||[]).length,1);
   } finally { await rm(fixture,{recursive:true,force:true}); }
 });

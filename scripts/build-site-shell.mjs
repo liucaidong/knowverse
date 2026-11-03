@@ -38,23 +38,16 @@ function renderAccount(prefix) {
 function renderGroup(group, routeById, topicById, prefix) {
   const topRoute = routeById.get(group.routeId);
   if (!topRoute) throw new Error(`Unknown navigation routeId: ${group.routeId}`);
-  const sections = (group.sections || []).map(section => {
-    let items = section.items || [];
-    if (section.dynamic === "knowledge.topics") {
-      items = [...items, ...[...topicById.values()].map(topic => ({ label: topic.title, routeId: `topic.${topic.id}` }))];
-    }
-    const links = items.map(item => {
-      const route = routeById.get(item.routeId);
-      if (!route) throw new Error(`Unknown navigation item routeId: ${item.routeId}`);
-      return `<a class="kv-nav-subitem" data-route-id="${escapeHtml(route.id)}" href="${escapeHtml(routeHref(route, prefix))}">${escapeHtml(item.label || route.label)}</a>`;
-    }).join("");
-    return links ? `<section class="kv-nav-section"><h2 class="kv-nav-section-title">${escapeHtml(section.label || "")}</h2><div class="kv-nav-sublist">${links}</div></section>` : "";
-  }).join("");
   const activeIds = [group.routeId, ...(group.activeRouteIds || [])];
-  return `<div class="kv-nav-group" data-group-id="${escapeHtml(group.id)}" data-active-routes="${escapeHtml(activeIds.join(" "))}">
-    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="${escapeHtml(topRoute.id)}" href="${escapeHtml(routeHref(topRoute, prefix))}">${escapeHtml(group.label)}</a>
-      <button class="kv-nav-toggle" type="button" aria-label="展开${escapeHtml(group.label)}二级菜单" aria-expanded="false" aria-controls="kv-menu-${escapeHtml(group.id)}"><span aria-hidden="true">⌄</span></button></div>
-    <div class="kv-nav-submenu" id="kv-menu-${escapeHtml(group.id)}" hidden>${sections}</div>
+  const activePaths = activeIds
+    .map(id => routeById.get(id)?.path)
+    .filter(Boolean)
+    .map(value => routeHref({ path: value }, prefix));
+  return `<div class="kv-nav-group" data-group-id="${escapeHtml(group.id)}"
+      data-active-routes="${escapeHtml(activeIds.join(" "))}"
+      data-active-paths="${escapeHtml(activePaths.join("|"))}">
+    <a class="kv-nav-link" data-route-id="${escapeHtml(topRoute.id)}"
+       href="${escapeHtml(routeHref(topRoute, prefix))}">${escapeHtml(group.label)}</a>
   </div>`;
 }
 
@@ -62,7 +55,7 @@ function renderHeader(prefix, navigation, routes, topics) {
   const routeById = new Map(routes.routes.map(route => [route.id, route]));
   const topicById = new Map(topics.topics.map(topic => [topic.id, topic]));
   const groups = navigation.groups.map(group => renderGroup(group, routeById, topicById, prefix)).join("");
-  return `<header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="3.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+  return `<header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
     <a class="mark" href="${prefix}">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
     <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区">${groups}</div>
     <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
@@ -119,7 +112,7 @@ for (const { file, rel } of htmlFiles) {
   let html = await readFile(file, "utf8");
   const prefix = relativePrefix(rel);
   const headerMatch = html.match(/<header\b([^>]*)>([\s\S]*?)<\/header>/i);
-  const hasStaticShell = html.includes('data-kv-shell-version="3.0"');
+  const hasStaticShell = html.includes('data-kv-shell-version="4.0"');
   const isSiteHeader = Boolean(headerMatch && /class\s*=\s*["'][^"']*(?:navwrap|sitehead)[^"']*["']/i.test(headerMatch[0]));
 
   if (!hasStaticShell && !immersive.has(rel)) {

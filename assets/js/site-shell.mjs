@@ -20,11 +20,18 @@ function markCurrentRoute(groups) {
   for (const group of groups) {
     const activeRouteIds = new Set((group.dataset.activeRoutes || "").split(/\s+/).filter(Boolean));
     let groupActive = false;
+    const currentPath = current.pathname.endsWith("/") ? current.pathname : current.pathname + "/";
+    const activePaths = (group.dataset.activePaths || "").split("|").filter(Boolean);
+    groupActive = activePaths.some(path => {
+      const target = new URL(path, location.href);
+      const targetPath = target.pathname.endsWith("/") ? target.pathname : target.pathname + "/";
+      if (target.hash) return currentPath === targetPath && current.hash === target.hash;
+      return currentPath === targetPath || currentPath.startsWith(targetPath);
+    });
     for (const link of group.querySelectorAll("a[data-route-id]")) {
       const target = new URL(link.href, location.href);
       const targetPath = target.pathname.endsWith("/") ? target.pathname : target.pathname + "/";
-      const currentPath = current.pathname.endsWith("/") ? current.pathname : current.pathname + "/";
-      const samePath = target.pathname.endsWith("/") ? currentPath.startsWith(targetPath) : current.pathname === target.pathname;
+      const samePath = currentPath === targetPath || currentPath.startsWith(targetPath);
       const hashMatch = !target.hash || target.hash === current.hash;
       const active = activeRouteIds.has(link.dataset.routeId) && samePath && hashMatch;
       if (active) {

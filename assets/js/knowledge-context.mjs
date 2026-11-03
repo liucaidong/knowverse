@@ -224,10 +224,11 @@ export async function mountKnowledgeContext(base = document.body.dataset.root ||
     const [knowledge, worksManifest, learningMap, searchManifest] = await Promise.all([
       knowledgeResponse.json(), worksResponse.json(), mapResponse.json(), searchResponse.json(),
     ]);
-    if (isHome || relative === "knowledge") {
+    if (relative === "knowledge") {
       renderAtlasIntro(knowledge, learningMap, root);
       return;
     }
+    if (isHome) return;
     const [, topicId, ...rest] = relative.split("/");
     const topic = knowledge.topics.find(item => item.id === topicId);
     if (!topic) return;

@@ -167,3 +167,25 @@ body { background: var(--la-bg); color: var(--la-ink); }
 .la-blocked-box { margin-top:12px; padding:10px 12px; border:1px solid #f0e3d0; background:#fcf7ef; border-radius:9px; }
 .la-blocked-box strong { display:block; color:#855f35; font-size:10px; margin-bottom:6px; }
 .la-blocked-box p { margin:4px 0; }
+
+/* The learner's sequence comes before optional AI conversation and analytics. */
+.la-hero h1{max-width:740px;font-size:clamp(32px,4.2vw,48px)}
+.la-main{padding-top:24px}
+.la-section-title .la-eyebrow{color:#0a8579}
+.la-advanced-details{margin:28px 0;border:1px solid #dfe9e5;border-radius:14px;background:#fff}
+.la-advanced-details>summary{padding:16px 18px;color:#385f59;font-size:13px;font-weight:800;cursor:pointer;list-style:none}
+.la-advanced-details>summary::-webkit-details-marker{display:none}
+.la-advanced-details>summary:after{content:"展开高级功能";float:right;color:#63877e;font-size:10px;font-weight:700}
+.la-advanced-details[open]>summary:after{content:"收起高级功能"}
+.la-advanced-details>.la-section{padding:0 18px 20px;margin:0}
+.la-advanced-details>.la-section+.la-section{padding-top:20px;border-top:1px solid #edf2ef}
+@media(max-width:760px){.la-advanced-details>.la-section{padding-left:12px;padding-right:12px}}
+
+.la-goals-empty-state{display:grid;align-content:start;gap:13px;min-height:100%;padding:23px;border:1px solid #dce9e3;border-radius:15px;background:linear-gradient(150deg,#f7fbf8,#fff 72%)}
+.la-empty-kicker{color:#0b897d;font-size:9px;font-weight:900;letter-spacing:.13em}
+.la-goals-empty-state h3{margin:0;color:#294a4e;font-size:17px;line-height:1.4}
+.la-goals-empty-state>p{margin:0;color:#728681;font-size:11px;line-height:1.8}
+.la-goals-empty-steps{display:grid;gap:0;margin:3px 0 0;padding:0;list-style:none}
+.la-goals-empty-steps li{display:grid;gap:4px;padding:10px 0;border-top:1px solid #e8efeb}
+.la-goals-empty-steps strong{color:#385b55;font-size:11px}
+.la-goals-empty-steps small{color:#899792;font-size:10px;line-height:1.5}

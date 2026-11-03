@@ -79,11 +79,15 @@ for path in [
     assert (root / path).is_file(), f"Missing page: {path}"
 
 home = (root / "index.html").read_text(encoding="utf-8")
-assert 'data-pillar-catalog' in home, "Homepage pillar cards must use the shared pillar registry"
-assert 'data-knowledge-catalog="featured"' in home, "Homepage featured topics must use the knowledge registry"
+assert 'data-kv-home-portal="true"' in home, "Homepage must render its registry-managed learning portal"
+assert 'href="./start/"' in home, "Homepage must expose the single guided learning entry"
+assert home.count('class="kv-home-action primary"') == 1, "Homepage must have exactly one primary action"
+assert '从这里开始。一次只做下一步。' in home, "Homepage must explain the single next action"
+assert 'href="./knowledge/"' in home and 'href="./works/"' in home, "Homepage secondary exploration routes are required"
+assert 'kv-home-welcome' not in home and 'kv-home-flow' not in home, "Homepage must not duplicate the generated portal with a second hero"
 knowledge_home = (root / "knowledge/index.html").read_text(encoding="utf-8")
 assert 'data-knowledge-catalog="all"' in knowledge_home, "Knowledge directory must use the shared knowledge registry"
-assert "knowledge-graph.js" in home and "knowledge-graph.js" in knowledge_home
+assert "knowledge-graph.js" in knowledge_home
 
 
 # A single learning contract connects every work to activity, competency and evidence.

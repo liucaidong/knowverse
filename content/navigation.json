@@ -1,124 +1,45 @@
 {
-  "version": "2.0.0",
-  "description": "KNOWVERSE 唯一全站导航事实源。所有二级菜单通过 routeId 引用 content/routes.json；知识专题菜单由 content/knowledge.json 自动生成。",
+  "version": "4.0.0",
+  "description": "极简全站主导航。一级入口只负责进入四个清晰区域；专题、作品和学习管理选项放在各自页面内部，不使用层层悬浮的全站大菜单。",
   "groups": [
     {
+      "id": "start",
+      "label": "开始学习",
+      "routeId": "learning.start",
+      "activeRouteIds": [
+        "learning.start",
+        "learning.agent"
+      ]
+    },
+    {
       "id": "knowledge",
-      "label": "知识体系",
+      "label": "知识库",
       "routeId": "knowledge.overview",
       "activeRouteIds": [
         "knowledge.overview"
-      ],
-      "sections": [
-        {
-          "label": "知识导航",
-          "items": [
-            {
-              "label": "全部知识领域",
-              "routeId": "knowledge.overview"
-            },
-            {
-              "label": "我的学习路径",
-              "routeId": "learning.today"
-            },
-            {
-              "label": "知识关系图",
-              "routeId": "learning.mastery"
-            },
-            {
-              "label": "来源与参考",
-              "routeId": "knowledge.sources"
-            }
-          ]
-        },
-        {
-          "label": "知识专题",
-          "dynamic": "knowledge.topics"
-        }
       ]
     },
     {
       "id": "experience",
-      "label": "实践体验",
+      "label": "实践中心",
       "routeId": "experience.overview",
       "activeRouteIds": [
         "experience.overview",
         "experience.lab",
         "experience.gallery",
         "experience.puzzles"
-      ],
-      "sections": [
-        {
-          "label": "三种学习方式",
-          "items": [
-            {
-              "label": "01 · 原理实验室",
-              "routeId": "experience.lab"
-            },
-            {
-              "label": "02 · 沉浸式知识展厅",
-              "routeId": "experience.gallery"
-            },
-            {
-              "label": "03 · 知识解谜世界",
-              "routeId": "experience.puzzles"
-            }
-          ]
-        },
-        {
-          "label": "作品目录",
-          "items": [
-            {
-              "label": "全部互动作品",
-              "routeId": "experience.overview"
-            }
-          ]
-        }
       ]
     },
     {
-      "id": "learning",
-      "label": "学习成长",
+      "id": "progress",
+      "label": "我的进度",
       "routeId": "learning.overview",
       "activeRouteIds": [
         "learning.overview",
-        "learning.today",
         "learning.mastery",
         "learning.gaps",
         "learning.review",
-        "learning.history",
-        "learning.agent"
-      ],
-      "sections": [
-        {
-          "label": "我的学习成长",
-          "items": [
-            {
-              "label": "今日学习计划",
-              "routeId": "learning.today"
-            },
-            {
-              "label": "个人智能学习 Agent",
-              "routeId": "learning.agent"
-            },
-            {
-              "label": "知识掌握图谱",
-              "routeId": "learning.mastery"
-            },
-            {
-              "label": "薄弱点诊断",
-              "routeId": "learning.gaps"
-            },
-            {
-              "label": "独立复习工作台",
-              "routeId": "learning.review"
-            },
-            {
-              "label": "学习历史",
-              "routeId": "learning.history"
-            }
-          ]
-        }
+        "learning.history"
       ]
     }
   ]

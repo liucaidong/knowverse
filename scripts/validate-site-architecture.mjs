@@ -64,10 +64,10 @@ const [navigation, routesManifest, knowledge, works, learningMap, search, concep
   readJson("content/concepts.json"), readJson("content/sources.json"), readJson("content/learning-checkpoints.json"), readJson("content/review-assessments.json"),
 ]);
 
-assert.equal(navigation.groups?.length, 3, "navigation must have exactly three top-level groups");
+assert.equal(navigation.groups?.length, 4, "navigation must have exactly four direct top-level destinations");
 unique(navigation.groups.map(group => group.id), "navigation group IDs");
 unique(navigation.groups.map(group => group.label), "navigation labels");
-assert.deepEqual(navigation.groups.map(group => group.id), ["knowledge", "experience", "learning"]);
+assert.deepEqual(navigation.groups.map(group => group.id), ["start", "knowledge", "experience", "progress"]);
 const searchIndex = JSON.parse(await readFile(path.join(root, "data/search.json"), "utf8"));
 unique(searchIndex.map(record => record.href), "generated search hrefs");
 const searchByConcept = new Map(searchIndex.filter(record => record.concept_id).map(record => [record.concept_id, record]));
@@ -89,7 +89,7 @@ for (const group of navigation.groups) {
     if (section.dynamic) assert.equal(section.dynamic, "knowledge.topics", `unsupported dynamic section: ${section.dynamic}`);
   }
 }
-const requiredRoutes = ["knowledge.overview","knowledge.sources","experience.overview","experience.lab","experience.gallery","experience.puzzles","learning.overview","learning.agent","learning.today","learning.mastery","learning.gaps","learning.review","learning.history","account.archive"];
+const requiredRoutes = ["learning.start","knowledge.overview","knowledge.sources","experience.overview","experience.lab","experience.gallery","experience.puzzles","learning.overview","learning.agent","learning.today","learning.mastery","learning.gaps","learning.review","learning.history","account.archive"];
 for (const id of requiredRoutes) assert.ok(routeById.has(id), `required route missing: ${id}`);
 
 assert.ok(Array.isArray(knowledge.topics), "knowledge topics are required");
@@ -246,9 +246,11 @@ for (const page of pages) {
   assert.ok(html.includes('data-kv-static-shell="true"'), page.rel + " must use the shared static shell");
   staticPages.push(page.rel);
   assert.equal((html.match(/id="kv-global-account"/g) || []).length, 1, page.rel + " must have exactly one global account control");
-  assert.equal((html.match(/data-group-id="knowledge"/g) || []).length, 1, page.rel + " must have one Knowledge navigation group");
-  assert.equal((html.match(/data-group-id="experience"/g) || []).length, 1, page.rel + " must have one Experience navigation group");
-  assert.equal((html.match(/data-group-id="learning"/g) || []).length, 1, page.rel + " must have one Learning navigation group");
+  for (const id of ["start","knowledge","experience","progress"]) {
+    assert.equal((html.match(new RegExp('data-group-id="' + id + '"','g')) || []).length, 1,
+      page.rel + " must have one " + id + " navigation destination");
+  }
+  assert.doesNotMatch(html, /kv-nav-toggle|kv-nav-submenu/, page.rel + " must not contain nested global menus");
   assert.equal((html.match(/id="search-overlay"/g) || []).length, 1, page.rel + " must have one shared search overlay");
   const sharedFooterCount = (html.match(/class="kv-footer-links"/g) || []).length;
   if (page.rel === "lab/experiments/promise-debugger/index.html") {
@@ -256,7 +258,7 @@ for (const page of pages) {
   } else {
     assert.equal(sharedFooterCount, 1, page.rel + " must have exactly one set of shared footer links");
   }
-  assert.ok(html.includes('data-kv-shell-version="3.0"'), page.rel + " must use the current shell version");
+  assert.ok(html.includes('data-kv-shell-version="4.0"'), page.rel + " must use the current shell version");
   assert.ok(html.includes("assets/css/site-architecture.css"), page.rel + " must load shared shell styling");
   assert.ok(html.includes("assets/js/v2.js"), page.rel + " must load shared navigation behavior");
   await validateInternalReferences(page);
@@ -274,4 +276,4 @@ for (const file of [
   assert.ok(page.includes('data-kv-static-shell="true"'), file + " must use the shared shell");
   assert.ok(page.includes("../../../../assets/js/v2.js"), file + " must load the shared interaction runtime");
 }
-console.log("KNOWVERSE 3.0 architecture verified: " + navigation.groups.length + " nav groups, " + knowledge.topics.length + " topics, " + concepts.size + " concepts, " + competencyToConcept.size + " competencies, " + works.pillars.length + " pillars, " + works.works.length + " works, " + sourcesManifest.sources.length + " sources, " + routesManifest.routes.length + " canonical routes, " + searchIndex.length + " search records, " + staticPages.length + " static-shell pages, " + immersivePages.size + " immersive exits.");
+console.log("KNOWVERSE 4.0 architecture verified: " + navigation.groups.length + " nav groups, " + knowledge.topics.length + " topics, " + concepts.size + " concepts, " + competencyToConcept.size + " competencies, " + works.pillars.length + " pillars, " + works.works.length + " works, " + sourcesManifest.sources.length + " sources, " + routesManifest.routes.length + " canonical routes, " + searchIndex.length + " search records, " + staticPages.length + " static-shell pages, " + immersivePages.size + " immersive exits.");

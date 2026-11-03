@@ -260,6 +260,9 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
     const documentTrace = await traceLearningDocuments(page);
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
+    // Strategy controls live in advanced analysis and are intentionally collapsed by default.
+    await page.locator("#proactive-learning > summary").click();
+    await page.locator("#strategy-mode-default").waitFor({ state:"visible" });
     await page.locator("#strategy-mode-default").click();
     await page.waitForFunction(() => {
       const status = document.querySelector("#strategy-control-status")?.textContent || "";
@@ -288,6 +291,7 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
     assert.ok(defaultWrite, "default preference must be durably written; trace=" + JSON.stringify(documentTrace));
     await page.reload({ waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
+    await page.locator("#proactive-learning > summary").click();
     await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
     try {
       await waitForStrategyMode(page, "default");
@@ -361,6 +365,7 @@ test("WebKit mobile: strategy panel controls remain within a narrow viewport", {
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
+    await page.locator("#proactive-learning > summary").click();
     await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
     const box = await page.locator("#learning-strategy").boundingBox();
     assert.ok(box && box.width <= 390, "strategy panel must fit the mobile viewport");

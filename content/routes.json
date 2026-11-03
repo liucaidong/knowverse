@@ -46,6 +46,12 @@
       "pageType": "experience-index"
     },
     {
+      "id": "learning.start",
+      "label": "开始学习",
+      "path": "./start/",
+      "pageType": "learning-start"
+    },
+    {
       "id": "learning.overview",
       "label": "学习成长总览",
       "path": "./progress/",

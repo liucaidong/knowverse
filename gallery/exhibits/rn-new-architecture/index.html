@@ -1,20 +1,28 @@
 <!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#071522"><meta name="description" content="在交互式 CSS 3D 空间中探索 React Native 新架构的 Build、Startup、Runtime 节点。"><title>新架构空间全景 · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/rn-domain.css">  <link rel="stylesheet" href="../../../assets/css/site-architecture.css">
 </head>
-<body class="rn-work-page" data-root="../../../"><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="3.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+<body class="rn-work-page" data-root="../../../"><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
     <a class="mark" href="../../../">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
-    <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区"><div class="kv-nav-group" data-group-id="knowledge" data-active-routes="knowledge.overview knowledge.overview">
-    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="knowledge.overview" href="../../../knowledge/">知识体系</a>
-      <button class="kv-nav-toggle" type="button" aria-label="展开知识体系二级菜单" aria-expanded="false" aria-controls="kv-menu-knowledge"><span aria-hidden="true">⌄</span></button></div>
-    <div class="kv-nav-submenu" id="kv-menu-knowledge" hidden><section class="kv-nav-section"><h2 class="kv-nav-section-title">知识导航</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="knowledge.overview" href="../../../knowledge/">全部知识领域</a><a class="kv-nav-subitem" data-route-id="knowledge.path" href="../../../progress/#adaptive-plan">我的学习路径</a><a class="kv-nav-subitem" data-route-id="knowledge.graph" href="../../../progress/#knowledge-map">知识关系图</a><a class="kv-nav-subitem" data-route-id="knowledge.sources" href="../../../provenance/">来源与参考</a></div></section><section class="kv-nav-section"><h2 class="kv-nav-section-title">知识专题</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="topic.promise" href="../../../knowledge/promise/">JavaScript · Promise</a><a class="kv-nav-subitem" data-route-id="topic.monorepo" href="../../../knowledge/monorepo/">TypeScript · Monorepo</a><a class="kv-nav-subitem" data-route-id="topic.react-native" href="../../../knowledge/react-native/">React Native · 新架构</a><a class="kv-nav-subitem" data-route-id="topic.ai-education" href="../../../knowledge/ai-education/">AI · 多模态教育</a><a class="kv-nav-subitem" data-route-id="topic.ai-agents" href="../../../knowledge/ai-agents/">AI Agent · 系统工程</a><a class="kv-nav-subitem" data-route-id="topic.model-infra" href="../../../knowledge/model-infra/">模型 · 算力与工具</a><a class="kv-nav-subitem" data-route-id="topic.database" href="../../../knowledge/database/">数据库 · 进化与内核</a><a class="kv-nav-subitem" data-route-id="topic.finance" href="../../../knowledge/finance/">金融学 · 案例与量化</a><a class="kv-nav-subitem" data-route-id="topic.creative" href="../../../knowledge/creative/">WebGL · 知识交互</a><a class="kv-nav-subitem" data-route-id="topic.math" href="../../../knowledge/math/">数学 · 离散与线代</a><a class="kv-nav-subitem" data-route-id="topic.language" href="../../../knowledge/language/">语言 · 英语与东北话</a><a class="kv-nav-subitem" data-route-id="topic.engineering" href="../../../knowledge/engineering/">工程治理 · 开发工作流</a></div></section></div>
-  </div><div class="kv-nav-group" data-group-id="experience" data-active-routes="experience.overview experience.overview experience.lab experience.gallery experience.puzzles">
-    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="experience.overview" href="../../../works/">实践体验</a>
-      <button class="kv-nav-toggle" type="button" aria-label="展开实践体验二级菜单" aria-expanded="false" aria-controls="kv-menu-experience"><span aria-hidden="true">⌄</span></button></div>
-    <div class="kv-nav-submenu" id="kv-menu-experience" hidden><section class="kv-nav-section"><h2 class="kv-nav-section-title">三种学习方式</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="experience.lab" href="../../../lab/">01 · 原理实验室</a><a class="kv-nav-subitem" data-route-id="experience.gallery" href="../../../gallery/">02 · 沉浸式知识展厅</a><a class="kv-nav-subitem" data-route-id="experience.puzzles" href="../../../puzzles/">03 · 知识解谜世界</a></div></section><section class="kv-nav-section"><h2 class="kv-nav-section-title">作品目录</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="experience.overview" href="../../../works/">全部互动作品</a></div></section></div>
-  </div><div class="kv-nav-group" data-group-id="learning" data-active-routes="learning.overview learning.overview learning.today learning.mastery learning.gaps learning.review learning.history">
-    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="learning.overview" href="../../../progress/">学习成长</a>
-      <button class="kv-nav-toggle" type="button" aria-label="展开学习成长二级菜单" aria-expanded="false" aria-controls="kv-menu-learning"><span aria-hidden="true">⌄</span></button></div>
-    <div class="kv-nav-submenu" id="kv-menu-learning" hidden><section class="kv-nav-section"><h2 class="kv-nav-section-title">我的学习成长</h2><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="learning.today" href="../../../progress/#adaptive-plan">今日学习计划</a><a class="kv-nav-subitem" data-route-id="learning.mastery" href="../../../progress/#knowledge-map">知识掌握图谱</a><a class="kv-nav-subitem" data-route-id="learning.gaps" href="../../../progress/#weak-points">薄弱点诊断</a><a class="kv-nav-subitem" data-route-id="learning.review" href="../../../review/">独立复习工作台</a><a class="kv-nav-subitem" data-route-id="learning.history" href="../../../progress/#challenge-history">学习历史</a></div></section></div>
+    <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区"><div class="kv-nav-group" data-group-id="start"
+      data-active-routes="learning.start learning.start learning.agent learning.today"
+      data-active-paths="../../../start/|../../../start/|../../../agent/|../../../progress/#adaptive-plan">
+    <a class="kv-nav-link" data-route-id="learning.start"
+       href="../../../start/">开始学习</a>
+  </div><div class="kv-nav-group" data-group-id="knowledge"
+      data-active-routes="knowledge.overview knowledge.overview"
+      data-active-paths="../../../knowledge/|../../../knowledge/">
+    <a class="kv-nav-link" data-route-id="knowledge.overview"
+       href="../../../knowledge/">知识库</a>
+  </div><div class="kv-nav-group" data-group-id="experience"
+      data-active-routes="experience.overview experience.overview experience.lab experience.gallery experience.puzzles"
+      data-active-paths="../../../works/|../../../works/|../../../lab/|../../../gallery/|../../../puzzles/">
+    <a class="kv-nav-link" data-route-id="experience.overview"
+       href="../../../works/">实践中心</a>
+  </div><div class="kv-nav-group" data-group-id="progress"
+      data-active-routes="learning.overview learning.overview learning.mastery learning.gaps learning.review learning.history"
+      data-active-paths="../../../progress/|../../../progress/|../../../progress/#knowledge-map|../../../progress/#weak-points|../../../review/|../../../progress/#challenge-history">
+    <a class="kv-nav-link" data-route-id="learning.overview"
+       href="../../../progress/">我的进度</a>
   </div></div>
     <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
     <button class="search-trigger" id="search-open" type="button" aria-label="全站搜索知识与作品">搜索 <span>⌘ K</span></button>

@@ -111,6 +111,10 @@ async function exerciseReview(browser, label, viewport) {
 
   await page.goto(baseURL + "/progress/", { waitUntil: "domcontentloaded" });
   await page.locator("#hero-tested").waitFor();
+  // Advanced review scheduling is intentionally collapsed on first entry.
+  await page.locator("#proactive-learning > summary").click();
+  assert.equal(await page.locator("#proactive-learning").evaluate(element => element.open), true,
+    label + ": the advanced analytics disclosure must open when explicitly selected");
   await page.locator("#proactive-kpis .lp-proactive-kpi").first().waitFor({ state: "visible" });
   const scheduledReview = page.locator("#proactive-review-queue a").first();
   await scheduledReview.waitFor({ state: "visible" });
@@ -167,6 +171,10 @@ async function exerciseReview(browser, label, viewport) {
   await page.goto(baseURL + "/progress/", { waitUntil: "domcontentloaded" });
   await page.locator("#hero-tested").waitFor();
   await page.locator("#gap-list").waitFor();
+  // Every page load starts with advanced analysis collapsed; open it only for this audit assertion.
+  await page.locator("#proactive-learning > summary").click();
+  assert.equal(await page.locator("#proactive-learning").evaluate(element => element.open), true,
+    label + ": advanced analysis must open on explicit user action after navigation");
   await page.locator("#proactive-kpis .lp-proactive-kpi").first().waitFor({ state: "visible" });
   await page.locator("#proactive-actions").waitFor({ state: "visible" });
   await page.locator("#proactive-timeline").waitFor({ state: "visible" });

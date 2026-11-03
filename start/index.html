@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f4f8f6">
+  <meta name="description" content="KNOWVERSE 学习中枢：从学习目标、计划确认到课程任务与独立复习的清晰入口。">
+  <title>开始学习 · KNOWVERSE</title>
+  <link rel="stylesheet" href="../assets/css/v2.css">
+  <link rel="stylesheet" href="../assets/css/learning-start.css">
+  <link rel="stylesheet" href="../assets/css/backend-account.css">
+  <link rel="stylesheet" href="../assets/css/site-architecture.css">
+</head>
+<body class="learning-start-page" data-root="../"><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+    <a class="mark" href="../">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
+    <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区"><div class="kv-nav-group" data-group-id="start"
+      data-active-routes="learning.start learning.start learning.agent learning.today"
+      data-active-paths="../start/|../start/|../agent/|../progress/#adaptive-plan">
+    <a class="kv-nav-link" data-route-id="learning.start"
+       href="../start/">开始学习</a>
+  </div><div class="kv-nav-group" data-group-id="knowledge"
+      data-active-routes="knowledge.overview knowledge.overview"
+      data-active-paths="../knowledge/|../knowledge/">
+    <a class="kv-nav-link" data-route-id="knowledge.overview"
+       href="../knowledge/">知识库</a>
+  </div><div class="kv-nav-group" data-group-id="experience"
+      data-active-routes="experience.overview experience.overview experience.lab experience.gallery experience.puzzles"
+      data-active-paths="../works/|../works/|../lab/|../gallery/|../puzzles/">
+    <a class="kv-nav-link" data-route-id="experience.overview"
+       href="../works/">实践中心</a>
+  </div><div class="kv-nav-group" data-group-id="progress"
+      data-active-routes="learning.overview learning.overview learning.mastery learning.gaps learning.review learning.history"
+      data-active-paths="../progress/|../progress/|../progress/#knowledge-map|../progress/#weak-points|../review/|../progress/#challenge-history">
+    <a class="kv-nav-link" data-route-id="learning.overview"
+       href="../progress/">我的进度</a>
+  </div></div>
+    <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
+    <button class="search-trigger" id="search-open" type="button" aria-label="全站搜索知识与作品">搜索 <span>⌘ K</span></button>
+    <details class="kv-global-account" id="kv-global-account" data-status="anonymous">
+    <summary class="kv-account-trigger" aria-label="打开全站账户与同步状态">
+      <span class="kv-account-dot" data-status="neutral" aria-hidden="true"></span>
+      <span class="kv-account-label"><small>ACCOUNT / SYNC</small><strong class="kv-account-state" data-kv-account-state>GitHub 登录</strong></span>
+      <span class="kv-account-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="kv-account-panel" aria-label="账户面板">
+      <strong class="kv-account-panel-title">一个账户，贯穿整个 KNOWVERSE</strong>
+      <p class="kv-account-scope">公开知识、实验、展厅和挑战无需登录。身份认证与云端学习档案授权是两个独立状态。</p>
+      <p class="kv-account-message" data-kv-account-message>当前设备可以直接学习；登录后可在获授权时同步个人学习档案。</p>
+      <p class="kv-account-identity" data-kv-account-identity hidden></p>
+      <button class="kv-account-action primary" type="button" data-kv-sign-in disabled>使用 GitHub 登录</button>
+      <noscript><p class="kv-account-scope">账户操作需要启用 JavaScript；本页导航与知识内容仍可直接访问。</p></noscript>
+      <button class="kv-account-action" type="button" data-kv-sign-out hidden>退出登录</button>
+      <a class="kv-account-manage" href="../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
+    </div>
+  </details>
+  </nav></header>
+  <div class="topline"></div>
+  <main class="ls-container">
+    <div class="ls-breadcrumb"><a href="../">首页</a><span aria-hidden="true">/</span><span>开始学习</span></div>
+    <header class="ls-intro">
+      <span class="ls-kicker">YOUR LEARNING HOME</span>
+      <h1>从这里开始。<br><em>一次只做下一步。</em></h1>
+      <p>不用先弄懂所有菜单，也不用同时打开知识图谱、策略分析和 Agent。KNOWVERSE 会根据你的真实学习记录，告诉你现在最该做什么。</p>
+    </header>
+
+    <section class="ls-focus" id="ls-focus" aria-live="polite" aria-busy="true">
+      <div class="ls-focus-top">
+        <span class="ls-focus-eyebrow">YOUR NEXT STEP / 当前最重要的行动</span>
+        <span class="ls-focus-stage" id="ls-focus-stage">正在读取学习状态…</span>
+      </div>
+      <h2 id="ls-next-title">正在检查你的学习进度</h2>
+      <p id="ls-next-description">系统只会读取当前浏览器的真实学习档案；不会为首次访问预填目标或成绩。</p>
+      <div class="ls-focus-foot">
+        <a class="ls-primary-action" id="ls-next-action" href="../agent/#la-learning-goals">打开学习入口 <span aria-hidden="true">→</span></a>
+        <a class="ls-secondary-action" id="ls-next-secondary" href="../progress/">查看我的进度</a>
+      </div>
+      <p class="ls-focus-note" id="ls-next-note">本地优先保存；云端同步需要同一已授权账户并处于联网状态。</p>
+    </section>
+
+    <section class="ls-roadmap" aria-labelledby="ls-roadmap-title">
+      <div class="ls-roadmap-heading">
+        <span class="ls-kicker">THE LEARNING PATH</span>
+        <h2 id="ls-roadmap-title">学习只按这四步推进</h2>
+        <p>每一步完成后，下一步自然出现。其他功能只是辅助，不需要一次性全部使用。</p>
+      </div>
+      <ol class="ls-steps" id="ls-steps">
+        <li data-step="goal" data-state="current">
+          <span class="ls-step-number">01</span>
+          <strong>设定目标</strong>
+          <small>明确想学什么、每天能投入多少时间</small>
+        </li>
+        <li data-step="plan" data-state="locked">
+          <span class="ls-step-number">02</span>
+          <strong>确认计划</strong>
+          <small>检查系统安排的内容、先后顺序和时间</small>
+        </li>
+        <li data-step="task" data-state="locked">
+          <span class="ls-step-number">03</span>
+          <strong>完成任务</strong>
+          <small>进入课程或挑战，按真实理解学习和作答</small>
+        </li>
+        <li data-step="review" data-state="locked">
+          <span class="ls-step-number">04</span>
+          <strong>复习验证</strong>
+          <small>用不同题型、无提示方式检验是否真正掌握</small>
+        </li>
+      </ol>
+    </section>
+
+    <section class="ls-alternatives" aria-label="其他入口">
+      <div class="ls-alternative-heading">想做其他事情？</div>
+      <a href="../knowledge/">自由浏览知识库 <span aria-hidden="true">↗</span></a>
+      <a href="../works/">体验互动实验与解谜 <span aria-hidden="true">↗</span></a>
+      <a href="../progress/">查看详细掌握图谱与历史 <span aria-hidden="true">↗</span></a>
+    </section>
+  </main>
+
+  <footer class="ls-footer kv-shared-footer">
+    <span>KNOWVERSE · 从目标到掌握</span>
+    <a href="../">返回首页</a>
+  <div class="kv-footer-links" aria-label="全站快捷入口"><a href="../knowledge/">知识体系</a><a href="../works/">实践体验</a><a href="../progress/">学习成长</a><a href="https://github.com/liucaidong/knowverse" target="_blank" rel="noopener">GitHub ↗</a></div></footer>
+  <script src="../assets/js/backend/public-config.js"></script>
+  <script type="module" src="../assets/js/learning-start.mjs"></script>
+  <script defer src="../assets/js/v2.js"></script>
+<div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="全站搜索">
+    <div class="searchbox"><div class="searchheading"><strong>搜索 KNOWVERSE 知识宇宙</strong><button id="search-close" type="button">关闭 ✕</button></div>
+    <input id="search-input" type="search" placeholder="搜索 Promise、Monorepo、React Native、AI…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div>
+</body>
+</html>

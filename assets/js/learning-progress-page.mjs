@@ -958,6 +958,7 @@ function wireDataActions() {
   document.querySelectorAll("[data-scroll]").forEach(button => {
     button.addEventListener("click", () => {
       const target = document.querySelector(button.dataset.scroll);
+      if (target instanceof HTMLDetailsElement) target.open = true;
       target?.scrollIntoView({ behavior: "smooth", block: "start" });
       document.querySelectorAll(".lp-tab").forEach(item => item.setAttribute("aria-current", String(item === button)));
     });

@@ -26,8 +26,12 @@ test("public builder renders canonical topic catalogues, home portal, provenance
     const provenance = await readFile(path.join(fixture,"provenance/index.html"),"utf8");
     const manifest = JSON.parse(await readFile(path.join(fixture,"content/concepts.json"),"utf8"));
     assert.ok(home.includes('data-kv-home-portal="true"'));
-    assert.equal((home.match(/class="kv-home-action(?: |")/g)||[]).length,3);
-    assert.equal((home.match(/data-knowledge-catalog="featured"/g)||[]).length,1);
+    assert.equal((home.match(/class="kv-home-action primary"/g)||[]).length,1);
+    assert.equal((home.match(/class="kv-home-secondary"/g)||[]).length,1);
+    const secondary = home.match(/<div class="kv-home-secondary">([\s\S]*?)<\/div>/)?.[1] || "";
+    assert.equal((secondary.match(/<a\s+href=/g)||[]).length,2);
+    assert.ok(home.includes('href="./start/"'));
+    assert.equal((home.match(/data-knowledge-catalog=/g)||[]).length,0);
     assert.equal((atlas.match(/class="topic-card"/g)||[]).length,12);
     assert.ok(atlas.includes("<strong>12</strong>"));
     assert.ok(provenance.includes('data-kv-provenance-registry="true"'));

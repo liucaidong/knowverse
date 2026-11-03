@@ -96,9 +96,14 @@ for (const { file, rel } of htmlFiles) {
     html = html.replace(match[0], `<div class="topic-grid" data-knowledge-catalog="${kind}">${topics.map(topic => topicCard(topic,prefix)).join("\n")}</div>`);
     catalogCount++;
   }
-  if (rel === "index.html" && !html.includes('data-kv-home-portal="true"')) {
-    const portal = `<section class="kv-home-portal" data-kv-home-portal="true"><div class="kv-home-copy"><span>PERSONAL LEARNING SYSTEM / 3.0</span><h2>从你正在学的知识，走向真正掌握。</h2><p>学习计划、掌握证据和待解决误区都来自本机档案或已授权的云端档案。首次访问不会伪造个人进度。</p></div><div class="kv-home-actions"><a class="kv-home-action primary" href="./progress/#adaptive-plan"><small>01 / CONTINUE & PLAN</small><strong>继续学习 · 查看今日计划</strong><span>按当前掌握证据生成下一步行动 ↗</span></a><a class="kv-home-action" href="./knowledge/"><small>02 / KNOWLEDGE ATLAS</small><strong>探索知识体系</strong><span>进入专题、概念与明确先修关系 ↗</span></a><a class="kv-home-action" href="./works/"><small>03 / LEARN BY DOING</small><strong>选择一种实践体验</strong><span>实验、沉浸展厅与解谜挑战 ↗</span></a></div></section>`;
-    html = html.replace(/(<main\b[^>]*>)/i, `$1${portal}`);
+  if (rel === "index.html") {
+    const portal = `<section class="kv-home-portal" data-kv-home-portal="true"><div class="kv-home-copy"><span>KNOWVERSE / YOUR LEARNING HOME</span><h2>从这里开始。一次只做下一步。</h2><p>不必先弄懂所有菜单，也不必同时打开知识图谱、策略分析和 Agent。KNOWVERSE 会根据真实学习记录，告诉你当前最重要的行动。</p></div><div class="kv-home-actions"><a class="kv-home-action primary" href="./start/"><small>YOUR NEXT STEP</small><strong>进入学习中枢</strong><span>设定目标、确认计划，再按任务一步步学习 ↗</span></a><div class="kv-home-secondary"><a href="./knowledge/">我想先浏览知识库 <span aria-hidden="true">↗</span></a><a href="./works/">我想先体验互动作品 <span aria-hidden="true">↗</span></a></div></div></section>`;
+    const portalPattern = /<section class="kv-home-portal" data-kv-home-portal="true">[\s\S]*?<\/section>/;
+    if (portalPattern.test(html)) {
+      html = html.replace(portalPattern, portal);
+    } else {
+      html = html.replace(/(<main\b[^>]*>)/i, `$1${portal}`);
+    }
     homeCount++;
   }
   if (rel === "knowledge/index.html") {
