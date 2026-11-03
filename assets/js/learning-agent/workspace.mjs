@@ -50,6 +50,8 @@ let loading = false;
 let mutationInFlight = false;
 let pendingReplanEvents = [];
 let autoReplanInFlight = false;
+let pendingReplanDrainScheduled = false;
+let pendingReplanDrainInFlight = false;
 let lastAutoReplanCause = null;
 let refreshCycle = null;
 let refreshAgain = false;
@@ -137,7 +139,34 @@ async function maybeAutoReplan(incomingEvents = []) {
     $("la-chat-status").textContent = "自动重规划暂未完成：" + (error.message || "未知错误") + "。原计划与学习记录保持不变。";
   } finally {
     autoReplanInFlight = false;
+    schedulePendingReplanDrain();
   }
+}
+
+function schedulePendingReplanDrain() {
+  if (pendingReplanDrainScheduled || pendingReplanDrainInFlight ||
+      mutationInFlight || autoReplanInFlight || !pendingReplanEvents.length) return;
+  pendingReplanDrainScheduled = true;
+  queueMicrotask(async () => {
+    pendingReplanDrainScheduled = false;
+    if (pendingReplanDrainInFlight || mutationInFlight || autoReplanInFlight ||
+        !pendingReplanEvents.length) return;
+    pendingReplanDrainInFlight = true;
+    const next = pendingReplanEvents.splice(0);
+    let continueDrain = true;
+    try {
+      await refreshAll();
+      await maybeAutoReplan(next);
+    } catch (error) {
+      // Preserve the batch so a subsequent event or completed user action can retry it.
+      pendingReplanEvents.unshift(...next);
+      continueDrain = false;
+      $("la-chat-status").textContent = "主动学习状态刷新失败：" + (error.message || "未知错误");
+    } finally {
+      pendingReplanDrainInFlight = false;
+      if (continueDrain && pendingReplanEvents.length) schedulePendingReplanDrain();
+    }
+  });
 }
 
 const PROACTIVE_REFRESH_EVENT_TYPES = new Set([
@@ -154,13 +183,7 @@ function receiveLearningEvents(event) {
   const relevant = incoming.filter(item => PROACTIVE_REFRESH_EVENT_TYPES.has(item.type));
   if (!relevant.length) return;
   pendingReplanEvents.push(...relevant);
-  if (mutationInFlight || autoReplanInFlight) return;
-  void refreshAll().then(async () => {
-    const next = pendingReplanEvents.splice(0);
-    await maybeAutoReplan(next);
-  }).catch(error => {
-    $("la-chat-status").textContent = "主动学习状态刷新失败：" + (error.message || "未知错误");
-  });
+  schedulePendingReplanDrain();
 }
 
 function renderProactiveSummary() {
@@ -744,10 +767,7 @@ async function runAction(callback) {
     window.alert(error.message || "操作失败，原有学习状态保持不变。");
   } finally {
     mutationInFlight = false;
-    if (pendingReplanEvents.length) {
-      const next = pendingReplanEvents.splice(0);
-      await maybeAutoReplan(next);
-    }
+    schedulePendingReplanDrain();
   }
 }
 

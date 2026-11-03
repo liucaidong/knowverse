@@ -201,6 +201,121 @@ test("Chromium desktop: goal -> adaptive plan -> task pause/restore -> offline c
   }
 });
 
+test("Chromium desktop: learning events arriving during auto-replan are drained after the first proposal commits", {
+  timeout: 90_000,
+}, async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    const { context, page, errors } = await openWorkspace(browser, { width: 1440, height: 1100 });
+    await createGoalAndPlan(page);
+
+    await page.evaluate(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const repository = await getLearningRepository();
+      const originalCommit = repository.commit.bind(repository);
+      let blocked = false;
+      window.__autoReplanAttemptedPlanIds = [];
+      repository.commit = async change => {
+        const proposedPlan = (change.documents || []).find(row =>
+          row.type === "learning_plan" && row.payload?.status === "proposed" &&
+          row.payload?.reason?.startsWith("检测到新的学习事实")
+        );
+        if (proposedPlan) window.__autoReplanAttemptedPlanIds.push(proposedPlan.key);
+        if (proposedPlan && !blocked) {
+          blocked = true;
+          window.__heldAutoReplanPlanId = proposedPlan.key;
+          window.__autoReplanCommitEntered = true;
+          await new Promise(resolve => { window.__releaseAutoReplanCommit = resolve; });
+        }
+        return originalCommit(change);
+      };
+      const makeAttempt = (id, at) => ({
+        id, eventSchemaVersion: 3, type: "attempt", at,
+        topicId: "promise", challengeId: "promise-mechanism-quest",
+        challengeTitle: "Promise 机制挑战", stepId: "thenable-adoption",
+        stepTitle: "thenable 解析与 Promise 采用",
+        competencyIds: ["thenable-adoption"], sessionId: id,
+        sessionType: "campaign", variantId: "e2e-auto-replan-" + id,
+        attemptNumber: 1, correct: true, hintsUsed: 0,
+      });
+      await originalCommit({ events: [makeAttempt("auto-replan-first", new Date().toISOString())] });
+    });
+
+    await page.waitForFunction(() => window.__autoReplanCommitEntered === true, { timeout: 15000 });
+    await page.evaluate(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const repository = await getLearningRepository();
+      await repository.commit({ events: [{
+        id: "auto-replan-second-during-commit", eventSchemaVersion: 3,
+        type: "attempt", at: new Date(Date.now() + 10).toISOString(),
+        topicId: "promise", challengeId: "promise-mechanism-quest",
+        challengeTitle: "Promise 机制挑战", stepId: "thenable-adoption",
+        stepTitle: "thenable 解析与 Promise 采用",
+        competencyIds: ["thenable-adoption"], sessionId: "auto-replan-second-during-commit",
+        sessionType: "campaign", variantId: "e2e-auto-replan-second",
+        attemptNumber: 1, correct: true, hintsUsed: 0,
+      }] });
+      window.__releaseAutoReplanCommit();
+    });
+
+    await waitForAsyncPageCondition(page, async () => {
+      return (window.__autoReplanAttemptedPlanIds || []).length === 2;
+    }, { timeout: 12000, label: "both concurrent event batches to trigger auto-replan commits" }).catch(async error => {
+      const diagnostic = await page.evaluate(async () => {
+        const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+        const repository = await getLearningRepository();
+        const documents = await repository.documents.list(1000);
+        const events = await repository.events.list();
+        return {
+          attemptedPlanIds: window.__autoReplanAttemptedPlanIds || [],
+          plans: documents.filter(row => row.type === "learning_plan").map(row => ({
+            id: row.key, status: row.payload?.status, reason: row.payload?.reason,
+            generatedAt: row.payload?.generatedAt,
+          })),
+          events: events.filter(event => event.id.startsWith("auto-replan-")).map(event => ({
+            id: event.id, at: event.at, type: event.type,
+          })),
+          status: document.querySelector("#la-chat-status")?.textContent,
+          proposalText: document.querySelector("#la-plan-proposal")?.innerText,
+        };
+      });
+      throw new Error("Auto-replan queue diagnostic: " + JSON.stringify(diagnostic) + " | " + error.message);
+    });
+
+    const result = await page.evaluate(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const repository = await getLearningRepository();
+      const documents = await repository.documents.list(1000);
+      const events = await repository.events.list();
+      const attemptedIds = window.__autoReplanAttemptedPlanIds || [];
+      const plans = attemptedIds.map(id => documents.find(row =>
+        row.type === "learning_plan" && row.key === id && !row.payload?._deleted
+      )?.payload || null);
+      return {
+        plans: plans.map(plan => plan && ({
+          planId: plan.planId, status: plan.status,
+          supersedesProposalId: plan.supersedesProposalId, reason: plan.reason,
+        })),
+        bothEventsPersisted: [
+          "auto-replan-first",
+          "auto-replan-second-during-commit",
+        ].every(id => events.some(event => event.id === id)),
+      };
+    });
+    assert.equal(result.plans.length, 2);
+    assert.ok(result.plans.every(Boolean), JSON.stringify(result));
+    assert.equal(result.plans[0].status, "superseded", JSON.stringify(result));
+    assert.equal(result.plans[1].status, "proposed", JSON.stringify(result));
+    assert.equal(result.plans[1].supersedesProposalId, result.plans[0].planId, JSON.stringify(result));
+    assert.ok(result.plans.every(plan => plan.reason.includes("attempt")), JSON.stringify(result));
+    assert.equal(result.bothEventsPersisted, true);
+    assert.deepEqual(errors, []);
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});
+
 test("WebKit mobile viewport: workspace, goal editor and persisted plan fit the device width", {
   timeout: 90_000,
 }, async () => {

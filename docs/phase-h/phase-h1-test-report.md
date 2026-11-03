@@ -149,3 +149,47 @@ Phase G 的 Validate #128 / Pages #93 是历史冻结基线，不能与上述 H1
 新增 E2E 同时建立较早序号的 ready 任务、较晚序号的 in-progress 任务，以及待确认的新计划提案；断言主入口仍指向正确 taskId 的正在执行任务，次级入口仍可查看计划。该测试先在旧逻辑上失败，再在修复后通过。站点导航与开始学习 E2E 套件当前 10/10 通过。
 
 本次之后浏览器 E2E 总数更新为 30 项（10 个脚本）；44 条规范路由烟测仍纳入其中。Node 单元测试基线为 160/160。
+
+
+## 系统功能审计 · 自动重规划并发事件队列
+
+### 发现
+
+当一个学习事件触发自动重规划，计划提案正在提交时，如果另一条 attempt / completion / goal / preference 事件到达，事件监听器会把新事件加入 `pendingReplanEvents`，但因为 `autoReplanInFlight` 为 true 而直接返回。原实现只在 `runAction` 结束时主动清队列；如果新事件不是由当前页面的 runAction 发起，它可能一直滞留，导致学习计划/主动学习投影落后于最新事件。
+
+### 修复
+
+- 统一使用 `schedulePendingReplanDrain()` 消费待重规划事件；事件监听器、自动重规划结束和用户操作结束都调用同一入口。
+- 增加 drain scheduled / drain in-flight / auto replan in-flight / mutation in-flight 四道串行保护，防止两个异步消费者同时 splice 队列。
+- drain 执行前刷新学习状态，再把事件批次交给 `maybeAutoReplan`；批次执行期间到达的新事件在当前批次结束后重新调度。
+- 若刷新本身抛错，保留本批事件，不静默丢弃；由后续事件或用户操作再次触发重试。
+- 自动重规划期间不自动接受新提案；旧提案被保留为 superseded 历史，新提案仍需学习者确认。
+
+### 并发 E2E
+
+新增 Chromium 场景：先创建并接受真实 UI 计划；劫持隔离测试 Repository 的计划提案 commit 并暂停；第一条 attempt 事件触发 auto-replan；第一份提案 commit 暂停时，通过 Repository 提交第二条 attempt 事件；随后释放第一次 commit。断言：
+
+1. 两个自动重规划提案都真实提交。
+2. 第一份提案状态为 superseded，第二份为 proposed，且第二份 supersedesProposalId 指向第一份。
+3. 两条事件均在 append-only event log 中存在。
+4. 没有未捕获页面异常。
+
+修复前该场景无法观察到第二轮提案；修复后定向 E2E 通过。测试使用隔离 Chromium / IndexedDB，不触碰用户档案或生产云端。
+
+
+### 本轮系统功能审计合计
+
+- 修复点：开始页不应因新计划提案打断 in-progress 任务；自动重规划期间到达的新学习事件不得滞留/丢失，事件队列必须串行消费。
+- 浏览器 E2E：10 个脚本 / 31 项测试全部通过；包括 44 条规范路由烟测、进行中任务优先级和自动重规划并发事件回归。
+- Node 单元/集成测试：160 项通过、0 失败（149 项仓库系统测试 + 3 项 Monorepo starter 图测试 + 8 项 Promise 专项）。
+- 静态构建、内容链接、知识注册表、Mermaid、站点架构、Promise 模型、Monorepo 图与 Fullstack lockfile/config 校验通过。
+- 尚未结束整个系统功能审计；本轮优先修复了已经由 E2E 证实的导航决策与异步事件队列问题。下一轮继续按实际故障优先级审计任务状态流转、计划替代、复习调度和持久化边界。
+
+
+### 本轮系统功能审计最终回归
+
+- 自动重规划并发事件队列问题已新增独立 E2E；故意阻塞第一份新计划的 IndexedDB commit，在阻塞期间再写入第二条 attempt 事件，验证第二轮提案会在第一轮结束后串行生成。
+- 队列保护同时覆盖 scheduled、in-flight、用户 mutation 和 auto-replan 四个执行窗口；发生 refresh 异常时，当前事件批次会保留，不会静默丢弃。
+- 完整浏览器 E2E：10 个脚本 / 31 项通过、0 失败。
+- Node 单元/集成测试：160 项通过、0 失败。
+- 所有静态构建、内容、路由、知识图谱、Promise、Monorepo 和 Fullstack 检查通过。
