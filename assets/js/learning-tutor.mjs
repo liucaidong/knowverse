@@ -1,5 +1,6 @@
 import { createLearningProgressStore, deriveLearningInsights } from "./learning-progress.mjs";
 import { createLearningAgentProvider } from "./learning-agent/agent-provider.mjs";
+import { createLearningReflectionStore } from "./learning-reflections.mjs";
 
 const siteRoot = new URL("../../", import.meta.url);
 const MAX_SELECTED_TEXT = 2000;
@@ -9,12 +10,14 @@ const MODE_LABELS = Object.freeze({
   hint: "分级提示",
   diagnose: "误区诊断",
   transfer: "迁移练习",
+  socratic: "苏格拉底引导",
 });
 const MODE_PROMPTS = Object.freeze({
   explain: "请结合当前学习现场解释这个概念。先给直观理解，再解释关键机制，最后给一个容易混淆的边界。不要把尚未验证的内容说成已掌握。",
   hint: "我卡住了。请只给第一级提示，不要直接给答案或完整推导。先指出应该观察哪个变量、状态或因果关系，再让我继续尝试。",
   diagnose: "请根据当前学习现场和已有的相关学习证据，分析我可能存在的概念误区。区分事实与推测，指出证据不足之处，并提出一个问题来验证诊断。",
   transfer: "请围绕当前能力点提出一道新的迁移问题，不要立即给出答案。该问题只是导师生成的练习草案，不是正式评估，不得记录为掌握证据。",
+  socratic: "请使用苏格拉底式教学：每轮只提出一个短问题，引导我自己解释、预测、举证或检查边界；先从我当前的想法出发，根据我的回答逐步调整难度。不要一次列出问题清单，不要直接给最终答案或完整推导；只有当我明确请求解释，或我已尝试且仍无法继续时，才逐步揭示必要提示。请先提出第一个最有诊断价值的问题。",
 });
 const create = (tag, className = "", text = undefined) => {
   const node = document.createElement(tag);
@@ -217,6 +220,21 @@ function injectStyles() {
     ".kv-tutor-status{min-height:18px;margin:8px 0 0;color:#60777a;font-size:11px}",
     ".kv-tutor-status.error{color:#a24a3f}",
     ".kv-tutor-selection{margin-top:8px;color:#526c70;font-size:11px}",
+    ".kv-tutor-reflection{margin:10px 22px 0;border:1px solid #dce9e5;border-radius:12px;background:#f8fbfa;overflow:hidden}",
+    ".kv-tutor-reflection>summary{padding:10px 12px;color:#28545a;font-size:12px;font-weight:800;cursor:pointer}",
+    ".kv-tutor-reflection-body{max-height:34vh;overflow:auto;padding:0 12px 12px}",
+    ".kv-tutor-reflection-intro{margin:0 0 9px;color:#718386;font-size:10px;line-height:1.6}",
+    ".kv-tutor-reflection-form{display:grid;gap:8px}",
+    ".kv-tutor-reflection-field{display:grid;gap:4px;color:#355b60;font-size:10px;font-weight:750}",
+    ".kv-tutor-reflection-field textarea{box-sizing:border-box;width:100%;min-height:54px;resize:vertical;border:1px solid #d2e1dc;border-radius:8px;padding:8px;background:white;color:#24474d;font:11px/1.5 system-ui,sans-serif}",
+    ".kv-tutor-reflection-save{justify-self:start;border:0;border-radius:999px;padding:8px 12px;background:#17464d;color:white;font:700 10px system-ui,sans-serif;cursor:pointer}",
+    ".kv-tutor-reflection-status{min-height:15px;margin:6px 0;color:#60777a;font-size:10px}",
+    ".kv-tutor-reflection-list{display:grid;gap:6px;margin-top:8px}",
+    ".kv-tutor-reflection-item{padding:8px;border:1px solid #e1ebe7;border-radius:8px;background:white}",
+    ".kv-tutor-reflection-item summary{color:#31565c;font-size:10px;font-weight:750;cursor:pointer}",
+    ".kv-tutor-reflection-item p{margin:6px 0 0;color:#60777a;font-size:10px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}",
+    ".kv-tutor-reflection-delete,.kv-tutor-reflection-edit,.kv-tutor-reflection-cancel{margin:6px 8px 0 0;border:0;background:transparent;color:#416d70;font:700 10px system-ui,sans-serif;cursor:pointer}",
+    ".kv-tutor-reflection-delete{color:#9b6257}",
     "@media(max-width:560px){.kv-tutor-launcher{right:12px;bottom:72px}.kv-tutor-drawer{width:100%}.kv-tutor-head{padding:16px 17px 12px}.kv-tutor-context{padding:11px 17px}.kv-tutor-modes{padding:11px 17px 0}.kv-tutor-messages{padding:10px 17px}.kv-tutor-composer{padding:12px 17px 15px}.kv-tutor-title{font-size:19px}}",
   ].join("\n");
   document.head.append(style);
@@ -292,6 +310,7 @@ export async function mountLearningTutor(options = {}) {
   injectStyles();
 
   const provider = options.provider || createLearningAgentProvider();
+  const reflectionStore = options.reflectionStore || createLearningReflectionStore();
   const launcher = create("button", "kv-tutor-launcher", "学习导师");
   launcher.id = "kv-learning-tutor-launcher";
   launcher.type = "button";
@@ -334,6 +353,44 @@ export async function mountLearningTutor(options = {}) {
     });
     modes.append(button);
   });
+  const reflectionSection = create("details", "kv-tutor-reflection");
+  reflectionSection.dataset.noLearningTelemetry = "true";
+  const reflectionSummary = create("summary", "", "学习反思 · 把理解变化留下来");
+  const reflectionBody = create("div", "kv-tutor-reflection-body");
+  const reflectionIntro = create("p", "kv-tutor-reflection-intro",
+    "自愿记录，不是考试。反思只写入你的私有学习档案，不会成为掌握证据；登录并启用云同步后可随个人账户同步。");
+  const reflectionForm = create("form", "kv-tutor-reflection-form");
+  const reflectionFields = [
+    ["initialThinking", "开始前，我原本怎么理解？", "写下刚开始时的判断、模型或解题路径…"],
+    ["insightChanged", "现在，哪一点理解发生了变化？", "记录促成变化的关键证据、机制或反例…"],
+    ["remainingQuestions", "还有什么不确定？", "保留还没有想通的问题，不必强行得出结论…"],
+    ["transferPlan", "准备怎样在新情境中验证？", "写一个可以自己预测、解释或验证的新场景…"],
+  ];
+  const reflectionInputs = new Map();
+  reflectionFields.forEach(([key, labelText, placeholder]) => {
+    const label = create("label", "kv-tutor-reflection-field", labelText);
+    const textarea = create("textarea");
+    textarea.id = "kv-tutor-reflect-" + key;
+    textarea.name = key;
+    textarea.maxLength = 2000;
+    textarea.placeholder = placeholder;
+    label.append(textarea);
+    reflectionInputs.set(key, textarea);
+    reflectionForm.append(label);
+  });
+  const reflectionSave = create("button", "kv-tutor-reflection-save", "保存这次反思");
+  reflectionSave.type = "submit";
+  reflectionForm.append(reflectionSave);
+  const reflectionCancel = create("button", "kv-tutor-reflection-cancel", "取消编辑");
+  reflectionCancel.type = "button";
+  reflectionCancel.hidden = true;
+  reflectionForm.append(reflectionCancel);
+  const reflectionStatus = create("p", "kv-tutor-reflection-status", "最多保存 2,000 字/项；只有点击保存才会写入。");
+  reflectionStatus.setAttribute("role", "status");
+  const reflectionList = create("div", "kv-tutor-reflection-list");
+  reflectionBody.append(reflectionIntro, reflectionForm, reflectionStatus, reflectionList);
+  reflectionSection.append(reflectionSummary, reflectionBody);
+
   const messagesHost = create("div", "kv-tutor-messages");
   messagesHost.setAttribute("aria-live", "polite");
   const composer = create("form", "kv-tutor-composer");
@@ -380,7 +437,7 @@ export async function mountLearningTutor(options = {}) {
   copyRow.append(copy);
   composer.append(input, consentRow, selectedRow, copyRow, status, privacy);
 
-  drawer.append(head, contextPanel, modes, messagesHost, composer);
+  drawer.append(head, contextPanel, modes, reflectionSection, messagesHost, composer);
   overlay.append(drawer);
   document.body.append(launcher, overlay);
 
@@ -437,6 +494,96 @@ export async function mountLearningTutor(options = {}) {
       setStatus(error.message || "复制失败。", true);
     }
   });
+
+  const reflectionContext = {
+    pageTitle: baseScene.page.title,
+    pagePath: baseScene.page.path,
+    topicId: baseScene.topics[0]?.id || null,
+    competencyIds: baseScene.competencies.map(item => item.id),
+    taskId: task?.taskId || null,
+    taskTitle: task?.title || null,
+  };
+  const reflectionFieldLabels = new Map(reflectionFields.map(([key, labelText]) => [key, labelText]));
+  let editingReflectionId = null;
+  const resetReflectionEditor = () => {
+    editingReflectionId = null;
+    reflectionInputs.forEach(field => { field.value = ""; });
+    reflectionSave.textContent = "保存这次反思";
+    reflectionCancel.hidden = true;
+  };
+  reflectionCancel.addEventListener("click", resetReflectionEditor);
+  const renderSavedReflections = async () => {
+    reflectionList.replaceChildren();
+    try {
+      const rows = await reflectionStore.list({ limit: 5,
+        topicId: reflectionContext.topicId,
+        competencyIds: reflectionContext.competencyIds });
+      if (!rows.length) {
+        reflectionList.append(create("p", "kv-tutor-reflection-intro", "这里还没有反思记录。完成一次学习后，写下你的理解变化。"));
+        return;
+      }
+      rows.forEach(item => {
+        const details = create("details", "kv-tutor-reflection-item");
+        const date = Number.isFinite(Date.parse(item.updatedAt))
+          ? new Intl.DateTimeFormat("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" }).format(new Date(item.updatedAt))
+          : "日期未知";
+        const summary = create("summary", "", date + " · " + (item.context?.pageTitle || "学习反思"));
+        details.append(summary);
+        reflectionFields.forEach(([key]) => {
+          if (!item[key]) return;
+          const paragraph = create("p");
+          paragraph.textContent = (reflectionFieldLabels.get(key) || key) + "\n" + item[key];
+          details.append(paragraph);
+        });
+        const edit = create("button", "kv-tutor-reflection-edit", "编辑这条反思");
+        edit.type = "button";
+        edit.addEventListener("click", () => {
+          editingReflectionId = item.reflectionId;
+          reflectionInputs.forEach((field, key) => { field.value = item[key] || ""; });
+          reflectionSave.textContent = "保存修改";
+          reflectionCancel.hidden = false;
+          reflectionSection.open = true;
+          reflectionStatus.textContent = "正在编辑这条反思；保存时会检查本地文档版本，避免覆盖其他设备的新修改。";
+          reflectionInputs.get("initialThinking").focus();
+        });
+        details.append(edit);
+        const remove = create("button", "kv-tutor-reflection-delete", "删除这条反思");
+        remove.type = "button";
+        remove.addEventListener("click", async () => {
+          try {
+            await reflectionStore.remove(item.reflectionId);
+            if (editingReflectionId === item.reflectionId) resetReflectionEditor();
+            reflectionStatus.textContent = "反思记录已从学习档案中删除。";
+            await renderSavedReflections();
+          } catch (error) {
+            reflectionStatus.textContent = "删除失败：" + (error.message || "本地档案暂不可用。");
+          }
+        });
+        details.append(remove);
+        reflectionList.append(details);
+      });
+    } catch (error) {
+      reflectionList.append(create("p", "kv-tutor-reflection-intro",
+        "本机学习档案暂不可读取；当前浏览器可能不支持 IndexedDB。"));
+      reflectionStatus.textContent = error.message || "反思档案读取失败。";
+    }
+  };
+  reflectionForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    reflectionSave.disabled = true;
+    try {
+      const values = Object.fromEntries([...reflectionInputs].map(([key, field]) => [key, field.value]));
+      await reflectionStore.save({ ...values, reflectionId: editingReflectionId, context: reflectionContext });
+      resetReflectionEditor();
+      reflectionStatus.textContent = "已保存到你的私有学习档案；没有新增学习事件或掌握证据。";
+      await renderSavedReflections();
+    } catch (error) {
+      reflectionStatus.textContent = error.message || "保存失败；当前没有写入反思记录。";
+    } finally {
+      reflectionSave.disabled = false;
+    }
+  });
+  void renderSavedReflections();
 
   composer.addEventListener("submit", async event => {
     event.preventDefault();

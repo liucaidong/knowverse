@@ -50,7 +50,7 @@ export function createLearningAgentProvider(options = {}) {
         throw new TypeError("请输入 1–4000 字符的学习问题。");
       }
       if (!["agent", "tutor"].includes(mode)) throw new TypeError("不支持的 Learning Agent 请求模式。");
-      if (!["explain", "hint", "diagnose", "transfer"].includes(tutorMode)) {
+      if (!["explain", "hint", "diagnose", "transfer", "socratic"].includes(tutorMode)) {
         throw new TypeError("不支持的学习导师交互模式。");
       }
       const session = await auth.getSession();

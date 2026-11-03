@@ -65,6 +65,8 @@ jobs:
         run: node --test scripts/verify-learning-integration.mjs
       - name: Verify contextual, read-only Learning Tutor scene and provider contract
         run: node --test scripts/verify-learning-tutor.mjs
+      - name: Verify private learner reflections and optimistic document revisions
+        run: node --test scripts/verify-learning-reflections.mjs
       - name: Verify seven-day evidence-based learning reflection
         run: node --test scripts/verify-learning-weekly-review.mjs
       - name: Validate React Native third learning domain, prerequisite graph and gap variants
@@ -92,6 +94,7 @@ jobs:
           node --check assets/js/learning-checkpoint-engine.mjs
           node --check assets/js/learning-integration.mjs
           node --check assets/js/learning-tutor.mjs
+          node --check assets/js/learning-reflections.mjs
           node --check assets/js/learning-weekly-review.mjs
           node --check assets/js/learning-agent/challenge-task-context.mjs
           node --check assets/js/learning-agent/plan-manager.mjs
@@ -152,6 +155,8 @@ jobs:
         run: node --test scripts/e2e-learning-integration.mjs
       - name: Browser E2E · Context-aware Learning Tutor on course, lab and mobile pages
         run: node --test scripts/e2e-learning-tutor.mjs
+      - name: Browser E2E · Socratic tutoring and private learning reflection loop
+        run: node --test scripts/e2e-phase-k-learning-loop.mjs
       - name: Browser E2E · Seven-day learning reflection on desktop and WebKit mobile
         run: node --test scripts/e2e-weekly-learning-review.mjs
       - name: Browser E2E · Promise course reading task lifecycle and non-mastery evidence
