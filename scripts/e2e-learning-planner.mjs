@@ -65,6 +65,18 @@ async function traceLearningDocuments(page) {
       }
       return originalDelete.call(this, key);
     };
+    const originalClear = IDBObjectStore.prototype.clear;
+    IDBObjectStore.prototype.clear = function() {
+      if (this.name === "learningDocuments") {
+        console.info("__KV_DOCUMENT_TRACE__" + JSON.stringify({ operation: "clear", store: this.name }));
+      }
+      return originalClear.call(this);
+    };
+    const originalDeleteDatabase = IDBFactory.prototype.deleteDatabase;
+    IDBFactory.prototype.deleteDatabase = function(name) {
+      console.info("__KV_DOCUMENT_TRACE__" + JSON.stringify({ operation: "deleteDatabase", name }));
+      return originalDeleteDatabase.call(this, name);
+    };
   });
   return writes;
 }
@@ -231,11 +243,16 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
       throw new Error("Strategy preference did not survive reload: " +
         JSON.stringify({ state, documentWrites, errors }) + " | " + error.message);
     }
-    const mode = await page.evaluate(async () => {
+    const modeState = await page.evaluate(async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
-      return (await getLearningRepository()).documents.get("learner_profile", "preferences").then(row => row.payload.personalizationMode);
+      const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
+      return {
+        payload: row?.payload || null,
+        revision: row?.localRevision || null,
+      };
     });
-    assert.equal(mode, "default");
+    assert.equal(modeState.payload?.personalizationMode, "default",
+      JSON.stringify({ modeState, documentWrites, errors }));
     assert.equal(await page.locator("#strategy-mode-default").getAttribute("aria-pressed"), "true");
     await page.locator("#strategy-mode-adaptive").click();
     try {
