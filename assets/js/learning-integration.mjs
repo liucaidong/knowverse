@@ -171,23 +171,151 @@ function mountCheckpoint(work, checkpoint, store, taskOrchestrator) {
     }
   });
 }
+function injectCourseTaskStyles() {
+  if (document.getElementById("kv-course-learning-task-style")) return;
+  const style = create("style");
+  style.id = "kv-course-learning-task-style";
+  style.textContent = `
+    .kv-course-learning-task{margin:22px 0 28px;padding:17px 19px;border:1px solid #cbded8;border-radius:14px;background:#f5faf8;color:#21434a;font:13px/1.65 system-ui,sans-serif}
+    .kv-course-learning-task strong{display:block;font-size:13px;color:#153e47}
+    .kv-course-learning-task p{margin:5px 0;color:#547076}
+    .kv-course-learning-task .kv-course-task-status{font-weight:650;color:#244e53}
+    .kv-course-task-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+    .kv-course-task-actions button{border:1px solid #1e5960;border-radius:999px;padding:8px 13px;background:#17464d;color:white;font:650 12px system-ui,sans-serif;cursor:pointer}
+    .kv-course-task-actions button.secondary{background:#fff;color:#31565c;border-color:#bfd1cb}
+    .kv-course-task-actions button:disabled{opacity:.55;cursor:wait}
+    .kv-course-task-error{color:#9d3b36!important}
+    @media(max-width:560px){.kv-course-learning-task{padding:14px 15px;margin:17px 0 22px}.kv-course-task-actions button{flex:1 1 auto}}
+  `;
+  document.head.append(style);
+}
+
+async function mountCourseReadingTask(topic, competency, store, taskOrchestrator) {
+  const taskId = new URL(location.href).searchParams.get("taskId");
+  if (!taskId) return;
+  injectCourseTaskStyles();
+  const panel = create("section", "kv-course-learning-task");
+  panel.id = "kv-course-learning-task";
+  panel.setAttribute("aria-live", "polite");
+  const heading = create("strong", "", "来自今日学习计划 · 阅读行动");
+  const detail = create("p", "", competency.title + " · 预计按计划时间完成");
+  const status = create("p", "kv-course-task-status", "正在核对当前学习任务…");
+  const actions = create("div", "kv-course-task-actions");
+  const note = create("p", "", "只有你明确开始和确认完成后，系统才会记录任务执行。阅读、浏览和页面停留不会被当作知识掌握证据。");
+  panel.append(heading, detail, status, actions, note);
+  const main = document.querySelector("main") || document.body;
+  const articleHeading = main.querySelector("h1");
+  if (articleHeading) articleHeading.insertAdjacentElement("afterend", panel);
+  else main.prepend(panel);
+
+  let task = null;
+  let invalidReason = "";
+  try {
+    if (!store.available) throw new Error("当前浏览器无法使用 IndexedDB，不能安全更新学习任务。");
+    task = await taskOrchestrator.get(taskId);
+    if (!task) throw new Error("没有找到该学习任务。请从今日学习计划重新打开课程。");
+    const expectedPath = task.href ? normalizePath(new URL(task.href, siteRoot).pathname) : null;
+    if (task.taskType !== "read" || task.resourceType !== "lesson" ||
+        task.topicId !== topic.id || task.competencyId !== competency.id ||
+        expectedPath !== normalizePath(location.pathname)) {
+      throw new Error("当前课程页面与计划任务的知识点或资源地址不匹配，未修改任务状态。");
+    }
+  } catch (error) {
+    invalidReason = error?.message || "学习任务校验失败。";
+  }
+
+  const labels = {
+    locked: "该阅读任务仍被前置任务或计划日期锁定。",
+    ready: "尚未开始。开始阅读后，系统会记录真实任务执行状态。",
+    in_progress: "阅读进行中。读完本节后，请明确确认完成。",
+    paused: "本节阅读已暂停；可以从当前进度继续。",
+    failed: "上次执行未完成；可以重新开始本节阅读。",
+    completed: "你已确认完成本节阅读。该记录只表示任务完成，不代表知识已掌握。",
+    skipped: "该阅读任务已跳过。",
+    cancelled: "该阅读任务已取消。",
+  };
+
+  function render() {
+    actions.replaceChildren();
+    if (invalidReason) {
+      status.classList.add("kv-course-task-error");
+      status.textContent = invalidReason;
+      return;
+    }
+    status.classList.remove("kv-course-task-error");
+    status.textContent = labels[task.status] || "未知任务状态：" + task.status;
+    const addButton = (label, action, secondary = false) => {
+      const button = create("button", secondary ? "secondary" : "", label);
+      button.type = "button";
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          if (action === "start") {
+            if (task.status === "failed") task = await taskOrchestrator.retry(task.taskId);
+            if (["ready", "paused"].includes(task.status)) task = await taskOrchestrator.start(task.taskId);
+          } else if (action === "pause") {
+            task = await taskOrchestrator.pause(task.taskId, { reason: "学习者在课程页主动暂停阅读" });
+          } else if (action === "complete") {
+            task = await taskOrchestrator.complete(task.taskId, { reason: "学习者在课程页确认已完成阅读" });
+            await taskOrchestrator.refreshUnlocks(task.planId);
+          }
+          render();
+        } catch (error) {
+          invalidReason = error?.message || "学习任务更新失败。";
+          render();
+        }
+      });
+      actions.append(button);
+    };
+    if (["ready", "paused", "failed"].includes(task.status)) {
+      addButton(task.status === "ready" ? "开始本节阅读" : task.status === "paused" ? "继续阅读" : "重新开始阅读", "start");
+    }
+    if (task.status === "in_progress") {
+      addButton("确认完成本节阅读", "complete");
+      addButton("暂停阅读", "pause", true);
+    }
+  }
+  render();
+}
+
 async function startLearningIntegration() {
   if (typeof document === "undefined" || typeof location === "undefined") return;
   try {
-    const [workManifest, checkpointManifest] = await Promise.all([
+    const [workManifest, checkpointManifest, learningMap] = await Promise.all([
       readJSON("../../content/works.json"),
-      readJSON("../../content/learning-checkpoints.json")
+      readJSON("../../content/learning-checkpoints.json"),
+      readJSON("../../content/learning-map.json"),
     ]);
     const currentPath = normalizePath(location.pathname);
-    const work = workManifest.works.find(item => normalizePath(new URL(item.href, siteRoot).pathname) === currentPath);
-    if (!work || work.status !== "live" || !work.learning?.activityTracking) return;
     const store = createLearningProgressStore();
-    startLearningActivityTelemetry({ store, work });
-    const assessment = work.learning.assessment;
-    if (assessment?.type !== "checkpoint") return;
-    const checkpoint = checkpointManifest.checkpoints.find(item => item.id === assessment.checkpointId && item.workId === work.id);
-    if (!checkpoint) { console.error("[KNOWVERSE] Missing checkpoint registration for work:", work.id); return; }
-    mountCheckpoint(work, checkpoint, store, createLearningTaskOrchestrator());
+    const taskOrchestrator = createLearningTaskOrchestrator();
+    const work = workManifest.works.find(item => normalizePath(new URL(item.href, siteRoot).pathname) === currentPath);
+    if (work && work.status === "live" && work.learning?.activityTracking) {
+      startLearningActivityTelemetry({ store, work });
+      const assessment = work.learning.assessment;
+      if (assessment?.type !== "checkpoint") return;
+      const checkpoint = checkpointManifest.checkpoints.find(item => item.id === assessment.checkpointId && item.workId === work.id);
+      if (!checkpoint) { console.error("[KNOWVERSE] Missing checkpoint registration for work:", work.id); return; }
+      mountCheckpoint(work, checkpoint, store, taskOrchestrator);
+      return;
+    }
+
+    // Promise course pages are first-class reading resources, not untracked static content.
+    // Their page activity remains exploratory evidence; explicit task actions only affect execution state.
+    const topic = (learningMap.topics || []).find(item => {
+      const topicPath = normalizePath(new URL(item.href, siteRoot).pathname);
+      return currentPath === topicPath || currentPath.startsWith(topicPath + "/");
+    });
+    if (!topic) return;
+    const courseRoot = normalizePath(new URL(topic.href, siteRoot).pathname);
+    if (!currentPath.startsWith(courseRoot)) return;
+    startLearningActivityTelemetry({
+      store,
+      work: { id: "course:" + topic.id, title: topic.title, knowledge_ids: [topic.id] },
+    });
+    const competency = (topic.competencies || []).find(item => item.lessonHref &&
+      normalizePath(new URL(item.lessonHref, siteRoot).pathname) === currentPath);
+    if (competency) await mountCourseReadingTask(topic, competency, store, taskOrchestrator);
   } catch (error) {
     console.error("[KNOWVERSE] Learning integration failed to initialize:", error);
   }

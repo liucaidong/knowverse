@@ -182,3 +182,31 @@ test("the assessment catalog covers 15 competencies, 31 gaps and 72 targeted var
     assert.ok(item.gapIds.every(id => gaps.has(id)), item.id);
   }
 });
+
+test("Promise course lessons use the shared learning integration and mapped reader routes are real pages", async () => {
+  const map = await readJSON("../content/learning-map.json");
+  const topic = map.topics.find(item => item.id === "promise");
+  assert.ok(topic, "Promise topic must reuse its existing learning-map node");
+  const lessons = await import("node:fs/promises").then(module =>
+    module.readdir(new URL("../knowledge/promise", import.meta.url))
+  );
+  const lessonDirectories = lessons.filter(name => /^lesson-\d{2}$/.test(name));
+  assert.equal(lessonDirectories.length, 20);
+  for (const directory of lessonDirectories) {
+    const html = await readFile(new URL("../knowledge/promise/" + directory + "/index.html", import.meta.url), "utf8");
+    assert.match(html, /learning-integration\.mjs/, directory);
+  }
+  for (const competency of topic.competencies) {
+    const route = (competency.lessonHref.startsWith("./") ? competency.lessonHref.slice(2) : competency.lessonHref) + "index.html";
+    const html = await readFile(new URL("../" + route, import.meta.url), "utf8");
+    assert.match(html, /learning-integration\.mjs/, competency.id);
+  }
+});
+
+test("review workspace explains local-first storage and authorized cloud sync", async () => {
+  const html = await readFile(new URL("../review/index.html", import.meta.url), "utf8");
+  assert.match(html, /本地优先/);
+  assert.match(html, /本机 IndexedDB/);
+  assert.match(html, /同步到云端档案/);
+  assert.doesNotMatch(html, /仅本机/);
+});
