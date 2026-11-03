@@ -21,3 +21,6 @@ secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
 
 [functions.learning-agent]
 verify_jwt = true
+
+[functions.practice-quality-review]
+verify_jwt = true

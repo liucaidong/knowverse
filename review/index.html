@@ -148,6 +148,50 @@
           <div id="practice-candidate-reference-answer" class="rw-explanation" hidden></div>
           <div id="practice-candidate-rubric" class="rw-candidate-rubric" hidden></div>
           <p class="rw-candidate-disclaimer">AI 生成的参考思路未经过正式题库审核。本练习不打分、不产生独立评估，也不能纠正当前 Gap；需要验证掌握时，请完成上方正式复习题。</p>
+          <section class="rw-quality" id="practice-quality-panel" hidden aria-labelledby="practice-quality-heading">
+            <div class="rw-quality-heading">
+              <div><span>PHASE M / QUALITY CONTROL</span><h4 id="practice-quality-heading">练习质量审查与题库准入</h4></div>
+              <strong id="practice-quality-state">尚未校验</strong>
+            </div>
+            <p class="rw-quality-disclaimer">机器审查通过不代表答案已被证明正确。未完成确定性校验的候选不会进入 AI 审查；未获授权人工批准的候选绝不会进入正式题库。</p>
+            <div class="rw-quality-sources" id="practice-quality-sources">
+              <strong>官方来源题目</strong>
+              <div id="practice-quality-source-list"></div>
+            </div>
+            <div class="rw-quality-controls">
+              <button id="practice-quality-validate" class="rw-secondary" type="button">执行确定性校验</button>
+              <button id="practice-quality-review" class="rw-primary" type="button" disabled>运行独立 AI 审查</button>
+            </div>
+            <p id="practice-quality-status" class="rw-candidate-status" role="status" aria-live="polite">需要登录已授权账户后，才能保存服务器端质量审查记录。</p>
+            <div id="practice-quality-validation" class="rw-quality-report" hidden></div>
+            <div id="practice-quality-review-report" class="rw-quality-report" hidden></div>
+            <details class="rw-quality-editor" id="practice-quality-editor" hidden>
+              <summary>修改候选题内容（JSON）</summary>
+              <p>修改仅更新当前未批准候选的内容快照，不覆盖任何历史审查记录；保存后必须重新执行确定性校验与独立审查。</p>
+              <textarea id="practice-quality-edit-json" rows="14" spellcheck="false" aria-label="候选题 JSON 编辑器"></textarea>
+              <button id="practice-quality-save-edit" class="rw-secondary" type="button">保存修改</button>
+            </details>
+            <div class="rw-quality-approval" id="practice-quality-approval" hidden>
+              <strong>人工审批门禁</strong>
+              <p id="practice-quality-approval-gate">只有被授予 content_admin 权限的审核员可以批准。</p>
+              <label><input id="practice-quality-approval-confirm" type="checkbox"> 我已理解：AI 审查不是事实证明；正式注册后题目会进入正式测评，学习者作答可能影响掌握度评估。</label>
+              <button id="practice-quality-approve" class="rw-primary" type="button" disabled>明确批准进入正式题库</button>
+              <label class="rw-quality-reject-label" for="practice-quality-reject-reason">拒绝原因（至少 8 个字符）</label>
+              <textarea id="practice-quality-reject-reason" rows="3" maxlength="1200" placeholder="记录不予采用的具体理由……"></textarea>
+              <button id="practice-quality-reject" class="rw-secondary" type="button">拒绝候选题</button>
+            </div>
+            <div class="rw-quality-registration" id="practice-quality-registration" hidden>
+              <strong>正式题库发布</strong>
+              <p id="practice-quality-registration-status">已批准，尚未发布。</p>
+              <button id="practice-quality-prepare-registration" class="rw-primary" type="button">生成受保护发布请求</button>
+              <p>题目需经过 GitHub PR 审查与 Pages 部署验证后，才会记录为 registered。</p>
+              <a id="practice-quality-workflow-link" href="https://github.com/liucaidong/knowverse/actions/workflows/publish-approved-practice-candidate.yml" target="_blank" rel="noopener" hidden>打开 GitHub Actions 发布工作流 ↗</a>
+            </div>
+            <div class="rw-quality-history">
+              <strong>不可覆盖的质量审查历史</strong>
+              <ol id="practice-quality-history-list"><li class="rw-empty">尚无审查记录。</li></ol>
+            </div>
+          </section>
         </article>
       </div>
     </section>

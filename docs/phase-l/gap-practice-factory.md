@@ -72,9 +72,24 @@
   - Chromium：正式无提示独立复习纠正 Gap 后，候选生成禁用且不请求 AI。
   - WebKit 390px：移动端候选面板布局。
 
-## 未完成 / 不作承诺
+## 后续 Phase M：质量审查与正式题库准入
 
-- 参考思路是模型输出，不代表题库审校或事实认证；本阶段不进行 AI 自动判分。
-- 真实 AI Provider 回复仍依赖 Supabase 服务端环境变量、有效 JWT、获准账户与逐次授权。
-- 浏览器 E2E 使用模拟 Provider 响应，只验证交互链路、权限边界和本地存储，不证明真实模型生成质量或学习效果。
-- 成为正式评估题前仍需人工/规则审校、答案验证、独立 variant 注册与正式评估测试；本阶段没有自动发布能力。
+Phase L 的边界继续有效：原始练习是开放式私有草案，参考答案不是事实认证，候选作答不产生学习事件。
+
+Phase M 在同一 `/review/` 工作区增加：
+- 服务端读取并比对当前用户的私有候选快照和 Phase L 原始来源锚点；历史候选由服务端从同一账户档案读取并用于重复检测。
+- 确定性来源、结构、重复和安全检查；代码执行状态明确为未执行。
+- 独立 AI Reviewer 契约、结构化审查报告、问题修复入口和追加式不可覆盖审计记录。
+- 基于独立 `content_admin` 名单的人工批准/拒绝；普通云端学习档案授权不能替代审核员身份。
+- 人工批准后由受保护 GitHub Actions 生成正式题库 PR；维护者合并、Pages 部署后，系统还会核验线上 JSON 与待发布快照一致，才标记 registered。
+- 原始开放式候选保持私有；Reviewer 提出的单选题 companion 是独立题目，不能将开放式练习伪装成唯一答案。
+
+具体状态机、校验、权限和发布机制见 [Phase M 质量审查与题库准入](../phase-m/practice-quality-review.md)。
+
+## 外部配置与生产验收
+
+- 真实独立 Reviewer 需要配置 `PRACTICE_REVIEWER_API_KEY`、与生成模型不同的 `PRACTICE_REVIEWER_MODEL`，以及现有 `AI_PROVIDER_MODEL`。
+- 人工审批需要数据库管理员单独 provision 至少一名 `content_admin` 审核员。
+- GitHub 正式发布工作流需要 `SUPABASE_URL` 与 `SUPABASE_SERVICE_ROLE_KEY` Repository Secrets；题库 PR 必须由维护者审阅和合并。
+- Chromium/WebKit E2E 中的 Mock Reviewer 只验证交互、状态机、权限门禁和幂等契约，不代表真实模型审查或正式题库部署。
+- 只有生产 Pages JSON 核验通过后才标记 registered；只有学习者之后通过正式 Review Engine 答题才产生 Learning Events V3。

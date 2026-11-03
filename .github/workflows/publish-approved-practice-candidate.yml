@@ -1,0 +1,182 @@
+name: Publish approved KNOWVERSE practice candidate
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate_id:
+        description: "Candidate ID from immutable quality-review history"
+        required: true
+        type: string
+  workflow_run:
+    workflows: ["Deploy KNOWVERSE to GitHub Pages"]
+    types: [completed]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: practice-publication-${{ github.event.inputs.candidate_id || github.event.workflow_run.head_sha }}
+  cancel-in-progress: false
+
+jobs:
+  prepare-pr:
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && github.repository == 'liucaidong/knowverse'
+    permissions:
+      contents: write
+      pull-requests: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout publication base
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Check required server-side publication credentials
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "::error::Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY as repository or environment Actions secrets. No browser-side token fallback is permitted."
+            exit 1
+          fi
+      - name: Revalidate immutable approval, prepare idempotently and safely recover branch
+        id: prepare
+        env:
+          PRACTICE_CANDIDATE_ID: ${{ inputs.candidate_id }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          candidate_id="$PRACTICE_CANDIDATE_ID"
+          if ! printf '%s' "$candidate_id" | grep -Eq '^[A-Za-z0-9_-]{8,120}$'; then
+            echo "::error::Invalid candidate ID."
+            exit 1
+          fi
+          branch="practice-candidate/$candidate_id"
+          closed_prs="$(gh pr list --repo liucaidong/knowverse --state closed --head "$branch" --json number,url,mergedAt)"
+          merged_pr="$(printf '%s' "$closed_prs" | jq -c '[.[] | select(.mergedAt != null)] | .[0] // empty')"
+          if [ -n "$merged_pr" ] && [ "$merged_pr" != "null" ]; then
+            echo "A merged PR already exists for this candidate; no duplicate publication PR will be created."
+            echo "Merged PR: $(printf '%s' "$merged_pr" | jq -r '.url')" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          unmerged_closed_pr="$(printf '%s' "$closed_prs" | jq -c '[.[] | select(.mergedAt == null)] | .[0] // empty')"
+          if [ -n "$unmerged_closed_pr" ] && [ "$unmerged_closed_pr" != "null" ]; then
+            echo "::error::A closed unmerged publication PR already exists. Reopen it through normal maintainer review; no replacement PR was created."
+            exit 1
+          fi
+          git fetch origin main
+          if git ls-remote --exit-code origin "refs/heads/$branch" >/dev/null 2>&1; then
+            git fetch origin "$branch"
+            git switch --create "$branch" --track "origin/$branch"
+            if ! git merge --no-edit origin/main; then
+              echo "::error::Existing publication branch conflicts with main; no force-push or history rewrite was attempted."
+              exit 1
+            fi
+          else
+            git switch --create "$branch" origin/main
+          fi
+
+          node scripts/prepare-approved-practice-publication.mjs
+          git add content/review-assessments.json content/practice-publication-manifest.json
+          if ! git diff --cached --quiet; then
+            git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -m "content(review): admit approved practice candidate $candidate_id"
+          fi
+
+          # Normal fast-forward push only. If the remote advanced unexpectedly, the run fails safely.
+          git push origin "$branch"
+
+          open_pr="$(gh pr list --repo liucaidong/knowverse --state open --head "$branch" --json number,url --jq '.[0] // empty')"
+          if [ -n "$open_pr" ] && [ "$open_pr" != "null" ]; then
+            echo "pr_url=$(printf '%s' "$open_pr" | jq -r '.url')" >> "$GITHUB_OUTPUT"
+            echo "pr_number=$(printf '%s' "$open_pr" | jq -r '.number')" >> "$GITHUB_OUTPUT"
+            echo "Existing open PR was revalidated against immutable Supabase approval evidence."
+            exit 0
+          fi
+
+          changed_files="$(git diff --name-only origin/main...HEAD)"
+          if [ -z "$changed_files" ]; then
+            echo "::error::No auditable registry/manifest change exists and no open PR was found. Refusing to report a successful publication."
+            exit 1
+          fi
+          while IFS= read -r changed_file; do
+            case "$changed_file" in
+              content/review-assessments.json|content/practice-publication-manifest.json) ;;
+              *) echo "::error::Unexpected file in protected publication branch: $changed_file"; exit 1 ;;
+            esac
+          done <<< "$changed_files"
+          for required_file in content/review-assessments.json content/practice-publication-manifest.json; do
+            if git diff --quiet origin/main...HEAD -- "$required_file"; then
+              echo "::error::Protected publication commit is missing expected artifact: $required_file"
+              exit 1
+            fi
+          done
+          body="$(cat <<EOF_BODY
+          ## Formal assessment admission request
+
+          This PR was generated by the protected KNOWVERSE publication workflow.
+
+          - Candidate: $candidate_id
+          - The source quality report, independent Reviewer result, and explicit human approval are stored in the append-only Supabase audit.
+          - The proposed assessment is checked against the existing Review Engine schema. The original open-ended candidate remains private; only the separate companion Assessment is proposed here.
+          - This PR does not merge itself. A repository maintainer must review the exact question and merge it deliberately.
+          - After merge, a separate workflow checks the exact deployed GitHub Pages JSON before marking the candidate registered.
+
+          AI review is not proof of correctness. Only a learner's later answer to the registered official assessment can produce existing Learning Events V3 evidence.
+          EOF_BODY
+          )"
+          pr_url="$(gh pr create --repo liucaidong/knowverse --base main --head "$branch" \
+            --title "Review and publish approved practice candidate $candidate_id" \
+            --body "$body")"
+          pr_number="$(gh pr view "$pr_url" --repo liucaidong/knowverse --json number --jq '.number')"
+          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$pr_number" >> "$GITHUB_OUTPUT"
+      - name: Append immutable publication PR audit
+        if: steps.prepare.outputs.pr_url != ''
+        env:
+          PRACTICE_CANDIDATE_ID: ${{ inputs.candidate_id }}
+          PRACTICE_PUBLICATION_PR_URL: ${{ steps.prepare.outputs.pr_url }}
+          PRACTICE_PUBLICATION_PR_NUMBER: ${{ steps.prepare.outputs.pr_number }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/record-practice-publication-pr.mjs
+
+  verify-pages-publication:
+    if: >-
+      github.event_name == 'workflow_run' &&
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main' &&
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      github.repository == 'liucaidong/knowverse'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the exact deployed commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          fetch-depth: 0
+      - name: Configure Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Verify live Pages artifact and finalize registration only after exact comparison
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PAGES_DEPLOY_SHA: ${{ github.event.workflow_run.head_sha }}
+          PAGES_WORKFLOW_RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+          node scripts/verify-and-register-published-practice.mjs
+          echo "Only exact live Pages JSON plus immutable PR, reviewer, validation and approval provenance can be registered." >> "$GITHUB_STEP_SUMMARY"

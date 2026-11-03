@@ -6,6 +6,7 @@ import {
   createLearningPracticeCandidateStore,
   parseLearningPracticeCandidateReply,
 } from "./learning-practice-candidates.mjs";
+import { createLearningPracticeQualityReviewClient } from "./learning-practice-quality-review.mjs";
 
 const root = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
@@ -22,6 +23,8 @@ let taskOrchestrator = null;
 let practiceProvider = null;
 let practiceCandidateStore = null;
 let activePracticeCandidate = null;
+let practiceQualityClient = null;
+let activePracticeQualityHistory = null;
 let practiceHintCount = 0;
 
 const el = (tag, className, text) => {
@@ -265,6 +268,366 @@ async function currentPracticeTarget() {
   return { gap, competency, sources, snapshot, recentlyUsedVariantIds };
 }
 
+
+const qualityStatusName = {
+  draft: "未校验草案",
+  validation: "确定性校验已通过",
+  machine_review: "AI 正在审查",
+  machine_reviewed: "机器审查通过 · 等待人工批准",
+  needs_revision: "需要修改",
+  approved: "人工已批准 · 待发布",
+  registration_pending: "发布请求已生成 · 待合并",
+  registered: "已进入正式题库",
+  rejected: "已拒绝",
+  deleted: "已删除",
+};
+const qualityRecordName = {
+  validation: "确定性校验",
+  review: "独立 AI 审查",
+  review_error: "AI 审查异常",
+  approval: "人工批准",
+  rejection: "人工拒绝",
+  registration_pending: "正式题库待发布",
+  publication_pr: "发布 PR",
+  registered: "正式题库注册",
+  state: "生命周期变更",
+};
+
+function setPracticeQualityStatus(message, error = false) {
+  const node = $("practice-quality-status");
+  if (!node) return;
+  node.textContent = message;
+  node.classList.toggle("bad", error);
+}
+
+function appendQualityText(host, label, value, className = "") {
+  const row = el("div", className || "rw-quality-row");
+  if (label) row.append(el("strong", "", label));
+  row.append(el("p", "", typeof value === "string" ? value : JSON.stringify(value, null, 2)));
+  host.append(row);
+}
+
+function renderQualityValidation(report) {
+  const host = $("practice-quality-validation");
+  host.replaceChildren();
+  host.hidden = !report;
+  if (!report) return;
+  host.append(el("h5", "", "确定性校验报告 · " + (report.validationStatus === "passed" ? "通过" : "未通过")));
+  host.append(el("p", "rw-quality-meta", "版本 " + report.validatorVersion + " · " + fmt(report.evaluatedAt)));
+  const checks = el("ul", "rw-quality-checks");
+  (report.checks || []).forEach(item => {
+    const row = el("li", item.status === "failed" ? "bad" : item.status === "warning" ? "warning" : "");
+    row.append(el("strong", "", (item.status === "passed" ? "通过" : item.status === "warning" ? "警告" : item.status === "not_applicable" ? "不适用" : "失败") + " · " + item.label));
+    row.append(el("p", "", item.detail));
+    checks.append(row);
+  });
+  host.append(checks);
+  if (report.errors?.length) {
+    const errors = el("div", "rw-quality-findings");
+    errors.append(el("strong", "", "阻断问题"));
+    report.errors.forEach(item => errors.append(el("p", "", item.message)));
+    host.append(errors);
+  }
+  if (report.warnings?.length) {
+    const warnings = el("div", "rw-quality-findings warning");
+    warnings.append(el("strong", "", "未阻断警告"));
+    report.warnings.forEach(item => warnings.append(el("p", "", item.message)));
+    host.append(warnings);
+  }
+  if (report.duplicateMatches?.length) {
+    appendQualityText(host, "相似题目匹配", report.duplicateMatches
+      .map(item => item.title + " · " + item.source + " · 相似度 " + item.similarity).join("\n"));
+  }
+}
+
+function renderQualityReview(review) {
+  const host = $("practice-quality-review-report");
+  host.replaceChildren();
+  host.hidden = !review;
+  if (!review) return;
+  host.append(el("h5", "", "独立 AI Reviewer 报告 · " +
+    (review.verdict === "pass" ? "未发现阻断问题" : review.verdict === "needs_revision" ? "需要修改" : "拒绝") +
+    " · 风险 " + review.riskLevel));
+  host.append(el("p", "rw-quality-meta", "Reviewer " + review.reviewerVersion +
+    " / " + review.reviewerModel + " · " + fmt(review.reviewedAt) + " · " + review.reviewId));
+  appendQualityText(host, "总体评估", review.overallAssessment);
+  const dimensions = [
+    ["教学目标与来源一致性", review.sourceAlignment],
+    ["题目可解性", review.solvability],
+    ["答案一致性", review.answerConsistency],
+    ["教学质量", review.pedagogicalQuality],
+  ];
+  const dimensionHost = el("div", "rw-quality-dimensions");
+  dimensions.forEach(([label, dimension]) => {
+    const node = el("article", "rw-quality-dimension");
+    node.append(el("strong", "", label + " · " + (dimension?.status || "unverified")));
+    node.append(el("p", "", dimension?.assessment || "未提供审查结论"));
+    (dimension?.evidence || []).forEach(item => node.append(el("small", "", "证据 / 依据：" + item)));
+    dimensionHost.append(node);
+  });
+  host.append(dimensionHost);
+  const findings = el("div", "rw-quality-findings");
+  findings.append(el("strong", "", "发现的问题 · " + (review.findings?.length || 0)));
+  if (!review.findings?.length) findings.append(el("p", "", "Reviewer 未报告具体阻断问题；这不等于题目已被证明正确。"));
+  (review.findings || []).forEach(item => {
+    const node = el("article", "rw-quality-finding " + (["high", "critical"].includes(item.severity) ? "bad" : ""));
+    node.append(el("strong", "", item.severity + " · " + item.category));
+    node.append(el("p", "", item.description));
+    node.append(el("small", "", "依据：" + item.evidence));
+    if (item.suggestedFix) node.append(el("small", "", "建议：" + item.suggestedFix));
+    findings.append(node);
+  });
+  host.append(findings);
+  if (review.suggestedRevisions?.length) {
+    const revisions = el("div", "rw-quality-findings");
+    revisions.append(el("strong", "", "建议修改"));
+    review.suggestedRevisions.forEach(item => {
+      const node = el("p", "");
+      node.textContent = item.field + "： " + item.reason + " 建议：" + item.proposal;
+      revisions.append(node);
+    });
+    host.append(revisions);
+  }
+  appendQualityText(host, "Reviewer 局限性", (review.reviewerLimitations || []).join("\n"));
+  if (review.registrationAssessment) {
+    const proposal = el("details", "rw-quality-companion");
+    proposal.append(el("summary", "", "与现有正式测评引擎兼容的选择题版本（仍需人工审核）"));
+    appendQualityText(proposal, "题目", review.registrationAssessment.title + "\n" + review.registrationAssessment.prompt);
+    if (review.registrationAssessment.code) appendQualityText(proposal, "代码 / 材料", review.registrationAssessment.code);
+    (review.registrationAssessment.options || []).forEach(option =>
+      appendQualityText(proposal, "选项 " + option.id, option.label));
+    appendQualityText(proposal, "机器建议答案", review.registrationAssessment.answer);
+    appendQualityText(proposal, "解释", review.registrationAssessment.explanation);
+    host.append(proposal);
+  }
+}
+
+function renderPracticeQualityHistory(records = []) {
+  const host = $("practice-quality-history-list");
+  host.replaceChildren();
+  if (!records.length) {
+    host.append(el("li", "rw-empty", "尚无服务器端质量审查记录。"));
+    return;
+  }
+  records.forEach(record => {
+    const row = el("li", "rw-quality-history-row");
+    const type = qualityRecordName[record.recordType] || record.recordType;
+    const result = record.payload?.verdict || record.payload?.validationStatus || record.payload?.to || record.payload?.publicationStatus || "";
+    row.append(el("strong", "", type + (result ? " · " + result : "")));
+    row.append(el("small", "", fmt(record.createdAt) + " · " + record.recordId));
+    if (record.payload?.message) row.append(el("p", "", record.payload.message));
+    if (record.payload?.reason) row.append(el("p", "", record.payload.reason));
+    host.append(row);
+  });
+}
+
+async function renderPracticeQualityPanel(item) {
+  const panel = $("practice-quality-panel");
+  if (!panel || !item) return;
+  panel.hidden = false;
+  const sourceHost = $("practice-quality-source-list");
+  sourceHost.replaceChildren();
+  (item.exercise.sourceVariantIds || []).forEach(id => {
+    const source = assessments.assessments.find(row => row.id === id);
+    const article = el("article", "rw-quality-source");
+    article.append(el("strong", "", (source?.title || "未知官方来源") + " · " + id));
+    if (source) {
+      article.append(el("p", "", source.prompt || ""));
+      if (source.code) article.append(el("pre", "", source.code));
+      appendQualityText(article, "官方答案 ID", source.answer || "—");
+      appendQualityText(article, "官方解释", source.explanation || "—");
+      (source.options || []).forEach(option => appendQualityText(article, "选项 " + option.id, option.label));
+    } else {
+      article.append(el("p", "bad", "此来源 ID 当前不在已加载的正式题库中。"));
+    }
+    sourceHost.append(article);
+  });
+
+  const validationButton = $("practice-quality-validate");
+  const reviewButton = $("practice-quality-review");
+  const approvalPanel = $("practice-quality-approval");
+  const registrationPanel = $("practice-quality-registration");
+  const editor = $("practice-quality-editor");
+  validationButton.disabled = true;
+  reviewButton.disabled = true;
+  approvalPanel.hidden = true;
+  registrationPanel.hidden = true;
+  editor.hidden = true;
+  $("practice-quality-validation").hidden = true;
+  $("practice-quality-review-report").hidden = true;
+  $("practice-quality-state").textContent = "读取服务器端审查记录…";
+  $("practice-quality-history-list").replaceChildren(el("li", "rw-empty", "正在读取…"));
+  try {
+    const history = await practiceQualityClient.history(item.candidateId);
+    activePracticeQualityHistory = history;
+    const records = history.records || [];
+    const status = history.status || "draft";
+    const canApprove = history.canApprove === true;
+    const latestValidation = records.filter(record => record.recordType === "validation").at(-1);
+    const latestReview = records.filter(record => record.recordType === "review").at(-1);
+    const validation = latestValidation?.payload;
+    const review = latestReview?.payload;
+    $("practice-quality-state").textContent = qualityStatusName[status] || status;
+    $("practice-candidate-state").textContent =
+      (item.status === "attempted" ? "已作答 · 不计分 · " : "未评分草案 · ") +
+      (qualityStatusName[status] || status);
+
+    renderQualityValidation(validation);
+    renderQualityReview(review);
+    renderPracticeQualityHistory(records);
+
+    validationButton.disabled = !["draft", "validation", "needs_revision"].includes(status);
+    reviewButton.disabled = !(status === "validation" && validation?.validationStatus === "passed");
+    // No approval is possible unless the server confirms an out-of-band role.
+    approvalPanel.hidden = !(canApprove || ["machine_reviewed", "approved", "registration_pending", "registered"].includes(status));
+    $("practice-quality-approval-gate").textContent = canApprove
+      ? "已验证 content_admin 权限。审批仍要求明确勾选风险告知并由后端再次核验。"
+      : "当前账户没有 content_admin 权限。人工批准与拒绝操作已锁定，不能通过前端身份字段绕过。";
+    $("practice-quality-approval-confirm").checked = false;
+    $("practice-quality-approval-confirm").disabled = !canApprove || status !== "machine_reviewed";
+    $("practice-quality-approve").disabled = true;
+    $("practice-quality-approve").hidden = !canApprove || status !== "machine_reviewed";
+    $("practice-quality-reject").disabled = !canApprove || ["approved", "registration_pending", "registered", "rejected", "deleted"].includes(status);
+    $("practice-quality-reject").hidden = !canApprove || ["approved", "registration_pending", "registered", "rejected", "deleted"].includes(status);
+    registrationPanel.hidden = !canApprove || !["approved", "registration_pending", "registered"].includes(status);
+    $("practice-quality-prepare-registration").disabled = status !== "approved";
+    $("practice-quality-prepare-registration").hidden = status !== "approved";
+    $("practice-quality-registration-status").textContent =
+      status === "registered" ? "已确认 GitHub Pages 正式部署，注册记录已完成。" :
+      status === "registration_pending" ? "发布请求已生成，等待 GitHub PR 审查、合并和 Pages 部署验证。" :
+      "已人工批准，但尚未进入正式测评题库。";
+    $("practice-quality-workflow-link").hidden = status !== "registration_pending";
+    editor.hidden = !["draft", "validation", "needs_revision"].includes(status);
+    $("practice-quality-edit-json").value = JSON.stringify(item.exercise, null, 2);
+    setPracticeQualityStatus(
+      canApprove ? "该账户拥有独立内容审核权限；批准前仍需人工确认。" :
+        status === "machine_reviewed" ? "机器审查已通过，但当前账户没有 content_admin 权限，批准入口保持禁用。" :
+        status === "approved" ? "题目已批准；等待授权的发布流程，尚未进入正式题库。" :
+        "审查历史由服务端保存。AI 生成、AI 审查和候选练习均不会产生 Learning Events V3。",
+    );
+  } catch (error) {
+    activePracticeQualityHistory = null;
+    $("practice-quality-state").textContent = "尚未连接质量审查服务";
+    renderPracticeQualityHistory([]);
+    setPracticeQualityStatus(error.message || "需要登录并获得 KNOWVERSE 云端学习档案授权后才能查看质量审查记录。", true);
+  }
+}
+
+async function validateActivePracticeCandidate() {
+  if (!activePracticeCandidate) return;
+  const button = $("practice-quality-validate");
+  button.disabled = true;
+  setPracticeQualityStatus("服务器正在校验官方 competency、Gap、来源题、重复度、内容结构和安全风险…");
+  try {
+    const result = await practiceQualityClient.validate(activePracticeCandidate);
+    setPracticeQualityStatus(result.report?.validationStatus === "passed"
+      ? "确定性校验通过。只有现在才能运行独立 AI 审查；通过结果仍不代表题目已被证明正确。"
+      : "确定性校验未通过，已阻断 AI 审查。请先查看错误并修改候选内容。", result.report?.validationStatus !== "passed");
+    await renderPracticeQualityPanel(activePracticeCandidate);
+  } catch (error) {
+    setPracticeQualityStatus(error.message || "确定性校验失败。", true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function reviewActivePracticeCandidate() {
+  if (!activePracticeCandidate) return;
+  const button = $("practice-quality-review");
+  button.disabled = true;
+  setPracticeQualityStatus("正在调用与生成模型隔离的 Reviewer。没有执行候选代码，审查结论不构成事实证明。");
+  try {
+    const result = await practiceQualityClient.review(activePracticeCandidate);
+    setPracticeQualityStatus(
+      result.status === "machine_reviewed"
+        ? "机器审查未发现阻断问题，已进入 machine_reviewed。仍需真实授权的人工审批。"
+        : result.status === "rejected" ? "Reviewer 判定该候选不应继续使用。"
+        : "Reviewer 发现需要处理的问题；请查看 findings、修改后重新校验和审查。",
+      result.status !== "machine_reviewed",
+    );
+    await renderPracticeQualityPanel(activePracticeCandidate);
+  } catch (error) {
+    setPracticeQualityStatus(error.message || "独立 AI 审查失败；历史记录不会被覆盖。", true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function savePracticeQualityEdit() {
+  if (!activePracticeCandidate) return;
+  const button = $("practice-quality-save-edit");
+  button.disabled = true;
+  try {
+    const exercise = JSON.parse($("practice-quality-edit-json").value);
+    activePracticeCandidate = await practiceCandidateStore.updateExercise(activePracticeCandidate.candidateId, exercise);
+    showPracticeCandidate(activePracticeCandidate);
+    setPracticeQualityStatus("候选内容已保存为新版本。历史审查记录仍保留；请重新运行确定性校验。");
+  } catch (error) {
+    setPracticeQualityStatus(error.message || "无法保存候选修改。", true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function approveActivePracticeCandidate() {
+  if (!activePracticeCandidate || !$("practice-quality-approval-confirm").checked) return;
+  const history = activePracticeQualityHistory;
+  const review = history?.records?.filter(record => record.recordType === "review").at(-1);
+  if (!review?.payload?.reviewId || review.payload.verdict !== "pass") {
+    setPracticeQualityStatus("没有匹配当前版本的 pass 审查记录，禁止批准。", true);
+    return;
+  }
+  const button = $("practice-quality-approve");
+  button.disabled = true;
+  try {
+    const result = await practiceQualityClient.approve(activePracticeCandidate.candidateId, review.payload.reviewId, true);
+    setPracticeQualityStatus("人工批准已记录。题目尚未发布到正式题库。");
+    await renderPracticeQualityPanel(activePracticeCandidate);
+  } catch (error) {
+    setPracticeQualityStatus(error.message || "人工批准失败。", true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function rejectActivePracticeCandidate() {
+  if (!activePracticeCandidate) return;
+  const reason = $("practice-quality-reject-reason").value.trim();
+  if (reason.length < 8) {
+    setPracticeQualityStatus("请填写至少 8 个字符的拒绝原因。", true);
+    return;
+  }
+  const button = $("practice-quality-reject");
+  button.disabled = true;
+  try {
+    await practiceQualityClient.reject(activePracticeCandidate.candidateId, reason);
+    setPracticeQualityStatus("拒绝原因和审批主体已记录，审查历史仍保留。");
+    await renderPracticeQualityPanel(activePracticeCandidate);
+  } catch (error) {
+    setPracticeQualityStatus(error.message || "拒绝操作失败。", true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function prepareActivePracticeRegistration() {
+  if (!activePracticeCandidate) return;
+  const button = $("practice-quality-prepare-registration");
+  button.disabled = true;
+  try {
+    const result = await practiceQualityClient.prepareRegistration(activePracticeCandidate.candidateId);
+    $("practice-quality-workflow-link").hidden = false;
+    $("practice-quality-workflow-link").href = result.workflowUrl;
+    setPracticeQualityStatus("已生成正式题库待发布记录 " + result.assessmentId +
+      "。PR 尚待人工审查，合并并验证 Pages 后才会标记 registered。");
+    await renderPracticeQualityPanel(activePracticeCandidate);
+  } catch (error) {
+    setPracticeQualityStatus(error.message || "正式题库发布请求生成失败。", true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
 function showPracticeCandidate(item) {
   activePracticeCandidate = item;
   practiceHintCount = 0;
@@ -312,6 +675,7 @@ function showPracticeCandidate(item) {
     rubric.append(title, list);
   }
   renderPracticeCandidateList().catch(error => setPracticeStatus(error.message, true));
+  renderPracticeQualityPanel(item).catch(error => setPracticeQualityStatus(error.message, true));
 }
 
 async function renderPracticeCandidateList() {
@@ -483,6 +847,14 @@ async function submitPracticeCandidate() {
 async function deletePracticeCandidate() {
   if (!activePracticeCandidate) return;
   try {
+    const qualityHistory = await practiceQualityClient.history(activePracticeCandidate.candidateId).catch(() => null);
+    const qualityStatus = qualityHistory?.status || "draft";
+    if (["machine_reviewed", "approved", "registration_pending", "registered", "rejected"].includes(qualityStatus)) {
+      throw new Error("候选题已进入质量审查或审批阶段，不能通过删除原始草案清除审查历史。");
+    }
+    if (qualityHistory?.records?.length) {
+      await practiceQualityClient.delete(activePracticeCandidate.candidateId);
+    }
     await practiceCandidateStore.remove(activePracticeCandidate.candidateId);
     activePracticeCandidate = null;
     $("practice-candidate-active").hidden = true;
@@ -512,6 +884,17 @@ function wire() {
   $("practice-candidate-submit").addEventListener("click", () => submitPracticeCandidate());
   $("practice-candidate-delete").addEventListener("click", () => deletePracticeCandidate());
   $("practice-candidate-hint").addEventListener("click", () => revealPracticeHint());
+  $("practice-quality-validate").addEventListener("click", () => validateActivePracticeCandidate());
+  $("practice-quality-review").addEventListener("click", () => reviewActivePracticeCandidate());
+  $("practice-quality-save-edit").addEventListener("click", () => savePracticeQualityEdit());
+  $("practice-quality-approval-confirm").addEventListener("change", event => {
+    $("practice-quality-approve").disabled = !event.currentTarget.checked ||
+      !activePracticeQualityHistory?.canApprove ||
+      activePracticeQualityHistory?.status !== "machine_reviewed";
+  });
+  $("practice-quality-approve").addEventListener("click", () => approveActivePracticeCandidate());
+  $("practice-quality-reject").addEventListener("click", () => rejectActivePracticeCandidate());
+  $("practice-quality-prepare-registration").addEventListener("click", () => prepareActivePracticeRegistration());
 }
 async function boot() {
   if (!progressStore.available) throw new Error("当前浏览器不支持 IndexedDB，无法保存复习会话。");
@@ -527,6 +910,7 @@ async function boot() {
   taskOrchestrator=createLearningTaskOrchestrator();
   practiceProvider=createLearningAgentProvider();
   practiceCandidateStore=createLearningPracticeCandidateStore({ registry: assessments });
+  practiceQualityClient=createLearningPracticeQualityReviewClient();
   wire();
   const competencyId=params.get("competencyId");
   const gapId=params.get("gapId");

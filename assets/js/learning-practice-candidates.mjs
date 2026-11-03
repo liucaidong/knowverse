@@ -203,6 +203,7 @@ export function createLearningPracticeCandidateStore(options = {}) {
         topicTitle: clean(input.context?.topicTitle, 180),
         competencyTitle: clean(input.context?.competencyTitle, 180),
         gapLabel: clean(input.context?.gapLabel, 180),
+        allowedSourceVariantIds: [...exercise.sourceVariantIds],
       },
       exercise,
       learnerResponse: null,
@@ -217,6 +218,55 @@ export function createLearningPracticeCandidateStore(options = {}) {
       }],
     });
     return { ...payload, localRevision: 1 };
+  }
+
+  async function updateExercise(candidateId, inputExercise) {
+    const id = clean(candidateId, 120);
+    if (!/^[a-zA-Z0-9_-]{8,120}$/.test(id)) throw new TypeError("练习候选标识无效。");
+    const repository = await repositoryPromise;
+    const key = KEY_PREFIX + id;
+    const previous = await repository.documents.get(DOCUMENT_TYPE, key);
+    if (!previous || previous.payload?._deleted ||
+        previous.payload?.purpose !== "learning_practice_candidate") {
+      throw new Error("练习候选不存在或已删除。");
+    }
+    const current = previous.payload;
+    if (!["draft", "attempted"].includes(current.status)) {
+      throw new Error("当前候选状态不允许修改题目内容。");
+    }
+    const candidates = (await list({
+      competencyId: current.context?.competencyId,
+      gapId: current.context?.gapId,
+      limit: 30,
+    })).filter(item => item.candidateId !== id);
+    const allowedSourceVariantIds = unique(
+      current.context?.allowedSourceVariantIds || current.exercise?.sourceVariantIds
+    );
+    const normalizedExercise = { ...(inputExercise || {}) };
+    delete normalizedExercise.schemaVersion;
+    const exercise = validateLearningPracticeCandidate(normalizedExercise, {
+      ...current.context,
+      allowedSourceVariantIds,
+      registry,
+      existingCandidates: candidates,
+    });
+    const at = clock().toISOString();
+    const payload = {
+      ...current,
+      context: { ...current.context, allowedSourceVariantIds },
+      exercise,
+      updatedAt: at,
+      revisionNote: "Candidate content edited for deterministic revalidation.",
+    };
+    await repository.commit({
+      documents: [{
+        type: DOCUMENT_TYPE,
+        key,
+        payload,
+        expectedLocalRevision: Number(previous.localRevision) || 0,
+      }],
+    });
+    return { ...payload, localRevision: (Number(previous.localRevision) || 0) + 1 };
   }
 
   async function markAttempted(candidateId, learnerResponse) {
@@ -276,5 +326,5 @@ export function createLearningPracticeCandidateStore(options = {}) {
     return true;
   }
 
-  return { list, saveDraft, markAttempted, remove };
+  return { list, saveDraft, updateExercise, markAttempted, remove };
 }

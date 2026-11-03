@@ -12,7 +12,7 @@ KNOWVERSE 是一个以知识结构为基础、以可验证掌握为目标的个�
 | 实践体验 | `/works/` | 三种学习方式：原理实验室、沉浸式知识展厅、知识解谜世界 |
 | 学习成长 | `/progress/` | 今日计划、近 7 天学习回顾、掌握图谱、薄弱点、复习与学习历史 |
 
-学习智能引擎是横向平台能力，不是第四条产品主线。页面上下文 AI 导师已完成只读教学与苏格拉底引导；针对性复习工作台可按真实 Gap 生成 AI 补充练习草案，经过来源、重复与结构校验后保存到个人档案。候选练习不评分、不写 Learning Events，也不能关闭 Gap。侧栏还支持私有结构化学习反思；云端回复仍受服务端 Provider 配置、账户授权和逐条数据同意约束。多模态私人资料中心与持续语音/视频辅导仍属于后续增强能力。
+学习智能引擎是横向平台能力，不是第四条产品主线。页面上下文 AI 导师已完成只读教学与苏格拉底引导；针对性复习工作台可按真实 Gap 生成 AI 补充练习草案。Phase M 在同一工作区增加确定性质量校验、独立 Reviewer、不可覆盖的服务端审查记录和真实审核员审批门禁；人工批准后只生成受保护的题库发布 PR，正式注册需再经过维护者合并和生产 Pages JSON 核验。原始开放式候选始终留在个人档案，只有单独审阅的正式选择题 companion 才能进入 Review Assessment 注册表。候选练习和 AI 审查不评分、不写 Learning Events，也不能关闭 Gap。真实 Reviewer、审核员身份和 GitHub 发布凭证仍需要独立配置。侧栏还支持私有结构化学习反思；多模态私人资料中心与持续语音/视频辅导仍属于后续增强能力。
 
 ## 学习闭环
 
@@ -59,7 +59,7 @@ Promise、TypeScript Monorepo、React Native 新架构这 3 个专题已有明�
 - **Build-time Site Shell**：`scripts/build-public-content.mjs` 生成概念页和目录；`scripts/build-site-shell.mjs` 生成静态导航、账户入口、搜索容器与页脚。首屏不依赖 JavaScript 才能看到正确导航。
 - **Learning Intelligence**：追加式学习事件、掌握/置信度 reducer、Gap 生命周期、独立复习和可解释规划。
 - **Personal Data**：IndexedDB v4 事务式本机学习数据库、Supabase 原子批次同步与 RLS/受控 RPC；认证、账户白名单和云端恢复分开处理。
-- **AI Augmentation**：后续通过服务端代理、来源引用、Schema 和评估门控引入，不直接拥有掌握度裁决权。
+- **AI Augmentation**：通过服务端代理、来源引用、Schema 和评估门控引入。Phase M 的 Reviewer 只提供质量意见，不直接拥有掌握度裁决权；正式题库准入需人工批准与 GitHub Pages 发布核验。
 
 ## 开发与验证
 
@@ -90,7 +90,7 @@ node --test scripts/e2e-site-navigation.mjs
 | 三条体验主线及 17 个作品 | 已有作品登记；状态以 `content/works.json` 为准 |
 | 本地学习事件、掌握分析、Gap、复习、规划与近 7 天证据回顾 | 已实现；回顾只读取真实事件，不新增掌握证据 |
 | Supabase 云端学习档案 | Phase D 数据库迁移已应用；真实 OAuth 双设备、双账户 RLS 与实体 iPhone Safari 仍需验收 |
-| 页面上下文 AI 导师、结构化反思与 Gap 定向补充练习 | 只读服务端契约、私有档案和候选题准入校验已实现；正式题库与掌握评估保持独立；真实云端 Provider 与学习效果仍待账户验收/试点 |
+| 页面上下文 AI 导师、结构化反思与 Gap 定向补充练习 | Phase L 候选生成和私有档案已实现；Phase M 服务端确定性校验、独立 Reviewer 契约、不可覆盖审查记录、真实审核员权限门禁和受保护题库发布流程已实现；真实 Reviewer Secrets、content_admin provision、GitHub Actions Secrets、人工审批与 Pages 发布闭环仍需配置和生产验收 |
 | 来源驱动多模态问答、私人资料中心、持续语音/视频辅导 | 规划中的增强能力，不作为当前已上线能力 |
 
 ## 产品原则
