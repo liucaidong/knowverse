@@ -140,6 +140,8 @@ jobs:
         run: node --test scripts/e2e-learning-intelligence.mjs
       - name: Browser E2E · Global navigation, mobile drawer and no-JavaScript fallback
         run: node --test scripts/e2e-site-navigation.mjs
+      - name: Browser E2E · All 44 canonical routes and hash destinations runtime smoke
+        run: node --test scripts/e2e-system-route-smoke.mjs
       - name: Browser E2E · Work checkpoint and learning telemetry
         run: node --test scripts/e2e-learning-integration.mjs
       - name: Browser E2E · Promise course reading task lifecycle and non-mastery evidence
