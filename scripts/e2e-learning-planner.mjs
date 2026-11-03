@@ -45,6 +45,7 @@ test("Chromium desktop: the daily plan respects prerequisites and advances from 
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
+    await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#plan-actions .lp-plan-card").first().waitFor({ state:"visible" });
     await page.locator("#plan-time-budget").selectOption("40");
     const firstCard = page.locator("#plan-actions .lp-plan-card").first();
@@ -86,6 +87,7 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
+    await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#plan-actions .lp-plan-card").first().waitFor({ state:"visible" });
     await page.locator("#plan-time-budget").selectOption("15");
     await page.waitForFunction(async () => {
@@ -105,6 +107,7 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
         document.querySelector("#plan-focus-topic")?.value === "monorepo";
     });
     await page.reload({ waitUntil:"domcontentloaded" });
+    await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.waitForFunction(async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       const preference = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
@@ -138,7 +141,7 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
-    await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
+    await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#strategy-mode-default").click();
     await page.waitForFunction(async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
@@ -146,6 +149,7 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
       return row?.payload?.personalizationMode === "default";
     });
     await page.reload({ waitUntil:"domcontentloaded" });
+    await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
     await page.waitForFunction(() =>
       document.querySelector("#strategy-mode-default")?.getAttribute("aria-pressed") === "true");
@@ -176,6 +180,7 @@ test("WebKit mobile: strategy panel controls remain within a narrow viewport", {
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
+    await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
     const box = await page.locator("#learning-strategy").boundingBox();
     assert.ok(box && box.width <= 390, "strategy panel must fit the mobile viewport");

@@ -1003,9 +1003,11 @@ async function boot() {
   });
   wireDataActions();
   await refresh();
+  document.documentElement.dataset.learningProgressReady = "true";
 }
 
 boot().catch(error => {
+  document.documentElement.dataset.learningProgressError = String(error?.message || error);
   console.error("[KNOWVERSE] learning progress unavailable:", error);
   ["plan-summary", "plan-actions", "plan-context", "topic-overview", "graph-canvas", "gap-list", "weak-skill-list", "review-list", "event-list"].forEach(id => {
     const host = $(id);
