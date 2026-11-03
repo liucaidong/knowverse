@@ -2,6 +2,7 @@ import { createLearningProgressStore } from "./learning-progress.mjs";
 import { createLearningCheckpointEngine } from "./learning-checkpoint-engine.mjs";
 import { createLearningTaskOrchestrator } from "./learning-agent/task-orchestrator.mjs";
 import { startLearningActivityTelemetry } from "./learning-activity.mjs";
+import { mountLearningTutor } from "./learning-tutor.mjs";
 
 const siteRoot = new URL("../../", import.meta.url);
 const normalizePath = value => {
@@ -281,10 +282,11 @@ async function mountCourseReadingTask(topic, competency, store, taskOrchestrator
 async function startLearningIntegration() {
   if (typeof document === "undefined" || typeof location === "undefined") return;
   try {
-    const [workManifest, checkpointManifest, learningMap] = await Promise.all([
+    const [workManifest, checkpointManifest, learningMap, challengeRegistry] = await Promise.all([
       readJSON("../../content/works.json"),
       readJSON("../../content/learning-checkpoints.json"),
       readJSON("../../content/learning-map.json"),
+      readJSON("../../content/challenges.json"),
     ]);
     const currentPath = normalizePath(location.pathname);
     const store = createLearningProgressStore();
@@ -292,6 +294,12 @@ async function startLearningIntegration() {
     const work = workManifest.works.find(item => normalizePath(new URL(item.href, siteRoot).pathname) === currentPath);
     if (work && work.status === "live" && work.learning?.activityTracking) {
       startLearningActivityTelemetry({ store, work });
+      const topics = (learningMap.topics || []).filter(topic =>
+        (work.knowledge_ids || []).includes(topic.id));
+      await mountLearningTutor({
+        store, taskOrchestrator, learningMap, challengeRegistry, topics, work,
+        competencyIds: work.learning.competencyIds || [], siteRoot,
+      });
       const assessment = work.learning.assessment;
       if (assessment?.type !== "checkpoint") return;
       const checkpoint = checkpointManifest.checkpoints.find(item => item.id === assessment.checkpointId && item.workId === work.id);
@@ -315,6 +323,11 @@ async function startLearningIntegration() {
     });
     const competency = (topic.competencies || []).find(item => item.lessonHref &&
       normalizePath(new URL(item.lessonHref, siteRoot).pathname) === currentPath);
+    await mountLearningTutor({
+      store, taskOrchestrator, learningMap, challengeRegistry,
+      topics: [topic], competencyIds: competency ? [competency.id] :
+        (topic.competencies || []).map(item => item.id), siteRoot,
+    });
     if (competency) await mountCourseReadingTask(topic, competency, store, taskOrchestrator);
   } catch (error) {
     console.error("[KNOWVERSE] Learning integration failed to initialize:", error);

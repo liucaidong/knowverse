@@ -63,6 +63,8 @@ jobs:
         run: node --test scripts/verify-learning-intelligence.mjs
       - name: Verify work-to-knowledge learning integration and checkpoints
         run: node --test scripts/verify-learning-integration.mjs
+      - name: Verify contextual, read-only Learning Tutor scene and provider contract
+        run: node --test scripts/verify-learning-tutor.mjs
       - name: Validate React Native third learning domain, prerequisite graph and gap variants
         run: node --test scripts/verify-react-native-domain.mjs
       - name: Test explainable adaptive learning planner and prerequisite scheduling
@@ -87,6 +89,7 @@ jobs:
           node --check assets/js/learning-activity.mjs
           node --check assets/js/learning-checkpoint-engine.mjs
           node --check assets/js/learning-integration.mjs
+          node --check assets/js/learning-tutor.mjs
           node --check assets/js/learning-agent/challenge-task-context.mjs
           node --check assets/js/learning-agent/plan-manager.mjs
           node --check assets/js/learning-agent/task-orchestrator.mjs
@@ -144,6 +147,8 @@ jobs:
         run: node --test scripts/e2e-system-route-smoke.mjs
       - name: Browser E2E · Work checkpoint and learning telemetry
         run: node --test scripts/e2e-learning-integration.mjs
+      - name: Browser E2E · Context-aware Learning Tutor on course, lab and mobile pages
+        run: node --test scripts/e2e-learning-tutor.mjs
       - name: Browser E2E · Promise course reading task lifecycle and non-mastery evidence
         run: node --test scripts/e2e-promise-course-learning.mjs
       - name: Browser E2E · Synthetic H1 Promise learner completes the full evidence-driven pilot

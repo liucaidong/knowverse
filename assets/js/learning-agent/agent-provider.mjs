@@ -45,9 +45,13 @@ export function createLearningAgentProvider(options = {}) {
   const auth = options.auth || createSupabaseAuthClient(config);
   return {
     get configured() { return Boolean(config.enabled); },
-    async ask({ message, context, signal } = {}) {
+    async ask({ message, context, signal, mode = "agent", tutorMode = "explain" } = {}) {
       if (typeof message !== "string" || !message.trim() || message.length > MAX_MESSAGE_CHARS) {
         throw new TypeError("请输入 1–4000 字符的学习问题。");
+      }
+      if (!["agent", "tutor"].includes(mode)) throw new TypeError("不支持的 Learning Agent 请求模式。");
+      if (!["explain", "hint", "diagnose", "transfer"].includes(tutorMode)) {
+        throw new TypeError("不支持的学习导师交互模式。");
       }
       const session = await auth.getSession();
       if (!session?.access_token) {
@@ -69,7 +73,7 @@ export function createLearningAgentProvider(options = {}) {
         const response = await auth.request("/functions/v1/learning-agent", {
           method: "POST",
           signal: controller.signal,
-          body: { version: 1, message: message.trim(), context },
+          body: { version: 1, message: message.trim(), context, mode, tutorMode },
         });
         if (response?.error) {
           const error = new Error(response.error.message || "AI Agent 请求失败。");
