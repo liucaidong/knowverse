@@ -96,7 +96,22 @@ async function createGoalAndPlan(page) {
   const proposal = await page.locator("#la-plan-proposal .la-proposal-card").innerText();
   assert.match(proposal, /15 分钟/);
   assert.match(proposal, /Promise/);
+  const acceptedPlanId = await page.locator("#la-plan-proposal .la-proposal-card").getAttribute("data-plan-id");
   await page.locator("#la-plan-proposal").getByRole("button", { name: "接受计划并创建任务" }).click();
+  await page.waitForFunction(async () => {
+    const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+    const repository = await getLearningRepository();
+    const head = await repository.documents.get("learning_plan_head", "current");
+    const activePlanId = head?.payload?.activePlanId;
+    if (!activePlanId) return false;
+    const active = await repository.documents.get("learning_plan", activePlanId);
+    const rows = await repository.documents.list(1000);
+    const tasks = rows.filter(row => row.type === "learning_task" && row.payload?.planId === activePlanId);
+    return active?.payload?.status === "accepted" && tasks.length === active.payload.actions.length;
+  }, { timeout: 30000 });
+  await page.waitForFunction(() =>
+    document.querySelectorAll("#la-active-tasks .la-task-card").length > 0
+  , { timeout: 30000 });
   await page.locator("#la-active-tasks .la-task-card").first().waitFor({ state: "visible" });
 }
 
