@@ -86,9 +86,26 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
+    // Simulate the exact legacy value that Phase C must import before the
+    // IndexedDB-backed preference controls become editable.
+    await page.addInitScript(() => {
+      localStorage.setItem("knowverse:learning-state", JSON.stringify({
+        format: "knowverse-learning-state",
+        schemaVersion: 1,
+        revision: 4,
+        records: {
+          "knowverse:learning-plan:preferences": JSON.stringify({
+            dailyMinutes: 25,
+            focusTopicId: "all",
+          }),
+        },
+      }));
+    });
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#plan-actions .lp-plan-card").first().waitFor({ state:"visible" });
+    assert.equal(await page.evaluate(() => localStorage.getItem("knowverse:learning-state")), null,
+      "legacy Phase C source must be fully imported and cleaned before preference editing");
     await page.locator("#plan-time-budget").selectOption("15");
     await page.waitForFunction(async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");

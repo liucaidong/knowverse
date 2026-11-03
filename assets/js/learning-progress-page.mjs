@@ -965,6 +965,13 @@ function wireDataActions() {
 }
 
 async function boot() {
+  // Complete the local Phase C -> IndexedDB migration before showing editable
+  // preferences. The account panel also starts the sync runtime; starting that
+  // bootstrap in the background used to allow a legacy LocalStorage snapshot
+  // to arrive after the learner had already saved newer preferences.
+  const repository = await getLearningRepository();
+  await repository.initialize();
+
   const backendPanel = document.getElementById("backend-account-panel");
   if (backendPanel) {
     mountBackendAccountPanel(backendPanel, { store }).catch(error => {
@@ -994,7 +1001,6 @@ async function boot() {
   }
   selectedTopicId = learningMap.topics[0]?.id || null;
   selectedCompetencyId = learningMap.topics[0]?.competencies[0]?.id || null;
-  const repository = await getLearningRepository();
   profileStore = createLearnerProfileStore({ repository });
   const goalManager = createLearningGoalManager({ repository, learningMap });
   taskOrchestrator = createLearningTaskOrchestrator({ repository });
