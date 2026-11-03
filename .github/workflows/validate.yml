@@ -69,9 +69,15 @@ jobs:
         run: node --test scripts/verify-learning-planner.mjs
       - name: Test Phase E learner profile, goals, plan versions, task orchestration and Agent security
         run: node --test scripts/verify-phase-e.mjs
+      - name: Test Phase F adaptive review, risk, trends, diagnostics, forecasts, NBA and idempotent task integration
+        run: node --test scripts/verify-phase-f.mjs
       - name: Parse learning and review browser modules
         run: |
           node --check assets/js/learning-progress.mjs
+          node --check assets/js/spaced-repetition-engine.mjs
+          node --check assets/js/learning-risk-engine.mjs
+          node --check assets/js/next-best-action.mjs
+          node --check assets/js/proactive-learning-engine.mjs
           node --check assets/js/learning-progress-page.mjs
           node --check assets/js/review-engine.mjs
           node --check assets/js/review-workspace.mjs

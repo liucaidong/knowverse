@@ -109,8 +109,17 @@ async function exerciseReview(browser, label, viewport) {
     localStorage.setItem(marker, "1");
   }, seedGap);
 
-  const reviewURL = baseURL + "/review/?competencyId=thenable-adoption&gapId=thenable-get-vs-call";
-  await page.goto(reviewURL, { waitUntil: "domcontentloaded" });
+  await page.goto(baseURL + "/progress/", { waitUntil: "domcontentloaded" });
+  await page.locator("#hero-tested").waitFor();
+  await page.locator("#proactive-kpis .lp-proactive-kpi").first().waitFor({ state: "visible" });
+  const scheduledReview = page.locator("#proactive-review-queue a").first();
+  await scheduledReview.waitFor({ state: "visible" });
+  const reviewURL = await scheduledReview.getAttribute("href");
+  assert.ok(reviewURL, label + ": due review must have an executable task link");
+  const scheduledURL = new URL(reviewURL, baseURL);
+  assert.ok(scheduledURL.searchParams.get("taskId"), label + ": due review link must carry a task id");
+  assert.equal(scheduledURL.searchParams.get("gapId"), "thenable-get-vs-call");
+  await scheduledReview.click();
   await page.locator("#question-title").waitFor({ state: "visible" });
   assert.match(await page.locator("#question-title").innerText(), /Get 与 Call：同步边界/);
 
@@ -129,6 +138,21 @@ async function exerciseReview(browser, label, viewport) {
     document.querySelector("#answer-feedback")?.innerText.includes("独立验证通过")
   );
   assert.match(await page.locator("#answer-feedback").innerText(), /精确纠正/);
+  const completedTask = await page.evaluate(async taskId => {
+    const { createLearningTaskOrchestrator } = await import("/assets/js/learning-agent/task-orchestrator.mjs");
+    const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+    const repository = await getLearningRepository();
+    const task = await createLearningTaskOrchestrator({ repository }).get(taskId);
+    return {
+      status: task?.status,
+      evidenceEventIds: task?.evidenceEventIds || [],
+      completedEventExists: (await repository.events.list()).some(event =>
+        event.type === "learning_task_completed" && event.taskId === taskId),
+    };
+  }, scheduledURL.searchParams.get("taskId"));
+  assert.equal(completedTask.status, "completed", label + ": completed review must close the scheduled task");
+  assert.ok(completedTask.evidenceEventIds.length > 0, label + ": completion must retain assessment evidence");
+  assert.equal(completedTask.completedEventExists, true, label + ": task completion must append an audit event");
 
   await page.waitForFunction(() => document.querySelectorAll(".rw-history-row").length === 2);
   const historyCount = await page.locator(".rw-history-row").count();
@@ -143,6 +167,12 @@ async function exerciseReview(browser, label, viewport) {
   await page.goto(baseURL + "/progress/", { waitUntil: "domcontentloaded" });
   await page.locator("#hero-tested").waitFor();
   await page.locator("#gap-list").waitFor();
+  await page.locator("#proactive-kpis .lp-proactive-kpi").first().waitFor({ state: "visible" });
+  await page.locator("#proactive-actions").waitFor({ state: "visible" });
+  await page.locator("#proactive-timeline").waitFor({ state: "visible" });
+  await page.waitForFunction(() =>
+    document.querySelectorAll("#proactive-timeline .lp-timeline-row").length > 0
+  );
   await page.waitForFunction(() =>
     document.querySelector("#gap-list")?.innerText.includes("没有尚未纠正的概念误区") &&
     document.querySelector("#hero-tested")?.innerText.replaceAll(" ", "").includes("1/15")

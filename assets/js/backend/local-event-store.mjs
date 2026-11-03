@@ -15,6 +15,7 @@ const allowedDocumentTypes = new Set([
   "challenge_progress", "review_session", "plan_preferences",
   "learner_profile", "learning_goal", "learning_plan", "learning_plan_head",
   "learning_task", "learning_agent_session", "learning_agent_message",
+  "proactive_learning_projection",
 ]);
 const randomId = () => globalThis.crypto?.randomUUID?.()
   || "device-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);

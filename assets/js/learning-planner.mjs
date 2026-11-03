@@ -200,6 +200,10 @@ export function buildAdaptiveLearningPlan(options = {}) {
     options.challengeRegistry || { challenges: [] }, snapshot, now);
   const allCompetencies = insights.competencyInsights;
   const stateById = new Map(allCompetencies.map(item => [item.id, item]));
+  const reviewScheduleById = new Map((options.reviewSchedules || []).map(item => [item.competencyId, item]));
+  const existingTaskByCompetency = new Map((options.existingTasks || [])
+    .filter(task => !["completed", "skipped", "cancelled"].includes(task.status))
+    .map(task => [task.competencyId, task]));
   const definitions = new Map(allCompetencies.map(item => [item.id, item]));
   const activity = planActivity(snapshot, today);
   const usedVariantsByCompetency = new Map();
@@ -223,8 +227,12 @@ export function buildAdaptiveLearningPlan(options = {}) {
     }
     descendants.set(definition.id, seen.size);
   }
-  const futureDue = allCompetencies
-    .filter(item => item.nextReviewAt && !item.isDue)
+  const futureDue = allCompetencies.map(item => {
+    const schedule = reviewScheduleById.get(item.id);
+    return schedule ? { ...item, nextReviewAt: schedule.dueAt } : item;
+  }).filter(item => item.nextReviewAt &&
+    Date.parse(item.nextReviewAt) > now.getTime() &&
+    !(reviewScheduleById.get(item.id)?.isDue ?? item.isDue))
     .sort((a, b) => Date.parse(a.nextReviewAt) - Date.parse(b.nextReviewAt));
   const candidates = [];
   const blocked = [];
@@ -257,6 +265,9 @@ export function buildAdaptiveLearningPlan(options = {}) {
 
   for (const definition of allCompetencies) {
     const state = stateById.get(definition.id);
+    const reviewSchedule = reviewScheduleById.get(definition.id);
+    const existingTask = existingTaskByCompetency.get(definition.id);
+    if (existingTask) continue;
     const activeGaps = state.activeGaps || [];
     const focusBoost = preferences.focusTopicId !== "all" && preferences.focusTopicId === definition.topicId ? 12 : 0;
     const downstream = descendants.get(definition.id) || 0;
@@ -290,13 +301,14 @@ export function buildAdaptiveLearningPlan(options = {}) {
       continue;
     }
 
-    if (state.isDue && state.evidenceCount) {
+    if ((reviewSchedule?.isDue ?? state.isDue) && state.evidenceCount) {
       const priority = 92 + Math.min(8, downstream * 2) +
         Math.max(0, 80 - (state.masteryScore || 0)) * 0.12 + focusBoost;
       candidates.push(makeAction({
         today, type: "review", competency: definition, minutes: 8, priority,
         reasons: [
-          "已达到下一次复习时间",
+          reviewSchedule?.status === "overdue" ? "已经超过一个完整复习间隔" :
+            reviewSchedule?.status === "relearning" ? "进入重新学习状态" : "已达到下一次复习时间",
           state.status === "weak" ? "近期表现偏弱，保持短间隔复习" : "通过间隔复习检查长期保持情况",
           downstream ? "该能力影响 " + downstream + " 个下游知识点" : null,
           focusBoost ? "符合当前优先专题" : null,

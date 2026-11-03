@@ -54,6 +54,8 @@ async function openWorkspace(browser, viewport) {
   await page.goto(baseURL + "/agent/", { waitUntil: "domcontentloaded" });
   await page.locator("#la-workspace").waitFor({ state: "visible" });
   await page.locator("#la-metrics .la-metric").first().waitFor({ state: "visible" });
+  await page.locator("#la-proactive-summary").waitFor({ state: "visible" });
+  await page.waitForFunction(() => document.querySelector("#la-proactive-summary")?.children.length > 0);
   return { context, page, errors };
 }
 

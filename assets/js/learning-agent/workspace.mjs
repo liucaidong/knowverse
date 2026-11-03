@@ -4,6 +4,7 @@ import { createLearnerProfileStore, deriveLearnerProfile } from "./learner-profi
 import { createLearningGoalManager } from "./goal-manager.mjs";
 import { createLearningPlanManager } from "./plan-manager.mjs";
 import { createLearningTaskOrchestrator } from "./task-orchestrator.mjs";
+import { createProactiveLearningEngine } from "../proactive-learning-engine.mjs";
 import { createLearningAgentProvider } from "./agent-provider.mjs";
 import { createAgentSessionStore } from "./agent-session-store.mjs";
 import { executeAgentTool } from "./agent-tools.mjs";
@@ -50,7 +51,10 @@ let mutationInFlight = false;
 let pendingReplanEvents = [];
 let autoReplanInFlight = false;
 let lastAutoReplanCause = null;
-let state = { goals: [], profile: null, insights: null, current: null, tasks: [] };
+let refreshCycle = null;
+let refreshAgain = false;
+let proactiveDueTimer = null;
+let state = { goals: [], profile: null, insights: null, current: null, tasks: [], proactive: null };
 
 function siteLink(label, href, className = "la-link") {
   const url = safeHref(href);
@@ -63,11 +67,15 @@ function siteLink(label, href, className = "la-link") {
 }
 
 async function refreshState() {
-  const [events, preferences, goals, current] = await Promise.all([
+  const initialPlan = await services.planManager.current();
+  if (initialPlan.active) await services.taskOrchestrator.refreshUnlocks(initialPlan.active.planId);
+  const proactive = await services.proactiveEngine.refresh();
+  const [events, preferences, goals, current, tasks] = await Promise.all([
     services.repository.events.list(),
     services.profileStore.loadPreferences(),
     services.goalManager.list(),
     services.planManager.current(),
+    services.taskOrchestrator.list(),
   ]);
   const snapshot = { events };
   const insights = deriveLearningInsights(services.learningMap, services.challengeRegistry, snapshot, new Date());
@@ -76,10 +84,12 @@ async function refreshState() {
     challengeRegistry: services.challengeRegistry,
     snapshot, preferences, goals,
   });
-  if (current.active) await services.taskOrchestrator.refreshUnlocks(current.active.planId);
-  const tasks = current.active ? await services.taskOrchestrator.list(current.active.planId) : [];
-  state = { events, preferences, goals, current, insights, profile, tasks };
-  if (services?.context) services.context.profilePreferences = preferences;
+  const activePlanTasks = current.active ? tasks.filter(task => task.planId === current.active.planId) : [];
+  state = { events, preferences, goals, current, insights, profile, tasks: activePlanTasks, allTasks: tasks, proactive };
+  if (services?.context) {
+    services.context.profilePreferences = preferences;
+    services.context.proactiveProjection = proactive;
+  }
   return state;
 }
 
@@ -130,13 +140,96 @@ async function maybeAutoReplan(incomingEvents = []) {
   }
 }
 
+const PROACTIVE_REFRESH_EVENT_TYPES = new Set([
+  "attempt", "completed", "assessment_passed", "review_started", "hint", "hint_revealed",
+  "learning_task_created", "learning_task_in_progress", "learning_task_paused",
+  "learning_task_completed", "learning_task_failed", "learning_task_skipped",
+  "learning_task_cancelled", "learner_preferences_updated",
+  "learning_goal_created", "learning_goal_updated", "learning_goal_paused",
+  "learning_goal_resumed", "learning_goal_completed", "learning_goal_cancelled",
+]);
+
 function receiveLearningEvents(event) {
   const incoming = event.detail?.events || [];
-  if (!incoming.length) return;
-  pendingReplanEvents.push(...incoming);
+  const relevant = incoming.filter(item => PROACTIVE_REFRESH_EVENT_TYPES.has(item.type));
+  if (!relevant.length) return;
+  pendingReplanEvents.push(...relevant);
   if (mutationInFlight || autoReplanInFlight) return;
-  const next = pendingReplanEvents.splice(0);
-  void maybeAutoReplan(next);
+  void refreshAll().then(async () => {
+    const next = pendingReplanEvents.splice(0);
+    await maybeAutoReplan(next);
+  }).catch(error => {
+    $("la-chat-status").textContent = "主动学习状态刷新失败：" + (error.message || "未知错误");
+  });
+}
+
+function renderProactiveSummary() {
+  const host = $("la-proactive-summary");
+  if (!host) return;
+  host.replaceChildren();
+  const projection = state.proactive;
+  if (!projection) {
+    host.append(create("p", "la-empty-small", "主动学习状态尚未计算。"));
+    return;
+  }
+  const action = projection.nextBestActions?.[0];
+  if (action) {
+    const card = create("article", "la-proactive-card");
+    const head = create("div", "la-inline-between");
+    head.append(create("span", "la-proactive-kicker", "NEXT BEST ACTION"),
+      create("span", "la-state la-state-ready", "优先级 " + action.score));
+    card.append(head, create("strong", "la-proactive-title", action.title),
+      create("p", "la-muted", action.topicTitle + " · 预计 " + action.estimatedMinutes + " 分钟"));
+    (action.reasons || []).slice(0, 3).forEach(reason =>
+      card.append(create("p", "la-proactive-reason", "• " + reason)));
+    if (action.taskId) {
+      const run = create("button", "la-button primary", "执行关联任务 →");
+      run.type = "button";
+      run.addEventListener("click", async () => {
+        run.disabled = true;
+        try {
+          let task = await services.taskOrchestrator.get(action.taskId);
+          if (!task) throw new Error("推荐任务已不存在，请刷新学习状态。");
+          if (task.status === "failed") task = await services.taskOrchestrator.retry(task.taskId);
+          if (task.status === "paused") task = await services.taskOrchestrator.transition(task.taskId, "in_progress");
+          else if (task.status === "ready") task = await services.taskOrchestrator.start(task.taskId);
+          if (!["in_progress", "completed"].includes(task.status)) throw new Error("当前任务状态不允许执行。");
+          const target = safeHref(action.href);
+          if (target) window.location.assign(target);
+          await refreshAll();
+        } catch (error) {
+          run.disabled = false;
+          $("la-chat-status").textContent = error.message || "无法启动该学习任务。";
+        }
+      });
+      card.append(run);
+    } else {
+      const link = siteLink("开始学习行动 →", action.href, "la-proactive-link");
+      if (link) card.append(link);
+    }
+    host.append(card);
+  } else {
+    host.append(create("p", "la-empty-small", "当前没有具备真实资源入口的高优先级行动；新挑战或评估证据进入后会重新计算。"));
+  }
+  const summary = projection.summary || {};
+  const metrics = create("div", "la-proactive-metrics");
+  [
+    ["待复习", summary.dueCount || 0],
+    ["高风险", summary.highRiskCount || 0],
+    ["未解决薄弱点", summary.activeGapCount || 0],
+  ].forEach(([label, value]) => {
+    const item = create("div", "la-proactive-metric");
+    item.append(create("span", "", label), create("strong", "", String(value)));
+    metrics.append(item);
+  });
+  host.append(metrics);
+  const forecast = projection.goalForecasts?.[0];
+  if (forecast) {
+    host.append(create("p", "la-muted", "目标「" + forecast.title + "」：稳定掌握 " +
+      forecast.stableCount + " / " + forecast.targetCount + " 个知识点 · 预计 " +
+      formatDate(forecast.earliestDate) + " – " + formatDate(forecast.latestDate) +
+      " · 置信度 " + forecast.confidence));
+  }
 }
 
 function renderMetrics() {
@@ -522,6 +615,31 @@ async function sendMessage(text) {
           planId: state.current.active.planId, version: state.current.active.version,
           headline: state.current.active.headline,
         } : null,
+        proactiveLearning: state.proactive ? {
+          computedAt: state.proactive.computedAt,
+          summary: state.proactive.summary,
+          nextBestActions: (state.proactive.nextBestActions || []).slice(0, 5).map(item => ({
+            type: item.type, title: item.title, competencyId: item.competencyId,
+            topicTitle: item.topicTitle, estimatedMinutes: item.estimatedMinutes,
+            reasons: (item.reasons || []).slice(0, 4),
+            evidenceRefs: (item.evidenceRefs || []).slice(0, 5),
+            expectedOutcome: item.expectedOutcome, deferImpact: item.deferImpact,
+            confidence: item.confidence, taskId: item.taskId, href: item.href,
+          })),
+          dueReviews: (state.proactive.schedules || [])
+            .filter(item => item.isDue || item.status === "overdue")
+            .slice(0, 10).map(item => ({
+              competencyId: item.competencyId, competencyTitle: item.competencyTitle,
+              status: item.status, dueAt: item.dueAt, overdueDays: item.overdueDays,
+              confidence: item.confidence, evidenceRefs: (item.evidenceRefs || []).slice(0, 5),
+            })),
+          highRisks: (state.proactive.risks || [])
+            .filter(item => ["high", "critical"].includes(item.level)).slice(0, 8)
+            .map(item => ({ competencyId: item.competencyId, level: item.level,
+              reasons: (item.reasons || []).slice(0, 4), evidenceRefs: (item.evidenceRefs || []).slice(0, 5) })),
+          diagnostics: (state.proactive.diagnostics || []).slice(0, 8),
+          goalForecasts: (state.proactive.goalForecasts || []).slice(0, 8),
+        } : null,
       };
       try {
         const firstPass = await services.provider.ask({ message: text, context: selected });
@@ -600,12 +718,45 @@ async function runAction(callback) {
   }
 }
 
+function scheduleNextProactiveRefresh() {
+  if (proactiveDueTimer) clearTimeout(proactiveDueTimer);
+  const now = Date.now();
+  const nextDue = (state.proactive?.schedules || [])
+    .map(item => Date.parse(item.dueAt))
+    .filter(value => Number.isFinite(value) && value > now)
+    .sort((a,b) => a-b)[0];
+  const delay = nextDue
+    ? Math.min(24 * 60 * 60 * 1000, Math.max(1000, nextDue - now + 250))
+    : 6 * 60 * 60 * 1000;
+  proactiveDueTimer = setTimeout(() => {
+    refreshAll().catch(error => {
+      $("la-chat-status").textContent = "主动学习定时刷新失败：" + (error.message || "未知错误");
+    });
+  }, delay);
+}
+
 async function refreshAll() {
-  await refreshState();
-  renderMetrics();
-  renderProfile();
-  renderGoals();
-  renderPlan();
+  if (refreshCycle) {
+    refreshAgain = true;
+    return refreshCycle;
+  }
+  refreshCycle = (async () => {
+    do {
+      refreshAgain = false;
+      await refreshState();
+      renderMetrics();
+      renderProfile();
+      renderGoals();
+      renderPlan();
+      renderProactiveSummary();
+      scheduleNextProactiveRefresh();
+    } while (refreshAgain);
+  })();
+  try {
+    await refreshCycle;
+  } finally {
+    refreshCycle = null;
+  }
 }
 
 function bindGoalForm() {
@@ -720,11 +871,14 @@ async function initialize() {
   const goalManager = createLearningGoalManager({ repository, learningMap });
   const taskOrchestrator = createLearningTaskOrchestrator({ repository });
   const planManager = createLearningPlanManager({ repository, taskOrchestrator });
+  const proactiveEngine = createProactiveLearningEngine({
+    repository, learningMap, challengeRegistry, goalManager, taskOrchestrator, profileStore,
+  });
   const sessionStore = createAgentSessionStore({ repository });
   const provider = createLearningAgentProvider();
   services = {
     repository, progressStore, profileStore, goalManager, taskOrchestrator,
-    planManager, sessionStore, provider,
+    planManager, proactiveEngine, sessionStore, provider,
     learningMap, worksManifest, challengeRegistry, checkpointRegistry,
   };
   services.context = {

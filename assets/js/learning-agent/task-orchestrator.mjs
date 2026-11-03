@@ -118,8 +118,16 @@ export function mapPlanActionToTask(action, planId, options = {}) {
           action.resourceType === "lab" ? "explore" : "practice";
   const evidencePolicy = ["review", "assessment", "challenge"].includes(taskType)
     ? "required_assessment" : "execution_confirmation";
+  const taskId = planId + ":" + action.actionId;
+  let href = action.href;
+  if (["repair", "review"].includes(action.type) && typeof href === "string" && href.startsWith("./review/")) {
+    const query = href.includes("?") ? href.slice(href.indexOf("?") + 1) : "";
+    const params = new URLSearchParams(query);
+    params.set("taskId", taskId);
+    href = "./review/?" + params.toString();
+  }
   return {
-    taskId: planId + ":" + action.actionId,
+    taskId,
     planId,
     planDate: action.planDate,
     actionId: action.actionId,
@@ -133,7 +141,7 @@ export function mapPlanActionToTask(action, planId, options = {}) {
     priority: action.priority,
     priorityReasons: action.priorityReasons || [],
     estimatedMinutes: action.estimatedMinutes,
-    href: action.href,
+    href,
     resourceTitle: action.resourceTitle,
     resourceLabel: action.resourceLabel,
     resourceType: action.resourceType,
@@ -175,6 +183,106 @@ export function createLearningTaskOrchestrator(options = {}) {
       (!planId || row.payload.planId === planId))
       .map(row => ({ ...row.payload, localRevision: row.localRevision }))
       .sort((a, b) => (a.sequence || 0) - (b.sequence || 0) || a.createdAt.localeCompare(b.createdAt));
+  }
+
+  async function ensureScheduledReviewTask(input = {}) {
+    const repository = await repositoryPromise;
+    const required = ["competencyId", "competencyTitle", "topicId", "topicTitle"];
+    if (required.some(key => typeof input[key] !== "string" || !input[key].trim())) {
+      throw new TypeError("复习调度任务缺少知识节点信息。");
+    }
+    const at = input.at ? new Date(input.at).toISOString() : nowIso();
+    const gapId = typeof input.gapId === "string" && input.gapId ? input.gapId : null;
+    const dueAt = input.dueAt ? new Date(input.dueAt).toISOString() : at;
+    const targetKey = input.competencyId + "::" + (gapId || "competency");
+    const evidenceRefs = [...new Set((Array.isArray(input.evidenceRefs) ? input.evidenceRefs : [])
+      .filter(value => typeof value === "string" && value.length > 0))].sort();
+    const cycleBasis = gapId ? "open:" + evidenceRefs.join("|") : "due:" + dueAt;
+    const cycleKey = targetKey + "::" + cycleBasis;
+    let hash = 0xcbf29ce484222325n;
+    for (const char of cycleKey) {
+      hash ^= BigInt(char.charCodeAt(0));
+      hash = BigInt.asUintN(64, hash * 0x100000001b3n);
+    }
+    const suffix = hash.toString(16).padStart(16, "0");
+    const taskId = "proactive-review:" + suffix;
+    const all = await list();
+    const existing = all.find(task => task.proactiveScheduleKey === cycleKey);
+    if (existing) return existing;
+    const activeForTarget = all
+      .filter(task => task.proactiveScheduleTarget === targetKey &&
+        !TERMINAL.has(task.status))
+      .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+    if (activeForTarget) return activeForTarget;
+
+    const taskType = gapId ? "review" : "assessment";
+    const params = new URLSearchParams({ competencyId: input.competencyId, taskId });
+    if (gapId) params.set("gapId", gapId);
+    const href = "./review/?" + params.toString();
+    const task = {
+      taskId,
+      planId: "proactive-review:" + suffix,
+      planDate: new Date(at).toISOString().slice(0, 10),
+      actionId: "scheduled-review:" + suffix,
+      taskType,
+      title: gapId ? "针对性复习 · " + input.gapLabel : "间隔复习 · " + input.competencyTitle,
+      competencyId: input.competencyId,
+      competencyTitle: input.competencyTitle,
+      topicId: input.topicId,
+      topicTitle: input.topicTitle,
+      linkedGoalIds: input.linkedGoalIds || [],
+      priority: Number(input.priority) || 80,
+      priorityReasons: input.reasons || ["复习调度引擎检测到该知识点需要再次验证"],
+      estimatedMinutes: Math.max(5, Math.min(60, Number(input.estimatedMinutes) || (gapId ? 12 : 8))),
+      href,
+      resourceTitle: input.competencyTitle,
+      resourceLabel: "打开复习工作台",
+      resourceType: "review",
+      variantId: input.lastFailureVariantId || null,
+      workId: null,
+      gapId,
+      sourceEvidenceRefs: evidenceRefs.slice(0, 30),
+      dependsOnTaskIds: [],
+      evidencePolicy: "required_assessment",
+      status: "ready",
+      lockedReason: null,
+      revision: 1,
+      createdAt: at,
+      updatedAt: at,
+      startedAt: null,
+      currentStartedAt: null,
+      completedAt: null,
+      timeSpentSeconds: 0,
+      evidenceEventIds: [],
+      pauseReason: null,
+      dueAt,
+      scheduleId: suffix,
+      proactiveScheduleKey: cycleKey,
+      proactiveScheduleTarget: targetKey,
+      proactiveGenerated: true,
+      scheduleStatus: input.scheduleStatus || "due",
+    };
+    const event = eventFor(task, "created", {
+      taskStatus: "ready",
+      taskType,
+      taskRevision: 1,
+      dueAt,
+      scheduleId: suffix,
+      scheduleStatus: task.scheduleStatus,
+      evidenceRefs: evidenceRefs.slice(0, 20),
+    }, at);
+    try {
+      await repository.commit({
+        events: [event],
+        documents: [{ type: TYPE, key: taskId, payload: task, expectedLocalRevision: 0 }],
+      });
+      return { ...task, localRevision: 1 };
+    } catch (error) {
+      // Another tab/device may have created the same deterministic task ID.
+      const committed = await get(taskId);
+      if (committed) return committed;
+      throw error;
+    }
   }
 
   async function createForPlan(plan) {
@@ -266,7 +374,10 @@ export function createLearningTaskOrchestrator(options = {}) {
         (["paused", "completed", "failed", "cancelled"].includes(target) ? durationSeconds : 0),
       pauseReason: target === "paused" ? String(options.reason || "学习者主动暂停").slice(0, 500) : null,
       evidenceEventIds: target === "completed" ? evidenceEventIds : previous.evidenceEventIds || [],
-      lastTransition: { from: previous.status, to: target, at, actor: options.actor || "learner" },
+      lastTransition: {
+        from: previous.status, to: target, at, actor: options.actor || "learner",
+        reason: options.reason ? String(options.reason).slice(0, 500) : null,
+      },
     };
     const extra = {
       previousStatus: previous.status,
@@ -304,7 +415,7 @@ export function createLearningTaskOrchestrator(options = {}) {
   }
 
   return {
-    get, list, createForPlan, transition, refreshUnlocks,
+    get, list, createForPlan, ensureScheduledReviewTask, transition, refreshUnlocks,
     start: (taskId, options) => transition(taskId, "in_progress", options),
     pause: (taskId, options) => transition(taskId, "paused", options),
     complete: (taskId, options) => transition(taskId, "completed", options),

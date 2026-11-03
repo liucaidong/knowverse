@@ -12,6 +12,7 @@ import { createLearningTaskOrchestrator, mapPlanActionToTask, LEARNING_TASK_TRAN
 import { createAgentSessionStore } from "../assets/js/learning-agent/agent-session-store.mjs";
 import { AGENT_TOOL_SCHEMAS, executeAgentTool, validateAgentToolInput } from "../assets/js/learning-agent/agent-tools.mjs";
 import { createLearningAgentProvider, validateAgentProviderResponse } from "../assets/js/learning-agent/agent-provider.mjs";
+import { answerWithLocalRules } from "../assets/js/learning-agent/local-agent.mjs";
 
 const NOW = new Date();
 const nowIso = () => NOW.toISOString();
@@ -541,4 +542,43 @@ test("plan acceptance preserves explicit action dependency links in persisted ta
   assert.equal(accepted.tasks[0].status, "ready");
   assert.equal(accepted.tasks[1].status, "locked");
   assert.deepEqual(accepted.tasks[1].dependsOnTaskIds, [accepted.tasks[0].taskId]);
+});
+
+test("local Agent and read-only tools use the same proactive projection for next action and review queue", async () => {
+  const s = await setup();
+  const projection = {
+    summary: { dueCount: 1, highRiskCount: 1, activeGapCount: 1 },
+    nextBestActions: [{
+      type: "targeted-review", title: "纠正 Thenable 薄弱点", estimatedMinutes: 12,
+      reasons: ["存在未解决的 gap", "关联当前目标"], expectedOutcome: "独立验证",
+      deferImpact: "继续阻塞下游", confidence: "medium",
+      href: "./review/?competencyId=thenable-adoption&gapId=thenable-get-vs-call",
+      taskId: "proactive-review:test",
+    }],
+    schedules: [{
+      competencyId: "thenable-adoption", competencyTitle: "Thenable adoption",
+      status: "relearning", isDue: true, dueAt: NOW.toISOString(),
+      overdueDays: 0, confidence: "medium", evidenceRefs: ["wrong"],
+    }],
+    risks: [{
+      competencyId: "thenable-adoption", level: "high",
+      reasons: ["存在未解决的薄弱点"], score: 64,
+    }],
+    diagnostics: [{
+      id: "learning-stagnation", title: "有效学习出现停滞",
+      reason: "距今 10 天", impact: "目标缺少新证据", recommendation: "先进行一次复习",
+      evidenceRefs: ["wrong"],
+    }],
+    goalForecasts: [],
+  };
+  s.context.proactiveProjection = projection;
+  const answer = await answerWithLocalRules("下一步应该学习什么？", s.context);
+  assert.match(answer.reply, /纠正 Thenable 薄弱点/);
+  assert.match(answer.reply, /继续阻塞下游/);
+  const next = await executeAgentTool("get_next_learning_action", {}, s.context);
+  assert.equal(next.taskId, "proactive-review:test");
+  const reviews = await executeAgentTool("get_review_recommendations", { limit: 5 }, s.context);
+  assert.equal(reviews.length, 1);
+  assert.equal(reviews[0].risk, "high");
+  assert.deepEqual(reviews[0].riskReasons, ["存在未解决的薄弱点"]);
 });

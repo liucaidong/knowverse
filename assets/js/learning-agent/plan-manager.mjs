@@ -96,6 +96,8 @@ export function createLearningPlanManager(options = {}) {
       budgetMinutes: totalBudgetMinutes,
       maxActions: Math.min(30, Math.max(3, studyOffsets.length * 3)),
       goals,
+      reviewSchedules: context.proactiveProjection?.schedules || [],
+      existingTasks: await taskOrchestrator.list(),
       now: context.now || new Date(),
     });
     const generatedAt = deterministic.generatedAt;

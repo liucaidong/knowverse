@@ -205,5 +205,6 @@ test("all applied SQL migration filenames are present in the repository", async 
     "20261102090144_gap_causality_v3.sql",
     "20261102114344_phase_d_atomic_learning_batch.sql",
     "20261102165337_phase_e_learning_documents.sql",
+    "20261102190100_phase_f_proactive_projection.sql",
   ]);
 });

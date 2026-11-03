@@ -1,6 +1,11 @@
 import { createLearningProgressStore, deriveLearningInsights } from "./learning-progress.mjs";
 import { buildAdaptiveLearningPlan, createLearningPlanPreferencesStore, recordLearningPlanAction } from "./learning-planner.mjs";
 import { mountBackendAccountPanel } from "./backend/account-panel.mjs";
+import { getLearningRepository } from "./backend/learning-repository.mjs";
+import { createLearnerProfileStore } from "./learning-agent/learner-profile.mjs";
+import { createLearningGoalManager } from "./learning-agent/goal-manager.mjs";
+import { createLearningTaskOrchestrator } from "./learning-agent/task-orchestrator.mjs";
+import { createProactiveLearningEngine } from "./proactive-learning-engine.mjs";
 
 const siteRoot = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
@@ -16,6 +21,11 @@ let challengeRegistry;
 let insights;
 let selectedTopicId = null;
 let selectedCompetencyId = null;
+let proactiveEngine = null;
+let proactiveRefreshTimer = null;
+let proactiveProjection = null;
+let proactiveTasks = [];
+let taskOrchestrator = null;
 
 const statusLabels = {
   unverified: "待验证",
@@ -274,37 +284,259 @@ function renderWeakSkills() {
   });
 }
 
+function renderProactiveDashboard() {
+  const projection = proactiveProjection;
+  const kpis = $("proactive-kpis");
+  const actionsHost = $("proactive-actions");
+  const queueHost = $("proactive-review-queue");
+  const risksHost = $("proactive-risks");
+  const trendsHost = $("proactive-trends");
+  const diagnosticsHost = $("proactive-diagnostics");
+  const forecastsHost = $("proactive-forecasts");
+  const timelineHost = $("proactive-timeline");
+  [kpis, actionsHost, queueHost, risksHost, trendsHost, diagnosticsHost, forecastsHost, timelineHost]
+    .filter(Boolean).forEach(host => host.replaceChildren());
+  if (!projection) {
+    actionsHost?.append(element("div", "lp-empty", "主动学习引擎尚未生成投影。刷新页面后会从真实学习事件重建。"));
+    return;
+  }
+  const summary = projection.summary || {};
+  [
+    ["到期复习", summary.dueCount || 0, "due / overdue / relearning"],
+    ["高风险知识", summary.highRiskCount || 0, "high / critical"],
+    ["未解决薄弱点", summary.activeGapCount || 0, "Learning Intelligence"],
+    ["活动目标", summary.activeGoalCount || 0, "Goal Manager"],
+    ["待执行任务", summary.taskBacklogCount || 0, "Task Orchestrator"],
+  ].forEach(([label, value, note]) => {
+    const card = element("article", "lp-proactive-kpi");
+    card.append(element("span", "", label), element("strong", "", String(value)), element("small", "", note));
+    kpis.append(card);
+  });
+
+  const confidenceText = value => value === "high" ? "证据充分" : value === "medium" ? "证据中等" : "初始估算";
+  const actionList = projection.nextBestActions || [];
+  if (!actionList.length) {
+    actionsHost.append(element("div", "lp-empty", "当前没有可执行的优先行动。若尚无挑战证据，这是正常状态；完成一次真实挑战后，系统会重新评估。"));
+  }
+  actionList.slice(0, 5).forEach(action => {
+    const card = element("article", "lp-proactive-action");
+    const head = element("div", "lp-proactive-action-head");
+    head.append(element("span", "lp-tag " + (action.type.includes("review") ? "" : "good"), action.type),
+      element("span", "lp-plan-time", "排序分 " + action.score + " · " + confidenceText(action.confidence)));
+    card.append(head, element("h3", "", action.title),
+      element("p", "", action.topicTitle + " · 预计 " + action.estimatedMinutes + " 分钟"));
+    (action.reasons || []).slice(0, 4).forEach(reason => card.append(element("p", "lp-proactive-reason", reason)));
+    if (action.expectedOutcome) card.append(element("small", "lp-proactive-outcome", "预期：" + action.expectedOutcome));
+    if (action.deferImpact) card.append(element("small", "lp-proactive-defer", "延后影响：" + action.deferImpact));
+    const href = safeHref(action.href);
+    if (href) {
+      const button = element("button", "lp-data-button primary", action.taskId ? "执行关联任务 →" : "开始行动 →");
+      button.type = "button";
+      button.addEventListener("click", async () => {
+        button.disabled = true;
+        try {
+          if (action.taskId) {
+            let task = await taskOrchestrator.get(action.taskId);
+            if (!task) throw new Error("推荐任务已不存在，请重新计算学习行动。");
+            if (task.status === "failed") task = await taskOrchestrator.retry(task.taskId);
+            if (task.status === "paused") task = await taskOrchestrator.transition(task.taskId, "in_progress");
+            else if (task.status === "ready") task = await taskOrchestrator.start(task.taskId);
+            if (!["in_progress", "completed"].includes(task.status)) {
+              throw new Error("任务当前状态为 " + task.status + "，无法进入执行。");
+            }
+          }
+          await refresh();
+          window.location.assign(href);
+        } catch (error) {
+          button.disabled = false;
+          window.alert(error.message || "无法启动该学习行动。");
+        }
+      });
+      card.append(button);
+      if (action.taskId && ["ready", "paused"].includes(action.taskStatus) &&
+          ["spaced-review", "targeted-review", "continue-task"].includes(action.type)) {
+        const skip = element("button", "lp-data-button", "暂时跳过");
+        skip.type = "button";
+        skip.addEventListener("click", async () => {
+          const reason = window.prompt("请记录本次跳过原因（例如：今天时间不足，改到明天复习）：");
+          if (reason === null) return;
+          if (!reason.trim()) {
+            window.alert("请填写跳过原因，系统才能保留可追溯记录。");
+            return;
+          }
+          skip.disabled = true;
+          try {
+            await taskOrchestrator.skip(action.taskId, { reason: reason.trim().slice(0, 500) });
+            await refresh();
+          } catch (error) {
+            skip.disabled = false;
+            window.alert(error.message || "无法记录跳过原因。");
+          }
+        });
+        card.append(skip);
+      }
+    } else {
+      card.append(element("small", "lp-proactive-muted", "尚未注册可直接打开的学习资源入口。"));
+    }
+    actionsHost.append(card);
+  });
+
+  const schedules = projection.schedules || [];
+  const due = schedules.filter(item => ["due", "overdue", "relearning"].includes(item.status))
+    .sort((a,b) => (b.overdueDays||0)-(a.overdueDays||0));
+  if (!due.length) queueHost.append(element("div", "lp-empty", "目前没有到期或逾期复习。未来复习时间由独立验证质量动态计算。"));
+  due.slice(0, 12).forEach(item => {
+    const task = proactiveTasks.find(row => row.proactiveScheduleTarget === item.competencyId + "::competency" &&
+      !["completed","skipped","cancelled"].includes(row.status)) ||
+      proactiveTasks.find(row => row.competencyId === item.competencyId && row.gapId &&
+        !["completed","skipped","cancelled"].includes(row.status));
+    const skippedTask = proactiveTasks.find(row => row.competencyId === item.competencyId &&
+      row.status === "skipped");
+    const card = element("article", "lp-list-card");
+    const copy = element("div");
+    const label = item.status === "overdue" ? "已逾期" : item.status === "relearning" ? "重新学习" : "现在应复习";
+    copy.append(element("span", "lp-tag", label),
+      element("h3", "", item.competencyTitle),
+      element("p", "", item.topicTitle + " · 稳定间隔 " + (item.stabilityDays ?? "—") +
+        " 天 · 上次验证 " + formatDate(item.lastEvidenceAt) +
+        (item.overdueDays ? " · 逾期 " + item.overdueDays + " 天" : "") +
+        " · " + confidenceText(item.confidence)));
+    if (item.latestQualityReason) copy.append(element("small", "lp-proactive-muted", item.latestQualityReason));
+    if (skippedTask?.lastTransition?.reason) {
+      copy.append(element("small", "lp-proactive-muted", "上次跳过原因：" + skippedTask.lastTransition.reason));
+    }
+    card.append(copy);
+    const reviewHref = task?.href || "./review/?competencyId=" + encodeURIComponent(item.competencyId) +
+      (item.activeGapIds?.[0] ? "&gapId=" + encodeURIComponent(item.activeGapIds[0]) : "");
+    const link = makeLink(task ? "继续复习任务" : "开始再次验证", reviewHref);
+    if (link) card.append(link);
+    queueHost.append(card);
+  });
+
+  const highRisks = (projection.risks || []).filter(item => ["high", "critical"].includes(item.level))
+    .sort((a,b) => b.score-a.score);
+  if (!highRisks.length) risksHost.append(element("div", "lp-empty", "没有检测到高风险知识节点。低风险并不代表永久掌握，系统仍会按计划安排再次验证。"));
+  highRisks.slice(0, 8).forEach(item => {
+    const schedule = schedules.find(row => row.competencyId === item.competencyId);
+    const card = element("article", "lp-list-card");
+    const copy = element("div");
+    copy.append(element("span", "lp-tag", item.level === "critical" ? "紧急" : "高风险"),
+      element("h3", "", schedule?.competencyTitle || item.competencyId),
+      element("p", "", (item.reasons || []).join("；")));
+    card.append(copy);
+    const link = makeLink("查看节点", "./review/?competencyId=" + encodeURIComponent(item.competencyId));
+    if (link) card.append(link);
+    risksHost.append(card);
+  });
+
+  const trendRows = (projection.trends || []).filter(item =>
+    item.direction !== "stable" || item.activeGapIds?.length).slice(0, 10);
+  if (!trendRows.length) trendsHost.append(element("div", "lp-empty", "当前没有足够的时间序列证据判断薄弱点趋势。"));
+  trendRows.forEach(item => {
+    const direction = {
+      improving: "正在改善", declining: "近期退化", emerging: "新出现",
+      stable: "变化不明显", "insufficient-data": "证据不足",
+    }[item.direction] || item.direction;
+    const card = element("article", "lp-list-card");
+    const copy = element("div");
+    copy.append(element("h3", "", item.competencyTitle),
+      element("p", "", direction + " · 最近均分 " + (item.recentAverage ?? "—") +
+        " · 变化 " + (item.delta === null ? "—" : item.delta + " 分") +
+        (item.activeGapIds?.length ? " · 未解决误区 " + item.activeGapIds.length : "")));
+    card.append(copy);
+    trendsHost.append(card);
+  });
+
+  const diagnostics = projection.diagnostics || [];
+  if (!diagnostics.length) diagnosticsHost.append(element("div", "lp-empty", "当前没有达到诊断阈值的停滞、过载或目标偏差。"));
+  diagnostics.forEach(item => {
+    const card = element("article", "lp-proactive-diagnostic");
+    card.append(element("span", "lp-tag " + (item.severity === "high" ? "" : "info"), item.severity === "high" ? "需要处理" : "关注"),
+      element("h3", "", item.title),
+      element("p", "", item.reason),
+      element("small", "", "影响：" + item.impact),
+      element("small", "", "建议：" + item.recommendation),
+      element("small", "lp-proactive-muted", "证据：" + (item.evidenceRefs || []).slice(0, 4).join("、")));
+    diagnosticsHost.append(card);
+  });
+
+  const forecasts = projection.goalForecasts || [];
+  if (!forecasts.length) forecastsHost.append(element("div", "lp-empty", "还没有活动的长期学习目标。建立目标后会显示预计时间范围。"));
+  forecasts.forEach(item => {
+    const card = element("article", "lp-proactive-forecast");
+    const head = element("div", "lp-inline-between");
+    head.append(element("strong", "", item.title),
+      element("span", "lp-tag info", confidenceText(item.confidence)));
+    card.append(head,
+      element("p", "", "稳定掌握 " + item.stableCount + " / " + item.targetCount + " 个能力节点 · 当前进度 " + item.progress + "%"),
+      element("p", "", "预计完成区间：" + formatDate(item.earliestDate) + " – " + formatDate(item.latestDate)),
+      element("p", "", "剩余工作量估算：" + item.remainingMinutesEstimate + " 分钟"));
+    (item.blockers || []).slice(0, 4).forEach(blocker =>
+      card.append(element("small", "lp-proactive-muted", "阻碍：" + blocker.title)));
+    (item.milestones || []).forEach(milestone => {
+      const stage = element("div", "lp-milestone");
+      const stageHead = element("div", "lp-inline-between");
+      stageHead.append(
+        element("strong", "", "阶段 " + milestone.stage + " · " + milestone.title),
+        element("span", "lp-tag info", milestone.status === "completed" ? "已完成" :
+          milestone.status === "blocked" ? "存在阻碍" :
+          milestone.status === "in-progress" ? "进行中" : "待开始")
+      );
+      stage.append(stageHead,
+        element("small", "lp-proactive-muted", milestone.stableCount + " / " +
+          milestone.competencyCount + " 个能力节点稳定掌握 · " + milestone.progress + "%"));
+      const meter = element("div", "lp-milestone-meter");
+      const fill = element("span");
+      fill.style.width = milestone.progress + "%";
+      meter.append(fill);
+      stage.append(meter);
+      (milestone.blockers || []).slice(0, 3).forEach(blocker =>
+        stage.append(element("small", "lp-proactive-muted", "阻碍：" + blocker.title)));
+      card.append(stage);
+    });
+    (item.variables || []).forEach(variable =>
+      card.append(element("small", "lp-proactive-muted", variable)));
+    forecastsHost.append(card);
+  });
+
+  const timeline = projection.timeline || [];
+  if (!timeline.length) timelineHost.append(element("div", "lp-empty", "还没有学习轨迹事件。完成目标、挑战或复习后会在这里留下真实记录。"));
+  timeline.forEach(item => {
+    const row = element("article", "lp-timeline-row");
+    const marker = element("span", "lp-timeline-marker" + (item.source === "derived" ? " derived" : ""));
+    const copy = element("div", "lp-timeline-copy");
+    const head = element("div", "lp-inline-between");
+    head.append(element("strong", "", item.title),
+      element("time", "", formatDate(item.at, true)));
+    copy.append(head,
+      element("p", "", item.detail || item.competencyTitle || item.type),
+      element("small", "lp-proactive-muted",
+        (item.source === "derived" ? "系统计算 · " : "原始事件 · ") +
+        (item.competencyTitle || item.topicId || "学习过程") +
+        (item.goalId ? " · 目标 " + item.goalId : "") +
+        (item.taskId ? " · 任务 " + item.taskId : "")));
+    row.append(marker, copy);
+    timelineHost.append(row);
+  });
+}
+
 function renderReviewPlan() {
   const host = $("review-list");
   host.replaceChildren();
-  if (!insights.reviewQueue.length) {
-    host.append(element("div", "lp-empty", "完成第一次挑战后，系统会按你的表现生成下一次复习日期。"));
+  const rows = (proactiveProjection?.schedules || []).filter(item => item.dueAt)
+    .sort((a,b) => Date.parse(a.dueAt) - Date.parse(b.dueAt));
+  if (!rows.length) {
+    host.append(element("div", "lp-empty", "目前还没有有效验证证据，或尚未生成下一次复习安排。"));
     return;
   }
-  const now = Date.now();
   const groups = [
-    {
-      title: "今天必须完成",
-      description: "优先处理未纠正误区和已经到期的复习",
-      items: insights.reviewQueue.filter(item => item.isDue),
-    },
-    {
-      title: "近期建议",
-      description: "未来 7 天内值得主动巩固的知识点",
-      items: insights.reviewQueue.filter(item => {
-        if (item.isDue || !item.nextReviewAt) return false;
-        const days = (Date.parse(item.nextReviewAt) - now) / 86_400_000;
-        return days <= 7;
-      }),
-    },
-    {
-      title: "后续安排",
-      description: "已进入复习节奏、暂时不必今天处理的知识点",
-      items: insights.reviewQueue.filter(item => {
-        if (item.isDue || !item.nextReviewAt) return false;
-        return (Date.parse(item.nextReviewAt) - now) / 86_400_000 > 7;
-      }),
-    },
+    { title: "需要现在处理", description: "薄弱点重新学习、到期和逾期节点",
+      items: rows.filter(item => ["due","overdue","relearning"].includes(item.status)) },
+    { title: "未来 7 天", description: "即将进入复习窗口的知识点",
+      items: rows.filter(item => !["due","overdue","relearning"].includes(item.status) &&
+        Date.parse(item.dueAt) > Date.now() && Date.parse(item.dueAt) <= Date.now()+7*86_400_000) },
+    { title: "后续复习", description: "更长期的再次验证安排",
+      items: rows.filter(item => Date.parse(item.dueAt) > Date.now()+7*86_400_000) },
   ];
   groups.forEach(group => {
     if (!group.items.length) return;
@@ -312,22 +544,35 @@ function renderReviewPlan() {
     const heading = element("div", "lp-queue-group-heading");
     heading.append(element("h3", "", group.title), element("p", "", group.description));
     section.append(heading);
-    group.items.slice(0, 5).forEach(item => {
+    group.items.slice(0,10).forEach(item => {
       const card = element("article", "lp-list-card");
       const copy = element("div");
-      const tag = element("span", "lp-tag " + (item.isDue ? "" : "good"), item.isDue ? "现在应复习" : item.kind === "gap" ? "待独立确认" : "计划复习");
-      const scoreText = item.masteryScore === null || item.masteryScore === undefined ? "尚无成功证据" : "掌握度 " + item.masteryScore + "%";
-      const confidenceText = item.confidenceScore === undefined ? "" : " · 置信度 " + item.confidenceScore + "%";
-      const reasons = Array.isArray(item.priorityReasons) && item.priorityReasons.length ? " · 优先原因：" + item.priorityReasons.join("、") : "";
-      copy.append(tag, element("h3", "", item.title), element("p", "", item.topicTitle + " · " + scoreText + confidenceText + " · " + (item.kind === "gap" ? "针对性纠错" : item.intervalDays + " 天间隔") + " · " + formatDate(item.nextReviewAt) + reasons));
-      const link = makeLink("开始再次验证", item.reviewHref || item.challengeHref || item.topicHref);
+      const dueNow = ["due","overdue","relearning"].includes(item.status);
+      const tag = item.status === "overdue" ? "已逾期" : item.status === "relearning"
+        ? "重新学习" : dueNow ? "现在应复习" : item.status === "stable" ? "稳定 · 定期复核" : "已安排";
+      copy.append(element("span","lp-tag "+(dueNow?"":"good"),tag),
+        element("h3","",item.competencyTitle),
+        element("p","",item.topicTitle+" · 稳定间隔 "+(item.stabilityDays??"—")+
+          " 天 · 下次复习 "+formatDate(item.dueAt,true)+
+          " · 上次有效验证 "+formatDate(item.lastEvidenceAt)+
+          " · 置信程度 "+(item.confidenceLabel||item.confidence)));
+      if(item.latestQualityReason)copy.append(element("small","lp-proactive-muted",item.latestQualityReason));
+      const skippedTask=proactiveTasks.find(row=>row.competencyId===item.competencyId&&row.status==="skipped");
+      if(skippedTask?.lastTransition?.reason) {
+        copy.append(element("small","lp-proactive-muted","上次跳过原因："+skippedTask.lastTransition.reason));
+      }
       card.append(copy);
-      if (link) card.append(link);
+      const task=proactiveTasks.find(row=>row.competencyId===item.competencyId&&
+        !["completed","skipped","cancelled"].includes(row.status));
+      const href=task?.href||"./review/?competencyId="+encodeURIComponent(item.competencyId);
+      const link=makeLink(task?"继续复习任务":"开始复习",href);
+      if(link)card.append(link);
       section.append(card);
     });
     host.append(section);
   });
 }
+
 function renderEvents() {
   const host = $("event-list");
   host.replaceChildren();
@@ -363,6 +608,8 @@ function renderAdaptivePlan(snapshot) {
   adaptivePlan = buildAdaptiveLearningPlan({
     learningMap, challengeRegistry, worksManifest, checkpointRegistry,
     snapshot, preferences: planPreferences,
+    reviewSchedules: proactiveProjection?.schedules || [],
+    existingTasks: proactiveTasks,
   });
   const summary = $("plan-summary");
   const host = $("plan-actions");
@@ -447,19 +694,85 @@ function renderAdaptivePlan(snapshot) {
   }
 }
 
+let pageRefreshPromise = null;
+let pageRefreshAgain = false;
+
 async function refresh() {
-  const snapshot = await store.load();
-  insights = deriveLearningInsights(learningMap, challengeRegistry, snapshot);
-  renderAdaptivePlan(snapshot);
-  renderMetrics();
-  renderTopicOverview();
-  renderTopicChoices();
-  renderGraph();
-  renderGapList();
-  renderWeakSkills();
-  renderReviewPlan();
-  renderEvents();
+  if (pageRefreshPromise) {
+    pageRefreshAgain = true;
+    return pageRefreshPromise;
+  }
+  pageRefreshPromise = (async () => {
+    do {
+      pageRefreshAgain = false;
+      if (proactiveEngine) {
+        proactiveProjection = await proactiveEngine.refresh();
+        proactiveTasks = taskOrchestrator ? await taskOrchestrator.list() : [];
+      }
+      const snapshot = await store.load();
+      insights = deriveLearningInsights(learningMap, challengeRegistry, snapshot);
+      renderAdaptivePlan(snapshot);
+      renderMetrics();
+      renderTopicOverview();
+      renderTopicChoices();
+      renderGraph();
+      renderGapList();
+      renderWeakSkills();
+      renderReviewPlan();
+      renderProactiveDashboard();
+      renderEvents();
+      scheduleProactiveRefresh();
+    } while (pageRefreshAgain);
+  })();
+  try {
+    await pageRefreshPromise;
+  } finally {
+    pageRefreshPromise = null;
+    pageRefreshAgain = false;
+  }
 }
+
+function scheduleProactiveRefresh() {
+  if (proactiveRefreshTimer) clearTimeout(proactiveRefreshTimer);
+  const now = Date.now();
+  const nextDue = (proactiveProjection?.schedules || [])
+    .map(item => Date.parse(item.dueAt))
+    .filter(value => Number.isFinite(value) && value > now)
+    .sort((a,b) => a-b)[0];
+  const delay = nextDue
+    ? Math.min(24 * 60 * 60 * 1000, Math.max(1000, nextDue - now + 250))
+    : 6 * 60 * 60 * 1000;
+  proactiveRefreshTimer = setTimeout(() => {
+    refresh().catch(error => console.warn("[KNOWVERSE] scheduled proactive refresh failed", error));
+  }, delay);
+}
+
+let proactiveRefreshQueued = false;
+const proactiveEventTypes = new Set([
+  "attempt", "assessment_passed", "completed", "review_started", "hint", "hint_revealed",
+  "learning_goal_created", "learning_goal_updated", "learning_goal_paused",
+  "learning_goal_resumed", "learning_goal_completed", "learning_goal_cancelled",
+  "learner_preferences_updated", "learning_task_in_progress", "learning_task_paused",
+  "learning_task_completed", "learning_task_failed", "learning_task_skipped",
+  "learning_task_cancelled",
+]);
+window.addEventListener("knowverse:learning-events-appended", event => {
+  if (!proactiveEngine || proactiveRefreshQueued ||
+      !(event.detail?.events || []).some(item => proactiveEventTypes.has(item.type))) return;
+  proactiveRefreshQueued = true;
+  queueMicrotask(() => {
+    proactiveRefreshQueued = false;
+    refresh().catch(error => {
+      const status = $("proactive-actions");
+      if (status) status.prepend(element("p", "lp-error", "学习状态刷新失败：" + error.message));
+    });
+  });
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible" && proactiveEngine) {
+    refresh().catch(error => console.warn("[KNOWVERSE] proactive refresh failed", error));
+  }
+});
 
 async function exportData() {
   const payload = await store.exportJSON();
@@ -541,6 +854,13 @@ async function boot() {
   }
   selectedTopicId = learningMap.topics[0]?.id || null;
   selectedCompetencyId = learningMap.topics[0]?.competencies[0]?.id || null;
+  const repository = await getLearningRepository();
+  const profileStore = createLearnerProfileStore({ repository });
+  const goalManager = createLearningGoalManager({ repository, learningMap });
+  taskOrchestrator = createLearningTaskOrchestrator({ repository });
+  proactiveEngine = createProactiveLearningEngine({
+    repository, learningMap, challengeRegistry, goalManager, taskOrchestrator, profileStore,
+  });
   wireDataActions();
   await refresh();
 }

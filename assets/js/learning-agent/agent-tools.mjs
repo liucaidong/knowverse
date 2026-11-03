@@ -115,12 +115,12 @@ export const AGENT_TOOL_SCHEMAS = Object.freeze({
     mutating: true,
   },
   get_next_learning_action: {
-    description: "获取当前已接受计划中的继续执行任务。",
+    description: "获取主动学习引擎排序后的下一最佳行动；若无候选，再回退到当前计划任务。",
     inputSchema: { type: "object", properties: {}, additionalProperties: false },
     mutating: false,
   },
   get_review_recommendations: {
-    description: "读取基于当前薄弱点和间隔复习时间的推荐。",
+    description: "读取主动复习调度、到期状态、证据充分程度和遗忘风险原因。",
     inputSchema: { type: "object", properties: { limit: { type: "integer", minimum: 1, maximum: 50 } }, additionalProperties: false },
     mutating: false,
   },
@@ -270,6 +270,9 @@ export async function executeAgentTool(name, rawInput = {}, context = {}, option
     });
     case "pause_learning_task": return tasks.pause(input.taskId, { actor: "learner", reason: input.reason });
     case "get_next_learning_action": {
+      const projection = context.proactiveProjection ||
+        await context.proactiveEngine?.refresh?.({ createTasks: false }) || null;
+      if (projection?.nextBestActions?.length) return projection.nextBestActions[0];
       const current = await plans.current();
       if (!current.active) return { status: "no-active-plan", proposal: current.proposal };
       await tasks.refreshUnlocks(current.active.planId);
@@ -278,7 +281,25 @@ export async function executeAgentTool(name, rawInput = {}, context = {}, option
         rows.find(task => task.status === "ready") ||
         rows.find(task => task.status === "locked") || null;
     }
-    case "get_review_recommendations": return (await load()).insights.reviewQueue.slice(0, input.limit || 10);
+    case "get_review_recommendations": {
+      const projection = context.proactiveProjection ||
+        await context.proactiveEngine?.refresh?.({ createTasks: false }) || null;
+      if (projection) {
+        const riskById = new Map((projection.risks || []).map(item => [item.competencyId, item]));
+        return (projection.schedules || [])
+          .filter(item => ["due", "overdue", "relearning", "scheduled", "stable"].includes(item.status))
+          .map(item => ({
+            ...item,
+            risk: riskById.get(item.competencyId)?.level || "low",
+            riskReasons: riskById.get(item.competencyId)?.reasons || [],
+          }))
+          .sort((a,b) => Number(b.isDue) - Number(a.isDue) ||
+            (Number(b.overdueDays) || 0) - (Number(a.overdueDays) || 0) ||
+            String(a.dueAt || "").localeCompare(String(b.dueAt || "")))
+          .slice(0, input.limit || 10);
+      }
+      return (await load()).insights.reviewQueue.slice(0, input.limit || 10);
+    }
     case "accept_learning_plan": return plans.accept(input.planId);
     case "reject_learning_plan": return plans.reject(input.planId, input.reason);
     default: throw new Error("Agent 工具尚未实现：" + name);

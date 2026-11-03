@@ -1,5 +1,6 @@
 import { createLearningProgressStore, deriveLearningInsights } from "./learning-progress.mjs";
 import { createReviewSessionEngine } from "./review-engine.mjs";
+import { createLearningTaskOrchestrator } from "./learning-agent/task-orchestrator.mjs";
 
 const root = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
@@ -11,6 +12,8 @@ let engine;
 let session = null;
 let targetCompetencyId = null;
 let targetGapId = null;
+let activeTaskId = null;
+let taskOrchestrator = null;
 
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
@@ -139,7 +142,16 @@ async function startSession(input) {
   try {
     targetCompetencyId=input.competencyId;
     targetGapId=input.gapId || null;
-    session=await engine.start(input);
+    if (activeTaskId && taskOrchestrator) {
+      let task = await taskOrchestrator.get(activeTaskId);
+      if (!task) throw new Error("关联的学习任务不存在，未开始复习。");
+      if (task.status === "failed") task = await taskOrchestrator.retry(activeTaskId);
+      if (task.status === "paused") task = await taskOrchestrator.transition(activeTaskId, "in_progress");
+      else if (task.status === "ready") task = await taskOrchestrator.start(activeTaskId);
+      if (task.status !== "in_progress") throw new Error("该复习任务当前状态为 " + task.status + "，不能启动新的复习会话。");
+      targetGapId = task.gapId || targetGapId;
+    }
+    session=await engine.start({ ...input, gapId: targetGapId });
     renderSession();
     setFeedback("先独立推演，不要急着展开提示。选项提交后，本次会话会单独结束并记录验证结果。");
     $("hint-list").replaceChildren();
@@ -165,6 +177,24 @@ async function submitAnswer(optionId) {
   try {
     const result=await engine.submit(session.sessionId,optionId);
     session=result.session;
+    if (activeTaskId && taskOrchestrator) {
+      const task = await taskOrchestrator.get(activeTaskId);
+      if (task?.status === "in_progress") {
+        if (!result.correct) {
+          await taskOrchestrator.fail(activeTaskId, { reason: "本轮复习验证未通过" });
+        } else if (task.taskType === "review" && Number(session.hintsUsed) > 0) {
+          await taskOrchestrator.fail(activeTaskId, { reason: "提示辅助通过，尚未满足无提示独立验证条件" });
+        } else {
+          await taskOrchestrator.complete(activeTaskId);
+          activeTaskId = null;
+          const clean = new URL(location.href);
+          clean.searchParams.delete("taskId");
+          clean.searchParams.delete("competencyId");
+          clean.searchParams.delete("gapId");
+          history.replaceState(null, "", clean.pathname);
+        }
+      }
+    }
     renderSession();
     const explanation=$("answer-explanation");
     explanation.textContent=result.explanation;
@@ -201,13 +231,39 @@ async function boot() {
   if(!mapResponse.ok||!challengeResponse.ok||!assessmentResponse.ok) throw new Error("复习注册表载入失败。");
   [map,registry,assessments]=await Promise.all([mapResponse.json(),challengeResponse.json(),assessmentResponse.json()]);
   engine=createReviewSessionEngine({registry:assessments});
+  taskOrchestrator=createLearningTaskOrchestrator();
   wire();
   const competencyId=params.get("competencyId");
   const gapId=params.get("gapId");
+  activeTaskId=params.get("taskId") || null;
+  if (activeTaskId) {
+    const task = await taskOrchestrator.get(activeTaskId);
+    if (!task || task.taskType !== "review" && task.taskType !== "assessment") {
+      throw new Error("复习入口关联的任务无效。");
+    }
+    if (task.competencyId !== competencyId) throw new Error("复习任务与 URL 知识节点不匹配。");
+    if ((task.gapId || null) !== (gapId || null)) throw new Error("复习任务与 URL 薄弱点不匹配。");
+    if (["completed", "skipped", "cancelled"].includes(task.status)) activeTaskId = null;
+  }
   await renderPicker();
   await renderHistory();
   if(competencyId) {
-    await startSession({competencyId,gapId});
+    if (activeTaskId) {
+      const active = await engine.getActiveSessions();
+      const existing = active.find(item => item.competencyId === competencyId &&
+        (item.targetGapId || null) === (gapId || null));
+      if (existing) {
+        session = existing;
+        targetCompetencyId = existing.competencyId;
+        targetGapId = existing.targetGapId || null;
+        renderSession();
+        setFeedback("已恢复与当前任务关联的复习现场。");
+      } else {
+        await startSession({competencyId,gapId});
+      }
+    } else {
+      await startSession({competencyId,gapId});
+    }
   } else {
     const active = await engine.getActiveSessions();
     if (active.length) {

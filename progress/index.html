@@ -68,7 +68,8 @@
   <main class="lp-container">
     <div class="lp-toolbar">
       <div class="lp-tabs" aria-label="学习进度分区">
-        <button class="lp-tab" data-scroll="#adaptive-plan" aria-current="true">今日行动</button>
+        <button class="lp-tab" data-scroll="#proactive-learning" aria-current="true">主动驾驶舱</button>
+        <button class="lp-tab" data-scroll="#adaptive-plan">今日行动</button>
         <button class="lp-tab" data-scroll="#overview">总览</button>
         <button class="lp-tab" data-scroll="#knowledge-map">知识图谱</button>
         <button class="lp-tab" data-scroll="#weak-points">薄弱点</button>
@@ -81,6 +82,49 @@
         <input id="import-file" type="file" accept="application/json,.json" hidden>
       </div>
     </div>
+
+    <section class="lp-section" id="proactive-learning">
+      <div class="lp-section-head">
+        <div><span class="lp-eyebrow">PROACTIVE LEARNING INTELLIGENCE</span><h2>主动学习驾驶舱</h2></div>
+        <p>基于真实学习事件，持续计算下一最佳行动、间隔复习、遗忘风险、薄弱点变化与目标完成区间。所有结论均可追溯；估算不会被描述为确定结果。</p>
+      </div>
+      <div id="proactive-kpis" class="lp-proactive-kpis"><div class="lp-empty">正在计算学习状态…</div></div>
+      <div class="lp-proactive-layout">
+        <div class="lp-proactive-column">
+          <section class="lp-proactive-panel">
+            <div class="lp-proactive-panel-head"><h3>下一最佳行动</h3><span>NEXT BEST ACTION</span></div>
+            <div id="proactive-actions" class="lp-proactive-list"><div class="lp-empty">正在检索真实学习证据…</div></div>
+          </section>
+          <section class="lp-proactive-panel">
+            <div class="lp-proactive-panel-head"><h3>自适应复习队列</h3><span>SPACED REVIEW</span></div>
+            <div id="proactive-review-queue" class="lp-proactive-list"><div class="lp-empty">正在计算复习时间…</div></div>
+          </section>
+          <section class="lp-proactive-panel">
+            <div class="lp-proactive-panel-head"><h3>长期目标轨迹</h3><span>GOAL FORECAST</span></div>
+            <div id="proactive-forecasts" class="lp-proactive-list"><div class="lp-empty">正在评估目标范围…</div></div>
+          </section>
+        </div>
+        <div class="lp-proactive-column">
+          <section class="lp-proactive-panel">
+            <div class="lp-proactive-panel-head"><h3>遗忘风险</h3><span>FORGETTING RISK</span></div>
+            <div id="proactive-risks" class="lp-proactive-list"><div class="lp-empty">正在分析风险与先修关系…</div></div>
+          </section>
+          <section class="lp-proactive-panel">
+            <div class="lp-proactive-panel-head"><h3>薄弱点发展趋势</h3><span>WEAKNESS TRENDS</span></div>
+            <div id="proactive-trends" class="lp-proactive-list"><div class="lp-empty">正在计算历史趋势…</div></div>
+          </section>
+          <section class="lp-proactive-panel">
+            <div class="lp-proactive-panel-head"><h3>学习诊断与偏差</h3><span>LEARNING DIAGNOSTICS</span></div>
+            <div id="proactive-diagnostics" class="lp-proactive-list"><div class="lp-empty">正在诊断学习状态…</div></div>
+          </section>
+        </div>
+      </div>
+      <section class="lp-proactive-panel lp-proactive-timeline-panel">
+        <div class="lp-proactive-panel-head"><h3>学习轨迹时间线</h3><span>LEARNING JOURNEY</span></div>
+        <div id="proactive-timeline" class="lp-proactive-timeline"><div class="lp-empty">正在整理真实学习记录…</div></div>
+      </section>
+      <p class="lp-plan-footnote">风险等级是调度信号，不是对学习能力的绝对评价；算法不展示未经个人历史校准的遗忘概率。时间线中的风险快照属于系统派生诊断，并非原始事件。浏览器关闭后不会继续执行后台任务，重新打开时会从本地与已同步的真实事件补算。</p>
+    </section>
 
     <section class="lp-section" id="adaptive-plan">
       <div class="lp-section-head">

@@ -14,6 +14,8 @@ export async function answerWithLocalRules(message, context) {
   const insights = deriveLearningInsights(learningMap, challengeRegistry, snapshot, context.now || new Date());
   const profile = deriveLearnerProfile({ learningMap, challengeRegistry, snapshot, preferences, goals, now: context.now || new Date() });
   const current = await planManager.current();
+  const proactive = context.proactiveProjection ||
+    await context.proactiveEngine?.getCurrent?.() || null;
 
   if (containsAny(text, ["重新规划", "重新安排", "规划今天", "生成计划", "制定计划", "plan"])) {
     const horizonDays = containsAny(text, ["两周", "2周", "14天", "接下来两星期"]) ? 14 : 1;
@@ -36,6 +38,26 @@ export async function answerWithLocalRules(message, context) {
           " 次错误线索。系统仍在等待符合要求的独立验证；只有后续真实评估事件才能关闭这个薄弱点。",
       };
     }
+    const diagnostic = proactive?.diagnostics?.find(item =>
+      text.includes(normalize(item.title)) || text.includes(normalize(item.id)));
+    if (diagnostic) return {
+      mode: "rules",
+      reply: diagnostic.title + "。当前证据：" + diagnostic.reason + "。影响：" +
+        diagnostic.impact + "。建议：" + diagnostic.recommendation +
+        "。关联证据：" + (diagnostic.evidenceRefs || []).slice(0, 6).join("、"),
+    };
+    const risk = proactive?.risks?.filter(item => ["high", "critical"].includes(item.level))
+      .sort((a,b) => b.score-a.score)[0];
+    if (risk && containsAny(text, ["遗忘", "风险", "薄弱", "复习"])) {
+      const schedule = proactive.schedules?.find(item => item.competencyId === risk.competencyId);
+      return {
+        mode: "rules",
+        reply: "目前优先关注「" + (schedule?.competencyTitle || risk.competencyId) +
+          "」，风险等级为「" + risk.level + "」。判断依据：" + (risk.reasons || []).join("；") +
+          "。最近有效验证：" + (schedule?.lastEvidenceAt || "尚无") +
+          "。这只是复习调度信号，不是遗忘概率或能力定性。",
+      };
+    }
     if (current.proposal) {
       return {
         mode: "rules",
@@ -44,9 +66,20 @@ export async function answerWithLocalRules(message, context) {
           "。前置知识限制和掌握状态由规则引擎计算，模型不会自行改变这些结果。",
       };
     }
-    return { mode: "rules", reply: "目前没有匹配到你提到的具体薄弱点。可以在下方掌握画像和薄弱点区域查看系统当前记录的证据与诊断。" };
+    return { mode: "rules", reply: "目前没有匹配到你提到的具体薄弱点。可以在下方掌握画像和主动学习驾驶舱查看系统当前记录的证据与诊断。" };
   }
   if (containsAny(text, ["下一步", "接下来学什么", "next action", "下一项"])) {
+    const action = proactive?.nextBestActions?.[0];
+    if (action) return {
+      mode: "rules",
+      reply: "当前最值得做的是「" + action.title + "」，预计 " + action.estimatedMinutes +
+        " 分钟。推荐理由：" + (action.reasons || []).join("；") +
+        "。预期解决：" + (action.expectedOutcome || "增加有效学习证据") +
+        "。如果延后：" + (action.deferImpact || "该知识点的验证会继续推迟") +
+        "。信息充分程度：" + (action.confidence || "low") +
+        (action.href ? "。执行入口：" + action.href : "") +
+        (action.taskId ? "。关联任务：" + action.taskId : ""),
+    };
     const task = await context.taskOrchestrator.list(current.active?.planId);
     const next = task.find(item => item.status === "in_progress") || task.find(item => item.status === "ready");
     if (next) return {
@@ -54,7 +87,23 @@ export async function answerWithLocalRules(message, context) {
       reply: "当前下一步是「" + next.title + "」，预计 " + next.estimatedMinutes +
         " 分钟。状态：" + next.status + "。推荐理由：" + (next.priorityReasons || []).join("；"),
     };
-    return { mode: "rules", reply: "当前没有可继续执行的已接受任务。你可以生成一份新的计划提案，或先完善学习目标。" };
+    return { mode: "rules", reply: "当前没有可执行的学习行动。可以生成一份新的计划提案，或先完善学习目标。" };
+  }
+  if (containsAny(text, ["遗忘", "风险", "逾期", "复习队列", "复习计划", "学习停滞", "过载"])) {
+    const due = (proactive?.schedules || []).filter(item => item.isDue || item.status === "overdue")
+      .sort((a,b) => (b.overdueDays || 0) - (a.overdueDays || 0));
+    const diagnostics = proactive?.diagnostics || [];
+    const highRisk = (proactive?.risks || []).filter(item => ["high", "critical"].includes(item.level));
+    return {
+      mode: "rules",
+      reply: "主动复习队列目前有 " + due.length + " 个到期/重新学习节点，其中 " +
+        due.filter(item => item.status === "overdue").length + " 个已逾期；高风险节点 " +
+        highRisk.length + " 个。\n" +
+        (due.slice(0, 5).map(item => "• " + item.competencyTitle + "：" + item.status +
+          "，下次复习时间 " + (item.dueAt || "待安排") +
+          "，置信程度 " + item.confidence).join("\n") || "目前没有到期复习。") +
+        "\n诊断：" + (diagnostics.slice(0, 4).map(item => item.title + "（" + item.reason + "）").join("；") || "暂无达到阈值的诊断。"),
+    };
   }
   if (containsAny(text, ["目标", "goal"])) {
     const topic = learningMap.topics.find(item =>
@@ -62,11 +111,22 @@ export async function answerWithLocalRules(message, context) {
       (item.id === "promise" && text.includes("promise")) ||
       (item.id === "monorepo" && text.includes("monorepo")) ||
       (item.id === "react-native" && (text.includes("react native") || text.includes("react-native"))));
+    const forecast = proactive?.goalForecasts?.find(item =>
+      text.includes(normalize(item.title)) || (topic && text.includes(normalize(topic.title))));
     return {
       mode: "rules",
-      reply: topic
-        ? "我识别到你可能想围绕「" + topic.title + "」建立学习目标。请使用目标面板填写验收标准、截止日期和优先级；保存前可以再次检查目标范围。"
-        : "我可以基于现有知识专题建立目标，但规则模式不会擅自猜测目标范围。请在目标面板选择专题或 Concept 能力点并确认创建。",
+      reply: forecast
+        ? "目标「" + forecast.title + "」当前稳定掌握 " + forecast.stableCount + " / " +
+          forecast.targetCount + " 个能力节点（" + forecast.progress + "%）。按当前可用时间和历史耗时估算，预计完成区间为 " +
+          new Date(forecast.earliestDate).toLocaleDateString("zh-CN") + " 至 " +
+          new Date(forecast.latestDate).toLocaleDateString("zh-CN") +
+          "，置信程度 " + forecast.confidence + "。主要阻碍：" +
+          (forecast.blockers || []).map(item => item.title).join("、") +
+          "。影响变量：" + (forecast.variables || []).join("；") +
+          "。这是一段估算范围，不是保证日期。"
+        : topic
+          ? "我识别到你可能想围绕「" + topic.title + "」建立学习目标。请使用目标面板填写验收标准、截止日期和优先级；保存前可以再次检查目标范围。"
+          : "我可以基于现有知识专题建立目标，但规则模式不会擅自猜测目标范围。请在目标面板选择专题或 Concept 能力点并确认创建。",
     };
   }
   if (containsAny(text, ["掌握", "进度", "画像", "progress"])) {
@@ -77,7 +137,9 @@ export async function answerWithLocalRules(message, context) {
         " 个已有真实验证证据、" + summary.stableCount + " 个达到稳定掌握，" +
         summary.weakCount + " 个需要补强，" + summary.activeGapCount +
         " 个薄弱点尚未关闭。最近 7 天记录到 " + profile.growth.evidenceLast7Days +
-        " 条有效评估证据。页面中的每个掌握结论均可追溯到原始事件。",
+        " 条有效评估证据。主动复习队列 " + (proactive?.summary?.dueCount || 0) +
+        " 个到期节点，高风险 " + (proactive?.summary?.highRiskCount || 0) +
+        " 个。页面中的每个掌握结论均可追溯到原始事件。",
     };
   }
   return {
