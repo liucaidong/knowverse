@@ -1,3 +1,4 @@
+import { createChallengeTaskContext } from "./learning-agent/challenge-task-context.mjs";
 import {
   completeStep,
   createChallengeProgressStore,
@@ -31,6 +32,7 @@ let world;
 let challenge;
 let progress;
 let progressStore;
+let challengeTaskContext = null;
 let selectedNode = "contracts";
 let completed = [];
 let stage = 0;
@@ -44,8 +46,14 @@ function selectNode(id) {
 }
 
 function persistProgress() {
-  const saved = progressStore?.save(progress) ?? false;
-  updateDashboard(saved);
+  const snapshot = progress ? structuredClone(progress) : null;
+  Promise.resolve(progressStore?.save(snapshot) ?? false).then(async saved => {
+    await challengeTaskContext?.completeIfFinished(snapshot);
+    updateDashboard(saved);
+  }).catch(error => {
+    console.error("[KNOWVERSE] Challenge progress save failed:", error);
+    updateDashboard(false);
+  });
 }
 
 function updateDashboard(saved = progressStore?.available ?? false) {
@@ -321,8 +329,9 @@ async function boot() {
   if (!challenge || challenge.steps.length !== 3) throw new Error("Monorepo challenge definition is missing or incomplete.");
 
   graph.nodes.forEach(node => names.set(node.id, node.name));
-  progressStore = createChallengeProgressStore();
-  progress = progressStore.load(challenge);
+  challengeTaskContext = await createChallengeTaskContext(challenge);
+  progressStore = createChallengeProgressStore({ strategyContext: challengeTaskContext.strategyContext });
+  progress = await progressStore.load(challenge);
   completed = (getStepProgress(progress, STEP.build).data.completedNodeIds || [])
     .filter(id => graph.nodes.some(node => node.id === id));
 

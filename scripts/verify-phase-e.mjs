@@ -271,21 +271,21 @@ test("review task requires an exact no-hint causal chain for every unresolved ga
   await s.taskOrchestrator.start(task.taskId, { at: startAt });
   const validStart = {
     ...learningEvent("review-start", "review_started", new Date(NOW.getTime() + 2000).toISOString(), {
-      sessionId: "review-session", sessionType: "review", gapId: "thenable-get-vs-call",
+      taskId: task.taskId, sessionId: "review-session", sessionType: "review", gapId: "thenable-get-vs-call",
       variantId: "new-variant", targetGapEventIds: ["failure-1"],
       causationEventIds: ["failure-1"],
     }),
   };
   const validAttempt = {
     ...learningEvent("review-attempt", "attempt", new Date(NOW.getTime() + 3000).toISOString(), {
-      sessionId: "review-session", sessionType: "review", gapId: "thenable-get-vs-call",
+      taskId: task.taskId, sessionId: "review-session", sessionType: "review", gapId: "thenable-get-vs-call",
       variantId: "new-variant", correct: true, hintsUsed: 0,
       targetGapEventIds: ["failure-1"], causationEventIds: ["review-start"],
     }),
   };
   const validPass = {
     ...learningEvent("review-pass", "assessment_passed", new Date(NOW.getTime() + 4000).toISOString(), {
-      sessionId: "review-session", sessionType: "review", gapId: "thenable-get-vs-call",
+      taskId: task.taskId, sessionId: "review-session", sessionType: "review", gapId: "thenable-get-vs-call",
       variantId: "new-variant", hintsUsed: 0,
       targetGapEventIds: ["failure-1"], causationEventIds: ["review-start", "review-attempt"],
     }),

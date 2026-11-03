@@ -89,6 +89,18 @@
         <p>基于真实学习事件，持续计算下一最佳行动、间隔复习、遗忘风险、薄弱点变化与目标完成区间。所有结论均可追溯；估算不会被描述为确定结果。</p>
       </div>
       <div id="proactive-kpis" class="lp-proactive-kpis"><div class="lp-empty">正在计算学习状态…</div></div>
+      <section class="lp-proactive-panel lp-strategy-panel" id="learning-strategy">
+        <div class="lp-proactive-panel-head"><h3>学习策略自校准</h3><span>LEARNING STRATEGY / CALIBRATION</span></div>
+        <div id="learning-strategy-content" class="lp-strategy-content"><p class="lp-empty">正在读取长期学习证据…</p></div>
+        <div class="lp-strategy-controls" aria-label="个性化策略控制">
+          <button class="lp-data-button primary" id="strategy-mode-adaptive" type="button">使用个性化策略</button>
+          <button class="lp-data-button" id="strategy-mode-default" type="button">暂用默认策略</button>
+          <span class="lp-strategy-feedback-label">对最近一次调整的反馈：</span>
+          <button class="lp-data-button" id="strategy-feedback-helpful" type="button">有帮助</button>
+          <button class="lp-data-button" id="strategy-feedback-not-helpful" type="button">不合适</button>
+        </div>
+        <p id="strategy-control-status" class="lp-plan-footnote" role="status">默认策略始终可用；个人策略只有在证据达到门槛后才会影响后续安排。</p>
+      </section>
       <div class="lp-proactive-layout">
         <div class="lp-proactive-column">
           <section class="lp-proactive-panel">

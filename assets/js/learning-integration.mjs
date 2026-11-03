@@ -1,5 +1,6 @@
 import { createLearningProgressStore } from "./learning-progress.mjs";
 import { createLearningCheckpointEngine } from "./learning-checkpoint-engine.mjs";
+import { createLearningTaskOrchestrator } from "./learning-agent/task-orchestrator.mjs";
 import { startLearningActivityTelemetry } from "./learning-activity.mjs";
 
 const siteRoot = new URL("../../", import.meta.url);
@@ -53,7 +54,7 @@ function injectStyles() {
   `;
   document.head.append(style);
 }
-function mountCheckpoint(work, checkpoint, store) {
+function mountCheckpoint(work, checkpoint, store, taskOrchestrator) {
   injectStyles();
   const engine = createLearningCheckpointEngine({ store, registry: [checkpoint] });
   const launcher = create("button", "kv-li-launcher", "知识检查 · 1 题");
@@ -81,6 +82,7 @@ function mountCheckpoint(work, checkpoint, store) {
   document.body.append(launcher, overlay);
 
   let activeSession = null;
+  let activeTask = null;
   const closeDialog = () => { overlay.hidden = true; launcher.focus(); };
   close.addEventListener("click", closeDialog);
   overlay.addEventListener("click", event => { if (event.target === overlay) closeDialog(); });
@@ -103,6 +105,11 @@ function mountCheckpoint(work, checkpoint, store) {
         for (const item of options.querySelectorAll("button")) item.disabled = true;
         try {
           const result = await engine.submit(activeSession.sessionId, option.id);
+          if (activeTask) {
+            activeTask = result.correct
+              ? await taskOrchestrator.complete(activeTask.taskId)
+              : await taskOrchestrator.fail(activeTask.taskId, { reason: "本次独立检查未通过" });
+          }
           const feedback = create("div", "kv-li-feedback " + (result.correct ? "good" : "bad"));
           feedback.append(create("strong", "", result.correct ? "验证通过 · 已记录独立证据" : "还需要补强这个概念"));
           feedback.append(create("p", "kv-li-explanation", result.explanation));
@@ -140,7 +147,21 @@ function mountCheckpoint(work, checkpoint, store) {
       return;
     }
     try {
-      activeSession = await engine.start(checkpoint.id);
+      const taskId = new URL(location.href).searchParams.get("taskId");
+      activeTask = taskId ? await taskOrchestrator.get(taskId) : null;
+      if (taskId && (!activeTask || !["challenge", "assessment"].includes(activeTask.taskType) ||
+          activeTask.variantId && activeTask.variantId !== checkpoint.id)) {
+        throw new Error("当前知识检查与计划任务不匹配，不能写入该任务的学习结果。");
+      }
+      if (activeTask?.status === "failed") activeTask = await taskOrchestrator.retry(activeTask.taskId);
+      if (activeTask?.status === "ready") activeTask = await taskOrchestrator.start(activeTask.taskId);
+      else if (activeTask?.status === "paused") {
+        activeTask = await taskOrchestrator.transition(activeTask.taskId, "in_progress");
+      }
+      if (activeTask && activeTask.status !== "in_progress") {
+        throw new Error("该学习任务当前状态为 " + activeTask.status + "，不能启动新的知识检查。");
+      }
+      activeSession = await engine.start(checkpoint.id, activeTask || {});
       renderQuestion();
       overlay.hidden = false;
       close.focus();
@@ -166,7 +187,7 @@ async function startLearningIntegration() {
     if (assessment?.type !== "checkpoint") return;
     const checkpoint = checkpointManifest.checkpoints.find(item => item.id === assessment.checkpointId && item.workId === work.id);
     if (!checkpoint) { console.error("[KNOWVERSE] Missing checkpoint registration for work:", work.id); return; }
-    mountCheckpoint(work, checkpoint, store);
+    mountCheckpoint(work, checkpoint, store, createLearningTaskOrchestrator());
   } catch (error) {
     console.error("[KNOWVERSE] Learning integration failed to initialize:", error);
   }

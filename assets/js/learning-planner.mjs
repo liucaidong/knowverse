@@ -236,6 +236,24 @@ export function buildAdaptiveLearningPlan(options = {}) {
     .sort((a, b) => Date.parse(a.nextReviewAt) - Date.parse(b.nextReviewAt));
   const candidates = [];
   const blocked = [];
+  const strategyProfile = options.strategyProfile || null;
+  const strategyActive = strategyProfile?.mode === "adaptive" && strategyProfile?.active === true;
+  const strategyDifficulty = strategyActive ? strategyProfile.recommendation?.difficulty || "maintain" : "maintain";
+  const difficultyFor = competencyId => {
+    if (!strategyActive) return "maintain";
+    const perCompetency = strategyProfile.recommendation?.difficultyByCompetency || {};
+    return Object.keys(perCompetency).length
+      ? perCompetency[competencyId] || "maintain"
+      : strategyDifficulty;
+  };
+  const strategyIntervention = strategyActive ? strategyProfile.recommendation?.intervention || "active-recall" : "active-recall";
+  const strategyInstruction = strategyIntervention === "guided-retrieval"
+    ? "先独立尝试；确有需要时逐级查看提示，之后换一个变体无提示验证。"
+    : strategyIntervention === "spaced-retrieval"
+      ? "本轮重点是主动回忆而非重读，失败后按较短间隔再次验证。"
+      : strategyIntervention === "transfer-challenge"
+        ? "优先使用未见过的题型或检查点，验证能否迁移应用。"
+        : "先主动回忆，再通过独立练习验证理解。";
 
   function prerequisitesReady(definition) {
     const unmet = new Map();
@@ -271,6 +289,7 @@ export function buildAdaptiveLearningPlan(options = {}) {
     const activeGaps = state.activeGaps || [];
     const focusBoost = preferences.focusTopicId !== "all" && preferences.focusTopicId === definition.topicId ? 12 : 0;
     const downstream = descendants.get(definition.id) || 0;
+    const competencyStrategyDifficulty = difficultyFor(definition.id);
 
     if (activeGaps.length) {
       for (const gap of activeGaps) {
@@ -297,6 +316,24 @@ export function buildAdaptiveLearningPlan(options = {}) {
           ].filter(Boolean),
           resource, state,
         }));
+      }
+      if (competencyStrategyDifficulty === "scaffold" && definition.lessonHref) {
+        const resource = {
+          href: definition.lessonHref,
+          resourceTitle: definition.title,
+          resourceLabel: "补充基础知识讲解",
+          resourceType: "lesson",
+          variantId: "scaffold-lesson:" + definition.id,
+          workId: null,
+        };
+        const scaffoldAction = makeAction({
+          today, type: "learn", competency: definition, minutes: 10,
+          priority: 108 + Math.min(8, downstream * 2) + focusBoost,
+          reasons: ["独立验证出现跨题型困难，先补充基础解释", "针对性复习仍然优先，基础讲解用于降低后续挑战跨度"],
+          resource, state,
+        });
+        scaffoldAction.strategyCompanion = true;
+        candidates.push(scaffoldAction);
       }
       continue;
     }
@@ -355,16 +392,42 @@ export function buildAdaptiveLearningPlan(options = {}) {
         });
       }
     } else if (["weak", "building"].includes(state.status)) {
-      const resource = practiceResource(definition, options.worksManifest, options.checkpointRegistry, options.challengeRegistry,
-        usedVariantsByCompetency.get(definition.id) || new Set());
+      const resource = competencyStrategyDifficulty === "scaffold" && definition.lessonHref
+        ? {
+            href: definition.lessonHref,
+            resourceTitle: definition.title,
+            resourceLabel: "补充基础知识讲解",
+            resourceType: "lesson",
+            variantId: "scaffold-lesson:" + definition.id,
+            workId: null,
+          }
+        : practiceResource(definition, options.worksManifest, options.checkpointRegistry, options.challengeRegistry,
+          usedVariantsByCompetency.get(definition.id) || new Set());
       if (resource) action = makeAction({
-        today, type: "practice", competency: definition, minutes: 15,
+        today, type: competencyStrategyDifficulty === "scaffold" && definition.lessonHref ? "learn" : "practice",
+        competency: definition, minutes: competencyStrategyDifficulty === "scaffold" && definition.lessonHref ? 10 : 15,
         priority: 82 + Math.min(8, downstream * 2) + focusBoost,
         reasons: [
-          state.status === "weak" ? "近期证据显示需要补强" : "理解正在建立，需要增加主动练习",
-          "通过对应实验或挑战产生新的验证证据",
+          competencyStrategyDifficulty === "scaffold" && definition.lessonHref
+            ? "独立验证显示基础仍需巩固，先补充解释和示例"
+            : state.status === "weak" ? "近期证据显示需要补强" : "理解正在建立，需要增加主动练习",
+          "后续仍需通过独立挑战产生能力证据",
           focusBoost ? "符合当前优先专题" : null,
         ].filter(Boolean),
+        resource, state,
+      });
+    } else if (["initial", "stable"].includes(state.status) &&
+        (competencyStrategyDifficulty === "stretch" || strategyIntervention === "transfer-challenge")) {
+      const resource = practiceResource(definition, options.worksManifest, options.checkpointRegistry,
+        options.challengeRegistry, usedVariantsByCompetency.get(definition.id) || new Set());
+      if (resource) action = makeAction({
+        today, type: "validate", competency: definition, minutes: 15,
+        priority: (state.status === "stable" ? 66 : 71) + Math.min(8, downstream * 2) + focusBoost,
+        reasons: [
+          "近期无提示独立表现达到尝试更高难度的门槛",
+          "优先选择尚未使用的检查点或挑战变体，检验知识迁移",
+          "本次挑战仍需独立完成，不能以提示辅助成功替代掌握证据",
+        ],
         resource, state,
       });
     } else if (state.status === "initial" && state.evidenceCount < 2) {
@@ -442,7 +505,7 @@ export function buildAdaptiveLearningPlan(options = {}) {
         a.topicTitle.localeCompare(b.topicTitle, "zh-CN");
     });
     const index = pending.findIndex(candidate =>
-      !seenCompetencies.has(candidate.competencyId) &&
+      (!seenCompetencies.has(candidate.competencyId) || candidate.strategyCompanion) &&
       candidate.estimatedMinutes <= remaining
     );
     if (index < 0) break;
@@ -453,11 +516,30 @@ export function buildAdaptiveLearningPlan(options = {}) {
       startedToday: activity.started.has(candidate.actionId),
       sequence: selected.length + 1,
     });
-    seenCompetencies.add(candidate.competencyId);
+    if (!candidate.strategyCompanion) seenCompetencies.add(candidate.competencyId);
     candidate.linkedGoalIds.forEach(goalId => coveredGoals.add(goalId));
     remaining -= candidate.estimatedMinutes;
   }
 
+  const strategyDecisionId = strategyActive ? strategyProfile.lastDecision?.decisionId || null : null;
+  const interventionFor = action => strategyActive
+    ? strategyProfile.recommendation?.intervention || "active-recall"
+    : action.type === "repair" ? "targeted-repair"
+      : action.type === "review" ? "active-recall"
+        : action.type === "learn" ? "worked-example"
+          : action.type === "practice" ? "stepwise-practice" : "transfer-challenge";
+  const personalizedActions = selected.map(action => ({
+    ...action,
+    strategyDecisionId,
+    strategyProfileRevision: strategyProfile?.profileRevision || 0,
+    learningIntervention: interventionFor(action),
+    strategyInstruction,
+    difficultyLevel: strategyActive
+      ? strategyProfile.recommendation?.difficultyByCompetency?.[action.competencyId] ||
+        strategyProfile.recommendation?.difficulty || "maintain"
+      : "maintain",
+    strategyEvidenceRefs: strategyActive ? (strategyProfile.lastDecision?.evidenceRefs || []).slice(0, 12) : [],
+  }));
   const completedToday = [...activity.completed];
   const nextScheduledAt = futureDue[0]?.nextReviewAt || null;
   const first = selected[0] || null;
@@ -496,7 +578,9 @@ export function buildAdaptiveLearningPlan(options = {}) {
     maxActions,
     plannedMinutes: selected.reduce((sum, item) => sum + item.estimatedMinutes, 0),
     remainingMinutes: Math.max(0, remaining),
-    actions: selected,
+    actions: personalizedActions,
+    strategyDecisionId,
+    strategyProfileRevision: strategyProfile?.profileRevision || 0,
     candidateCount: candidates.length,
     completedTodayCount: completedToday.length,
     completedMinutesToday: activity.completedMinutes,
@@ -535,6 +619,10 @@ export async function recordLearningPlanAction(store, action, status, options = 
     workId: action.workId || null,
     targetHref: action.href || null,
     estimatedMinutes: Number(action.estimatedMinutes) || 0,
+    strategyDecisionId: action.strategyDecisionId || null,
+    learningIntervention: action.learningIntervention || null,
+    strategyInstruction: action.strategyInstruction || null,
+    difficultyLevel: action.difficultyLevel || "maintain",
   };
   await store.appendMany([event]);
   return event;

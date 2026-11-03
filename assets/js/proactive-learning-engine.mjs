@@ -6,11 +6,12 @@ import { deriveReviewSchedules, SPACED_REPETITION_VERSION } from "./spaced-repet
 import { analyzeWeaknessTrends, deriveForgettingRisks, diagnoseLearningState, forecastLearningGoals, RISK_ENGINE_VERSION } from "./learning-risk-engine.mjs";
 import { rankNextBestActions, NEXT_BEST_ACTION_VERSION } from "./next-best-action.mjs";
 import { getLearningRepository } from "./backend/learning-repository.mjs";
+import { createLearningStrategyEngine, LEARNING_STRATEGY_VERSION } from "./learning-strategy-engine.mjs";
 
 export const PROACTIVE_PROJECTION_TYPE = "proactive_learning_projection";
 export const PROACTIVE_PROJECTION_KEY = "current";
-export const PROACTIVE_PROJECTION_SCHEMA = 2;
-const PROACTIVE_ENGINE_VERSION = 2;
+export const PROACTIVE_PROJECTION_SCHEMA = 3;
+const PROACTIVE_ENGINE_VERSION = 3;
 const HOUR_MS = 3_600_000;
 
 function stableHash(value) {
@@ -35,14 +36,20 @@ function eventFingerprint(event) {
     event.variantId, event.challengeId, event.stepId, event.correct, event.gapId,
     event.gapObservationId, event.scorePct, event.hintsUsed, event.attempts, event.independent,
     event.causationEventIds, event.targetGapEventIds,
+    event.strategyDecisionId, event.learningIntervention, event.difficultyLevel,
   ];
 }
 
-function sourceFingerprint({ events, goals, preferences, tasks, learningMap, challengeRegistry, now }) {
+function sourceFingerprint({ events, goals, preferences, tasks, learningMap, challengeRegistry, strategyProfile, now }) {
   const hourBucket = Math.floor(now.getTime() / HOUR_MS);
   const source = {
-    algorithm: [PROACTIVE_ENGINE_VERSION, SPACED_REPETITION_VERSION, RISK_ENGINE_VERSION, NEXT_BEST_ACTION_VERSION],
+    algorithm: [PROACTIVE_ENGINE_VERSION, SPACED_REPETITION_VERSION, RISK_ENGINE_VERSION,
+      NEXT_BEST_ACTION_VERSION, LEARNING_STRATEGY_VERSION],
     hourBucket,
+    strategy: strategyProfile ? [
+      strategyProfile.profileRevision, strategyProfile.mode, strategyProfile.sourceFingerprint,
+      strategyProfile.parameters, strategyProfile.recommendation,
+    ] : null,
     events: events.map(eventFingerprint).sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
     goals: goals.map(item => [
       item.goalId, item.revision, item.status, item.targetAt, item.priority,
@@ -52,6 +59,7 @@ function sourceFingerprint({ events, goals, preferences, tasks, learningMap, cha
     preferences: {
       dailyMinutes: preferences.dailyMinutes, weeklyDays: preferences.weeklyDays,
       preferredTopicIds: preferences.preferredTopicIds, learningModes: preferences.learningModes,
+      personalizationMode: preferences.personalizationMode || "adaptive",
     },
     graph: (learningMap.topics || []).map(topic => [
       topic.id, (topic.competencies || []).map(item => [item.id, item.prerequisites, item.lessonHref, item.challengeHref]),
@@ -73,6 +81,7 @@ function safeProjection(payload) {
     payload.algorithmVersions?.spacedRepetition === SPACED_REPETITION_VERSION &&
     payload.algorithmVersions?.risk === RISK_ENGINE_VERSION &&
     payload.algorithmVersions?.nextBestAction === NEXT_BEST_ACTION_VERSION &&
+    payload.algorithmVersions?.learningStrategy === LEARNING_STRATEGY_VERSION &&
     typeof payload.sourceFingerprint === "string" &&
     Array.isArray(payload.schedules) && Array.isArray(payload.risks) &&
     Array.isArray(payload.nextBestActions) && Array.isArray(payload.timeline));
@@ -103,6 +112,8 @@ const TIMELINE_EVENT_LABELS = Object.freeze({
   learning_task_failed: "任务验证失败",
   learning_task_skipped: "跳过学习任务",
   learning_task_cancelled: "取消学习任务",
+  learning_strategy_calibrated: "调整个性化学习策略",
+  learning_strategy_feedback: "收到学习策略反馈",
 });
 
 function buildLearningTimeline(events, risks, schedules, now) {
@@ -175,6 +186,9 @@ export function createProactiveLearningEngine(options = {}) {
   const goalManager = options.goalManager || null;
   const taskOrchestrator = options.taskOrchestrator || null;
   const profileStore = options.profileStore || null;
+  const strategyEngine = options.strategyEngine || createLearningStrategyEngine({
+    repository: options.repository, profileStore,
+  });
   let refreshPromise = null;
   let refreshAgain = false;
   let queuedRefreshOptions = null;
@@ -212,16 +226,22 @@ export function createProactiveLearningEngine(options = {}) {
       throw new TypeError("Learning Map and challenge registry are required.");
     }
     const repository = await repositoryPromise;
-    const [events, goals, preferences, allTasks, projectionRow] = await Promise.all([
+    const [initialEvents, goals, preferences, allTasks, projectionRow] = await Promise.all([
       repository.events.list(),
       goalManager?.list?.() || Promise.resolve([]),
       profileStore?.loadPreferences?.() || Promise.resolve({ dailyMinutes: 25, weeklyDays: 5, preferredTopicIds: [] }),
       taskOrchestrator?.list?.() || Promise.resolve([]),
       repository.documents.get(PROACTIVE_PROJECTION_TYPE, PROACTIVE_PROJECTION_KEY),
     ]);
+    const strategyProfile = await strategyEngine.refresh({
+      events: initialEvents, mode: preferences.personalizationMode || "adaptive", now: current,
+    });
+    // The calibration and its audit event are committed atomically. Re-read the append-only log
+    // so the projection fingerprint and timeline describe the same committed source snapshot.
+    const events = await repository.events.list();
 
     const fingerprint = sourceFingerprint({
-      events, goals, preferences, tasks: allTasks, learningMap, challengeRegistry, now: current,
+      events, goals, preferences, tasks: allTasks, learningMap, challengeRegistry, strategyProfile, now: current,
     });
     const cached = projectionRow?.payload;
     const computedAt = Date.parse(cached?.computedAt || "");
@@ -238,7 +258,7 @@ export function createProactiveLearningEngine(options = {}) {
     }
 
     let insights = deriveLearningInsights(learningMap, challengeRegistry, { events }, current);
-    const schedules = deriveReviewSchedules({ learningMap, events, insights, now: current });
+    const schedules = deriveReviewSchedules({ learningMap, events, insights, strategyProfile, now: current });
     const risks = deriveForgettingRisks({ schedules, insights, learningMap, now: current });
     const trends = analyzeWeaknessTrends({ events, insights, learningMap, now: current });
     const forecasts = forecastLearningGoals({
@@ -282,6 +302,12 @@ export function createProactiveLearningEngine(options = {}) {
               scheduleStatus: "relearning",
               estimatedMinutes: 12,
               evidenceRefs,
+              strategyDecisionId: strategyProfile.active ? strategyProfile.lastDecision?.decisionId || null : null,
+              strategyProfileRevision: strategyProfile.profileRevision || 0,
+              learningIntervention: strategyProfile.recommendation?.intervention || "active-recall",
+              strategyInstruction: strategyProfile.active ? strategyProfile.lastDecision?.reasons?.join("；") || null : null,
+              difficultyLevel: strategyProfile.recommendation?.difficulty || "maintain",
+              strategyEvidenceRefs: strategyProfile.active ? strategyProfile.lastDecision?.evidenceRefs || [] : [],
               at: deterministicAt,
             });
             if (task) taskCreation.push(task);
@@ -302,6 +328,12 @@ export function createProactiveLearningEngine(options = {}) {
             scheduleStatus: schedule.status,
             estimatedMinutes: 8,
             evidenceRefs: schedule.evidenceRefs,
+            strategyDecisionId: strategyProfile.active ? strategyProfile.lastDecision?.decisionId || null : null,
+            strategyProfileRevision: strategyProfile.profileRevision || 0,
+            learningIntervention: strategyProfile.recommendation?.intervention || "active-recall",
+            strategyInstruction: strategyProfile.active ? strategyProfile.lastDecision?.reasons?.join("；") || null : null,
+            difficultyLevel: strategyProfile.recommendation?.difficulty || "maintain",
+            strategyEvidenceRefs: strategyProfile.active ? strategyProfile.lastDecision?.evidenceRefs || [] : [],
             at: new Date(schedule.dueAt || current),
           });
           if (task) taskCreation.push(task);
@@ -317,25 +349,26 @@ export function createProactiveLearningEngine(options = {}) {
       const changed = refreshed.length !== events.length;
       if (changed) insights = deriveLearningInsights(learningMap, challengeRegistry, { events: refreshed }, current);
       const finalFingerprint = sourceFingerprint({
-        events: refreshed, goals, preferences, tasks, learningMap, challengeRegistry, now: current,
+        events: refreshed, goals, preferences, tasks, learningMap, challengeRegistry, strategyProfile, now: current,
       });
       return persistProjection({
         repository, projectionRow, current, fingerprint: finalFingerprint,
         events: refreshed, goals, preferences, tasks, insights, schedules, risks, trends, forecasts,
-        taskCreation, casRetry,
+        strategyProfile, taskCreation, casRetry,
       });
     }
 
     return persistProjection({
       repository, projectionRow, current, fingerprint,
-      events, goals, preferences, tasks, insights, schedules, risks, trends, forecasts, taskCreation, casRetry,
+      events, goals, preferences, tasks, insights, schedules, risks, trends, forecasts,
+      strategyProfile, taskCreation, casRetry,
     });
   }
 
   async function persistProjection(context) {
     const {
       repository, projectionRow, current, fingerprint, events, goals, preferences, tasks,
-      insights, schedules, risks, trends, forecasts, taskCreation, casRetry = 0,
+      insights, schedules, risks, trends, forecasts, strategyProfile, taskCreation, casRetry = 0,
     } = context;
     const diagnostics = diagnoseLearningState({
       events, goals, tasks, schedules, risks, trends, goalForecasts: forecasts,
@@ -356,7 +389,10 @@ export function createProactiveLearningEngine(options = {}) {
         spacedRepetition: SPACED_REPETITION_VERSION,
         risk: RISK_ENGINE_VERSION,
         nextBestAction: NEXT_BEST_ACTION_VERSION,
+        learningStrategy: LEARNING_STRATEGY_VERSION,
       },
+      strategyProfile,
+      strategyEffectiveness: strategyProfile?.effectiveness || null,
       sourceFingerprint: fingerprint,
       sourceEventCount: events.length,
       latestEvidenceAt: latestEvidence(events),
@@ -421,5 +457,10 @@ export function createProactiveLearningEngine(options = {}) {
       : null;
   }
 
-  return Object.freeze({ refresh, getCurrent });
+  async function feedback(input) {
+    await strategyEngine.feedback(input);
+    return refresh({ force: true });
+  }
+
+  return Object.freeze({ refresh, getCurrent, feedback });
 }

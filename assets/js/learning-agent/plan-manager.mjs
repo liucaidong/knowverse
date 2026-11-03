@@ -26,6 +26,9 @@ function planEvent(plan, type, extra = {}, at = nowIso()) {
     planStatus: plan.status,
     reason: plan.reason || null,
     taskCount: plan.actions?.length || 0,
+    strategyDecisionId: plan.strategyDecisionId || null,
+    strategyProfileRevision: plan.strategyProfileRevision || null,
+    strategyAlgorithmVersion: plan.strategyAlgorithmVersion || null,
   };
 }
 
@@ -85,7 +88,13 @@ export function createLearningPlanManager(options = {}) {
         if (offset < horizonDays && !studyOffsets.includes(offset)) studyOffsets.push(offset);
       }
     }
-    const totalBudgetMinutes = mergedPreferences.dailyMinutes * studyOffsets.length;
+    const strategyProfile = context.proactiveProjection?.strategyProfile || null;
+    const strategyActive = strategyProfile?.mode === "adaptive" && strategyProfile?.active === true;
+    const taskLoadMultiplier = strategyActive
+      ? Math.max(0.85, Math.min(1, Number(strategyProfile?.parameters?.taskLoadMultiplier) || 1))
+      : 1;
+    const effectiveDailyMinutes = Math.max(10, Math.floor(mergedPreferences.dailyMinutes * taskLoadMultiplier));
+    const totalBudgetMinutes = effectiveDailyMinutes * studyOffsets.length;
     const deterministic = buildAdaptiveLearningPlan({
       learningMap: context.learningMap,
       challengeRegistry: context.challengeRegistry,
@@ -97,6 +106,7 @@ export function createLearningPlanManager(options = {}) {
       maxActions: Math.min(30, Math.max(3, studyOffsets.length * 3)),
       goals,
       reviewSchedules: context.proactiveProjection?.schedules || [],
+      strategyProfile,
       existingTasks: await taskOrchestrator.list(),
       now: context.now || new Date(),
     });
@@ -111,14 +121,14 @@ export function createLearningPlanManager(options = {}) {
           String(date.getDate()).padStart(2, "0")].join("-"),
         dayNumber: offset + 1,
         studyDayNumber: index + 1,
-        dailyBudgetMinutes: mergedPreferences.dailyMinutes,
+        dailyBudgetMinutes: effectiveDailyMinutes,
         plannedMinutes: 0,
         actionIds: [],
       };
     });
-    const remainingByDay = schedule.map(() => mergedPreferences.dailyMinutes);
+    const remainingByDay = schedule.map(() => effectiveDailyMinutes);
     if (remainingByDay.length) {
-      remainingByDay[0] = Math.max(0, mergedPreferences.dailyMinutes - deterministic.completedMinutesToday);
+      remainingByDay[0] = Math.max(0, effectiveDailyMinutes - deterministic.completedMinutesToday);
       schedule[0].plannedMinutes = 0;
     }
     const countByDay = schedule.map(() => 0);
@@ -133,6 +143,14 @@ export function createLearningPlanManager(options = {}) {
       if (assigned < 0) continue;
       const action = {
         ...candidate,
+        strategyDecisionId: strategyActive ? strategyProfile.lastDecision?.decisionId || null : null,
+        strategyProfileRevision: strategyProfile?.profileRevision || 0,
+        learningIntervention: strategyActive ? strategyProfile.recommendation?.intervention || "active-recall" :
+          (candidate.type === "repair" ? "targeted-repair" : candidate.type === "review" ? "active-recall" :
+            candidate.type === "learn" ? "worked-example" : candidate.type === "practice" ? "stepwise-practice" : "transfer-challenge"),
+        strategyInstruction: candidate.strategyInstruction || null,
+        difficultyLevel: strategyActive ? strategyProfile.recommendation?.difficulty || "maintain" : "maintain",
+        strategyEvidenceRefs: strategyActive ? (strategyProfile.lastDecision?.evidenceRefs || []).slice(0, 12) : [],
         sequence: scheduledActions.length + 1,
         planDate: schedule[assigned].date,
         studyDayNumber: schedule[assigned].studyDayNumber,
@@ -169,7 +187,12 @@ export function createLearningPlanManager(options = {}) {
       supersedesProposalId: currentPlan.proposal?.planId || null,
       proposedAfterPlanId: currentPlan.active?.planId || null,
       planner: "deterministic",
-      plannerVersion: 2,
+      plannerVersion: 3,
+      strategyDecisionId: strategyActive ? strategyProfile.lastDecision?.decisionId || null : null,
+      strategyProfileRevision: strategyProfile?.profileRevision || 0,
+      strategyAlgorithmVersion: strategyProfile?.algorithmVersion || null,
+      strategyEvidenceRefs: strategyActive ? (strategyProfile.lastDecision?.evidenceRefs || []).slice(0, 20) : [],
+      strategyReason: strategyActive ? (strategyProfile.lastDecision?.reasons || []).join("；") : "当前采用通用策略或个性化证据不足",
       preferences: mergedPreferences,
       linkedGoalIds: goals.filter(goal => goal.status === "active").map(goal => goal.goalId),
       goalAllocations,
@@ -276,6 +299,11 @@ export function createLearningPlanManager(options = {}) {
       actionId: task.actionId,
       planDate: task.planDate,
       estimatedMinutes: task.estimatedMinutes,
+      strategyDecisionId: task.strategyDecisionId || null,
+      strategyProfileRevision: task.strategyProfileRevision || null,
+      learningIntervention: task.learningIntervention || null,
+      strategyInstruction: task.strategyInstruction || null,
+      difficultyLevel: task.difficultyLevel || "maintain",
     }))];
     await repository.commit({
       events,

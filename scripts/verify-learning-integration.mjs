@@ -10,7 +10,8 @@ beforeEach(async () => {
   await deleteLocalDatabaseForTests();
 });
 import { createLearningCheckpointEngine } from "../assets/js/learning-checkpoint-engine.mjs";
-import { createLearningProgressStore, deriveLearningInsights } from "../assets/js/learning-progress.mjs";
+import { createChallengeLearningEvents, createLearningProgressStore, deriveLearningInsights } from "../assets/js/learning-progress.mjs";
+import { completeStep, createChallengeProgress, recordAttempt, setStepData } from "../assets/js/challenge-engine.mjs";
 import { createReviewSessionEngine } from "../assets/js/review-engine.mjs";
 
 const readJSON = async path => JSON.parse(await readFile(new URL(path, import.meta.url), "utf8"));
@@ -97,6 +98,58 @@ test("checkpoint errors create precise gaps but only independent Review can reso
   assert.equal((await review.submit(reviewB.sessionId, reviewB.answer)).correct, true);
   insight = deriveLearningInsights(map, challenges, await store.load(), new Date("2026-11-01T12:00:00.000Z"));
   assert.ok(insight.resolvedGaps.some(item => item.id === "build-cache-input-coverage"));
+});
+
+test("campaign challenge completion events carry strategy provenance and distinguish hint-assisted results", async () => {
+  const registry = await readJSON("../content/challenges.json");
+  const challenge = registry.challenges.find(item => item.id === "promise-mechanism-quest");
+  const step = challenge.steps[0];
+  let progress = createChallengeProgress(challenge);
+  const previous = progress;
+  progress = recordAttempt(progress, step.id);
+  progress = setStepData(progress, step.id, {
+    lastOptionId: step.answer, correctOptionId: step.answer,
+  });
+  progress = completeStep(progress, challenge, step.id);
+  const events = createChallengeLearningEvents(challenge, previous, progress, {
+    strategyContext: {
+      taskId: "campaign-task", strategyDecisionId: "campaign-decision",
+      strategyProfileRevision: 3, learningIntervention: "transfer-challenge",
+      strategyInstruction: "尝试新题型", difficultyLevel: "stretch",
+    },
+  });
+  const attempt = events.find(item => item.type === "attempt");
+  const completed = events.find(item => item.type === "completed");
+  assert.equal(attempt.taskId, "campaign-task");
+  assert.equal(completed.strategyDecisionId, "campaign-decision");
+  assert.equal(completed.strategyProfileRevision, 3);
+  assert.equal(completed.learningIntervention, "transfer-challenge");
+  assert.equal(completed.difficultyLevel, "stretch");
+  assert.equal(completed.independent, true);
+});
+
+test("checkpoint learning evidence retains the strategy decision attached to its task", async () => {
+  const registry = await readJSON("../content/learning-checkpoints.json");
+  const checkpoint = registry.checkpoints.find(item => item.id === "cp-promise-identity");
+  const store = createLearningProgressStore();
+  const engine = createLearningCheckpointEngine({ store, registry: [checkpoint] });
+  const session = await engine.start(checkpoint.id, {
+    strategyDecisionId: "checkpoint-strategy-decision",
+    strategyProfileRevision: 7,
+    learningIntervention: "transfer-challenge",
+    strategyInstruction: "使用新的检查点验证知识迁移。",
+    difficultyLevel: "stretch",
+  });
+  assert.equal(session.strategyDecisionId, "checkpoint-strategy-decision");
+  assert.equal((await engine.submit(session.sessionId, checkpoint.answer)).correct, true);
+  const events = (await store.load()).events;
+  const started = events.find(item => item.type === "checkpoint_started");
+  const passed = events.find(item => item.type === "assessment_passed");
+  assert.equal(started.strategyDecisionId, "checkpoint-strategy-decision");
+  assert.equal(passed.strategyDecisionId, "checkpoint-strategy-decision");
+  assert.equal(passed.strategyProfileRevision, 7);
+  assert.equal(passed.learningIntervention, "transfer-challenge");
+  assert.equal(passed.difficultyLevel, "stretch");
 });
 
 test("a correct checkpoint creates one independent no-hint evidence variant", async () => {

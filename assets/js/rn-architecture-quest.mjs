@@ -1,20 +1,23 @@
+import {createChallengeTaskContext} from "./learning-agent/challenge-task-context.mjs";
 import {completeStep,createChallengeProgressStore,getStepProgress,recordAttempt,revealNextHint,setStepData,summarizeChallenge} from "./challenge-engine.mjs";
 const root=new URL("../../",import.meta.url);
 const $=id=>document.getElementById(id);
-let challenge,progress,store,activeStep,selected=null;
+let challenge,progress,store,activeStep,selected=null,challengeTaskContext=null;
 async function load(){
  const response=await fetch(new URL("content/challenges.json",root),{cache:"no-store"});
  if(!response.ok)throw new Error("无法载入挑战注册表："+response.status);
  const registry=await response.json();
  challenge=registry.challenges.find(x=>x.id==="rn-architecture-quest");
  if(!challenge)throw new Error("挑战尚未注册。");
- store=createChallengeProgressStore();
+ challengeTaskContext=await createChallengeTaskContext(challenge);
+ store=createChallengeProgressStore({strategyContext:challengeTaskContext.strategyContext});
  progress=await store.load(challenge);
  $("quest-save-status").textContent=store.available?"进度已保存在本设备的 IndexedDB":"当前浏览器不支持 IndexedDB";
  render();
 }
 async function save(){
  await store.save(progress);
+ await challengeTaskContext?.completeIfFinished(progress);
  $("quest-save-status").textContent="进度已安全写入本地 IndexedDB。";
 }
 function render(){

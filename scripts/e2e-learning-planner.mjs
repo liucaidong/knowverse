@@ -118,3 +118,61 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
     await browser.close();
   }
 });
+
+test("Chromium desktop: strategy mode is user-controlled and persists through reload", { timeout:60000 }, async () => {
+  const browser = await chromium.launch({ headless:true });
+  try {
+    const context = await browser.newContext({ viewport:{ width:1440, height:1000 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
+    await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
+    await page.locator("#strategy-mode-default").click();
+    await page.waitForFunction(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
+      return row?.payload?.personalizationMode === "default";
+    });
+    await page.reload({ waitUntil:"domcontentloaded" });
+    await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
+    await page.waitForFunction(() =>
+      document.querySelector("#strategy-mode-default")?.getAttribute("aria-pressed") === "true");
+    const mode = await page.evaluate(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      return (await getLearningRepository()).documents.get("learner_profile", "preferences").then(row => row.payload.personalizationMode);
+    });
+    assert.equal(mode, "default");
+    assert.equal(await page.locator("#strategy-mode-default").getAttribute("aria-pressed"), "true");
+    await page.locator("#strategy-mode-adaptive").click();
+    await page.waitForFunction(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
+      return row?.payload?.personalizationMode === "adaptive";
+    });
+    assert.deepEqual(errors, []);
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});
+
+test("WebKit mobile: strategy panel controls remain within a narrow viewport", { timeout:60000 }, async () => {
+  const browser = await webkit.launch({ headless:true });
+  try {
+    const context = await browser.newContext({ viewport:{ width:390, height:844 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
+    await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
+    const box = await page.locator("#learning-strategy").boundingBox();
+    assert.ok(box && box.width <= 390, "strategy panel must fit the mobile viewport");
+    const controls = await page.locator(".lp-strategy-controls").boundingBox();
+    assert.ok(controls && controls.x >= 0 && controls.x + controls.width <= 390);
+    assert.deepEqual(errors, []);
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});

@@ -29,6 +29,7 @@ export function normalizeLearnerPreferences(value = {}) {
     goal: typeof value.goal === "string" ? value.goal.trim().slice(0, 500) : "",
     targetAt: value.targetAt && Number.isFinite(Date.parse(value.targetAt))
       ? new Date(value.targetAt).toISOString() : null,
+    personalizationMode: value.personalizationMode === "default" ? "default" : "adaptive",
   };
 }
 

@@ -134,6 +134,69 @@ test("prerequisite gating checks the entire ancestor chain, not only the direct 
   assert.ok(!result.actions.some(item => item.competencyId === "chain-error-propagation"));
 });
 
+test("a calibrated stretch strategy schedules a new independent transfer variant for stable knowledge", async () => {
+  const f = await fixtures();
+  const snapshot = { events: [40, 28, 16, 5].map((days, index) => evidence({
+    id: "stretch-" + index,
+    competencyId: "thenable-adoption",
+    at: new Date(NOW.getTime() - days * 86_400_000).toISOString(),
+    variantId: "previous-variant-" + index,
+  })) };
+  const result = buildAdaptiveLearningPlan({
+    ...f, snapshot, preferences: { dailyMinutes: 60, focusTopicId: "all" }, now: NOW,
+    strategyProfile: {
+      mode: "adaptive", active: true, profileRevision: 2,
+      recommendation: { difficulty: "stretch", intervention: "transfer-challenge" },
+      lastDecision: {
+        decisionId: "stretch-decision",
+        evidenceRefs: ["stretch-0", "stretch-1", "stretch-2", "stretch-3"],
+      },
+    },
+  });
+  const action = result.actions.find(item => item.competencyId === "thenable-adoption");
+  assert.ok(action, "a stable competency should receive an unused transfer action");
+  assert.equal(action.type, "validate");
+  assert.equal(action.difficultyLevel, "stretch");
+  assert.equal(action.learningIntervention, "transfer-challenge");
+  assert.equal(action.strategyDecisionId, "stretch-decision");
+  assert.match(action.strategyInstruction, /未见过|迁移/);
+  assert.ok(!snapshot.events.some(item => item.variantId === action.variantId));
+});
+
+test("a scaffold strategy preserves urgent gap repair and adds a foundation companion action", async () => {
+  const f = await fixtures();
+  const snapshot = { events: [{
+    id: "scaffold-gap",
+    type: "attempt",
+    at: "2026-11-01T09:00:00.000Z",
+    topicId: "promise",
+    challengeId: "promise-mechanism-quest",
+    challengeTitle: "时序裂隙",
+    stepId: "thenable-adoption",
+    stepTitle: "Thenable",
+    competencyIds: ["thenable-adoption"],
+    sessionId: "scaffold-session",
+    sessionType: "campaign",
+    variantId: "failed-variant",
+    correct: false,
+    gapId: "thenable-get-vs-call",
+    hintsUsed: 0,
+  }] };
+  const result = buildAdaptiveLearningPlan({
+    ...f, snapshot, preferences: { dailyMinutes: 60, focusTopicId: "all" }, now: NOW,
+    strategyProfile: {
+      mode: "adaptive", active: true, profileRevision: 3,
+      recommendation: { difficulty: "scaffold", intervention: "guided-retrieval" },
+      lastDecision: { decisionId: "scaffold-decision", evidenceRefs: ["scaffold-gap"] },
+    },
+  });
+  const sameCompetency = result.actions.filter(item => item.competencyId === "thenable-adoption");
+  assert.equal(sameCompetency[0]?.type, "repair");
+  assert.ok(sameCompetency.some(item => item.type === "learn" && item.strategyCompanion === true));
+  assert.ok(sameCompetency.every(item => item.difficultyLevel === "scaffold"));
+  assert.ok(sameCompetency.every(item => item.strategyDecisionId === "scaffold-decision"));
+});
+
 test("an overdue competency is scheduled for review before new learning", async () => {
   const f = await fixtures();
   const snapshot = { events: [evidence({

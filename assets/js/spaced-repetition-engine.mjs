@@ -3,7 +3,7 @@ import { normalizeLearningEvent } from "./learning-event-schema.mjs";
 export const REVIEW_STATES = Object.freeze([
   "new", "learning", "scheduled", "due", "overdue", "relearning", "stable",
 ]);
-export const SPACED_REPETITION_VERSION = 1;
+export const SPACED_REPETITION_VERSION = 2;
 const DAY_MS = 86_400_000;
 const clamp = (n, min, max) => Math.min(max, Math.max(min, n));
 const validDate = value => Number.isFinite(Date.parse(value));
@@ -66,7 +66,7 @@ function sessionQuality(rows) {
 
 /** Pure, deterministic scheduler. Mastery and gap status remain owned by Learning Intelligence. */
 export function calculateReviewSchedule({
-  competencyId, events = [], intelligence = null, now = new Date(),
+  competencyId, events = [], intelligence = null, strategyProfile = null, now = new Date(),
 } = {}) {
   if (typeof competencyId !== "string" || !competencyId.trim()) {
     throw new TypeError("competencyId is required.");
@@ -109,9 +109,17 @@ export function calculateReviewSchedule({
   })();
   const latestEvidenceAt = latest?.at || intelligence?.lastEvidenceAt || null;
   const lastEffectiveAt = latest?.at || null;
-  const intervalDays = latest
+  const baseIntervalDays = latest
     ? latest.quality === 0 ? 1 : Math.max(1, stabilityDays)
     : gaps.length ? 0 : null;
+  const competencyDelayEvidence = strategyProfile?.evidence?.delayedRecall?.byCompetency?.[competencyId];
+  const strategyMultiplier = strategyProfile?.mode === "adaptive" &&
+    strategyProfile?.active === true &&
+    Number(competencyDelayEvidence?.independentObservations) >= 3
+      ? clamp(Number(strategyProfile?.parameters?.reviewIntervalsByCompetency?.[competencyId]) || 1, 0.85, 1.15)
+      : 1;
+  const intervalDays = baseIntervalDays === null
+    ? null : gaps.length ? 0 : halfDay(clamp(baseIntervalDays * strategyMultiplier, 0.5, 60));
   const activeGapIds = new Set(gaps.map(item => item.id));
   const latestOpenFailure = relevant
     .filter(event => event.type === "attempt" && event.correct === false &&
@@ -155,7 +163,7 @@ export function calculateReviewSchedule({
   const failureCount = reviews.filter(item => !item.passed).length;
   return {
     competencyId, status, lastEvidenceAt: latestEvidenceAt,
-    dueAt, intervalDays, stabilityDays,
+    dueAt, intervalDays, baseIntervalDays, strategyIntervalMultiplier: strategyMultiplier, stabilityDays,
     elapsedDays: elapsedDays === null ? null : Number(elapsedDays.toFixed(2)),
     overdueDays: Number(overdueDays.toFixed(2)),
     successfulReviewCount: successes.length,
@@ -173,13 +181,13 @@ export function calculateReviewSchedule({
   };
 }
 
-export function deriveReviewSchedules({ learningMap, events = [], insights, now = new Date() } = {}) {
+export function deriveReviewSchedules({ learningMap, events = [], insights, strategyProfile = null, now = new Date() } = {}) {
   const states = new Map((insights?.competencyInsights || []).map(item => [item.id, item]));
   const competencies = (learningMap?.topics || []).flatMap(topic =>
     (topic.competencies || []).map(item => ({ ...item, topicId: topic.id, topicTitle: topic.title })));
   return competencies.map(item => ({
     ...calculateReviewSchedule({
-      competencyId: item.id, events, intelligence: states.get(item.id), now,
+      competencyId: item.id, events, intelligence: states.get(item.id), strategyProfile, now,
     }),
     competencyTitle: item.title,
     topicId: item.topicId,

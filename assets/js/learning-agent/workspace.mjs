@@ -223,6 +223,21 @@ function renderProactiveSummary() {
     metrics.append(item);
   });
   host.append(metrics);
+  const strategy = projection.strategyProfile;
+  if (strategy) {
+    const confidence = strategy.confidence?.level === "high" ? "较充分"
+      : strategy.confidence?.level === "medium" ? "中等" : "不足";
+    host.append(create("p", "la-muted",
+      "学习策略 · " + (strategy.mode === "default" ? "默认模式" :
+        strategy.personalizationLevel === "cold-start" ? "冷启动" : "个性化校准") +
+      " · 证据可信度 " + confidence +
+      " · 独立评估 " + (strategy.evidence?.sampleCounts?.independent || 0) +
+      " · 延迟复习 " + (strategy.evidence?.sampleCounts?.delayedRecall || 0) +
+      " · 已校准复习间隔 " + Object.keys(strategy.parameters?.reviewIntervalsByCompetency || {}).length + " 个知识点"));
+    if (strategy.lastDecision?.reasons?.length) {
+      host.append(create("p", "la-muted", "最近调整依据：" + strategy.lastDecision.reasons.slice(0, 2).join("；")));
+    }
+  }
   const forecast = projection.goalForecasts?.[0];
   if (forecast) {
     host.append(create("p", "la-muted", "目标「" + forecast.title + "」：稳定掌握 " +
@@ -414,11 +429,14 @@ function renderPlan() {
     }
     proposal.actions.forEach((action, index) => {
       const item = create("div", "la-plan-action");
-      item.append(create("span", "la-sequence", String(index + 1).padStart(2, "0")),
-        create("div", "la-plan-action-main",
-          create("strong", "", action.title || action.competencyTitle),
-          create("p", "la-muted", action.topicTitle + " · " + action.planDate + " · " + action.estimatedMinutes + " 分钟"),
-          create("p", "la-reason", (action.priorityReasons || []).join("；"))));
+      const actionMain = create("div", "la-plan-action-main");
+      actionMain.append(
+        create("strong", "", action.title || action.competencyTitle),
+        create("p", "la-muted", action.topicTitle + " · " + action.planDate + " · " + action.estimatedMinutes + " 分钟"),
+        create("p", "la-reason", (action.priorityReasons || []).join("；"))
+      );
+      if (action.strategyInstruction) actionMain.append(create("p", "la-muted", action.strategyInstruction));
+      item.append(create("span", "la-sequence", String(index + 1).padStart(2, "0")), actionMain);
       const link = siteLink(action.resourceLabel || "查看学习入口", action.href, "la-link");
       if (link) item.append(link);
       card.append(item);

@@ -1,3 +1,4 @@
+import { createChallengeTaskContext } from "./learning-agent/challenge-task-context.mjs";
 import {
   completeStep,
   createChallengeProgressStore,
@@ -15,6 +16,7 @@ const $ = id => document.getElementById(id);
 let challenge;
 let progress;
 let store;
+let challengeTaskContext = null;
 let world;
 let currentIndex = 0;
 
@@ -29,6 +31,7 @@ function getCurrentStep() {
 
 async function saveProgress() {
   await store.save(progress);
+  await challengeTaskContext?.completeIfFinished(progress);
   updateDashboard(true);
 }
 
@@ -305,7 +308,8 @@ async function boot() {
   if (!challenge || challenge.steps.length !== 5) {
     throw new Error("Promise challenge definition is missing or incomplete.");
   }
-  store = createChallengeProgressStore();
+  challengeTaskContext = await createChallengeTaskContext(challenge);
+  store = createChallengeProgressStore({ strategyContext: challengeTaskContext.strategyContext });
   progress = await store.load(challenge);
 
   world = mountPromiseQuestWorld($("promise-world"));

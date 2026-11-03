@@ -33,7 +33,7 @@ export function createLearningCheckpointEngine(options = {}) {
     await store.appendMany(events);
   }
 
-  async function start(checkpointId) {
+  async function start(checkpointId, strategy = {}) {
     const definition = definitions.get(String(checkpointId));
     if (!definition) throw new RangeError("Unknown learning checkpoint: " + checkpointId);
     const sessionId = makeId();
@@ -41,7 +41,14 @@ export function createLearningCheckpointEngine(options = {}) {
     const session = {
       sessionId, checkpointId: definition.id, workId: definition.workId,
       competencyId: definition.competencyId, variantId: definition.id,
-      status: "active", startedAt
+      status: "active", startedAt,
+      taskId: strategy.taskId || null,
+      planId: strategy.planId || null,
+      strategyDecisionId: strategy.strategyDecisionId || null,
+      strategyProfileRevision: strategy.strategyProfileRevision || null,
+      learningIntervention: strategy.learningIntervention || null,
+      strategyInstruction: strategy.strategyInstruction || null,
+      difficultyLevel: strategy.difficultyLevel || "maintain",
     };
     await append([{
       id: sessionId + ":started", eventSchemaVersion: 3, type: "checkpoint_started",
@@ -52,6 +59,13 @@ export function createLearningCheckpointEngine(options = {}) {
       competencyIds: [definition.competencyId], sessionId,
       sessionType: "checkpoint", variantId: definition.id,
       hintsUsed: 0, workId: definition.workId,
+      taskId: session.taskId,
+      planId: session.planId,
+      strategyDecisionId: session.strategyDecisionId,
+      strategyProfileRevision: session.strategyProfileRevision,
+      learningIntervention: session.learningIntervention,
+      strategyInstruction: session.strategyInstruction,
+      difficultyLevel: session.difficultyLevel,
       gapObservationId: null, causationEventIds: [], targetGapEventIds: []
     }]);
     sessions.set(sessionId, session);
@@ -73,6 +87,13 @@ export function createLearningCheckpointEngine(options = {}) {
       stepId: definition.id, stepTitle: definition.title || definition.id,
       competencyIds: [definition.competencyId], sessionId,
       sessionType: "checkpoint", variantId: definition.id, workId: definition.workId,
+      taskId: session.taskId,
+      planId: session.planId,
+      strategyDecisionId: session.strategyDecisionId,
+      strategyProfileRevision: session.strategyProfileRevision,
+      learningIntervention: session.learningIntervention,
+      strategyInstruction: session.strategyInstruction,
+      difficultyLevel: session.difficultyLevel,
       attempts: 1, attemptNumber: 1, hintsUsed: 0,
       selectedOptionId: optionId, correct,
       causationEventIds: [sessionId + ":started"],

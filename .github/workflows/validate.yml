@@ -71,6 +71,8 @@ jobs:
         run: node --test scripts/verify-phase-e.mjs
       - name: Test Phase F adaptive review, risk, trends, diagnostics, forecasts, NBA and idempotent task integration
         run: node --test scripts/verify-phase-f.mjs
+      - name: Test Phase G evidence quality, strategy calibration, bounded adaptation and audit
+        run: node --test scripts/verify-phase-g.mjs
       - name: Parse learning and review browser modules
         run: |
           node --check assets/js/learning-progress.mjs
@@ -78,12 +80,26 @@ jobs:
           node --check assets/js/learning-risk-engine.mjs
           node --check assets/js/next-best-action.mjs
           node --check assets/js/proactive-learning-engine.mjs
+          node --check assets/js/learning-strategy-engine.mjs
           node --check assets/js/learning-progress-page.mjs
           node --check assets/js/review-engine.mjs
           node --check assets/js/review-workspace.mjs
           node --check assets/js/learning-activity.mjs
           node --check assets/js/learning-checkpoint-engine.mjs
           node --check assets/js/learning-integration.mjs
+          node --check assets/js/learning-agent/challenge-task-context.mjs
+          node --check assets/js/learning-agent/plan-manager.mjs
+          node --check assets/js/learning-agent/task-orchestrator.mjs
+          node --check assets/js/learning-agent/workspace.mjs
+          node --check assets/js/learning-planner.mjs
+          node --check assets/js/learning-progress-page.mjs
+          node --check assets/js/proactive-learning-engine.mjs
+          node --check assets/js/spaced-repetition-engine.mjs
+          node --check assets/js/review-engine.mjs
+          node --check assets/js/review-workspace.mjs
+          node --check assets/js/promise-quest.mjs
+          node --check assets/js/monorepo-quest.js
+          node --check assets/js/rn-architecture-quest.mjs
           node --check assets/js/learning-planner.mjs
           node --check assets/js/learning-agent/learner-profile.mjs
           node --check assets/js/learning-agent/goal-manager.mjs

@@ -26,6 +26,7 @@ let proactiveRefreshTimer = null;
 let proactiveProjection = null;
 let proactiveTasks = [];
 let taskOrchestrator = null;
+let profileStore = null;
 
 const statusLabels = {
   unverified: "待验证",
@@ -284,6 +285,94 @@ function renderWeakSkills() {
   });
 }
 
+function renderLearningStrategy(profile, effectiveness) {
+  const host = $("learning-strategy-content");
+  if (!host) return;
+  host.replaceChildren();
+  if (!profile) {
+    host.append(element("p", "lp-empty", "当前没有可读取的个体策略模型，系统会继续使用通用规则。"));
+    return;
+  }
+  const labels = { low: "证据不足", medium: "证据中等", high: "证据较充分" };
+  const level = profile.mode === "default" ? "暂用默认策略"
+    : profile.personalizationLevel === "cold-start" ? "冷启动 · 通用策略"
+      : profile.personalizationLevel === "emerging" ? "正在形成个体规律" : "已达到个体校准门槛";
+  const overview = element("div", "lp-strategy-overview");
+  overview.append(
+    element("strong", "", level),
+    element("span", "lp-tag info", "可信度 · " + (labels[profile.confidence?.level] || "证据不足")),
+    element("p", "", "观察窗口 " + (profile.observedWindow?.days || 180) + " 天 · " +
+      "独立评估 " + (profile.evidence?.sampleCounts?.independent || 0) + " 次 · " +
+      "延迟复习 " + (profile.evidence?.sampleCounts?.delayedRecall || 0) + " 次独立结果 · " +
+      "跨题型 " + (profile.evidence?.sampleCounts?.transfer || 0) + " 种变体")
+  );
+  host.append(overview);
+  const parameters = profile.parameters || {};
+  const rows = [
+    ["任务密度", profile.mode === "default" ? "通用计划" :
+      parameters.taskLoadMultiplier < 1 ? "适度降低（不超过你的时间预算）" : "遵循你设定的时间预算"],
+    ["复习间隔", profile.mode === "adaptive" &&
+      Object.keys(parameters.reviewIntervalsByCompetency || {}).length
+      ? "已按证据校准 " + Object.keys(parameters.reviewIntervalsByCompetency).length + " 个知识点"
+      : "通用间隔（该知识点样本不足）"],
+    ["难度方向", Object.keys(profile.recommendation?.difficultyByCompetency || {}).length
+      ? "已按知识点校准 " + Object.keys(profile.recommendation.difficultyByCompetency).length + " 个节点"
+      : profile.recommendation?.difficulty === "stretch" ? "尝试更高迁移难度" :
+        profile.recommendation?.difficulty === "scaffold" ? "补齐基础并降低挑战跨度" : "保持当前难度"],
+    ["学习干预", profile.recommendation?.intervention || "主动回忆"],
+  ];
+  const grid = element("div", "lp-strategy-grid");
+  rows.forEach(([label, value]) => {
+    const item = element("div", "lp-strategy-metric");
+    item.append(element("span", "", label), element("strong", "", value));
+    grid.append(item);
+  });
+  host.append(grid);
+  const decision = profile.lastDecision;
+  if (decision) {
+    const card = element("article", "lp-strategy-decision");
+    card.append(
+      element("strong", "", "最近一次策略调整"),
+      element("p", "", (decision.reasons || []).join("；") || "策略参数已更新。"),
+      element("small", "", "调整时间 " + formatDate(decision.at, true) +
+        " · 样本 " + Object.values(decision.sampleCounts || {}).reduce((sum, value) => sum + Number(value || 0), 0) +
+        " · 可信度 " + (labels[decision.confidence?.level] || "证据不足")),
+      element("small", "", "证据事件：" + ((decision.evidenceRefs || []).join("、") || "暂无直接参数证据")),
+      element("small", "", "后续验证：" + (decision.validationTarget || "等待新的独立验证"))
+    );
+    host.append(card);
+  } else {
+    host.append(element("p", "lp-strategy-muted",
+      profile.mode === "default" ? "当前关闭个性化参数；已有证据仍会继续记录，不会被删除。" :
+        "尚未达到参数调整门槛。系统正在积累独立挑战、延迟复习和任务执行证据，不会把浏览或任务完成直接当作掌握。"));
+  }
+  if (effectiveness) {
+    const effect = element("article", "lp-strategy-effect");
+    effect.append(
+      element("strong", "", "策略效果追踪 · " + ({
+        observing: "观察中", "promising-association": "出现积极关联信号",
+        "needs-adjustment": "需要进一步调整", "insufficient-long-term-evidence": "长期证据不足",
+      }[effectiveness.status] || "观察中")),
+      element("p", "", "推荐接受 " + effectiveness.recommendation.accepted + " / " +
+        effectiveness.recommendation.generated + " · 任务开始 " + effectiveness.execution.started +
+        " · 任务完成 " + effectiveness.execution.completed + " · 无提示独立通过 " +
+        effectiveness.learning.independentPasses + " · 延迟复习通过 " +
+        effectiveness.longTerm.delayedIndependentPasses),
+      element("small", "", effectiveness.interpretation)
+    );
+    host.append(effect);
+  }
+  const adaptiveButton = $("strategy-mode-adaptive");
+  const defaultButton = $("strategy-mode-default");
+  if (adaptiveButton) adaptiveButton.setAttribute("aria-pressed", String(profile.mode === "adaptive"));
+  if (defaultButton) defaultButton.setAttribute("aria-pressed", String(profile.mode === "default"));
+  const decisionId = decision?.decisionId;
+  ["strategy-feedback-helpful", "strategy-feedback-not-helpful"].forEach(id => {
+    const button = $(id);
+    if (button) button.disabled = !decisionId;
+  });
+}
+
 function renderProactiveDashboard() {
   const projection = proactiveProjection;
   const kpis = $("proactive-kpis");
@@ -301,6 +390,7 @@ function renderProactiveDashboard() {
     return;
   }
   const summary = projection.summary || {};
+  renderLearningStrategy(projection.strategyProfile, projection.strategyEffectiveness);
   [
     ["到期复习", summary.dueCount || 0, "due / overdue / relearning"],
     ["高风险知识", summary.highRiskCount || 0, "high / critical"],
@@ -609,6 +699,7 @@ function renderAdaptivePlan(snapshot) {
     learningMap, challengeRegistry, worksManifest, checkpointRegistry,
     snapshot, preferences: planPreferences,
     reviewSchedules: proactiveProjection?.schedules || [],
+    strategyProfile: proactiveProjection?.strategyProfile || null,
     existingTasks: proactiveTasks,
   });
   const summary = $("plan-summary");
@@ -649,6 +740,11 @@ function renderAdaptivePlan(snapshot) {
     const reasons = element("ul", "lp-plan-reasons");
     action.priorityReasons.forEach(reason => reasons.append(element("li", "", reason)));
     copy.append(reasons);
+    if (action.learningIntervention) {
+      copy.append(element("small", "lp-plan-strategy",
+        "学习干预 · " + action.learningIntervention + " · 难度 " + (action.difficultyLevel || "maintain") +
+        (action.strategyInstruction ? " · " + action.strategyInstruction : "")));
+    }
     const footer = element("div", "lp-plan-card-actions");
     const link = makeLink(action.resourceLabel, action.href);
     if (link) {
@@ -815,6 +911,39 @@ function wireDataActions() {
     catch (error) { window.alert("无法保存计划偏好：" + error.message); }
   });
   $("plan-rebuild").addEventListener("click", () => refresh().catch(error => setText("plan-status", error.message)));
+  async function setPersonalizationMode(mode) {
+    if (!profileStore) return;
+    try {
+      const preferences = await profileStore.loadPreferences();
+      await profileStore.savePreferences({ ...preferences, personalizationMode: mode });
+      setText("strategy-control-status", mode === "adaptive"
+        ? "已启用个性化策略；证据不足的参数仍使用默认值。"
+        : "已切换为默认策略；历史学习证据与策略记录会保留。");
+      await refresh();
+    } catch (error) {
+      setText("strategy-control-status", "策略设置保存失败：" + error.message);
+    }
+  }
+  $("strategy-mode-adaptive")?.addEventListener("click", () => setPersonalizationMode("adaptive"));
+  $("strategy-mode-default")?.addEventListener("click", () => setPersonalizationMode("default"));
+  $("strategy-feedback-helpful")?.addEventListener("click", async () => {
+    const decisionId = proactiveProjection?.strategyProfile?.lastDecision?.decisionId;
+    if (!decisionId || !proactiveEngine) return;
+    try {
+      await proactiveEngine.feedback({ decisionId, rating: "helpful" });
+      setText("strategy-control-status", "已记录反馈；后续效果仍会以独立挑战和延迟复习验证。");
+      await refresh();
+    } catch (error) { setText("strategy-control-status", "反馈保存失败：" + error.message); }
+  });
+  $("strategy-feedback-not-helpful")?.addEventListener("click", async () => {
+    const decisionId = proactiveProjection?.strategyProfile?.lastDecision?.decisionId;
+    if (!decisionId || !proactiveEngine) return;
+    try {
+      await proactiveEngine.feedback({ decisionId, rating: "not_helpful" });
+      setText("strategy-control-status", "已记录反馈；系统不会因此直接修改掌握程度。");
+      await refresh();
+    } catch (error) { setText("strategy-control-status", "反馈保存失败：" + error.message); }
+  });
   document.querySelectorAll("[data-scroll]").forEach(button => {
     button.addEventListener("click", () => {
       const target = document.querySelector(button.dataset.scroll);
@@ -855,7 +984,7 @@ async function boot() {
   selectedTopicId = learningMap.topics[0]?.id || null;
   selectedCompetencyId = learningMap.topics[0]?.competencies[0]?.id || null;
   const repository = await getLearningRepository();
-  const profileStore = createLearnerProfileStore({ repository });
+  profileStore = createLearnerProfileStore({ repository });
   const goalManager = createLearningGoalManager({ repository, learningMap });
   taskOrchestrator = createLearningTaskOrchestrator({ repository });
   proactiveEngine = createProactiveLearningEngine({

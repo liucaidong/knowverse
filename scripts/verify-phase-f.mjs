@@ -259,7 +259,7 @@ test("Repository-backed proactive engine creates idempotent due tasks and stores
     repository, learningMap, challengeRegistry, goalManager, taskOrchestrator, profileStore,
   });
   const first = await engine.refresh({ now: NOW });
-  assert.equal(first.schemaVersion, 2);
+  assert.equal(first.schemaVersion, 3);
   assert.ok(Array.isArray(first.timeline));
   assert.ok(first.timeline.some(item => item.type === "assessment_passed"));
   assert.ok(first.sourceFingerprint);
@@ -276,15 +276,15 @@ test("Repository-backed proactive engine creates idempotent due tasks and stores
   assert.equal((await taskOrchestrator.list()).filter(item => item.proactiveGenerated).length, 1);
   const stored = await repository.documents.get("proactive_learning_projection", "current");
   assert.equal(stored.payload.sourceFingerprint, second.sourceFingerprint);
-  assert.equal(stored.payload.algorithmVersions.spacedRepetition, 1);
-  assert.equal(stored.payload.engineVersion, 2);
+  assert.equal(stored.payload.algorithmVersions.spacedRepetition, 2);
+  assert.equal(stored.payload.engineVersion, 3);
   assert.ok(stored.payload.timeline.length > 0);
 
   const startedAt = iso(NOW.getTime() + 60_000);
   const started = await taskOrchestrator.start(dueTasks[0].taskId, { at: startedAt });
   assert.equal(started.status, "in_progress");
   await repository.events.append([event("new-valid-pass", "assessment_passed", iso(NOW.getTime() + 120_000), {
-    topicId, competencyIds: [competencyId], sessionId: "new-session",
+    taskId: dueTasks[0].taskId, topicId, competencyIds: [competencyId], sessionId: "new-session",
     sessionType: "review", variantId: "review-variant-z",
     scorePct: 95, independent: true, attempts: 1, hintsUsed: 0,
     challengeId: "review", stepId: "thenable-adoption",
@@ -415,8 +415,8 @@ test("projection CAS conflict performs bounded reread and recomputation before c
             key: "current",
             expectedLocalRevision: 0,
             payload: {
-              schemaVersion: 2, engineVersion: 2,
-              algorithmVersions: { spacedRepetition: 1, risk: 1, nextBestAction: 1 },
+              schemaVersion: 3, engineVersion: 3,
+              algorithmVersions: { spacedRepetition: 2, risk: 1, nextBestAction: 1, learningStrategy: 1 },
               sourceFingerprint: "concurrent-device-projection",
               sourceEventCount: 0, latestEvidenceAt: null, computedAt: NOW.toISOString(),
               summary: {}, schedules: [], risks: [], trends: [], diagnostics: [],

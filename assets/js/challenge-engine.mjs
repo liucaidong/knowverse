@@ -210,7 +210,9 @@ export function createChallengeProgressStore(options = {}) {
       const repository = await repositoryPromise;
       const previous = await repository.documents.get("challenge_progress", progress.challengeId);
       const previousPayload = previous?.payload?._deleted === true ? null : previous?.payload || null;
-      const events = createChallengeLearningEvents(challenge, previousPayload, progress);
+      const events = createChallengeLearningEvents(challenge, previousPayload, progress, {
+        strategyContext: options.strategyContext || null,
+      });
       await repository.commit({
         events,
         documents: [{

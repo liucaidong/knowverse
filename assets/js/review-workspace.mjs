@@ -150,6 +150,16 @@ async function startSession(input) {
       else if (task.status === "ready") task = await taskOrchestrator.start(activeTaskId);
       if (task.status !== "in_progress") throw new Error("该复习任务当前状态为 " + task.status + "，不能启动新的复习会话。");
       targetGapId = task.gapId || targetGapId;
+      input = {
+        ...input,
+        taskId: task.taskId,
+        planId: task.planId,
+        strategyDecisionId: task.strategyDecisionId || null,
+        strategyProfileRevision: task.strategyProfileRevision || null,
+        learningIntervention: task.learningIntervention || null,
+        strategyInstruction: task.strategyInstruction || null,
+        difficultyLevel: task.difficultyLevel || "maintain",
+      };
     }
     session=await engine.start({ ...input, gapId: targetGapId });
     renderSession();

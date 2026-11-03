@@ -316,6 +316,18 @@ export function createChallengeLearningEvents(challenge, previous, next, options
     event.variantId = event.variantId || challenge.id + ":" + event.stepId;
     if (typeof challenge.workId === "string") event.workId = challenge.workId;
     if (Array.isArray(challenge.knowledgeIds)) event.knowledgeIds = challenge.knowledgeIds.slice();
+    const strategy = options.strategyContext;
+    if (strategy) {
+      event.taskId = strategy.taskId || null;
+      event.planId = strategy.planId || null;
+      event.strategyDecisionId = strategy.strategyDecisionId || null;
+      event.strategyProfileRevision = strategy.strategyProfileRevision || null;
+      event.learningIntervention = strategy.learningIntervention || null;
+      event.strategyInstruction = strategy.strategyInstruction || null;
+      event.difficultyLevel = strategy.difficultyLevel || "maintain";
+      event.strategyEvidenceRefs = strategy.strategyEvidenceRefs || [];
+    }
+    if (event.type === "completed") event.independent = Number(event.hintsUsed || 0) === 0;
   }
   return events;
 }

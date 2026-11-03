@@ -41,6 +41,11 @@ function eventFor(task, status, extra = {}, at = nowIso()) {
     taskType: task.taskType,
     taskStatus: status,
     estimatedMinutes: task.estimatedMinutes,
+    strategyDecisionId: task.strategyDecisionId || null,
+    strategyProfileRevision: task.strategyProfileRevision || null,
+    learningIntervention: task.learningIntervention || null,
+    strategyInstruction: task.strategyInstruction || null,
+    difficultyLevel: task.difficultyLevel || "maintain",
     ...extra,
   };
 }
@@ -49,10 +54,15 @@ function validateEvidence(task, events, startedAt) {
   const eventById = new Map(events.map(event => [event.id, event]));
   const eligible = events.filter(event =>
     Date.parse(event.at) >= Date.parse(startedAt || task.createdAt) &&
-    (event.competencyIds || []).includes(task.competencyId)
+    (event.competencyIds || []).includes(task.competencyId) &&
+    (Number(task.taskSchemaVersion) < 2
+      ? (!event.taskId || event.taskId === task.taskId)
+      : event.taskId === task.taskId)
   );
 
   if (task.taskType === "review") {
+    // The original gap event predates this review task. Only the review chain itself
+    // must be tagged with this task's ID; the causal source remains the historical failure.
     const failures = events.filter(event => event.type === "attempt" &&
       event.correct === false && event.gapId === task.gapId &&
       (event.competencyIds || []).includes(task.competencyId));
@@ -99,11 +109,25 @@ function validateEvidence(task, events, startedAt) {
     return validPasses.slice(0, 20).map(event => event.id);
   }
 
-  const matches = eligible.filter(event =>
-    task.taskType === "assessment"
-      ? event.type === "assessment_passed" && (!task.variantId || event.variantId === task.variantId)
-      : ["assessment_passed", "completed"].includes(event.type)
-  );
+  const matches = eligible.filter(event => {
+    if (task.taskType === "assessment") {
+      if (task.resourceType === "challenge") {
+        return event.type === "completed" &&
+          (Number(task.taskSchemaVersion) < 2 ||
+            event.independent === true && Number(event.hintsUsed || 0) === 0) &&
+          (!task.variantId || event.variantId === task.variantId);
+      }
+      return event.type === "assessment_passed" &&
+        (!task.variantId || event.variantId === task.variantId);
+    }
+    if (task.taskType === "challenge") {
+      return event.type === "completed" &&
+        (Number(task.taskSchemaVersion) < 2 ||
+          event.independent === true && Number(event.hintsUsed || 0) === 0) &&
+        (!task.variantId || event.variantId === task.variantId);
+    }
+    return ["assessment_passed", "completed"].includes(event.type);
+  });
   if (!matches.length && task.evidencePolicy === "required_assessment") {
     throw new Error("该验证任务必须先完成关联挑战或检查点，系统尚未找到有效评估证据。");
   }
@@ -120,14 +144,20 @@ export function mapPlanActionToTask(action, planId, options = {}) {
     ? "required_assessment" : "execution_confirmation";
   const taskId = planId + ":" + action.actionId;
   let href = action.href;
-  if (["repair", "review"].includes(action.type) && typeof href === "string" && href.startsWith("./review/")) {
-    const query = href.includes("?") ? href.slice(href.indexOf("?") + 1) : "";
+  if (typeof href === "string" && href.startsWith("./")) {
+    const hashIndex = href.indexOf("#");
+    const hash = hashIndex >= 0 ? href.slice(hashIndex) : "";
+    const withoutHash = hashIndex >= 0 ? href.slice(0, hashIndex) : href;
+    const queryIndex = withoutHash.indexOf("?");
+    const path = queryIndex >= 0 ? withoutHash.slice(0, queryIndex) : withoutHash;
+    const query = queryIndex >= 0 ? withoutHash.slice(queryIndex + 1) : "";
     const params = new URLSearchParams(query);
     params.set("taskId", taskId);
-    href = "./review/?" + params.toString();
+    href = path + "?" + params.toString() + hash;
   }
   return {
     taskId,
+    taskSchemaVersion: 2,
     planId,
     planDate: action.planDate,
     actionId: action.actionId,
@@ -147,6 +177,12 @@ export function mapPlanActionToTask(action, planId, options = {}) {
     resourceType: action.resourceType,
     variantId: action.variantId,
     workId: action.workId,
+    strategyDecisionId: action.strategyDecisionId || null,
+    strategyProfileRevision: action.strategyProfileRevision || 0,
+    learningIntervention: action.learningIntervention || null,
+    strategyInstruction: action.strategyInstruction || null,
+    difficultyLevel: action.difficultyLevel || "maintain",
+    strategyEvidenceRefs: action.strategyEvidenceRefs || [],
     gapId: action.gapId || null,
     dependsOnTaskIds: options.dependsOnTaskIds || [],
     evidencePolicy,
@@ -221,6 +257,7 @@ export function createLearningTaskOrchestrator(options = {}) {
     const href = "./review/?" + params.toString();
     const task = {
       taskId,
+      taskSchemaVersion: 2,
       planId: "proactive-review:" + suffix,
       planDate: new Date(at).toISOString().slice(0, 10),
       actionId: "scheduled-review:" + suffix,
@@ -261,6 +298,12 @@ export function createLearningTaskOrchestrator(options = {}) {
       proactiveScheduleTarget: targetKey,
       proactiveGenerated: true,
       scheduleStatus: input.scheduleStatus || "due",
+      strategyDecisionId: input.strategyDecisionId || null,
+      strategyProfileRevision: input.strategyProfileRevision || 0,
+      learningIntervention: input.learningIntervention || null,
+      strategyInstruction: input.strategyInstruction || null,
+      difficultyLevel: input.difficultyLevel || "maintain",
+      strategyEvidenceRefs: input.strategyEvidenceRefs || [],
     };
     const event = eventFor(task, "created", {
       taskStatus: "ready",
@@ -270,6 +313,12 @@ export function createLearningTaskOrchestrator(options = {}) {
       scheduleId: suffix,
       scheduleStatus: task.scheduleStatus,
       evidenceRefs: evidenceRefs.slice(0, 20),
+      strategyDecisionId: task.strategyDecisionId,
+      strategyProfileRevision: task.strategyProfileRevision,
+      learningIntervention: task.learningIntervention,
+      strategyInstruction: task.strategyInstruction,
+      difficultyLevel: task.difficultyLevel,
+      strategyEvidenceRefs: task.strategyEvidenceRefs,
     }, at);
     try {
       await repository.commit({
