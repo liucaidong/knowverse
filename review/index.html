@@ -105,12 +105,60 @@
         </aside>
       </div>
     </section>
+    <section class="rw-candidate" id="practice-candidate-workbench" hidden>
+      <div class="rw-section-title">
+        <div><span>GAP-DIRECTED PRACTICE / AI DRAFT</span><h2>为这个薄弱点生成一份补充练习</h2></div>
+        <p>练习基于当前 Gap 和正式题库锚点生成。它是未评分的学习草案，不是正式评估。</p>
+      </div>
+      <div class="rw-candidate-intro">
+        <strong id="practice-gap-label">当前薄弱点</strong>
+        <p>AI 只能生成候选内容；本地会校验能力点、Gap、来源变体、题目重复和字段结构。练习作答、参考答案和自我检查都不会写入 Learning Events、掌握度或 Gap 关闭证据。</p>
+      </div>
+      <div class="rw-candidate-controls">
+        <label><input id="practice-ai-consent" type="checkbox"> 我同意本轮向云端 AI 发送当前 Gap 摘要、能力信息及两个正式题目锚点；不会发送其他页面全文。</label>
+        <button id="generate-practice-candidate" class="rw-primary" type="button">生成一份练习草案</button>
+      </div>
+      <p id="practice-candidate-status" class="rw-candidate-status" role="status" aria-live="polite">勾选本轮授权后，可生成一份针对当前薄弱点的额外练习。</p>
+      <div class="rw-candidate-layout">
+        <aside class="rw-candidate-history">
+          <strong>我的练习草案</strong>
+          <div id="practice-candidate-list" class="rw-candidate-list"><div class="rw-empty">当前 Gap 还没有补充练习草案。</div></div>
+        </aside>
+        <article id="practice-candidate-active" class="rw-candidate-card" hidden>
+          <div class="rw-question-overline"><span>UNSCORED PRACTICE</span><span id="practice-candidate-state">草案</span></div>
+          <h3 id="practice-candidate-title"></h3>
+          <p id="practice-candidate-prompt" class="rw-prompt"></p>
+          <pre id="practice-candidate-stimulus" class="rw-code" hidden></pre>
+          <div class="rw-candidate-reference">
+            <strong>来源锚点</strong>
+            <p id="practice-candidate-sources"></p>
+          </div>
+          <div class="rw-hints rw-candidate-hints">
+            <div><strong>分级提示</strong><p>提示只辅助思考，不会写入正式学习证据。</p></div>
+            <button id="practice-candidate-hint" class="rw-secondary" type="button">展开第一级提示</button>
+          </div>
+          <ol id="practice-candidate-hint-list" class="rw-hint-list"></ol>
+          <label class="rw-candidate-answer" for="practice-candidate-answer">先写下你自己的推理</label>
+          <textarea id="practice-candidate-answer" rows="5" maxlength="4000" placeholder="写下预测、执行顺序、因果解释或你认为的关键边界……"></textarea>
+          <div class="rw-actions">
+            <button id="practice-candidate-submit" class="rw-primary" type="button">保存作答并展开参考思路</button>
+            <button id="practice-candidate-delete" class="rw-secondary" type="button">删除草案</button>
+          </div>
+          <div id="practice-candidate-answer-saved" class="rw-candidate-saved" hidden></div>
+          <div id="practice-candidate-reference-answer" class="rw-explanation" hidden></div>
+          <div id="practice-candidate-rubric" class="rw-candidate-rubric" hidden></div>
+          <p class="rw-candidate-disclaimer">AI 生成的参考思路未经过正式题库审核。本练习不打分、不产生独立评估，也不能纠正当前 Gap；需要验证掌握时，请完成上方正式复习题。</p>
+        </article>
+      </div>
+    </section>
+
     <section class="rw-history" id="review-history">
       <div class="rw-section-title"><div><span>RECENT REVIEW ACTIVITY</span><h2>最近复习记录</h2></div><a href="../progress/">查看完整成长档案 ↗</a></div>
       <div id="history-list" class="rw-history-list"><div class="rw-empty">当前设备还没有复习会话。</div></div>
     </section>
   </main>
   <footer class="rw-footer kv-shared-footer">KNOWVERSE / REVIEW SESSION ENGINE · 复习不会覆盖原始挑战历史<div class="kv-footer-links" aria-label="全站快捷入口"><a href="../knowledge/">知识体系</a><a href="../works/">实践体验</a><a href="../progress/">学习成长</a><a href="https://github.com/liucaidong/knowverse" target="_blank" rel="noopener">GitHub ↗</a></div></footer>
+  <script src="../assets/js/backend/public-config.js"></script>
   <script defer src="../assets/js/v2.js"></script>
   <script type="module" src="../assets/js/review-workspace.mjs"></script>
 <div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="全站搜索">

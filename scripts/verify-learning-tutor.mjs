@@ -140,6 +140,8 @@ test("shared learning integration mounts the tutor from live work and knowledge 
   assert.match(edge, /Never call tools, request more data, propose mutations/);
   assert.match(edge, /For Socratic tutoring, ask exactly one concise question per turn/);
   assert.match(edge, /"socratic"/);
+  assert.match(edge, /"practice"/);
+  assert.match(edge, /For practice mode, create one open-ended, ungraded supplementary exercise/);
   assert.match(edge, /if \(mode === "tutor"\) \{[\s\S]{0,800}output = \{ reply: tutorOutput\.reply\.trim\(\), suggestions: \[\], dataRequests: \[\] \}/);
   assert.match(edge, /output = validateModelOutput\(decoded\)/);
   assert.match(edge, /mode === "tutor" && body\.tutorMode !== undefined/);
@@ -178,6 +180,14 @@ test("provider sends explicit tutor mode through the authenticated Agent endpoin
   });
   assert.equal(guided.reply, "先观察 then 属性读取与 ThenableJob 调用之间的边界。");
   assert.equal(request.options.body.tutorMode, "socratic");
+  const practice = await provider.ask({
+    message: "为当前 Gap 生成一份补充练习草案",
+    mode: "tutor",
+    tutorMode: "practice",
+    context: { learningScene: { schemaVersion: 1, practiceGeneration: {} }, recentConversation: [] },
+  });
+  assert.equal(practice.reply, "先观察 then 属性读取与 ThenableJob 调用之间的边界。");
+  assert.equal(request.options.body.tutorMode, "practice");
   await assert.rejects(() => provider.ask({
     message: "invalid mode",
     mode: "tutor",

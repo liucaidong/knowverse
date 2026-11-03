@@ -1,6 +1,11 @@
 import { createLearningProgressStore, deriveLearningInsights } from "./learning-progress.mjs";
 import { createReviewSessionEngine } from "./review-engine.mjs";
 import { createLearningTaskOrchestrator } from "./learning-agent/task-orchestrator.mjs";
+import { createLearningAgentProvider } from "./learning-agent/agent-provider.mjs";
+import {
+  createLearningPracticeCandidateStore,
+  parseLearningPracticeCandidateReply,
+} from "./learning-practice-candidates.mjs";
 
 const root = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
@@ -14,6 +19,10 @@ let targetCompetencyId = null;
 let targetGapId = null;
 let activeTaskId = null;
 let taskOrchestrator = null;
+let practiceProvider = null;
+let practiceCandidateStore = null;
+let activePracticeCandidate = null;
+let practiceHintCount = 0;
 
 const el = (tag, className, text) => {
   const node = document.createElement(tag);
@@ -168,6 +177,7 @@ async function startSession(input) {
     $("answer-explanation").hidden=true;
     $("next-variant").hidden=true;
     await renderHistory();
+    await renderPracticeWorkbench();
     $("review-session").scrollIntoView({behavior:"smooth",block:"start"});
   } catch(error) {
     window.alert(error.message);
@@ -222,13 +232,286 @@ async function submitAnswer(optionId) {
     }
     await renderPicker();
     await renderHistory();
+    await renderPracticeWorkbench();
     $("next-variant").textContent="用另一个题型再次验证 →";
     $("next-variant").hidden=false;
   } catch(error) { setFeedback(error.message,"bad"); throw error; }
 }
+function setPracticeStatus(message, error = false) {
+  const node = $("practice-candidate-status");
+  node.textContent = message;
+  node.classList.toggle("bad", error);
+}
+
+async function currentPracticeTarget() {
+  if (!targetCompetencyId || !targetGapId) return null;
+  const insight = await insightsNow();
+  const gap = insight.gaps.find(item =>
+    item.competencyId === targetCompetencyId && item.id === targetGapId
+  );
+  const competency = competencyFor(targetCompetencyId);
+  const sources = assessments.assessments.filter(item =>
+    item.competencyId === targetCompetencyId && (item.gapIds || []).includes(targetGapId)
+  );
+  if (!competency || sources.length < 2) return { gap, competency, sources, snapshot: null, recentlyUsedVariantIds: [] };
+  const snapshot = await progressStore.load();
+  const cutoff = Date.now() - 30 * 86_400_000;
+  const recentlyUsedVariantIds = [...new Set(snapshot.events.filter(event =>
+    event.competencyIds?.includes(targetCompetencyId) &&
+    event.gapId === targetGapId &&
+    event.variantId &&
+    Date.parse(event.at) >= cutoff
+  ).map(event => event.variantId))];
+  return { gap, competency, sources, snapshot, recentlyUsedVariantIds };
+}
+
+function showPracticeCandidate(item) {
+  activePracticeCandidate = item;
+  practiceHintCount = 0;
+  const card = $("practice-candidate-active");
+  card.hidden = false;
+  $("practice-candidate-state").textContent = item.status === "attempted" ? "已尝试 · 不计分" : "未评分草案";
+  $("practice-candidate-title").textContent = item.exercise.title;
+  $("practice-candidate-prompt").textContent = item.exercise.prompt;
+  const stimulus = $("practice-candidate-stimulus");
+  stimulus.textContent = item.exercise.stimulus || "";
+  stimulus.hidden = !item.exercise.stimulus;
+  const sourceNames = item.exercise.sourceVariantIds.map(id =>
+    assessments.assessments.find(row => row.id === id)?.title || id
+  );
+  $("practice-candidate-sources").textContent = sourceNames.join(" · ");
+  $("practice-candidate-answer").value = item.learnerResponse || "";
+  $("practice-candidate-answer").disabled = item.status === "attempted";
+  $("practice-candidate-submit").hidden = item.status === "attempted";
+  $("practice-candidate-submit").disabled = false;
+  $("practice-candidate-delete").hidden = false;
+  $("practice-candidate-hint-list").replaceChildren();
+  $("practice-candidate-hint").disabled = item.status === "attempted";
+  $("practice-candidate-hint").textContent = "展开第一级提示";
+  const saved = $("practice-candidate-answer-saved");
+  const reference = $("practice-candidate-reference-answer");
+  const rubric = $("practice-candidate-rubric");
+  saved.hidden = item.status !== "attempted";
+  reference.hidden = item.status !== "attempted";
+  rubric.hidden = item.status !== "attempted";
+  saved.textContent = item.status === "attempted"
+    ? "你的原始推理已保存：\n" + item.learnerResponse
+    : "";
+  reference.textContent = item.status === "attempted"
+    ? "预期推理：\n" + item.exercise.expectedReasoning +
+      "\n\n参考答案（AI 草案，未独立审核）：\n" + item.exercise.exemplarAnswer +
+      "\n\n常见误区：\n" + item.exercise.commonTrap
+    : "";
+  rubric.replaceChildren();
+  if (item.status === "attempted") {
+    const title = el("strong", "", "自我检查要点");
+    const list = el("ol");
+    item.exercise.rubric.forEach(row => {
+      list.append(el("li", "", row.criterion + "： " + row.expectedSignal));
+    });
+    rubric.append(title, list);
+  }
+  renderPracticeCandidateList().catch(error => setPracticeStatus(error.message, true));
+}
+
+async function renderPracticeCandidateList() {
+  const host = $("practice-candidate-list");
+  if (!practiceCandidateStore || !targetCompetencyId || !targetGapId) return;
+  const rows = await practiceCandidateStore.list({
+    competencyId: targetCompetencyId,
+    gapId: targetGapId,
+    limit: 8,
+  });
+  host.replaceChildren();
+  if (!rows.length) {
+    host.append(el("div", "rw-empty", "当前 Gap 还没有补充练习草案。"));
+    return;
+  }
+  rows.forEach(item => {
+    const button = el("button", "rw-candidate-row");
+    button.type = "button";
+    button.setAttribute("aria-current", item.candidateId === activePracticeCandidate?.candidateId ? "true" : "false");
+    button.append(
+      el("strong", "", item.exercise.title),
+      el("small", "", (item.status === "attempted" ? "已作答 · " : "未作答 · ") + fmt(item.updatedAt)),
+    );
+    button.addEventListener("click", () => showPracticeCandidate(item));
+    host.append(button);
+  });
+}
+
+async function renderPracticeWorkbench() {
+  const panel = $("practice-candidate-workbench");
+  if (!panel) return;
+  if (!targetGapId || !targetCompetencyId || !practiceCandidateStore) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  const target = await currentPracticeTarget();
+  const generationButton = $("generate-practice-candidate");
+  $("practice-gap-label").textContent = target?.gap?.label || target?.competency?.title || targetGapId;
+  generationButton.disabled = !target?.gap || target.sources.length < 2;
+  if (!target?.gap) {
+    setPracticeStatus("当前 Gap 已由正式评估纠正，不能再生成针对它的新草案；历史草案仍可查看。");
+  } else if (target.sources.length < 2) {
+    setPracticeStatus("当前 Gap 尚无两个正式题目锚点；请先使用现有课程或作品中的练习。", true);
+  } else {
+    setPracticeStatus("AI 参考思路未经独立审核；这类练习不计分，也不会影响掌握度。");
+  }
+  const rows = await practiceCandidateStore.list({
+    competencyId: targetCompetencyId,
+    gapId: targetGapId,
+    limit: 8,
+  });
+  if (activePracticeCandidate) {
+    const latest = rows.find(item => item.candidateId === activePracticeCandidate.candidateId);
+    if (latest) activePracticeCandidate = latest;
+    else activePracticeCandidate = null;
+  }
+  await renderPracticeCandidateList();
+  if (activePracticeCandidate) showPracticeCandidate(activePracticeCandidate);
+  else if (rows.length) showPracticeCandidate(rows[0]);
+  else $("practice-candidate-active").hidden = true;
+}
+
+async function generatePracticeCandidate() {
+  if (!$("practice-ai-consent").checked) {
+    setPracticeStatus("请先明确授权本轮 AI 请求；没有发送任何数据。", true);
+    return;
+  }
+  const button = $("generate-practice-candidate");
+  button.disabled = true;
+  button.textContent = "正在生成并校验…";
+  setPracticeStatus("正在核对当前 Gap、正式题目锚点和近期使用记录。");
+  try {
+    const target = await currentPracticeTarget();
+    if (!target?.gap) throw new Error("当前 Gap 已不存在或已被正式评估纠正，未生成新练习。");
+    if (target.sources.length < 2) throw new Error("当前 Gap 没有两个正式题目锚点，不能生成候选练习。");
+    const recentlyUsed = new Set(target.recentlyUsedVariantIds);
+    const freshAnchor = target.sources.find(item => !recentlyUsed.has(item.id));
+    const primaryAnchor = freshAnchor || target.sources[0];
+    const secondaryAnchor = target.sources.find(item => item.id !== primaryAnchor.id);
+    const selectedSources = [primaryAnchor, secondaryAnchor];
+    if (selectedSources.some(item => !item)) {
+      throw new Error("无法为当前 Gap 选择两个不同的正式题目锚点。");
+    }
+    const sourceRows = selectedSources.map(item => ({
+      id: item.id,
+      title: item.title,
+      prompt: item.prompt,
+      code: item.code || "",
+      options: (item.options || []).map(option => ({ id: option.id, label: option.label })),
+      answer: item.answer,
+      explanation: item.explanation || "",
+    }));
+    const context = {
+      competencyId: target.competency.id,
+      competencyTitle: target.competency.title,
+      topicId: target.competency.topicId,
+      topicTitle: target.competency.topicTitle,
+      gapId: targetGapId,
+      gapLabel: target.gap.label,
+      registry: assessments,
+      allowedSourceVariantIds: sourceRows.map(item => item.id),
+      recentlyUsedVariantIds: target.recentlyUsedVariantIds,
+      existingCandidates: await practiceCandidateStore.list({
+        competencyId: targetCompetencyId, gapId: targetGapId, limit: 30,
+      }),
+    };
+    const learningScene = {
+      page: { title: "针对性复习工作台", path: location.pathname },
+      topics: [{ id: context.topicId, title: context.topicTitle }],
+      competencies: [{ id: context.competencyId, title: context.competencyTitle, topicId: context.topicId }],
+      gaps: [{ id: context.gapId, label: context.gapLabel, competencyId: context.competencyId }],
+      practiceGeneration: {
+        instruction: "仅生成一个开放式、无评分的补充练习。必须准确引用下面两个正式题目 ID。",
+        officialSources: sourceRows,
+        recentlyUsedVariantIds: context.recentlyUsedVariantIds,
+        schemaVersion: 1,
+      },
+    };
+    const response = await practiceProvider.ask({
+      mode: "tutor",
+      tutorMode: "practice",
+      message: [
+        "请为当前仍未解决的 Gap 生成一份额外的开放式练习草案。",
+        "题目必须改变场景并要求真实推理，不得照抄正式题目；不要生成选择题或正式答案判分机制。",
+        "参考思路必须与给定的两个正式来源一致。仅在 reply 字段返回符合系统 schema 的纯 JSON，不要 Markdown。",
+      ].join("\n"),
+      context: { learningScene, recentConversation: [] },
+    });
+    const exercise = parseLearningPracticeCandidateReply(response.reply, context);
+    const saved = await practiceCandidateStore.saveDraft({
+      exercise,
+      context,
+      recentlyUsedVariantIds: context.recentlyUsedVariantIds,
+    });
+    activePracticeCandidate = saved;
+    showPracticeCandidate(saved);
+    setPracticeStatus("候选练习已保存到你的私有学习档案。它仍是未评分草案，不会创建学习事件。");
+  } catch (error) {
+    setPracticeStatus(error.message || "练习候选生成失败；没有写入草案。", true);
+  } finally {
+    $("practice-ai-consent").checked = false;
+    button.disabled = false;
+    button.textContent = "生成一份练习草案";
+    const target = await currentPracticeTarget().catch(() => null);
+    if (!target?.gap) button.disabled = true;
+  }
+}
+
+async function submitPracticeCandidate() {
+  if (!activePracticeCandidate) return;
+  const button = $("practice-candidate-submit");
+  button.disabled = true;
+  try {
+    const saved = await practiceCandidateStore.markAttempted(
+      activePracticeCandidate.candidateId,
+      $("practice-candidate-answer").value,
+    );
+    activePracticeCandidate = saved;
+    showPracticeCandidate(saved);
+    setPracticeStatus("已保存你的作答并展开参考思路。没有生成评分、掌握证据或 Gap 关闭记录。");
+  } catch (error) {
+    setPracticeStatus(error.message || "保存练习作答失败。", true);
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function deletePracticeCandidate() {
+  if (!activePracticeCandidate) return;
+  try {
+    await practiceCandidateStore.remove(activePracticeCandidate.candidateId);
+    activePracticeCandidate = null;
+    $("practice-candidate-active").hidden = true;
+    await renderPracticeWorkbench();
+    setPracticeStatus("练习草案已从个人学习档案中删除。");
+  } catch (error) {
+    setPracticeStatus(error.message || "删除练习草案失败。", true);
+  }
+}
+
+function revealPracticeHint() {
+  if (!activePracticeCandidate || activePracticeCandidate.status !== "draft") return;
+  const hints = activePracticeCandidate.exercise.hints;
+  if (practiceHintCount >= hints.length) return;
+  $("practice-candidate-hint-list").append(el("li", "", hints[practiceHintCount]));
+  practiceHintCount += 1;
+  $("practice-candidate-hint").textContent = practiceHintCount >= hints.length
+    ? "提示已全部展开"
+    : "展开第二级提示";
+  $("practice-candidate-hint").disabled = practiceHintCount >= hints.length;
+}
+
 function wire() {
   $("reveal-hint").addEventListener("click",()=>revealHint().catch(error=>console.error("[KNOWVERSE] Hint save failed:",error)));
   $("next-variant").addEventListener("click",()=>startSession({competencyId:targetCompetencyId,gapId:targetGapId}).catch(error=>console.error("[KNOWVERSE] Review start failed:",error)));
+  $("generate-practice-candidate").addEventListener("click", () => generatePracticeCandidate());
+  $("practice-candidate-submit").addEventListener("click", () => submitPracticeCandidate());
+  $("practice-candidate-delete").addEventListener("click", () => deletePracticeCandidate());
+  $("practice-candidate-hint").addEventListener("click", () => revealPracticeHint());
 }
 async function boot() {
   if (!progressStore.available) throw new Error("当前浏览器不支持 IndexedDB，无法保存复习会话。");
@@ -242,6 +525,8 @@ async function boot() {
   [map,registry,assessments]=await Promise.all([mapResponse.json(),challengeResponse.json(),assessmentResponse.json()]);
   engine=createReviewSessionEngine({registry:assessments});
   taskOrchestrator=createLearningTaskOrchestrator();
+  practiceProvider=createLearningAgentProvider();
+  practiceCandidateStore=createLearningPracticeCandidateStore({ registry: assessments });
   wire();
   const competencyId=params.get("competencyId");
   const gapId=params.get("gapId");
@@ -268,6 +553,7 @@ async function boot() {
         targetGapId = existing.targetGapId || null;
         renderSession();
         setFeedback("已恢复与当前任务关联的复习现场。");
+        await renderPracticeWorkbench();
       } else {
         await startSession({competencyId,gapId});
       }
@@ -282,6 +568,7 @@ async function boot() {
       targetGapId = session.targetGapId || null;
       renderSession();
       setFeedback("已从学习数据库自动恢复最近一次未完成的复习现场。");
+      await renderPracticeWorkbench();
     }
   }
 }

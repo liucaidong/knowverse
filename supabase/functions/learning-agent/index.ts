@@ -208,7 +208,7 @@ const authenticatedHandler = withSupabase(
         return json({ error: { code: "INVALID_REQUEST", message: "请求格式无效。" } }, 400, origin);
       }
       const mode = body.mode === "tutor" ? "tutor" : "agent";
-      const tutorModes = ["explain", "hint", "diagnose", "transfer", "socratic"];
+      const tutorModes = ["explain", "hint", "diagnose", "transfer", "socratic", "practice"];
       const tutorMode = typeof body.tutorMode === "string" && tutorModes.includes(body.tutorMode)
         ? body.tutorMode : "explain";
       if (mode === "tutor" && body.tutorMode !== undefined && !tutorModes.includes(String(body.tutorMode))) {
@@ -242,6 +242,7 @@ const authenticatedHandler = withSupabase(
           "For diagnosis, distinguish observed evidence from hypotheses and ask one short verification question.",
           "For transfer, create one clearly labeled ungraded practice draft; it is not a registered assessment and cannot count as mastery evidence.",
           "For Socratic tutoring, ask exactly one concise question per turn, begin from the learner's current reasoning, and adapt the next question to the learner's reply. Guide through explanation, prediction, evidence and boundary checks. Do not provide a question list or the final answer unless the learner explicitly asks or has already made a genuine attempt and remains blocked; then reveal only the smallest useful hint.",
+          "For practice mode, create one open-ended, ungraded supplementary exercise tightly bound to context.learningScene.practiceGeneration. Return the reply field as a compact JSON string (not a Markdown fence) with exactly: title, taskType (predict|trace|diagnose|transfer|explain), prompt, stimulus, expectedReasoning, exemplarAnswer, commonTrap, hints (exactly two strings), rubric (2-4 objects with id, criterion, expectedSignal), difficulty (foundation|intermediate|stretch), sourceVariantIds (exactly the two official source IDs provided). Do not create an official variantId, score, options, mastery value or assessment result. Do not claim that the answer has been independently verified. The exercise must change the scenario and reasoning demand, not copy either source item. Keep answer reasoning accurate and grounded in the supplied official sources.",
           "Never call tools, request more data, propose mutations, update goals or plans, or close gaps. Always return empty suggestions and dataRequests arrays.",
           "Never claim the learner has mastered anything based on this conversation. Only application assessment and review engines can write learning evidence.",
           "Requested tutoring mode: " + tutorMode + ".",

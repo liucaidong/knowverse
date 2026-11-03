@@ -596,3 +596,21 @@ P0 的真实学习周期仍需要学习者亲自完成；本阶段不尝试用�
 实施文档：docs/phase-k/learning-loop.md。
 
 状态说明：本地单测、Chromium 桌面与 WebKit 移动端自动化可验证功能交互和无掌握事件边界；真实云端 Provider 配置/账户验收以及真实学习效果试点仍未完成。
+
+
+---
+
+## 13. Phase L 实施回写：Gap 驱动的 AI 补充练习工厂（2026-11-04）
+
+本阶段补齐 P1 导师路线图中的 Practice 能力，但不把“AI 能生成题目”与“题目已具备正式评估资格”混为一谈：
+
+- 在针对性复习工作台中，只有当前仍未解决的 Gap 才能请求生成练习草案。
+- 每份候选练习必须引用当前 Competency/Gap 下两个正式 Review Assessment 变体，来源 ID 由题库注册表校验。
+- 客户端严格验证 Schema、题型/难度、两级提示、推理检查点、来源绑定、近期变体锚点及与正式题目/已有草案的重复。
+- 候选题保存为私有 learner_profile 文档，支持本地恢复、作答保存、参考思路揭示和删除。
+- 候选练习不是正式 Assessment，没有 variantId、答案自动评分、Mastery 更新或 Gap 关闭能力；提交作答也不会新增 Learning Events。
+- 正式掌握仍只能通过既有 Review Engine 从 content/review-assessments.json 选择正式变体并写入独立评估事件。
+
+实施说明：docs/phase-l/gap-practice-factory.md。
+
+状态说明：当前本地 schema/存储与 Chromium/WebKit E2E 验证的是候选准入、保存和无掌握事件边界；AI 参考思路属于未审核草案，不能作为教学事实或正式评估答案。真实 Provider 回复和真实学习效果仍需账户配置/试点验证。
