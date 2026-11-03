@@ -969,8 +969,9 @@ async function boot() {
   // preferences. The account panel also starts the sync runtime; starting that
   // bootstrap in the background used to allow a legacy LocalStorage snapshot
   // to arrive after the learner had already saved newer preferences.
+  // getLearningRepository resolves only after the one-time local archive migration
+  // has completed; do not expose editable controls before this await.
   const repository = await getLearningRepository();
-  await repository.initialize();
 
   const backendPanel = document.getElementById("backend-account-panel");
   if (backendPanel) {

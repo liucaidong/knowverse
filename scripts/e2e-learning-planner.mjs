@@ -37,6 +37,39 @@ async function startServer() {
 const { server, baseURL } = await startServer();
 test.after(() => new Promise(resolveServer => server.close(resolveServer)));
 
+async function traceLearningDocuments(page) {
+  const writes = [];
+  page.on("console", message => {
+    const value = message.text();
+    if (value.startsWith("__KV_DOCUMENT_TRACE__")) writes.push(value.slice("__KV_DOCUMENT_TRACE__".length));
+  });
+  await page.addInitScript(() => {
+    if (globalThis.__kvDocumentTraceInstalled) return;
+    globalThis.__kvDocumentTraceInstalled = true;
+    const originalPut = IDBObjectStore.prototype.put;
+    IDBObjectStore.prototype.put = function(value, ...args) {
+      if (this.name === "learningDocuments" &&
+          ["plan_preferences", "learner_profile"].includes(value?.type)) {
+        console.info("__KV_DOCUMENT_TRACE__" + JSON.stringify({
+          operation: "put", type: value.type, key: value.key,
+          revision: value.localRevision, payload: value.payload,
+          dirty: value.dirty, cloudRevision: value.cloudRevision,
+        }));
+      }
+      return originalPut.call(this, value, ...args);
+    };
+    const originalDelete = IDBObjectStore.prototype.delete;
+    IDBObjectStore.prototype.delete = function(key) {
+      if (this.name === "learningDocuments") {
+        console.info("__KV_DOCUMENT_TRACE__" + JSON.stringify({ operation: "delete", key }));
+      }
+      return originalDelete.call(this, key);
+    };
+  });
+  return writes;
+}
+
+
 test("Chromium desktop: the daily plan respects prerequisites and advances from lesson to practice", { timeout:60000 }, async () => {
   const browser = await chromium.launch({ headless:true });
   try {
@@ -86,9 +119,11 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
+    const documentWrites = await traceLearningDocuments(page);
     // Simulate the exact legacy value that Phase C must import before the
     // IndexedDB-backed preference controls become editable.
     await page.addInitScript(() => {
+      if (sessionStorage.getItem("__kv_phase_c_seeded") === "true") return;
       localStorage.setItem("knowverse:learning-state", JSON.stringify({
         format: "knowverse-learning-state",
         schemaVersion: 1,
@@ -100,6 +135,7 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
           }),
         },
       }));
+      sessionStorage.setItem("__kv_phase_c_seeded", "true");
     });
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
@@ -134,11 +170,16 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
         document.querySelector("#plan-focus-topic")?.value === "monorepo" &&
         document.querySelectorAll("#plan-actions .lp-plan-card").length === 1;
     });
-    const preference = await page.evaluate(async () => {
-      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
-      return (await getLearningRepository()).documents.get("plan_preferences", "preferences").then(row => row.payload);
-    });
-    assert.deepEqual(preference, { dailyMinutes:15, focusTopicId:"monorepo" });
+    let preference = null;
+    for (let sample = 0; sample < 6; sample += 1) {
+      await page.waitForTimeout(100);
+      preference = await page.evaluate(async () => {
+        const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+        return (await getLearningRepository()).documents.get("plan_preferences", "preferences").then(row => row.payload);
+      });
+      assert.deepEqual(preference, { dailyMinutes:15, focusTopicId:"monorepo" },
+        JSON.stringify({ sample, preference, documentWrites, errors }));
+    }
     assert.equal(await page.locator("#plan-actions .lp-plan-card").count(), 1);
     assert.equal((await page.locator("#plan-actions .lp-plan-card h3").first().textContent()).trim(), "工作区依赖声明");
     const box = await page.locator(".lp-plan-shell").boundingBox();
@@ -157,6 +198,7 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
+    const documentWrites = await traceLearningDocuments(page);
     await page.goto(baseURL + "/progress/", { waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#strategy-mode-default").click();
@@ -168,8 +210,27 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
     await page.reload({ waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
     await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
-    await page.waitForFunction(() =>
-      document.querySelector("#strategy-mode-default")?.getAttribute("aria-pressed") === "true");
+    try {
+      await page.waitForFunction(async () => {
+        const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+        const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
+        return row?.payload?.personalizationMode === "default" &&
+          document.querySelector("#strategy-mode-default")?.getAttribute("aria-pressed") === "true";
+      }, { timeout:5000 });
+    } catch (error) {
+      const state = await page.evaluate(async () => {
+        const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+        const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
+        return {
+          payload: row?.payload || null,
+          button: document.querySelector("#strategy-mode-default")?.getAttribute("aria-pressed"),
+          progressError: document.documentElement.dataset.learningProgressError || null,
+          status: document.querySelector("#strategy-control-status")?.textContent || null,
+        };
+      });
+      throw new Error("Strategy preference did not survive reload: " +
+        JSON.stringify({ state, documentWrites, errors }) + " | " + error.message);
+    }
     const mode = await page.evaluate(async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       return (await getLearningRepository()).documents.get("learner_profile", "preferences").then(row => row.payload.personalizationMode);
@@ -177,11 +238,25 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
     assert.equal(mode, "default");
     assert.equal(await page.locator("#strategy-mode-default").getAttribute("aria-pressed"), "true");
     await page.locator("#strategy-mode-adaptive").click();
-    await page.waitForFunction(async () => {
-      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
-      const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
-      return row?.payload?.personalizationMode === "adaptive";
-    });
+    try {
+      await page.waitForFunction(async () => {
+        const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+        const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
+        return row?.payload?.personalizationMode === "adaptive";
+      }, { timeout:5000 });
+    } catch (error) {
+      const state = await page.evaluate(async () => {
+        const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+        const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
+        return {
+          payload: row?.payload || null,
+          button: document.querySelector("#strategy-mode-adaptive")?.getAttribute("aria-pressed"),
+          status: document.querySelector("#strategy-control-status")?.textContent || null,
+        };
+      });
+      throw new Error("Strategy adaptive mode did not persist: " +
+        JSON.stringify({ state, documentWrites, errors }) + " | " + error.message);
+    }
     assert.deepEqual(errors, []);
     await context.close();
   } finally {
