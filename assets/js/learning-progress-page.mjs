@@ -14,6 +14,7 @@ const planPreferencesStore = createLearningPlanPreferencesStore();
 let worksManifest;
 let checkpointRegistry;
 let planPreferences = { dailyMinutes: 25, focusTopicId: "all" };
+let planPreferenceSaveQueue = Promise.resolve();
 let adaptivePlan;
 let knowledge;
 let learningMap;
@@ -793,6 +794,18 @@ function renderAdaptivePlan(snapshot) {
 let pageRefreshPromise = null;
 let pageRefreshAgain = false;
 
+async function updatePlanPreference(patch) {
+  planPreferences = { ...planPreferences, ...patch };
+  const snapshot = { ...planPreferences };
+  // Preference documents use CAS. Serialize whole-document snapshots so rapid
+  // changes to separate controls cannot overwrite a newer field with an older copy.
+  const pending = planPreferenceSaveQueue.catch(() => {})
+    .then(() => planPreferencesStore.save(snapshot));
+  planPreferenceSaveQueue = pending;
+  await pending;
+  await refresh();
+}
+
 async function refresh() {
   if (pageRefreshPromise) {
     pageRefreshAgain = true;
@@ -901,13 +914,11 @@ function wireDataActions() {
     }
   });
   $("plan-time-budget").addEventListener("change", async event => {
-    planPreferences = { ...planPreferences, dailyMinutes: Number(event.target.value) };
-    try { await planPreferencesStore.save(planPreferences); await refresh(); }
+    try { await updatePlanPreference({ dailyMinutes: Number(event.target.value) }); }
     catch (error) { window.alert("无法保存计划偏好：" + error.message); }
   });
   $("plan-focus-topic").addEventListener("change", async event => {
-    planPreferences = { ...planPreferences, focusTopicId: event.target.value };
-    try { await planPreferencesStore.save(planPreferences); await refresh(); }
+    try { await updatePlanPreference({ focusTopicId: event.target.value }); }
     catch (error) { window.alert("无法保存计划偏好：" + error.message); }
   });
   $("plan-rebuild").addEventListener("click", () => refresh().catch(error => setText("plan-status", error.message)));

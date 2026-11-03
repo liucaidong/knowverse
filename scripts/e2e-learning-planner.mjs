@@ -99,10 +99,21 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       const preference = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
       const firstTitle = document.querySelector("#plan-actions .lp-plan-card h3")?.textContent?.trim();
-      return preference?.payload?.focusTopicId === "monorepo" && firstTitle === "工作区依赖声明";
+      return preference?.payload?.focusTopicId === "monorepo" &&
+        firstTitle === "工作区依赖声明" &&
+        document.querySelector("#plan-time-budget")?.value === "15" &&
+        document.querySelector("#plan-focus-topic")?.value === "monorepo";
     });
     await page.reload({ waitUntil:"domcontentloaded" });
-    await page.locator("#plan-actions .lp-plan-card").first().waitFor({ state:"visible" });
+    await page.waitForFunction(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const preference = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
+      return preference?.payload?.dailyMinutes === 15 &&
+        preference?.payload?.focusTopicId === "monorepo" &&
+        document.querySelector("#plan-time-budget")?.value === "15" &&
+        document.querySelector("#plan-focus-topic")?.value === "monorepo" &&
+        document.querySelectorAll("#plan-actions .lp-plan-card").length === 1;
+    });
     const preference = await page.evaluate(async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       return (await getLearningRepository()).documents.get("plan_preferences", "preferences").then(row => row.payload);
