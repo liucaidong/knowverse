@@ -53,13 +53,42 @@ async function boot() {
   const allTasks = current.active ? await taskOrchestrator.list(current.active.planId) : [];
   const nextTask = allTasks
     .filter(task => pendingStatuses.has(task.status))
-    .sort((a,b) => (a.sequence || 0) - (b.sequence || 0))[0];
+    .sort((a,b) => {
+      // Do not interrupt a task the learner has already started merely because
+      // a newer plan proposal was generated in parallel.
+      const priority = status => status === "in_progress" ? 0 :
+        status === "failed" ? 1 : status === "paused" ? 2 : 3;
+      return priority(a.status) - priority(b.status) ||
+        (a.sequence || 0) - (b.sequence || 0);
+    })[0];
   const lockedTask = allTasks
     .filter(task => task.status === "locked")
     .sort((a,b) => (a.sequence || 0) - (b.sequence || 0))[0];
   const tasksComplete = Boolean(current.active && allTasks.length &&
     allTasks.every(task => terminalStatuses.has(task.status)) &&
     allTasks.some(task => task.status === "completed"));
+
+  if (nextTask?.status === "in_progress") {
+    const taskHref = nextTask.href
+      ? new URL(nextTask.href, root).href
+      : new URL("agent/#la-active-tasks", root).href;
+    setSteps({ goalDone: activeGoals.length > 0, planDone: Boolean(current.active), active: 3 });
+    setFocus({
+      stage: "第 3 步 · 继续正在进行的任务",
+      title: nextTask.title || "继续当前学习任务",
+      description: (nextTask.topicTitle || "当前专题") + " · " +
+        (nextTask.competencyTitle || "知识能力训练") + " · 预计 " +
+        (nextTask.estimatedMinutes || 10) + " 分钟。你已经开始这项任务，先完成或暂停当前任务，再处理新生成的计划提案。",
+      actionLabel: "继续当前任务",
+      actionHref: taskHref,
+      secondaryLabel: current.proposal ? "查看待确认的新计划" : "查看本计划的全部任务",
+      secondaryHref: current.proposal
+        ? new URL("agent/#la-adaptive-plan", root).href
+        : new URL("agent/#la-active-tasks", root).href,
+      note: "新计划提案不会自动中断当前任务；接受新计划前，当前执行状态和学习记录保持不变。",
+    });
+    return;
+  }
 
   if (current.proposal) {
     setSteps({ goalDone: activeGoals.length > 0, planDone: false, active: 2 });

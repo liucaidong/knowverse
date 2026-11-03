@@ -110,6 +110,59 @@ test("guided start page identifies one next action and opens the matching goal f
   }finally{await browser.close();}
 });
 
+test("guided start page prioritizes an in-progress task over a newly generated plan proposal", {timeout:60000}, async()=>{
+  const browser=await chromium.launch({headless:true});
+  try{
+    const context=await browser.newContext({viewport:{width:1440,height:960}});
+    await context.addInitScript(()=>{globalThis.KNOWVERSE_BACKEND_CONFIG={supabaseUrl:"",publishableKey:""};});
+    const page=await context.newPage();
+    const errors=[];page.on("pageerror",e=>errors.push(e.message));
+    await page.goto(url+"/start/",{waitUntil:"domcontentloaded"});
+    await page.waitForFunction(()=>document.querySelector("#ls-focus")?.getAttribute("aria-busy")==="false");
+    await page.evaluate(async()=>{
+      const {getLearningRepository}=await import("/assets/js/backend/learning-repository.mjs");
+      const repository=await getLearningRepository();
+      await repository.commit({documents:[
+        {type:"learning_goal",key:"e2e-active-goal",expectedLocalRevision:0,payload:{
+          goalId:"e2e-active-goal",title:"ES Promise",status:"active",topicIds:["promise"],
+          competencyIds:["thenable-adoption"],priority:5,dailyMinutes:25,revision:1,
+          createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),
+        }},
+        {type:"learning_plan",key:"e2e-active-plan",expectedLocalRevision:0,payload:{
+          planId:"e2e-active-plan",status:"accepted",version:1,actions:[],horizonDays:7,
+          plannedMinutes:25,totalBudgetMinutes:25,headline:"当前执行计划",
+        }},
+        {type:"learning_plan",key:"e2e-new-proposal",expectedLocalRevision:0,payload:{
+          planId:"e2e-new-proposal",status:"proposed",version:2,actions:[{actionId:"next"}],
+          horizonDays:7,plannedMinutes:20,totalBudgetMinutes:25,headline:"新的学习安排",
+        }},
+        {type:"learning_plan_head",key:"current",expectedLocalRevision:0,payload:{
+          activePlanId:"e2e-active-plan",proposedPlanId:"e2e-new-proposal",version:2,
+        }},
+        {type:"learning_task",key:"e2e-next-ready-task",expectedLocalRevision:0,payload:{
+          taskId:"e2e-next-ready-task",planId:"e2e-active-plan",status:"ready",sequence:1,
+          title:"计划中的下一项待开始任务",topicTitle:"JavaScript · Promise",
+          competencyTitle:"thenable 解析与 Promise 采用",estimatedMinutes:10,
+          href:"./knowledge/promise/lesson-03/?taskId=e2e-next-ready-task",
+        }},
+        {type:"learning_task",key:"e2e-current-task",expectedLocalRevision:0,payload:{
+          taskId:"e2e-current-task",planId:"e2e-active-plan",status:"in_progress",sequence:2,
+          title:"当前正在进行的 Promise 课程阅读",topicTitle:"JavaScript · Promise",
+          competencyTitle:"thenable 解析与 Promise 采用",estimatedMinutes:12,
+          href:"./knowledge/promise/lesson-03/?taskId=e2e-current-task",
+        }},
+      ]});
+    });
+    await page.reload({waitUntil:"domcontentloaded"});
+    await page.waitForFunction(()=>document.querySelector("#ls-focus")?.getAttribute("aria-busy")==="false");
+    assert.match(await page.locator("#ls-next-title").innerText(),/当前正在进行的 Promise 课程阅读/);
+    assert.match(await page.locator("#ls-next-action").innerText(),/继续当前任务/);
+    assert.match(await page.locator("#ls-next-action").getAttribute("href"),/lesson-03.*taskId=e2e-current-task/);
+    assert.deepEqual(errors,[]);
+    await context.close();
+  }finally{await browser.close();}
+});
+
 test("guided start page fits a narrow mobile viewport without horizontal overflow", {timeout:60000}, async()=>{
   const browser=await chromium.launch({headless:true});
   try{
