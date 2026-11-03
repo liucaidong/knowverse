@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { chromium, webkit, devices } from "playwright";
+import { waitForAsyncPageCondition } from "./helpers/wait-for-async-page-condition.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const mime = {
@@ -339,10 +340,10 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
       });
       await window.archiveHarness.addEvent(value);
     }, failedAttempt);
-    await mac.page.waitForFunction(async () => {
+    await waitForAsyncPageCondition(mac.page, async () => {
       const status = await window.archiveHarness.status();
       return status.pendingEvents >= 1 && status.eventRecords === 1;
-    });
+    }, { label: "Mac archive event to enter the local Outbox" });
 
     const macFirstSync = await mac.page.evaluate(() => window.archiveHarness.sync());
     assert.equal(macFirstSync.status, "synced");
@@ -499,11 +500,11 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
     assert.ok(["synced", "syncing"].includes(macPull.status));
     // The shared background sync may have pulled this page before the explicit
     // call above. Assert the durable end state, not a timing-sensitive delta.
-    await mac.page.waitForFunction(async () => {
+    await waitForAsyncPageCondition(mac.page, async () => {
       const events = await window.archiveHarness.listEvents();
       return events.length === 3 &&
         Boolean(await window.archiveHarness.getDocument("review_session", "phone-review-active"));
-    }, null, { timeout: 10000 });
+    }, { timeout: 10000, label: "Mac to merge the phone review archive" });
     const macMerged = await mac.page.evaluate(async () => ({
       events: await window.archiveHarness.listEvents(),
       review: (await window.archiveHarness.getDocument("review_session", "phone-review"))?.payload || null,
@@ -532,17 +533,17 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
       { correct: false, gapId: "thenable-get-vs-call", attemptNumber: 2 },
     );
     await phone.page.evaluate(value => window.archiveHarness.addEvent(value), offlineEvent);
-    await phone.page.waitForFunction(async () => {
+    await waitForAsyncPageCondition(phone.page, async () => {
       const status = await window.archiveHarness.status();
       return status.pendingEvents >= 1;
-    });
+    }, { label: "offline phone event to enter the local Outbox" });
     const offlineResult = await phone.page.evaluate(() => window.archiveHarness.sync());
     assert.equal(offlineResult.status, "offline");
     await phone.context.setOffline(false);
     const recovered = await phone.page.evaluate(() => window.archiveHarness.sync());
     assert.ok(["synced", "syncing"].includes(recovered.status));
-    await phone.page.waitForFunction(async () => (await window.archiveHarness.status()).pendingEvents === 0,
-      null, { timeout: 12000 });
+    await waitForAsyncPageCondition(phone.page, async () => (await window.archiveHarness.status()).pendingEvents === 0,
+      { timeout: 12000, label: "phone Outbox to drain after reconnecting" });
     await waitUntil(() => cloud.events.length === 4, "offline event to be acknowledged by cloud sync");
 
     await mac.page.evaluate(async () => {
@@ -574,8 +575,8 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
     await phone.page.evaluate(() => window.archiveHarness.capture());
     const conflictSync = await phone.page.evaluate(() => window.archiveHarness.sync());
     assert.ok(["synced", "syncing"].includes(conflictSync.status));
-    await phone.page.waitForFunction(async () => (await window.archiveHarness.conflicts()).length === 1,
-      null, { timeout: 12000 });
+    await waitForAsyncPageCondition(phone.page, async () => (await window.archiveHarness.conflicts()).length === 1,
+      { timeout: 12000, label: "the expected archive conflict to be recorded" });
     const conflicts = await phone.page.evaluate(() => window.archiveHarness.conflicts());
     assert.equal(conflicts.length, 1);
 
@@ -584,8 +585,8 @@ test("Mac + WebKit iPhone profile: offline-first archive, cold restore, idempote
     assert.ok(["synced", "syncing"].includes(resolved.status));
     await waitUntil(() => cloud.documents.get("challenge_progress:promise-mechanism-quest")?.revision === 3,
       "resolved iPhone document revision 3 to reach the cloud");
-    await phone.page.waitForFunction(async () => (await window.archiveHarness.conflicts()).length === 0,
-      null, { timeout: 12000 });
+    await waitForAsyncPageCondition(phone.page, async () => (await window.archiveHarness.conflicts()).length === 0,
+      { timeout: 12000, label: "the resolved archive conflict to be cleared" });
     const cloudChallenge = cloud.documents.get("challenge_progress:promise-mechanism-quest");
     assert.equal(cloudChallenge.document_payload.currentStep, "iphone-second-step");
     assert.equal(cloudChallenge.revision, 3);

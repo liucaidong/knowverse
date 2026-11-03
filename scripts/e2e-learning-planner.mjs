@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { chromium, webkit } from "playwright";
+import { waitForAsyncPageCondition } from "./helpers/wait-for-async-page-condition.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const mime = {
@@ -38,7 +39,7 @@ const { server, baseURL } = await startServer();
 test.after(() => new Promise(resolveServer => server.close(resolveServer)));
 
 async function waitForStrategyMode(page, mode, timeout = 10000) {
-  await page.waitForFunction(async expectedMode => {
+  await waitForAsyncPageCondition(page, async expectedMode => {
     const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
     const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
     const pressed = document.querySelector("#strategy-mode-" + expectedMode)?.getAttribute("aria-pressed");
@@ -47,7 +48,7 @@ async function waitForStrategyMode(page, mode, timeout = 10000) {
       ? Math.min(3, (window.__kvStrategyModeStableCount || 0) + 1)
       : 0;
     return window.__kvStrategyModeStableCount >= 3;
-  }, mode, { timeout });
+  }, { arg: mode, timeout, label: "strategy mode " + mode + " to persist" });
 }
 
 async function traceLearningDocuments(page) {
@@ -121,11 +122,11 @@ test("Chromium desktop: the daily plan respects prerequisites and advances from 
     assert.equal(firstCompetency, "thenable 解析与 Promise 采用");
     assert.match(await page.locator("#plan-summary").textContent(), /今日安排/);
     await firstCard.getByRole("button", { name:"完成此学习步骤" }).click();
-    await page.waitForFunction(async () => {
+    await waitForAsyncPageCondition(page, async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       const data = await (await getLearningRepository()).events.list();
       return data.some(event => event.type === "plan_action_completed");
-    });
+    }, { label: "completed plan action event" });
     const snapshot = await page.evaluate(async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       return { events: await (await getLearningRepository()).events.list() };
@@ -178,14 +179,14 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
     assert.equal(await page.evaluate(() => localStorage.getItem("knowverse:learning-state")), null,
       "legacy Phase C source must be fully imported and cleaned before preference editing");
     await page.locator("#plan-time-budget").selectOption("15");
-    await page.waitForFunction(async () => {
+    await waitForAsyncPageCondition(page, async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       const preference = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
       return preference?.payload?.dailyMinutes === 15 &&
         document.querySelectorAll("#plan-actions .lp-plan-card").length === 1;
-    });
+    }, { label: "daily time preference to persist" });
     await page.locator("#plan-focus-topic").selectOption("monorepo");
-    await page.waitForFunction(async () => {
+    await waitForAsyncPageCondition(page, async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       const preference = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
       const firstTitle = document.querySelector("#plan-actions .lp-plan-card h3")?.textContent?.trim();
@@ -193,28 +194,51 @@ test("WebKit mobile: plan time and focus preferences persist and remain within t
         firstTitle === "工作区依赖声明" &&
         document.querySelector("#plan-time-budget")?.value === "15" &&
         document.querySelector("#plan-focus-topic")?.value === "monorepo";
-    });
+    }, { label: "focused plan preference to persist" });
     await page.reload({ waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
-    await page.waitForFunction(async () => {
+    // Require the persisted document and rendered controls to agree across
+    // three separate IndexedDB reads before asserting the restored state.
+    const preference = await waitForAsyncPageCondition(page, async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
-      const preference = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
-      return preference?.payload?.dailyMinutes === 15 &&
-        preference?.payload?.focusTopicId === "monorepo" &&
-        document.querySelector("#plan-time-budget")?.value === "15" &&
-        document.querySelector("#plan-focus-topic")?.value === "monorepo" &&
-        document.querySelectorAll("#plan-actions .lp-plan-card").length === 1;
-    });
-    let preference = null;
-    for (let sample = 0; sample < 6; sample += 1) {
-      await page.waitForTimeout(100);
-      preference = await page.evaluate(async () => {
+      const row = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
+      const title = document.querySelector("#plan-actions .lp-plan-card h3")?.textContent?.trim();
+      const state = {
+        payload: row?.payload || null,
+        dailyMinutes: document.querySelector("#plan-time-budget")?.value || null,
+        focusTopicId: document.querySelector("#plan-focus-topic")?.value || null,
+        cardCount: document.querySelectorAll("#plan-actions .lp-plan-card").length,
+        firstTitle: title || null,
+      };
+      const matches = state.payload?.dailyMinutes === 15 &&
+        state.payload?.focusTopicId === "monorepo" &&
+        state.dailyMinutes === "15" && state.focusTopicId === "monorepo" &&
+        state.cardCount === 1 && state.firstTitle === "工作区依赖声明";
+      window.__kvPlanPreferenceTrace = state;
+      window.__kvPlanPreferenceStableCount = matches
+        ? Math.min(3, (window.__kvPlanPreferenceStableCount || 0) + 1)
+        : 0;
+      return window.__kvPlanPreferenceStableCount >= 3 ? state.payload : false;
+    }, { timeout:10000, polling:100, label: "reloaded plan preferences to remain stable" }).catch(async error => {
+      const diagnostic = await page.evaluate(async () => {
         const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
-        return (await getLearningRepository()).documents.get("plan_preferences", "preferences").then(row => row.payload);
+        const row = await (await getLearningRepository()).documents.get("plan_preferences", "preferences");
+        return {
+          finalPayload: row?.payload || null,
+          dom: window.__kvPlanPreferenceTrace || null,
+          stableCount: window.__kvPlanPreferenceStableCount || 0,
+          title: document.querySelector("#plan-actions .lp-plan-card h3")?.textContent?.trim() || null,
+          dailyMinutes: document.querySelector("#plan-time-budget")?.value || null,
+          focusTopicId: document.querySelector("#plan-focus-topic")?.value || null,
+          cards: document.querySelectorAll("#plan-actions .lp-plan-card").length,
+          ready: document.documentElement.dataset.learningProgressReady || null,
+          error: document.documentElement.dataset.learningProgressError || null,
+        };
       });
-      assert.deepEqual(preference, { dailyMinutes:15, focusTopicId:"monorepo" },
-        JSON.stringify({ sample, preference, documentWrites, errors }));
-    }
+      throw new Error("Persisted plan preference never stabilized: " + JSON.stringify({diagnostic,documentWrites,errors}) + " | " + error.message);
+    });
+    assert.deepEqual(preference, { dailyMinutes:15, focusTopicId:"monorepo" },
+      JSON.stringify({ preference, documentWrites, errors }));
     assert.equal(await page.locator("#plan-actions .lp-plan-card").count(), 1);
     assert.equal((await page.locator("#plan-actions .lp-plan-card h3").first().textContent()).trim(), "工作区依赖声明");
     const box = await page.locator(".lp-plan-shell").boundingBox();
@@ -251,11 +275,11 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
         JSON.stringify({state, clicks:documentTrace.clicks, writes:documentTrace.writes, errors}) +
         " | " + error.message);
     });
-    await page.waitForFunction(async () => {
+    await waitForAsyncPageCondition(page, async () => {
       const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
       const row = await (await getLearningRepository()).documents.get("learner_profile", "preferences");
       return row?.payload?.personalizationMode === "default";
-    });
+    }, { label: "default strategy preference to persist" });
     assert.ok(documentTrace.clicks.includes("strategy-mode-default"),
       "default-mode click must reach the document; trace=" + JSON.stringify(documentTrace));
     const defaultWrite = documentTrace.writes.map(value => JSON.parse(value)).find(item =>

@@ -130,6 +130,8 @@ jobs:
           node --check assets/js/rn-render-pipeline.mjs
           node --check assets/js/rn-architecture-gallery.mjs
           node --check assets/js/rn-architecture-quest.mjs
+      - name: Verify asynchronous browser E2E conditions await database operations
+        run: node --test scripts/verify-e2e-async-wait.mjs
       - name: Install Playwright after static validators and browser-module checks
         run: |
           npm install --no-save playwright

@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { chromium, webkit } from "playwright";
+import { waitForAsyncPageCondition } from "./helpers/wait-for-async-page-condition.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const mime = {
@@ -71,7 +72,7 @@ async function createGoalAndPlan(page) {
   await page.locator("#la-weekly-days").selectOption("5");
   await page.locator("#la-pref-topics").selectOption("promise");
   await page.locator("#la-save-preferences").click();
-  await page.waitForFunction(async () => {
+  await waitForAsyncPageCondition(page, async () => {
     const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
     const repository = await getLearningRepository();
     const preferences = await repository.documents.get("learner_profile", "preferences");
@@ -79,9 +80,9 @@ async function createGoalAndPlan(page) {
       preferences?.payload?.weeklyDays === 5 &&
       document.querySelector("#la-save-preferences")?.disabled === false &&
       document.querySelector("#la-regenerate-plan")?.disabled === false;
-  });
+  }, { label: "learner preferences to persist" });
   await page.locator("#la-regenerate-plan").click();
-  await page.waitForFunction(async () => {
+  await waitForAsyncPageCondition(page, async () => {
     const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
     const repository = await getLearningRepository();
     const head = await repository.documents.get("learning_plan_head", "current");
@@ -91,14 +92,14 @@ async function createGoalAndPlan(page) {
     return proposal?.payload?.status === "proposed" &&
       proposal?.payload?.dailyMinutes === 15 &&
       proposal?.payload?.reason === "学习者在工作区点击重新规划";
-  });
+  }, { label: "a proposed adaptive learning plan to persist" });
   await page.locator("#la-plan-proposal .la-proposal-card").waitFor({ state: "visible" });
   const proposal = await page.locator("#la-plan-proposal .la-proposal-card").innerText();
   assert.match(proposal, /15 分钟/);
   assert.match(proposal, /Promise/);
   const acceptedPlanId = await page.locator("#la-plan-proposal .la-proposal-card").getAttribute("data-plan-id");
   await page.locator("#la-plan-proposal").getByRole("button", { name: "接受计划并创建任务" }).click();
-  await page.waitForFunction(async () => {
+  await waitForAsyncPageCondition(page, async () => {
     const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
     const repository = await getLearningRepository();
     const head = await repository.documents.get("learning_plan_head", "current");
@@ -108,7 +109,7 @@ async function createGoalAndPlan(page) {
     const rows = await repository.documents.list(1000);
     const tasks = rows.filter(row => row.type === "learning_task" && row.payload?.planId === activePlanId);
     return active?.payload?.status === "accepted" && tasks.length === active.payload.actions.length;
-  }, { timeout: 30000 });
+  }, { timeout: 30000, label: "accepted plan and its complete task set to persist" });
   await page.waitForFunction(() =>
     document.querySelectorAll("#la-active-tasks .la-task-card").length > 0 &&
     document.querySelector("#la-chat-status")?.textContent.includes("已保存")

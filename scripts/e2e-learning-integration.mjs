@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { chromium, webkit } from "playwright";
+import { waitForAsyncPageCondition } from "./helpers/wait-for-async-page-condition.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const mime = {".html":"text/html; charset=utf-8",".css":"text/css; charset=utf-8",".js":"text/javascript; charset=utf-8",".mjs":"text/javascript; charset=utf-8",".json":"application/json; charset=utf-8",".svg":"image/svg+xml"};
@@ -86,11 +87,11 @@ test("Chromium desktop: an accepted strategy task links to its checkpoint and re
     await page.locator("#kv-learning-checkpoint").waitFor({state:"visible"});
     await page.locator('[data-option-id="b"]').click();
     await page.getByText("验证通过 · 已记录独立证据").waitFor();
-    await page.waitForFunction(async taskId=>{
+    await waitForAsyncPageCondition(page, async taskId=>{
       const {getLearningRepository}=await import("/assets/js/backend/learning-repository.mjs");
       const task=await (await getLearningRepository()).documents.get("learning_task",taskId);
       return task?.payload?.status==="completed";
-    },task.taskId);
+    }, { arg: task.taskId, label: "the completed learning task document" });
     const result=await page.evaluate(async taskId=>{
       const {getLearningRepository}=await import("/assets/js/backend/learning-repository.mjs");
       const repository=await getLearningRepository();
