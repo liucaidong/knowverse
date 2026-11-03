@@ -6,6 +6,7 @@ import { createLearnerProfileStore } from "./learning-agent/learner-profile.mjs"
 import { createLearningGoalManager } from "./learning-agent/goal-manager.mjs";
 import { createLearningTaskOrchestrator } from "./learning-agent/task-orchestrator.mjs";
 import { createProactiveLearningEngine } from "./proactive-learning-engine.mjs";
+import { buildWeeklyLearningReview } from "./learning-weekly-review.mjs";
 
 const siteRoot = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
@@ -284,6 +285,129 @@ function renderWeakSkills() {
     if (link) card.append(link);
     host.append(card);
   });
+}
+
+function renderWeeklyLearningReview(snapshot) {
+  const host = $("weekly-learning-review-content");
+  if (!host) return;
+  host.replaceChildren();
+  const competencyTitles = Object.fromEntries((learningMap.topics || []).flatMap(topic =>
+    (topic.competencies || []).map(item => [item.id, item.title])));
+  const report = buildWeeklyLearningReview({
+    events: snapshot?.events || [],
+    activeGaps: insights?.gaps || [],
+    topicTitles: competencyTitles,
+  });
+  const shell = element("div", "lp-weekly-shell");
+  const kpis = element("div", "lp-weekly-kpis");
+  const duration = report.activity.actualDurationSeconds
+    ? Math.floor(report.activity.actualDurationSeconds / 60) + " 分钟"
+    : "—";
+  const items = [
+    ["有记录的天数", report.activeDays + " / 7", "按设备本地日历"],
+    ["独立无提示通过", report.activity.independentPasses || "样本不足", "要求能力点、变体与独立标记"],
+    ["提示辅助通过", report.activity.assistedPasses, "单独统计，不计为独立通过"],
+    ["实际任务耗时", duration, "只累计已结算的执行片段"],
+    ["当前待修复误区", report.openGapCount, "来自当前有效 Gap"],
+  ];
+  items.forEach(([label, value, note]) => {
+    const card = element("article", "lp-weekly-kpi");
+    card.append(element("span", "", label), element("strong", "", String(value)),
+      element("small", "", note));
+    kpis.append(card);
+  });
+  shell.append(kpis);
+
+  const activity = element("section", "lp-weekly-panel");
+  activity.append(element("strong", "", "每日学习活动 · " + report.rangeLabel));
+  const strip = element("div", "lp-weekly-days");
+  report.days.forEach(day => {
+    const item = element("div", "lp-weekly-day");
+    item.setAttribute("aria-label", day.label + " " + day.weekday + "，" + day.count + " 条有效学习活动");
+    const bar = element("div", "lp-weekly-bar");
+    const fill = element("span");
+    fill.style.height = (day.count ? Math.max(8, day.count / report.maxDayCount * 100) : 0) + "%";
+    bar.append(fill);
+    item.append(bar, element("strong", "", day.label), element("small", "", day.weekday),
+      element("small", "", day.count ? String(day.count) + " 条" : "—"));
+    strip.append(item);
+  });
+  activity.append(strip);
+  shell.append(activity);
+
+  const signals = element("section", "lp-weekly-panel");
+  signals.append(element("strong", "", "本周学习信号"));
+  const summary = element("div", "lp-weekly-signals");
+  const signalRows = [
+    ["作答", report.activity.attempts + " 次 · 错误 " + report.activity.incorrectAttempts + " 次"],
+    ["复习", report.activity.reviewSessions + " 个复习会话"],
+    ["提示", report.activity.hints + " 次"],
+    ["计划任务", "开始 " + report.activity.taskStarted + " · 完成 " + report.activity.taskCompleted +
+      " · 失败 " + report.activity.taskFailed],
+    ["待关注错误", report.gapObservations + " 个不同错误观察"],
+  ];
+  if (report.activity.unclassifiedPasses) {
+    signalRows.push(["未分类通过", report.activity.unclassifiedPasses +
+      " 次完成缺少独立验证标记，不计入独立通过"]);
+  }
+  signalRows.forEach(([label, value]) => {
+    const row = element("div", "lp-weekly-signal");
+    row.append(element("span", "", label), element("strong", "", value));
+    summary.append(row);
+  });
+  signals.append(summary);
+  if (report.topCompetencies.length) {
+    const topics = element("p", "lp-weekly-topics",
+      "近期涉及能力点：" + report.topCompetencies.map(item => item.title).join("、"));
+    signals.append(topics);
+  } else {
+    signals.append(element("p", "lp-weekly-muted", "当前周期尚无可归类到能力点的学习事件。"));
+  }
+  shell.append(signals);
+
+  const foot = element("p", "lp-weekly-boundary", report.hasLearningData
+    ? report.evidenceBoundary
+    : "过去 7 天还没有可归纳的学习事件。开始一项真实课程任务或挑战后，这里会按实际日期自动生成回顾；不会用浏览、阅读时长或 AI 对话填充成绩。");
+  shell.append(foot);
+
+  const actions = element("div", "lp-weekly-actions");
+  const copy = element("button", "lp-data-button", "复制本周学习回顾");
+  copy.type = "button";
+  copy.dataset.noLearningTelemetry = "true";
+  const status = element("span", "lp-weekly-status");
+  status.setAttribute("role", "status");
+  copy.addEventListener("click", async () => {
+    const text = [
+      "# KNOWVERSE · 近 7 天学习回顾",
+      "周期：" + report.rangeLabel,
+      "有记录的天数：" + report.activeDays + " / 7",
+      "独立无提示通过：" + report.activity.independentPasses,
+      "提示辅助通过：" + report.activity.assistedPasses,
+      "未分类完成：" + report.activity.unclassifiedPasses,
+      "作答：" + report.activity.attempts + " 次，其中错误 " + report.activity.incorrectAttempts + " 次",
+      "复习会话：" + report.activity.reviewSessions,
+      "提示：" + report.activity.hints + " 次",
+      "实际任务耗时：" + (report.activity.actualDurationSeconds
+        ? report.activity.actualDurationSeconds + " 秒" : "样本不足"),
+      "任务开始 / 完成 / 失败：" + report.activity.taskStarted + " / " +
+        report.activity.taskCompleted + " / " + report.activity.taskFailed,
+      "当前待修复误区：" + report.openGapCount,
+      "不同错误观察：" + report.gapObservations,
+      "涉及能力点：" + (report.topCompetencies.map(item => item.title).join("、") || "暂无"),
+      "",
+      report.evidenceBoundary,
+    ].join("\n");
+    try {
+      if (!navigator.clipboard?.writeText) throw new Error("当前浏览器不支持剪贴板写入。");
+      await navigator.clipboard.writeText(text);
+      status.textContent = "已复制回顾；没有新增或修改学习证据。";
+    } catch (error) {
+      status.textContent = error.message || "复制失败。";
+    }
+  });
+  actions.append(copy, status);
+  shell.append(actions);
+  host.append(shell);
 }
 
 function renderLearningStrategy(profile, effectiveness) {
@@ -821,6 +945,7 @@ async function refresh() {
       const snapshot = await store.load();
       insights = deriveLearningInsights(learningMap, challengeRegistry, snapshot);
       renderAdaptivePlan(snapshot);
+      renderWeeklyLearningReview(snapshot);
       renderMetrics();
       renderTopicOverview();
       renderTopicChoices();
@@ -1017,7 +1142,7 @@ async function boot() {
 boot().catch(error => {
   document.documentElement.dataset.learningProgressError = String(error?.message || error);
   console.error("[KNOWVERSE] learning progress unavailable:", error);
-  ["plan-summary", "plan-actions", "plan-context", "topic-overview", "graph-canvas", "gap-list", "weak-skill-list", "review-list", "event-list"].forEach(id => {
+  ["plan-summary", "plan-actions", "plan-context", "weekly-learning-review-content", "topic-overview", "graph-canvas", "gap-list", "weak-skill-list", "review-list", "event-list"].forEach(id => {
     const host = $(id);
     if (host) host.replaceChildren(element("div", "lp-empty", "学习系统载入失败：" + error.message + "。请刷新页面或稍后重试。"));
   });

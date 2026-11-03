@@ -564,3 +564,18 @@ KNOWVERSE 的价值不在某一个节点，而在整个循环的连续性、证�
 实施文档：docs/phase-i/architecture.md 与 docs/phase-i/acceptance.md。
 
 状态说明：本地代码和自动化已经验证；Supabase learning-agent v7 已发布，verify_jwt=true，且已核对云端源代码包含 tutor 上下文 allowlist 与服务端工具剥离。真实授权账户的 Provider 回复、服务端 AI 环境变量和 P0 真实学习者周期试点仍待单独验收。不得把本轮代码交付表述成学习效果已被验证。
+
+
+---
+
+## 11. Phase J 实施回写：近 7 天学习回顾（2026-11-03）
+
+P0 的真实学习周期仍需要学习者亲自完成；本阶段不尝试用自动化或虚构数据代替真实试点。新增的近 7 天学习回顾只是 P0 的轻量辅助体验：
+
+- 在 /progress/ 汇总近 7 个本地日历日的作答、独立验证、提示辅助、复习、Gap 与真实任务耗时。
+- 对独立通过按会话/变体去重；对任务按 taskId 去重。
+- 只累计带 taskId 且已经结算的 durationSeconds，不把 estimatedMinutes 或未结束计时包装成耗时。
+- 对没有真实事件的学习者显示空状态，而不是零分或掌握率。
+- 不新增数据库表、事件协议或 H2 评估中心；不写入掌握证据。
+
+实施说明：docs/phase-j/weekly-learning-review.md。
