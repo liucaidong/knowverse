@@ -12,7 +12,7 @@ test("browser configuration contains public Supabase credentials only", async ()
 });
 
 test("the established PostgreSQL schema remains the source of truth and all learning tables retain RLS", async () => {
-  const sql = await read("supabase/migrations/20261102032732_initial_schema.sql");
+  const sql = await read("supabase/migrations/20261102032732_learning_archive_documents.sql");
   assert.match(sql, /create schema if not exists private/i);
   assert.match(sql, /private\.authorized_users/i);
   assert.match(sql, /auth\.uid\(\)/i);
@@ -201,10 +201,16 @@ test("all applied SQL migration filenames are present in the repository", async 
   const migrations = (await readdir(new URL("../supabase/migrations/", import.meta.url)))
     .filter(name => name.endsWith(".sql")).sort();
   assert.deepEqual(migrations, [
-    "20261102032732_initial_schema.sql",
+    "20261102032732_learning_archive_documents.sql",
     "20261102090144_gap_causality_v3.sql",
     "20261102114344_phase_d_atomic_learning_batch.sql",
     "20261102165337_phase_e_learning_documents.sql",
     "20261102190100_phase_f_proactive_projection.sql",
+    "20261103171219_phase_m_practice_quality_review_records.sql",
+    "20261103171735_phase_m_practice_content_reviewer_rpc.sql",
+    "20261103172836_phase_m_practice_registration_idempotency.sql",
+    "20261103212233_phase_m_ordered_candidate_state_revisions.sql",
+    "20261103221157_phase_m_restrict_audit_table_inserts.sql",
+    "20261103221527_phase_m_enforce_audit_provenance_chain.sql",
   ]);
 });

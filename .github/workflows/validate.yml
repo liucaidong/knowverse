@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check authenticated practice quality Edge Function
+        run: deno check supabase/functions/practice-quality-review/index.ts
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -69,6 +74,12 @@ jobs:
         run: node --test scripts/verify-learning-reflections.mjs
       - name: Verify Gap-bound AI practice candidates and non-assessment archive
         run: node --test scripts/verify-learning-practice-candidates.mjs
+      - name: Verify Phase M deterministic quality gates, immutable candidate anchors and official Review Engine admission
+        run: node --test scripts/verify-learning-practice-quality.mjs
+      - name: Verify Phase M append-only audit ordering and unbounded history pagination
+        run: node --test scripts/verify-phase-m-audit-order.mjs
+      - name: Verify Phase M protected publication and live Pages registration security
+        run: node --test scripts/verify-phase-m-publication-security.mjs
       - name: Verify seven-day evidence-based learning reflection
         run: node --test scripts/verify-learning-weekly-review.mjs
       - name: Validate React Native third learning domain, prerequisite graph and gap variants
@@ -98,6 +109,8 @@ jobs:
           node --check assets/js/learning-tutor.mjs
           node --check assets/js/learning-reflections.mjs
           node --check assets/js/learning-practice-candidates.mjs
+          node --check assets/js/learning-practice-quality-review.mjs
+          node --check assets/js/learning-practice-quality-validator.mjs
           node --check assets/js/learning-weekly-review.mjs
           node --check assets/js/learning-agent/challenge-task-context.mjs
           node --check assets/js/learning-agent/plan-manager.mjs
@@ -126,6 +139,10 @@ jobs:
           node --check assets/js/site-shell.mjs
           node --check assets/js/knowledge-context.mjs
           node --check scripts/validate-site-architecture.mjs
+          node --check scripts/prepare-approved-practice-publication.mjs
+          node --check scripts/record-practice-publication-pr.mjs
+          node --check scripts/verify-and-register-published-practice.mjs
+          node --check supabase/functions/_shared/practice-audit.mjs
       - name: Parse backend browser modules
         run: |
           node --check assets/js/backend/config.mjs
@@ -162,6 +179,8 @@ jobs:
         run: node --test scripts/e2e-phase-k-learning-loop.mjs
       - name: Browser E2E · Gap-directed AI practice candidates on desktop and mobile
         run: node --test scripts/e2e-phase-l-practice-candidate.mjs
+      - name: Browser E2E · Phase M quality review, revision, authorization, idempotent admission and WebKit mobile
+        run: node --test scripts/e2e-phase-m-practice-quality.mjs
       - name: Browser E2E · Seven-day learning reflection on desktop and WebKit mobile
         run: node --test scripts/e2e-weekly-learning-review.mjs
       - name: Browser E2E · Promise course reading task lifecycle and non-mastery evidence

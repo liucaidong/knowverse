@@ -75,6 +75,20 @@ async function createContext(browser, viewport) {
   await page.route("**/rest/v1/rpc/get_learning_sync_profile", async route => {
     await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ authorized: true }) });
   });
+  await page.route("**/functions/v1/practice-quality-review", async route => {
+    const body = route.request().postDataJSON();
+    if (body?.action === "history") {
+      await route.fulfill({
+        status: 200, contentType: "application/json",
+        body: JSON.stringify({ ok: true, candidateId: body.candidateId, status: "draft", canApprove: false, records: [] }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 403, contentType: "application/json",
+      body: JSON.stringify({ error: { code: "reviewer_authorization_required", message: "E2E mock approval is disabled." } }),
+    });
+  });
   return { context, page, errors, httpErrors };
 }
 
@@ -153,7 +167,7 @@ test("Chromium desktop: AI practice candidate is gap-bound, saved privately, sel
     assert.equal(payload.tutorMode, "practice");
     assert.equal(payload.context.learningScene.gaps[0].id, "thenable-get-vs-call");
     assert.equal(payload.context.learningScene.practiceGeneration.officialSources.length, 2);
-    assert.equal(await page.locator("#practice-candidate-state").innerText(), "未评分草案");
+    assert.match(await page.locator("#practice-candidate-state").innerText(), /^未评分草案/);
     assert.equal(await page.locator("#practice-ai-consent").isChecked(), false,
       "consent is one-request only and resets after candidate generation");
     await page.locator("#practice-candidate-answer").fill("getter 同步读取后先输出 end，再执行 ThenableJob 调用 then，最后按入队顺序执行 outer 与 inner。");

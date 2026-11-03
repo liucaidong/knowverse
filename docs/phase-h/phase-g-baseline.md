@@ -43,7 +43,7 @@ Learning Events V3 是追加式事实流；Learning Intelligence 从事件推导
 | assets/js/backend/learning-repository.mjs | 7d8797741c62c60df40fff1cdcc99bde6ee67b190def4616a9f6fb4e9118a727 |
 | assets/js/backend/local-event-store.mjs | f30b314fcb88c987c24358dbb93b3d85f4864106cf02e89255be1584075116d1 |
 | assets/js/backend/sync-engine.mjs | 949f7c473b3acef61a3032c78bab4724d8578e1f2026d196d5ca26cab495f751 |
-| supabase/migrations/20261102032732_initial_schema.sql | ef3caebaaa0a9f7880044de86bfb87d5cc74682402dcf7d71e5b7d598ae378f8 |
+| supabase/migrations/20261102032732_learning_archive_documents.sql | ef3caebaaa0a9f7880044de86bfb87d5cc74682402dcf7d71e5b7d598ae378f8 |
 | supabase/migrations/20261102114344_phase_d_atomic_learning_batch.sql | 7255cab1ff9de175d71457179927cd4c654f4d5b7ce85789ce3153f3b0fa99bc |
 | content/learning-map.json | 79b394dd5b61c400f144d178ec9b7df100b9eb003dbe192a7c8ff1f9c76faf6c |
 | content/challenges.json | 66d7a43b89b6176ee96717885d2448c8ae58fd9042d4d4cce7d2017ea1ff76c4 |
