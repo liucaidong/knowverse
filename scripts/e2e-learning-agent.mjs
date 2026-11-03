@@ -110,7 +110,8 @@ async function createGoalAndPlan(page) {
     return active?.payload?.status === "accepted" && tasks.length === active.payload.actions.length;
   }, { timeout: 30000 });
   await page.waitForFunction(() =>
-    document.querySelectorAll("#la-active-tasks .la-task-card").length > 0
+    document.querySelectorAll("#la-active-tasks .la-task-card").length > 0 &&
+    document.querySelector("#la-chat-status")?.textContent.includes("已保存")
   , { timeout: 30000 });
   await page.locator("#la-active-tasks .la-task-card").first().waitFor({ state: "visible" });
 }
