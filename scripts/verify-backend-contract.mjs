@@ -212,5 +212,6 @@ test("all applied SQL migration filenames are present in the repository", async 
     "20261103212233_phase_m_ordered_candidate_state_revisions.sql",
     "20261103221157_phase_m_restrict_audit_table_inserts.sql",
     "20261103221527_phase_m_enforce_audit_provenance_chain.sql",
+    "20261103224621_phase_m_authorize_initial_content_admin.sql",
   ]);
 });
