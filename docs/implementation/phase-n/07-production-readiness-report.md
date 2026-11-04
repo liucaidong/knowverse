@@ -7,9 +7,9 @@
 
 ## 1. 结论
 
-N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成功。N2 的本地、隔离 PostgreSQL 集成和托管 staging schema / 匿名拒绝验证已有实测证据；独立 staging 已建立且 12/12 migrations 应用成功，但真实 Auth 用户、JWT 与认证态双设备 HTTP 验收仍未完成。
+N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成功。N2 已完成本地与 PostgreSQL 17 集成验证，并在独立 staging 上通过真实 Auth / JWT / PostgREST / RPC 认证态 HTTP 验收，覆盖双设备 pull、原子写入、幂等、CAS rollback / recovery 和账号隔离。N2 仍缺真实 KNOWVERSE 浏览器客户端的双设备冷恢复 / 离线补传和实体 iPhone Safari 验收。
 
-当前 N2 PR #12 最新提交 `27cfd2f` 的 Validate workflow run #148 已通过；该 CI 通过不代表托管认证态同步验收完成。因此目前不能声明 KNOWVERSE 已具备经过验证的生产级跨设备个人学习数据闭环。
+当前 N2 PR #12 最新提交 8ca34e6 的 GitHub Actions Validate workflow run #149（41762882174）已 SUCCESS；同时 staging hosted Auth / JWT / HTTP harness 已输出 RESULT: PASS。这两项仍不代表真实浏览器客户端与实体 iPhone 的完整跨设备体验已验收，因此不能声明 KNOWVERSE 已具备完整生产级跨设备个人学习数据闭环。
 
 ## 2. N1 已验证
 
@@ -56,9 +56,8 @@ N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成
 
 ## 4. 仍未验证
 
-- staging 项目和 12 条 migration 已通过；真实 Auth 测试用户 A / B 的创建、session、JWT 与账号切换拒绝仍未验证。
-- Mac + 第二台真实设备使用同一账号进行同步和冷启动恢复。
-- 另一账号真实访问拒绝。
+- 真实 KNOWVERSE 浏览器客户端在 Mac + 第二台真实设备上使用同一账号完成同步和 cold restore。
+- 浏览器 IndexedDB 恢复、离线 Outbox / 重连补传、session refresh、弱网 / 超时和错误重试。
 - 真实网络离线 / 弱网、浏览器后台恢复、重复请求和服务端超时后重试。
 - 物理 iPhone Safari 的键盘、权限、后台生命周期和网络恢复。
 - 真实 Provider 调用、独立 Reviewer 与 AI 内容发布闭环（N3/N4）。
@@ -66,13 +65,13 @@ N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成
 
 ## 5. 当前阻塞
 
-已按用户授权建立独立 staging 项目 `knowverse-staging`（`ypthoicwrfsblaidllyy`，`eu-west-1`），当前创建报价为 US$0/month；全部 12 条 migration 已成功应用，且匿名访问学习表和同步 profile RPC 均被 HTTP 401 / 42501 拒绝。staging 没有复制生产用户或学习数据。两个合成 staging Auth 用户已通过 Supabase Dashboard 创建，邮箱已确认并加入 `private.authorized_users`。当前阻塞收敛为：需要在 Mac 本机安全录入两组临时密码到被 Git 忽略的 `.env.n2.local`，运行真实 JWT / HTTP 验收脚本；之后仍需完成真实浏览器离线恢复和实体 iPhone Safari 验收。
+已按用户授权建立独立 staging 项目 knowverse-staging（ypthoicwrfsblaidllyy，eu-west-1），全部 12 条 migration 已成功应用，匿名请求按预期被拒绝。两个合成 staging Auth 用户已确认邮箱并加入 private.authorized_users；用户在本机设置临时密码后，真实 Auth / JWT / PostgREST / RPC HTTP harness 已 RESULT: PASS。A 双设备、B 单设备注册，atomic event + document commit、第二设备 pull、幂等重试、CAS 冲突整批回滚与恢复、跨账号 RLS / identity spoof / device spoof 拒绝均已验证。当前阻塞收敛为真实 KNOWVERSE 浏览器客户端的 Mac + 第二设备冷恢复 / 离线补传 / session refresh / 弱网验收，以及实体 iPhone Safari 验收。
 
 在真实托管认证态 E2E 完成前：
 - 不得使用生产数据库插入测试事件或档案。
 - 不得在生产环境创建测试 Auth 用户或设备。
-- 不得将 Mock / PG17 测试写成托管 Supabase 通过。
-- 不推进 N3 的真实 Provider 测试。
+- 不得将 direct hosted HTTP harness 写成真实浏览器客户端或实体 iPhone 验收通过。
+- N2 客户端设备验收未完成前，不推进 N3 的真实 Provider 测试。
 
 ## 6. 生产准入条件
 
@@ -97,3 +96,21 @@ N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成
 - 对外公开 API 匿名读取学习表和调用同步 profile RPC 均实际返回 HTTP 401 / 42501；authenticated RPC grant 与 RLS metadata 已核对。
 
 **仍不能据此宣布 N2 完成。** staging 当前没有可用合成 Auth users / JWT。项目 email provider 要求确认邮件，但当前管理连接没有 Auth Admin 创建用户接口；直接 SQL 写 `auth.users` 被安全策略阻止，未落库。下一步需通过 Supabase Dashboard Auth Users 受支持流程建立合成账号，随后才可以运行真实双设备 HTTP E2E。生产项目完全未触碰。
+
+
+## 8. 2026-11-04 托管认证态 HTTP 验收最新结果
+
+用户在本机运行 scripts/e2e-hosted-supabase-sync.mjs，目标固定为 staging ypthoicwrfsblaidllyy，输出 RESULT: PASS。该测试通过真实 Supabase Auth 密码登录和 JWT，实际调用托管 PostgREST / RPC，并验证：
+- A / B 身份与 allowlist；
+- A 两设备、B 一设备注册；
+- event + archive document 原子批次提交；
+- A 第二设备 pull；
+- 跨设备幂等重试；
+- stale CAS 冲突整批回滚、正确 revision 恢复提交；
+- B 无法读取 A 数据、伪造 A 的 expected user ID 或借用 A 的 device ID。
+
+staging 只读计数：2 Auth users、3 user_devices、2 learning_events、1 learning_archive_documents。GitHub Actions Validate run #149（41762882174）SUCCESS。PR #12 仍 OPEN，未合并。
+
+末尾 zsh: P9K_GCLOUD_PROJECT_NAME: parameter not set 是交互式 Powerlevel10k 提示符配置错误，在 harness 已输出 PASS 后出现，不属于 N2 测试失败。
+
+**最新结论：** N2 的服务端托管认证态 HTTP 验收 PASS；真实浏览器客户端双设备冷恢复 / 离线补传 / session refresh / 弱网及实体 iPhone Safari 仍未验收。KNOWVERSE Phase N 继续 IN_PROGRESS / NOT PRODUCTION READY。
