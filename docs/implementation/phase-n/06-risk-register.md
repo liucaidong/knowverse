@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | AUD-P1-001 | Git 主线与生产 migration 状态分叉 | RESOLVED（version/name） / CONTENT PROVENANCE DISCLOSED | PR #11 正常合并；main = b3c7037；12 条生产 ledger version/name 与仓库文件清单一致。第 12 条 SQL 文件在生产应用后曾修订；ledger 无 checksum，字节级历史内容一致性不可证明 | 不重跑生产 migration；未来如需数据库变更，使用新的前向 migration，经单独审查 |
 | AUD-P1-002 | AI 内容发布真实闭环没有生产证据 | NOT STARTED | manifest 0、候选质量记录 0；Edge Function ACTIVE 不等于真实 provider / publication 成功 | N3 完成后，在独立 staging 配置最小权限凭证，执行一条候选闭环 |
-| AUD-P1-003 | Supabase 跨设备学习同步未完成认证态托管验收 | LOCAL SQL / MOCK E2E PASS; STAGING SCHEMA + ANON DENIAL PASS; AUTHENTICATED E2E BLOCKED | 34/34 本地 contract / IndexedDB tests PASS；1/1 Mac + WebKit iPhone-profile E2E PASS（RPC 是内存 Mock）；临时 PG17 执行全部 12 migrations 并真实调用 sync RPC，验证 atomic commit、idempotency、CAS 整批回滚、pagination、RLS 跨账号隔离和 device ownership。托管 staging `ypthoicwrfsblaidllyy` 已应用 12/12 migrations；真实 anon 表 / profile RPC 请求均 HTTP 401 / 42501 | 两个合成 Auth 用户和 allowlist 已建立；用户在 Mac 本机使用 `scripts/setup-n2-staging-env.sh` 安全录入临时密码后运行真实 Auth / JWT / HTTP 验收脚本；完成浏览器认证态冷恢复、同步、离线补传、CAS 和跨账号拒绝验收 |
+| AUD-P1-003 | Supabase 跨设备学习同步尚未完成真实客户端设备闭环 | LOCAL SQL / MOCK E2E PASS; HOSTED AUTH / JWT / POSTGREST / RPC PASS; REAL BROWSER DEVICE E2E PENDING | 35/35 本地 contract / IndexedDB / async-wait / WebKit 测试 PASS；PG17 全量 12 migrations + RPC / RLS PASS；托管 staging 真实 Auth 登录、A 双设备 / B 单设备、atomic event + document commit、pull、幂等、CAS rollback / recovery、跨账号 RLS 与身份 / 设备伪造拒绝全部 PASS；staging 计数 2 users / 3 devices / 2 events / 1 document；CI Run #149 SUCCESS | 使用真实 KNOWVERSE 浏览器客户端在 Mac + 第二真实设备完成 IndexedDB cold restore、离线 Outbox / 重连补传、session refresh、弱网与重试；再单独完成实体 iPhone Safari 核心路径。N2 未完成前不推进 N3 |
 | AUD-P1-004 | Tutor / Agent / Reviewer 真实模型调用未验证 | NOT STARTED | Edge Functions ACTIVE 不等于 Provider 可用；Provider secrets 状态不可读取；N3 依赖 N2 staging | N2 完成后配置 staging Provider credentials，并做成功/限流/超时/无凭证/恶意输出异常注入 |
 | AUD-P1-005 | 九个专题缺正式学习图谱 | NOT STARTED | AI Agent 与 AI 教育专题有公开页面，但当前无 Concept/Competency/Gap/Checkpoint/Review/source 正式映射 | N4 完成后，审校内容与官方来源，选择两个主题构建可验证图谱 |
 
@@ -36,5 +36,13 @@
 
 ## 2026-11-04 N2 staging 更新
 
-- `AUD-P1-003`：状态更新为 `HOSTED STAGING CREATED / 12 MIGRATIONS PASS / AUTH TEST USERS BLOCKED`。已创建 `ypthoicwrfsblaidllyy`，12 条迁移全部应用；anon 表访问和 profile RPC 均真实 HTTP 401 拒绝。当前无法使用可用管理连接创建合成 Auth 用户，尚未取得真实 JWT，双设备 HTTP 同步继续 BLOCKED。下一步通过 Supabase Dashboard Auth 用户管理或受支持的 Auth Admin API 建立两个测试用户，不使用生产账号，不修改邮件确认安全设置。
-- 新风险 `AUD-P2-013`：Staging Auth Admin 创建用户能力缺失。当前只提供 publishable key；直接 SQL 写 auth.users 的请求被安全层拦截。处理原则：不读取/暴露 service_role key，不伪造 JWT，不用绕过安全检查的方式写 Auth 内部表。需连接受支持的 Auth Admin 管理流程。
+- AUD-P1-003：2026-11-04 托管 staging 认证态 HTTP harness 已输出 RESULT: PASS；真实 Auth / JWT、设备注册、原子提交、pull、幂等、CAS rollback / recovery、跨账号 RLS / identity spoof / device spoof 均通过。风险范围缩小为真实 KNOWVERSE 浏览器客户端的双设备 IndexedDB 冷恢复、离线补传、session refresh、弱网及实体 iPhone Safari 尚未验证。
+- AUD-P2-013：RESOLVED。两个合成 Auth 用户已通过 Dashboard 建立；用户在本机使用 staging Secret Key 通过 Auth Admin API 设置临时密码，两个真实登录均验证通过。Secret Key 未提交仓库或发送到聊天；没有直接 DML 写 auth.users。
+
+
+## 2026-11-04 N2 托管认证态验收更新
+
+- AUD-P1-003 保持 OPEN：托管 HTTP / Auth / JWT / RPC / RLS 已 PASS，但真实浏览器客户端双设备 IndexedDB 恢复与实体 iPhone Safari 尚未验证。
+- staging 当前合成数据只读计数：2 Auth users、3 device rows、2 learning events、1 archive document；待客户端验收完成后统一清理。
+- GitHub Actions Validate run #149：SUCCESS；PR #12 仍 OPEN、未合并。
+- Phase N 总体仍 NOT PRODUCTION READY。
