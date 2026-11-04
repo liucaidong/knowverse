@@ -354,7 +354,7 @@ node scripts/e2e-hosted-supabase-sync.mjs
 - 测试 learning_events：2。
 - 测试 learning_archive_documents：1。
 
-GitHub Actions Validate run #149（run ID 41762882174）已完成，结论 SUCCESS；全部 143 个 job steps（含主测试矩阵和清理步骤）均为成功。PR #12 仍 OPEN、未合并。
+GitHub Actions Validate run #149（run ID 41762882174）已完成，结论 SUCCESS；check job 的所有已返回步骤均为 completed / success。PR #12 仍 OPEN、未合并。
 
 终端最后出现的 zsh: P9K_GCLOUD_PROJECT_NAME: parameter not set 是交互式 zsh / Powerlevel10k 提示符在 shell 退出后读取未设置变量的提示符配置错误。它出现在脚本已经输出 RESULT: PASS 之后，不属于 Supabase HTTP harness 的失败，也不改变上述 PASS 结果。
 
