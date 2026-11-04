@@ -187,3 +187,64 @@ N2 只有在以下项目全部 PASS 后才能标记 COMPLETE：
 - 至少一台实体 iPhone Safari 完成核心恢复 / 离线 / 后台回前台验收。
 
 **当前 N2 状态：本地数据库与模拟浏览器证据 PASS；托管 staging + 真实设备验收 BLOCKED。**
+
+
+## 8. Hosted staging 实际创建与部署记录（2026-11-04）
+
+### 8.1 项目创建
+
+- Organization：`liucaidong's Org`（`cgnunolzpmabptkybvjd`，Free plan）。
+- Project：`knowverse-staging`。
+- Project ref：`ypthoicwrfsblaidllyy`。
+- Region：`eu-west-1`（与 production 相同区域）。
+- API URL：`https://ypthoicwrfsblaidllyy.supabase.co`。
+- 创建费用报价：Supabase `get_cost(type=project)` 返回 `US$0/month`，并通过该报价的 cost confirmation 后创建。
+- 数据库状态：`ACTIVE_HEALTHY`，PostgreSQL 17.11。
+
+### 8.2 Migration 应用结果
+
+当前 main 的 12 条 migration 全部通过 Supabase migration API 在 staging 成功应用：
+
+1. `learning_archive_documents`
+2. `gap_causality_v3`
+3. `phase_d_atomic_learning_batch`
+4. `phase_e_learning_documents`
+5. `phase_f_proactive_projection`
+6. `phase_m_practice_quality_review_records`
+7. `phase_m_practice_content_reviewer_rpc`
+8. `phase_m_practice_registration_idempotency`
+9. `phase_m_ordered_candidate_state_revisions`
+10. `phase_m_restrict_audit_table_inserts`
+11. `phase_m_enforce_audit_provenance_chain`
+12. `phase_m_authorize_initial_content_admin`
+
+Supabase ledger 为这些 migration 分配了 staging 应用时生成的 version timestamp；全部 12 个名称均在 ledger 中，顺序正确。注意这是托管 staging 上的实际迁移应用，不是 PostgreSQL 17 本地重放。
+
+### 8.3 空库与权限实测
+
+数据库状态查询确认：
+- Auth users：0；authorized_users：0；content reviewers：0。
+- user_devices：0；learning_events：0；learning_archive_documents：0；practice_candidate_quality_records：0。
+- 所有核心学习表和质量审核表启用 RLS。
+- anon 对 learning_events、learning_archive_documents、user_devices、sync state 和 profiles 无表级访问权限。
+- authenticated 的核心学习 RPC 执行权存在；anon 无执行权。
+- `append_practice_candidate_quality_record` / reviewer lookup RPC 仅 service_role 有执行权。
+- 质量审计表 authenticated 仅 SELECT；service_role 的直接 INSERT 权限也已被后续 migration 撤销，写入必须走受控 RPC。
+
+真实 HTTP 负向请求：
+- `GET /rest/v1/learning_events?select=event_id` 使用 publishable key 且无登录 JWT：HTTP 401，PostgREST 返回 `42501 permission denied for table learning_events`。
+- `POST /rest/v1/rpc/get_learning_sync_profile` 无登录 JWT：HTTP 401，返回 `42501 permission denied for function get_learning_sync_profile`。
+
+Security Advisor：无高危 finding；有 2 条 INFO：private schema 的 `authorized_users` / `practice_content_reviewers` 表 RLS 开启但没有 policies。它们位于非公开 private schema，无 anon/authenticated 表权限，这是当前有意的管理边界。Performance Advisor 的 unused-index 提示来自新建空库，尚无实际查询负载。
+
+### 8.4 Auth 合成账户阻塞
+
+staging Auth settings 显示 email provider enabled、signup enabled，但 `mailer_autoconfirm=false`。当前可用 Supabase 管理连接仅提供项目/数据库操作与 publishable key，没有 Auth Admin create-user endpoint 或 service-role key。尝试通过管理 SQL 直接写入 staging `auth.users` 被工具安全检查拦截，未成功提交任何写入。因此：
+- 当前 staging Auth users / allowlist / devices / sync data 保持 0 行。
+- 没有发送测试邮件，没有更改邮件确认设置，没有伪造 JWT。
+- 不会通过尝试另一种 SQL 写法规避安全拦截。
+- 必须通过 Supabase Dashboard Authentication → Users 的受支持流程，或连接 Auth Admin 管理接口，创建两个合成测试用户并确认 email；测试账号不得使用真实生产用户身份。
+
+### 8.5 当前 N2 阶段结论
+
+Hosted staging project 与完整 schema 已完成部署，真实 PostgREST anon 拒绝验证通过。Authenticated hosted HTTP sync、双账户隔离、双设备冷恢复、离线补传和 CAS 冲突仍待有合法测试 JWT 后进行。**N2 当前状态为 IN_PROGRESS / AUTH ADMIN BLOCKED，不得 COMPLETE。**

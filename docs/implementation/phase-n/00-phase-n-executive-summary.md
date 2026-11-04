@@ -110,3 +110,14 @@ Phase N 严格按 N1 → N2 → N3 → N4 → N5 推进。
 - `05-knowledge-graph-expansion.md`：N5。
 
 Phase N 不能因为 N1 合并、CI 通过或 N2 本地测试通过而宣布 COMPLETE。
+
+
+## 8. N2 staging 项目最新状态（2026-11-04）
+
+- 已按用户授权创建独立 Supabase 项目 `knowverse-staging`，项目 ID `ypthoicwrfsblaidllyy`，区域 `eu-west-1`，API URL `https://ypthoicwrfsblaidllyy.supabase.co`。
+- Supabase 项目创建费用报价：`US$0/month`。该值是当前项目创建报价，不构成对未来超额用量或平台套餐变化的承诺。
+- staging 当前已成功应用仓库全部 12 条 migration。Supabase migration ledger 生成 12 条记录，名称顺序与 main 一致；migration version 为 staging 应用时生成的时间戳。
+- staging Auth / allowlist / reviewer / devices / learning_events / archive_documents / quality_records 行数均为 0；没有复制生产数据。
+- staging anon 对 learning_events 和 sync profile RPC 的真实 HTTP 请求均返回 401 permission denied。Authenticated sync RPC 仅 authenticated 可执行；审核写入 RPC 只允许 service_role。
+- staging Auth email signup 开启但 `mailer_autoconfirm=false`；当前管理连接没有 Auth Admin 用户创建能力。使用工具执行 staging `auth.users` 直接 DML 的尝试被安全策略拦截，未执行成功。没有绕过策略、伪造 JWT 或借用生产用户。
+- 所以 staging schema / API / 匿名权限核验完成，但真实 Auth 登录、JWT、两个合成账户和设备写入仍 BLOCKED。N2 不 COMPLETE。

@@ -86,3 +86,15 @@ Supabase 账户当前只发现一个项目 `knowverse`，即生产项目 `sxcpar
 7. 风险登记册中没有未披露 P0/P1；未完成 P2 风险具备负责人、计划和接受记录。
 
 **当前不得宣布 Phase N COMPLETE，也不得宣称 KNOWVERSE 已具备生产级个人学习数据闭环或可靠的 AI 主动规划能力。**
+
+
+## 7. 2026-11-04 staging 建立后的更新
+
+已按用户授权建立独立托管 staging 项目：
+- `knowverse-staging` / `ypthoicwrfsblaidllyy` / `eu-west-1`。
+- 当前创建报价 `US$0/month`。
+- 12/12 migrations 实际应用成功，migration ledger 名称顺序完整。
+- Auth、allowlist、reviewer、设备、学习事件、学习文档、质量审计记录当前均 0 行，没有复制生产数据。
+- 对外公开 API 匿名读取学习表和调用同步 profile RPC 均实际返回 HTTP 401 / 42501；authenticated RPC grant 与 RLS metadata 已核对。
+
+**仍不能据此宣布 N2 完成。** staging 当前没有可用合成 Auth users / JWT。项目 email provider 要求确认邮件，但当前管理连接没有 Auth Admin 创建用户接口；直接 SQL 写 `auth.users` 被安全策略阻止，未落库。下一步需通过 Supabase Dashboard Auth Users 受支持流程建立合成账号，随后才可以运行真实双设备 HTTP E2E。生产项目完全未触碰。

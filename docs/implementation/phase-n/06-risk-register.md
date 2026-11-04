@@ -32,3 +32,9 @@
 3. 不让 AI 输出直接生成掌握度证据或正式发布状态。
 4. 对生产迁移和权限操作保留明确的人工批准、执行记录与回滚方案；已执行迁移不得为追求文件一致而重放。
 5. 无法核验的事项标记为 UNVERIFIED / BLOCKED，不用推测填补。
+
+
+## 2026-11-04 N2 staging 更新
+
+- `AUD-P1-003`：状态更新为 `HOSTED STAGING CREATED / 12 MIGRATIONS PASS / AUTH TEST USERS BLOCKED`。已创建 `ypthoicwrfsblaidllyy`，12 条迁移全部应用；anon 表访问和 profile RPC 均真实 HTTP 401 拒绝。当前无法使用可用管理连接创建合成 Auth 用户，尚未取得真实 JWT，双设备 HTTP 同步继续 BLOCKED。下一步通过 Supabase Dashboard Auth 用户管理或受支持的 Auth Admin API 建立两个测试用户，不使用生产账号，不修改邮件确认安全设置。
+- 新风险 `AUD-P2-013`：Staging Auth Admin 创建用户能力缺失。当前只提供 publishable key；直接 SQL 写 auth.users 的请求被安全层拦截。处理原则：不读取/暴露 service_role key，不伪造 JWT，不用绕过安全检查的方式写 Auth 内部表。需连接受支持的 Auth Admin 管理流程。
