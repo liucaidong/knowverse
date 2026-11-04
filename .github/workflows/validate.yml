@@ -64,6 +64,8 @@ jobs:
         run: node --test scripts/verify-backend-contract.mjs
       - name: Replay all Supabase migrations on PostgreSQL 17 (empty and seeded Auth)
         run: bash scripts/verify-supabase-migration-replay.sh
+      - name: Verify real sync RPC transactions, RLS isolation, device ownership and CAS rollback on PostgreSQL 17
+        run: bash scripts/verify-supabase-sync-isolation.sh
       - name: Test learning mastery graph, event log, diagnostics and review scheduling
         run: node --test scripts/verify-learning-progress.mjs
       - name: Test Learning Intelligence V3 causal graph, review lifecycle and independent verification
