@@ -1,6 +1,6 @@
 # N2 — Supabase 跨设备学习同步验收记录
 
-**状态：** IN_PROGRESS / AUTH TEST USERS BLOCKED
+**状态：** IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / REAL BROWSER DEVICE E2E PENDING
 **更新日期：** 2026-11-04
 **代码基线：** `main` @ `b3c70374f147a651227675777934eac4adffea21`
 **生产 Supabase：** `sxcpareycpokcyroufww`（仅用于只读权限核验）
@@ -12,7 +12,7 @@ N2 已补齐两层隔离验证：
 1. 浏览器 / IndexedDB 层：桌面与移动视口的 Mock RPC E2E 通过。
 2. 数据库层：临时 PostgreSQL 17 执行仓库全部 12 条 migrations，并以 authenticated 角色调用真实 SQL RPC，原子提交、幂等、CAS 整批回滚、分页和 RLS 跨账号隔离通过。
 
-**但 N2 尚未完成。** 独立托管 staging 项目已建立，12/12 migrations 已应用，且真实 PostgREST 匿名拒绝验证通过；但尚无两个合成 Auth 用户和合法 JWT，因此认证态 Auth / RPC、真实 HTTP 双设备同步、账号隔离和第二台物理设备验收仍未完成。不得把 PG17 集成验证或 anon 负向测试等同于认证态托管同步通过。
+**N2 真实托管认证态 HTTP 验收已通过，但 N2 尚未完成。** 在 staging 上，两个合成账号均完成真实密码登录和 JWT 验证；测试注册 A 的两个设备、B 的一个设备，完成真实 Auth / PostgREST / RPC 调用，验证 event + archive document 原子提交、第二设备 pull、跨设备幂等重试、stale CAS 冲突整批回滚、正确 revision 恢复提交，以及 B 无法读取 A 的数据、伪造 A 的身份或借用 A 的 device ID。验收脚本输出 RESULT: PASS。仍未完成的是实际 KNOWVERSE 浏览器客户端在 Mac 与第二台真实设备上的冷恢复、离线补传、session 刷新和弱网验收，以及实体 iPhone Safari 验收；直接 HTTP harness 不能替代这些客户端验收。
 
 ## 2. N2 验收边界
 
@@ -35,7 +35,7 @@ N2 已补齐两层隔离验证：
 | Playwright WebKit iPhone profile | WebKit 模拟设备视口 | IndexedDB 测试数据 | 浏览器引擎验证，不是真机 |
 | 本机 Docker PostgreSQL 17 | 重放仓库全部 12 条 SQL migration，并调用数据库 RPC | 合成 Auth 用户 / 设备 / 事件 / 文档 | 数据库 SQL / RLS / RPC 集成验证 |
 | Supabase 生产项目 | 只读查询 migrations、table grants、RLS policies、行数元数据 | 生产现有数据，只读 | 生产权限和结构观测，不是同步验收 |
-| Supabase staging | `knowverse-staging` (`ypthoicwrfsblaidllyy`)，12/12 migrations PASS | 独立空 staging，无生产个人数据 | Schema + anon API verified；认证态 E2E BLOCKED |
+| Supabase staging | `knowverse-staging` (`ypthoicwrfsblaidllyy`)，12/12 migrations PASS | 2 个合成 Auth 用户、3 个设备、2 个学习事件、1 个档案文档 | 真实 Auth / JWT / PostgREST / RPC HTTP 验收 PASS；真实浏览器客户端和实体 iPhone 尚待验收 |
 
 ## 4. 测试清单与结果
 
@@ -157,19 +157,19 @@ bash scripts/verify-supabase-sync-isolation.sh
 | `docs/implementation/phase-n/07-production-readiness-report.md` | 更新生产准入结论 |
 | `docs/implementation/phase-n/02-cross-device-sync-acceptance.md` | 本验收记录 |
 
-## 6. staging 阻塞与下一步
+## 6. staging 验收后的剩余工作
 
-目前 Supabase 账号只发现一个生产项目 `sxcpareycpokcyroufww`，组织为 `liucaidong's Org`（free plan），没有 development branch。没有把生产数据复制到测试环境，也没有新建云资源。
+独立 staging 项目和真实认证态 HTTP 验收已经完成。staging 项目为 knowverse-staging（ypthoicwrfsblaidllyy，eu-west-1），未使用 production 数据或身份。
 
-要完成 N2 剩余部分，需要：
-1. 在用户明确授权的组织内创建独立 staging 项目；创建前核对报价，若会产生非零费用先停止并取得确认。
-2. 对 staging 应用当前 main 的 12 条迁移并验证托管 Auth / PostgREST / RLS 行为。
-3. 使用合成账号 A、B；A 在 Mac 和第二设备登录，B 做跨账号隔离尝试。
-4. 真实浏览器直连 staging Supabase，完成同账号双设备首次上传 / cold restore / 离线补传 / CAS 冲突与解决 / event idempotency / session refresh / 错误重试。
-5. 记录 HTTP/RPC 状态、数据库行数、cursor/revision、device rows、测试账号和最终数据清理结果。
-6. N2 数据库测试不使用现有个人生产账号；测试完成后撤销 staging 测试身份 / 设备或删除 staging 项目。
+托管 HTTP 验收已覆盖真实 Auth 密码登录与 JWT、A/B allowlist、A 两设备 / B 一设备注册、事件 + 文档原子提交、第二设备拉取、重复提交幂等、CAS 冲突整批回滚和恢复、跨账号 RLS / identity spoof / device spoof 拒绝。当前数据库观测到的合成测试数据为：2 个 Auth users、3 个 device rows、2 个 learning_events、1 个 learning_archive_documents。
 
-实体 iPhone Safari 测试仍需要真实设备；Playwright WebKit 只能作为前置自动化测试。
+N2 剩余工作收敛为：
+1. 通过真实 KNOWVERSE 浏览器客户端，在 Mac 和第二台真实设备上分别登录同一账号，验证真实 session、设备注册和双向同步。
+2. 完成真实浏览器首次 pull-only cold restore、本地 IndexedDB 恢复、离线 Outbox、重连补传、重复请求、CAS 冲突解决、session refresh、网络超时 / 弱网和设备撤销。
+3. 保存浏览器 request / response、服务端行数、cursor / revision、设备信息和测试时间；所有客户端验收结束后再清理 staging 合成账号及其级联测试数据。
+4. 对实体 iPhone Safari 单独验证系统权限、键盘、后台恢复和弱网行为；Playwright WebKit 不能替代真机。
+
+生产环境仍只做过只读核验；所有写入均限定在 staging。
 
 ## 7. 阶段退出标准
 
@@ -186,7 +186,7 @@ N2 只有在以下项目全部 PASS 后才能标记 COMPLETE：
 - 测试完成后 staging 数据清理有证据。
 - 至少一台实体 iPhone Safari 完成核心恢复 / 离线 / 后台回前台验收。
 
-**当前 N2 状态：本地数据库与模拟浏览器证据 PASS；托管 staging + 真实设备验收 BLOCKED。**
+**当前 N2 状态：IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / REAL BROWSER DEVICE E2E PENDING。**
 
 
 ## 8. Hosted staging 实际创建与部署记录（2026-11-04）
@@ -250,7 +250,7 @@ staging Auth settings 显示 email provider enabled、signup enabled，但 `mail
 Hosted staging project 与完整 schema 已完成部署，真实 PostgREST anon 拒绝验证通过。两个合成 Auth 用户已建立、邮箱已确认并加入 allowlist；真实 hosted HTTP sync、双账户隔离、双设备冷恢复、离线补传和 CAS 冲突仍待本机临时密码配置并取得真实 JWT 后进行。**本节形成时状态为 IN_PROGRESS；最新状态见 8.7。不得将 N2 标记 COMPLETE。**
 
 
-### 8.6 真实托管 Supabase HTTP 验收脚本（待本机凭证录入后执行）
+### 8.6 真实托管 Supabase HTTP 验收脚本（执行前计划；实际结果见 8.8）
 
 新增 `scripts/e2e-hosted-supabase-sync.mjs`。该脚本使用 Node.js 原生 `fetch`，直接请求 staging Auth / PostgREST / RPC，不依赖 Mock RPC，也不读取 service_role key。脚本固定允许的 origin 为：
 
@@ -295,14 +295,14 @@ node scripts/e2e-hosted-supabase-sync.mjs
 7. 使用正确 base revision 重试并提交新事件和文档版本。
 8. B 通过 RLS 看不到 A 的事件 / 文档；B 伪造 expected_user_id、借用 A 的 device ID 均被拒绝。
 
-脚本语法检查已通过；两个合成 Auth 用户和 allowlist 已创建，但**真实 HTTP 脚本尚未执行**，因为 `.env.n2.local` 在 Mac 上尚不存在，临时密码需由用户在本机安全输入。此脚本验证真实 Supabase HTTP / Auth / RPC 协议，不代替真实浏览器离线、浏览器本地 IndexedDB 冷启动或实体 iPhone Safari 验收。
+以上为执行前的操作说明和测试矩阵。真实 HTTP 脚本已在 2026-11-04 成功运行，实际执行证据、结果及 staging 行数见 8.8。本脚本验证真实 Supabase HTTP / Auth / RPC 协议，不代替真实浏览器离线、浏览器本地 IndexedDB 冷启动或实体 iPhone Safari 验收。
 
 #### 测试数据清理
 
 脚本每次使用随机 event ID、document ID 和 device UUID，不覆盖已存在的测试数据。验收完成并保存日志后，在 Supabase Dashboard Authentication → Users 删除两个一次性合成测试用户；依赖 Auth UUID 的授权、设备、事件和文档表均配置了 `ON DELETE CASCADE`，删除用户会清除其 staging 测试记录。不得对生产项目执行清理。
 
 
-### 8.7 最新状态：Auth 用户已建立并完成 allowlist（2026-11-04）
+### 8.7 历史状态快照：Auth 用户已建立并完成 allowlist（2026-11-04；后续结果见 8.8）
 
 用户提供两个 staging Auth UUID 后，已在 staging 进行只读身份匹配，并确认邮箱已验证：
 
@@ -328,6 +328,34 @@ node scripts/e2e-hosted-supabase-sync.mjs
 - 本地 backend / IndexedDB / async wait / WebKit browser E2E：35/35 PASS。
 - `bash scripts/verify-supabase-migration-replay.sh`：PASS（空 Auth 与 seeded Auth 两种数据库）。
 - `bash scripts/verify-supabase-sync-isolation.sh`：PASS（真实 PostgreSQL 17 migration / RPC / RLS）。
-- hosted Supabase JWT / PostgREST / sync RPC 脚本：尚未运行；Mac 上尚无 `.env.n2.local`，需先使用 `bash scripts/setup-n2-staging-env.sh` 在本机隐藏输入两组临时密码。
+- hosted Supabase JWT / PostgREST / sync RPC 脚本：本节记录时尚未运行；随后已在 2026-11-04 完成，详见 8.8。
 
-**当前 N2 状态：IN_PROGRESS / LOCAL TEST CREDENTIALS PENDING。** Auth 用户和 allowlist 阻塞已解除；真实托管认证态 HTTP 测试、真实浏览器冷恢复 / 离线补传和实体 iPhone Safari 验收仍未完成。
+**本节当时的历史状态：IN_PROGRESS / LOCAL TEST CREDENTIALS PENDING。** 最新 N2 状态以 8.8 为准。
+
+
+### 8.8 最新结果：托管 Supabase 真实认证态 HTTP 验收通过（2026-11-04）
+
+执行环境：用户本机 Mac，仓库 /Users/geeker/ai-projects/knowverse；目标严格限定为 staging API https://ypthoicwrfsblaidllyy.supabase.co。测试使用本机 Git 忽略的 .env.n2.local 中两组合成账号密码；staging Secret Key 仅由用户在本机隐藏输入，用于 Supabase Auth Admin 更新两个测试用户密码。密钥、密码和 JWT 均未输出到聊天或写入 Git。
+
+**真实托管验收结果：RESULT: PASS。** 所有以下断言均显示 PASS：
+
+1. A / B 真实 Auth 登录、email confirmation、不同身份和 staging allowlist。
+2. A 注册两个设备、B 注册一个设备。
+3. 真实托管 PostgreSQL 原子提交 learning event + archive document。
+4. A 的第二设备 pull 到同账号的事件和档案文档。
+5. 跨设备相同 event / document 重试幂等。
+6. Stale CAS revision 冲突时整批回滚，冲突批次的 event 不落库、文档 revision 不变。
+7. 正确 base revision 重试后，事件和 revision 2 文档成功提交。
+8. B 无法读取 A 的事件 / 文档；B 伪造 A 的 expected user ID 或使用 A 的 device ID 均被拒绝。
+
+随后使用 staging 只读 SQL 计数交叉核验：
+- 合成 Auth users：2。
+- 测试 user_devices：3。
+- 测试 learning_events：2。
+- 测试 learning_archive_documents：1。
+
+GitHub Actions Validate run #149（run ID 41762882174）已完成，结论 SUCCESS；全部 143 个 job steps（含主测试矩阵和清理步骤）均为成功。PR #12 仍 OPEN、未合并。
+
+终端最后出现的 zsh: P9K_GCLOUD_PROJECT_NAME: parameter not set 是交互式 zsh / Powerlevel10k 提示符在 shell 退出后读取未设置变量的提示符配置错误。它出现在脚本已经输出 RESULT: PASS 之后，不属于 Supabase HTTP harness 的失败，也不改变上述 PASS 结果。
+
+**最新 N2 状态：IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / REAL BROWSER DEVICE E2E PENDING。** 直接 HTTP harness 证明了托管 Auth / JWT / PostgREST / RPC / RLS 服务端链路，但尚未证明真实 KNOWVERSE 浏览器客户端在 Mac 与第二台设备上的 IndexedDB 冷恢复、离线补传、session refresh、弱网恢复和实体 iPhone Safari 行为。不得因此宣布 N2 COMPLETE 或 KNOWVERSE PRODUCTION READY。
