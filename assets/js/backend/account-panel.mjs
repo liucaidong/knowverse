@@ -2,6 +2,7 @@ import { BACKEND_CONFIG } from "./config.mjs";
 import { getArchiveRuntime } from "./archive-bootstrap.mjs";
 import {
   getArchiveStatus,
+  getLearningDocument,
   getLocalDevice,
   listArchiveConflicts,
 } from "./local-event-store.mjs";
@@ -23,6 +24,20 @@ const dateLabel = value => {
   }).format(date);
 };
 const shortId = value => value ? String(value).slice(0, 8) + "…" : "尚未初始化";
+
+const archiveDocumentLabels = Object.freeze({
+  challenge_progress: "挑战进度",
+  review_session: "复习现场",
+  plan_preferences: "学习规划偏好",
+  learner_profile: "学习者档案",
+  learning_goal: "学习目标",
+  learning_plan: "学习计划",
+  learning_plan_head: "学习计划索引",
+  learning_task: "学习任务",
+  learning_agent_session: "AI 学习会话",
+  learning_agent_message: "AI 学习消息",
+  proactive_learning_projection: "主动学习仪表盘快照",
+});
 
 export async function mountBackendAccountPanel(host, options = {}) {
   if (!host) return () => {};
@@ -137,16 +152,29 @@ export async function mountBackendAccountPanel(host, options = {}) {
     for (const conflict of conflicts) {
       const card = node("article", "kv-backend-conflict");
       const remote = conflict.remote || {};
-      const heading = node("strong", "", conflict.document_type + " · " + conflict.document_key);
-      const explanation = node("p", "", "另一台设备已经把此档案更新到云端版本 " + remote.revision +
-        "。本机修改与云端修改都已保留，请明确选择保留哪一版。");
+      const documentType = remote.document_type || conflict.documentType || "unknown";
+      const documentKey = remote.document_key || conflict.documentKey || conflict.documentId || "unknown";
+      const local = documentType !== "unknown" && documentKey !== "unknown"
+        ? await getLearningDocument(documentType, documentKey).catch(() => null)
+        : null;
+      const documentLabel = archiveDocumentLabels[documentType] || documentType;
+      const keyLabel = documentKey === "current" ? "当前快照" : documentKey;
+      const heading = node("strong", "", documentLabel + " · " + keyLabel);
+      const localRevision = Number(local?.localRevision) || 0;
+      const baseRevision = Number(local?.baseRevision ?? local?.cloudRevision) || 0;
+      const remoteRevision = Number(remote.revision) || 0;
+      const explanation = node("p", "",
+        "本机修订 " + localRevision + "（基于云端版本 " + baseRevision + "）与云端修订 " +
+        remoteRevision + " 存在内容差异。本机内容与云端内容均已保留，请明确选择采用哪一版。");
       const choices = node("div", "kv-backend-conflict-actions");
       const keepLocal = node("button", "lp-data-button", "保留本机版本");
       keepLocal.type = "button";
       const keepRemote = node("button", "lp-data-button primary", "采用云端版本");
       keepRemote.type = "button";
+      keepLocal.disabled = !local;
+      keepRemote.disabled = !local || !remote.document_payload;
       keepLocal.addEventListener("click", async () => {
-        if (busy) return;
+        if (busy || !local) return;
         setBusy(true);
         try {
           await resolveLocalLearningArchiveConflict(conflict.id, "local");
@@ -159,7 +187,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
         } finally { setBusy(false); }
       });
       keepRemote.addEventListener("click", async () => {
-        if (busy) return;
+        if (busy || !local || !remote.document_payload) return;
         setBusy(true);
         try {
           await resolveLocalLearningArchiveConflict(conflict.id, "remote");

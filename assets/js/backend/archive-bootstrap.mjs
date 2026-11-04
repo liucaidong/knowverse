@@ -7,6 +7,7 @@ let bootstrapPromise = null;
 let archiveStore = null;
 let authClient = null;
 let syncService = null;
+let initialSyncPromise = null;
 let stopSyncRuntime = null;
 let bootstrapError = null;
 
@@ -30,10 +31,13 @@ export function startArchiveBootstrap() {
 
   bootstrapPromise = archiveStore.load().then(() => {
     bootstrapError = null;
-    // Do not block page navigation on network activity. initialize() is
-    // best-effort and leaves the local-first learning path available.
-    syncService.initialize().catch(reportBootstrapError);
-    return { store: archiveStore, auth: authClient, syncService };
+    // Keep network sync best-effort for local-first pages, but expose its promise
+    // so views that derive cross-device state can wait before calculating it.
+    initialSyncPromise = syncService.initialize().catch(error => {
+      reportBootstrapError(error);
+      return { status: "error", message: error.message || "初始同步失败" };
+    });
+    return { store: archiveStore, auth: authClient, syncService, initialSyncPromise };
   }).catch(error => {
     bootstrapError = error;
     stopSyncRuntime?.();
@@ -56,6 +60,7 @@ export async function getArchiveRuntime() {
     store: archiveStore,
     auth: authClient,
     syncService,
+    initialSyncPromise,
     bootstrapError,
   };
 }

@@ -75,7 +75,7 @@ test("local learning writes persist state, evidence and Outbox in one transactio
   const store = await read("assets/js/backend/local-event-store.mjs");
   const challenge = await read("assets/js/challenge-engine.mjs");
   const review = await read("assets/js/review-engine.mjs");
-  assert.match(store, /\[STORE_EVENTS, STORE_OUTBOX, STORE_DEVICES, STORE_SYNC, STORE_DOCUMENTS, STORE_MIGRATIONS\]/);
+  assert.match(store, /\[STORE_EVENTS, STORE_OUTBOX, STORE_DEVICES, STORE_SYNC, STORE_DOCUMENTS, STORE_CONFLICTS, STORE_MIGRATIONS\]/);
   assert.match(challenge, /repository\.commit\(\{\s*events,\s*documents:/s);
   assert.match(challenge, /expectedLocalRevision/);
   assert.match(review, /repository\.commit\(\{\s*events,\s*documents:/s);
