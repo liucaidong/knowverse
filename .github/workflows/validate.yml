@@ -62,6 +62,8 @@ jobs:
         run: node --test scripts/verify-local-learning-database.mjs scripts/verify-learning-state-storage.mjs
       - name: Test Phase D backend and Supabase security contracts
         run: node --test scripts/verify-backend-contract.mjs
+      - name: Replay all Supabase migrations on PostgreSQL 17 (empty and seeded Auth)
+        run: bash scripts/verify-supabase-migration-replay.sh
       - name: Test learning mastery graph, event log, diagnostics and review scheduling
         run: node --test scripts/verify-learning-progress.mjs
       - name: Test Learning Intelligence V3 causal graph, review lifecycle and independent verification
