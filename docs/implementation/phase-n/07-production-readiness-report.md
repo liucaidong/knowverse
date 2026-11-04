@@ -7,14 +7,14 @@
 
 ## 1. 结论
 
-N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成功。N2 的本地和隔离 PostgreSQL 集成验证已有实测证据，但独立托管 Supabase staging 尚未建立，真实浏览器到 Supabase Auth / PostgREST / RPC 的双设备验收尚未执行。
+N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成功。N2 的本地、隔离 PostgreSQL 集成和托管 staging schema / 匿名拒绝验证已有实测证据；独立 staging 已建立且 12/12 migrations 应用成功，但真实 Auth 用户、JWT 与认证态双设备 HTTP 验收仍未完成。
 
-因此目前不能声明 KNOWVERSE 已具备经过验证的生产级跨设备个人学习数据闭环。
+当前 N2 PR #12 最新提交 `27cfd2f` 的 Validate workflow run #148 已通过；该 CI 通过不代表托管认证态同步验收完成。因此目前不能声明 KNOWVERSE 已具备经过验证的生产级跨设备个人学习数据闭环。
 
 ## 2. N1 已验证
 
 - PR #11 normal merge 到 main，merge commit `b3c70374f147a651227675777934eac4adffea21`。
-- PR #10 / #11 均已合并，旧阶段分支已删除，当前仅保留 main，无 OPEN PR。
+- PR #10 / #11 均已合并，N1 旧阶段分支已删除。N1 交接时仅保留 main 且无 OPEN PR；随后为 N2 创建独立分支 `phase-n/n2-sync-isolation-2026-11-04` 并打开 PR #12。
 - main full Validate workflow run `41746832395` SUCCESS。
 - Pages deploy run `41746832366` SUCCESS。
 - 生产 migration ledger 12 条，版本名与 main migration 文件清单对应。
@@ -56,8 +56,7 @@ N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成
 
 ## 4. 仍未验证
 
-- 独立托管 Supabase staging 项目及其完整 migration 部署。
-- 真实 Auth 测试用户 A / B 的创建、session、JWT 与账号切换拒绝。
+- staging 项目和 12 条 migration 已通过；真实 Auth 测试用户 A / B 的创建、session、JWT 与账号切换拒绝仍未验证。
 - Mac + 第二台真实设备使用同一账号进行同步和冷启动恢复。
 - 另一账号真实访问拒绝。
 - 真实网络离线 / 弱网、浏览器后台恢复、重复请求和服务端超时后重试。
@@ -67,9 +66,9 @@ N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成
 
 ## 5. 当前阻塞
 
-Supabase 账户当前只发现一个项目 `knowverse`，即生产项目 `sxcpareycpokcyroufww`，其下没有 development branch。组织为 `liucaidong's Org`（free plan）。本阶段未创建第二个 Supabase 项目或分支，因为 staging 创建属于独立云资源操作，可能涉及费用，需要维护者明确授权。
+已按用户授权建立独立 staging 项目 `knowverse-staging`（`ypthoicwrfsblaidllyy`，`eu-west-1`），当前创建报价为 US$0/month；全部 12 条 migration 已成功应用，且匿名访问学习表和同步 profile RPC 均被 HTTP 401 / 42501 拒绝。staging 没有复制生产用户或学习数据。两个合成 staging Auth 用户已通过 Supabase Dashboard 创建，邮箱已确认并加入 `private.authorized_users`。当前阻塞收敛为：需要在 Mac 本机安全录入两组临时密码到被 Git 忽略的 `.env.n2.local`，运行真实 JWT / HTTP 验收脚本；之后仍需完成真实浏览器离线恢复和实体 iPhone Safari 验收。
 
-在独立 staging 条件准备好之前：
+在真实托管认证态 E2E 完成前：
 - 不得使用生产数据库插入测试事件或档案。
 - 不得在生产环境创建测试 Auth 用户或设备。
 - 不得将 Mock / PG17 测试写成托管 Supabase 通过。

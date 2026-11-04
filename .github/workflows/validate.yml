@@ -142,6 +142,8 @@ jobs:
           node --input-type=module --check < assets/js/v2.js
           node --check assets/js/site-shell.mjs
           node --check assets/js/knowledge-context.mjs
+          node --check scripts/e2e-hosted-supabase-sync.mjs
+          bash -n scripts/setup-n2-staging-env.sh
           node --check scripts/validate-site-architecture.mjs
           node --check scripts/prepare-approved-practice-publication.mjs
           node --check scripts/record-practice-publication-pr.mjs

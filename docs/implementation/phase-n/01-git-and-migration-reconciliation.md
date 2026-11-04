@@ -14,9 +14,9 @@
 | Git main | `b3c70374f147a651227675777934eac4adffea21` |
 | PR #11 | MERGED，普通 merge，merge commit 与 main 当前 SHA 相同 |
 | PR #10 | MERGED |
-| OPEN PR | 0 |
-| 本地分支 | 仅 `main` |
-| 远端分支 | 仅 `origin/main` |
+| OPEN PR（N1 交接时） | 0 |
+| 本地分支（N1 交接时） | 仅 `main` |
+| 远端分支（N1 交接时） | 仅 `origin/main` |
 | 已合并旧分支 | `phase-m/authorize-initial-content-admin-2026-11-04`、`phase-m/production-hardening-2026-11-04` 已删除 |
 | 合并后的 Validate | run `41746832395` SUCCESS |
 | Pages 部署 | run `41746832366` SUCCESS |
@@ -42,7 +42,7 @@ Supabase migration ledger 记录 version/name，不提供已执行 SQL 内容 ch
 - PR #10：已合并。
 - 合并后本地切换至 `main` 并执行 fast-forward 更新。
 - 两条已合并阶段分支已从本地和远端删除。
-- 当前无 OPEN PR，且只保留 main。
+- 在 N1 交接时无 OPEN PR，且只保留 main；随后启动的 N2 工作另建执行分支 `phase-n/n2-sync-isolation-2026-11-04`，对应 PR #12 当前 OPEN。
 - `docs/audits/` 为用户此前的本地未跟踪基线目录，始终保留且未纳入本次更改。
 
 ## 2. 生产 migration ledger

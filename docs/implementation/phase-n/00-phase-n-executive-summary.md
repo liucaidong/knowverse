@@ -12,9 +12,9 @@
 
 Phase N 严格按 N1 → N2 → N3 → N4 → N5 推进。
 
-- **N1 已完成主线合并与分支清理。** PR #11 已正常合并到 main，PR #10/#11 均为 MERGED；相关阶段分支已删除，仅保留 main。合并后的完整 Validate workflow 成功，Pages 部署成功。
-- **N2 已完成本地与隔离 PostgreSQL 集成验证，但真实托管 staging 验收仍 BLOCKED。** 新增的 PostgreSQL 17 测试执行仓库全部 12 条 migration，并以 authenticated 角色调用真实 RPC，验证原子提交、事件幂等、CAS 整批回滚、游标分页、RLS 跨账号隔离和设备归属。现有 Mac/Chromium + WebKit iPhone profile E2E 通过，但该浏览器 E2E 使用内存 Mock RPC，不能代替真实 Supabase。
-- **当前没有独立 staging Supabase 项目或 development branch。** 账号中只发现生产项目；本阶段没有把生产环境用作测试环境，也没有创建任何 Supabase 项目/分支。
+- **N1 已完成主线合并与分支清理。** PR #11 已正常合并到 main，PR #10/#11 均为 MERGED；N1 阶段旧分支已清理。随后为 N2 独立创建执行分支并打开 PR #12。N1 合并后的完整 Validate workflow 成功，Pages 部署成功。
+- **N2 已完成本地、隔离 PostgreSQL 与托管 staging schema / 匿名权限验证；真实认证态跨设备验收仍 BLOCKED。** PostgreSQL 17 测试执行仓库全部 12 条 migration，并以 authenticated 角色调用真实 RPC，验证原子提交、事件幂等、CAS 整批回滚、游标分页、RLS 跨账号隔离和设备归属。现有 Mac/Chromium + WebKit iPhone profile E2E 通过，但该浏览器 E2E 使用内存 Mock RPC，不能代替真实 Supabase。
+- **独立 staging Supabase 项目已建立。** `knowverse-staging`（`ypthoicwrfsblaidllyy`，`eu-west-1`）已应用全部 12 条 migration；匿名表访问和同步 profile RPC 的真实 HTTP 请求均被拒绝。没有把生产环境用作测试环境，也没有复制生产用户或学习数据。
 - N3、N4、N5 继续 BLOCKED，必须按顺序等待 N2 真实 staging 验收。
 
 **KNOWVERSE 当前仍 NOT PRODUCTION READY。** 不得将 PostgreSQL 隔离测试、Mock E2E、静态分析或 Pages HTTP 200 描述成真实跨设备生产级闭环。
@@ -23,7 +23,7 @@ Phase N 严格按 N1 → N2 → N3 → N4 → N5 推进。
 
 - GitHub PR #11：MERGED，普通 merge 流程，merge commit 为 `b3c70374f147a651227675777934eac4adffea21`。
 - PR #10、#11 均已合并；相关远端和本地已合并分支已删除。
-- 当前本地/远端仅保留 `main`；当前无 OPEN PR。
+- **N1 交接时：** 本地 / 远端仅保留 `main`，无 OPEN PR。**N2 当前：** 执行分支 `phase-n/n2-sync-isolation-2026-11-04`，PR #12 OPEN，最新提交 `27cfd2fbf1456140ea20ae6a9c9fb8452ac61f09`。
 - 合并后的 Validate workflow：run `41746832395`，结论 SUCCESS。
 - 合并后的 Pages deployment：run `41746832366`，结论 SUCCESS。
 - 合并后发布候选 workflow：run `41746902080`，结论 SUCCESS。
@@ -45,6 +45,7 @@ Phase N 严格按 N1 → N2 → N3 → N4 → N5 推进。
 以上合计 **34/34 tests PASS**。
 
 - `scripts/e2e-cross-device-archive.mjs`：**1/1 PASS**。覆盖桌面与移动视口、冷启动拉取、离线 Outbox、重连补传、事件幂等、档案 CAS 冲突与解决。其服务端 RPC 是进程内 Mock，因此仅作为浏览器和本地 IndexedDB 验证。
+- 2026-11-04 再次将上述 34 项 core tests 与该跨设备 E2E 合并执行：**35/35 PASS**；这仍不等价于托管 Supabase HTTP 验收。
 
 ### PostgreSQL 17 真实 SQL / RPC 集成测试
 
@@ -79,16 +80,16 @@ Phase N 严格按 N1 → N2 → N3 → N4 → N5 推进。
 | 子阶段 | 状态 | 说明 |
 |---|---|---|
 | N1 Git / Migration | COMPLETE（主线流程） | PR #11 正常合并；分支清理；全量 main CI 成功。历史 migration SQL 字节级差异单独披露，不做生产重放 |
-| N2 双设备 Supabase 同步 | IN_PROGRESS / BLOCKED | 本地浏览器 + PG17 真实 SQL/RPC 集成验证通过；缺独立托管 staging 和真实 Auth 双设备验收 |
+| N2 双设备 Supabase 同步 | IN_PROGRESS / LOCAL TEST CREDENTIALS PENDING | 本地浏览器 + PG17 真实 SQL/RPC 集成通过；staging 12/12 migrations、anon HTTP denial、两个合成 Auth 用户与 allowlist 已通过；缺真实 JWT / 认证态双设备 HTTP 和真机验收 |
 | N3 真实 AI Provider | BLOCKED | 必须先 N2；需要隔离 staging Provider 凭证及独立 Reviewer 凭证 |
 | N4 AI 内容发布闭环 | BLOCKED | 必须先 N3；需要 staging 发布凭证和真实候选审批链 |
 | N5 知识图谱扩展 | BLOCKED | 必须先 N4；选择 AI Agent 与 AI 教育等主题构建正式图谱 |
 
 ## 5. N2 剩余准入项
 
-1. 在用户明确授权的组织下建立独立 staging Supabase 项目；不得使用生产项目或复制生产个人数据作为测试样本。
-2. staging 完整应用 main migration，并执行托管 Supabase 自身 Auth / PostgREST / RLS 验收。
-3. 建立两个合成测试 Auth 用户：同账号两设备同步；另一账号隔离拒绝。
+1. **已完成：** 在已授权组织下建立独立 staging Supabase 项目，并应用 main 全部 12 条 migration；不得使用生产项目或复制生产个人数据作为测试样本。
+2. **已完成（匿名路径）：** 验证托管 Supabase PostgREST 对 anon 的表访问和同步 profile RPC 调用返回 HTTP 401 / 42501；认证态 Auth / RPC 路径待测试用户建立后验收。
+3. **已完成：** 两个合成 staging Auth 用户已确认邮箱并加入 `private.authorized_users`；**待完成：** 在 Mac 本机安全录入两个临时密码，执行真实 JWT / HTTP 验收：同账号两设备同步；另一账号隔离拒绝。
 4. 在真实浏览器中完成 Mac 与第二台真实设备的 cold restore、事件/文档同步、离线补传、CAS 冲突解决、重复提交和重试。
 5. 保存 request / response 状态、数据库行数与游标变化、设备注册信息、测试时间和清理证据；测试结束清理全部 staging 测试数据。
 6. 对实体 iPhone Safari 的系统权限、后台恢复、键盘、弱网行为做单独验收；WebKit 自动化不能替代实机。

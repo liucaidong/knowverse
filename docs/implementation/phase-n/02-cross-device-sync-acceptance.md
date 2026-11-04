@@ -1,6 +1,6 @@
 # N2 — Supabase 跨设备学习同步验收记录
 
-**状态：** IN_PROGRESS / HOSTED STAGING BLOCKED
+**状态：** IN_PROGRESS / AUTH TEST USERS BLOCKED
 **更新日期：** 2026-11-04
 **代码基线：** `main` @ `b3c70374f147a651227675777934eac4adffea21`
 **生产 Supabase：** `sxcpareycpokcyroufww`（仅用于只读权限核验）
@@ -12,7 +12,7 @@ N2 已补齐两层隔离验证：
 1. 浏览器 / IndexedDB 层：桌面与移动视口的 Mock RPC E2E 通过。
 2. 数据库层：临时 PostgreSQL 17 执行仓库全部 12 条 migrations，并以 authenticated 角色调用真实 SQL RPC，原子提交、幂等、CAS 整批回滚、分页和 RLS 跨账号隔离通过。
 
-**但 N2 尚未完成。** Supabase 账号当前只有生产项目，没有独立 staging project / branch。没有真实托管 Supabase Auth、JWT、PostgREST 网络和第二台物理设备的验收证据。不得把本报告中的 PG17 集成验证等同于托管 staging 通过。
+**但 N2 尚未完成。** 独立托管 staging 项目已建立，12/12 migrations 已应用，且真实 PostgREST 匿名拒绝验证通过；但尚无两个合成 Auth 用户和合法 JWT，因此认证态 Auth / RPC、真实 HTTP 双设备同步、账号隔离和第二台物理设备验收仍未完成。不得把 PG17 集成验证或 anon 负向测试等同于认证态托管同步通过。
 
 ## 2. N2 验收边界
 
@@ -35,7 +35,7 @@ N2 已补齐两层隔离验证：
 | Playwright WebKit iPhone profile | WebKit 模拟设备视口 | IndexedDB 测试数据 | 浏览器引擎验证，不是真机 |
 | 本机 Docker PostgreSQL 17 | 重放仓库全部 12 条 SQL migration，并调用数据库 RPC | 合成 Auth 用户 / 设备 / 事件 / 文档 | 数据库 SQL / RLS / RPC 集成验证 |
 | Supabase 生产项目 | 只读查询 migrations、table grants、RLS policies、行数元数据 | 生产现有数据，只读 | 生产权限和结构观测，不是同步验收 |
-| Supabase staging | 尚不存在 | 无 | BLOCKED |
+| Supabase staging | `knowverse-staging` (`ypthoicwrfsblaidllyy`)，12/12 migrations PASS | 独立空 staging，无生产个人数据 | Schema + anon API verified；认证态 E2E BLOCKED |
 
 ## 4. 测试清单与结果
 
@@ -240,11 +240,94 @@ Security Advisor：无高危 finding；有 2 条 INFO：private schema 的 `auth
 ### 8.4 Auth 合成账户阻塞
 
 staging Auth settings 显示 email provider enabled、signup enabled，但 `mailer_autoconfirm=false`。当前可用 Supabase 管理连接仅提供项目/数据库操作与 publishable key，没有 Auth Admin create-user endpoint 或 service-role key。尝试通过管理 SQL 直接写入 staging `auth.users` 被工具安全检查拦截，未成功提交任何写入。因此：
-- 当前 staging Auth users / allowlist / devices / sync data 保持 0 行。
+- **本节 8.4 初始核验时** staging Auth users / allowlist / devices / sync data 均为 0 行；后续 8.7 更新记录了两个合成 Auth users 已建立并加入 allowlist。
 - 没有发送测试邮件，没有更改邮件确认设置，没有伪造 JWT。
 - 不会通过尝试另一种 SQL 写法规避安全拦截。
-- 必须通过 Supabase Dashboard Authentication → Users 的受支持流程，或连接 Auth Admin 管理接口，创建两个合成测试用户并确认 email；测试账号不得使用真实生产用户身份。
+- 本项是初始核验时的待办。后续 8.7 记录已通过 Supabase Dashboard 建立两个合成用户、确认邮箱并启用 allowlist；当前不再需要创建用户，剩余工作仅是本机录入临时密码并执行认证态 E2E。
 
-### 8.5 当前 N2 阶段结论
+### 8.5 Auth Admin 阻塞解除前的阶段结论（历史状态）
 
-Hosted staging project 与完整 schema 已完成部署，真实 PostgREST anon 拒绝验证通过。Authenticated hosted HTTP sync、双账户隔离、双设备冷恢复、离线补传和 CAS 冲突仍待有合法测试 JWT 后进行。**N2 当前状态为 IN_PROGRESS / AUTH ADMIN BLOCKED，不得 COMPLETE。**
+Hosted staging project 与完整 schema 已完成部署，真实 PostgREST anon 拒绝验证通过。两个合成 Auth 用户已建立、邮箱已确认并加入 allowlist；真实 hosted HTTP sync、双账户隔离、双设备冷恢复、离线补传和 CAS 冲突仍待本机临时密码配置并取得真实 JWT 后进行。**本节形成时状态为 IN_PROGRESS；最新状态见 8.7。不得将 N2 标记 COMPLETE。**
+
+
+### 8.6 真实托管 Supabase HTTP 验收脚本（待本机凭证录入后执行）
+
+新增 `scripts/e2e-hosted-supabase-sync.mjs`。该脚本使用 Node.js 原生 `fetch`，直接请求 staging Auth / PostgREST / RPC，不依赖 Mock RPC，也不读取 service_role key。脚本固定允许的 origin 为：
+
+`https://ypthoicwrfsblaidllyy.supabase.co`
+
+任何其他域名（尤其 production）都会在请求前触发安全停止。
+
+#### 测试账号准备
+
+以下两个合成 staging 用户已通过 [Supabase staging Authentication → Users](https://supabase.com/dashboard/project/ypthoicwrfsblaidllyy/auth/users) 创建，并启用 Auto Confirm User；Dashboard 核验到的 UUID 与 allowlist 状态如下：
+
+- A：`n2-sync-a@knowverse-test.invalid` → `807a4a86-dcdd-47ac-88b9-e29ce6df6a19`，email confirmed，allowlisted=true。
+- B：`n2-sync-b@knowverse-test.invalid` → `07a67a01-5120-4c4e-8dde-424391719e6e`，email confirmed，allowlisted=true。
+
+两个身份已在 staging 的 `private.authorized_users` 启用，备注为 N2 synthetic staging E2E。不得使用生产账号或生产 UUID。密码只保留在本机，不要粘贴到聊天或提交到 Git。
+
+#### 本机配置与执行
+
+在本机仓库根目录运行安全设置脚本：
+
+```bash
+bash scripts/setup-n2-staging-env.sh
+```
+
+脚本会隐藏密码输入，仅接受 16–128 位字母 / 数字 / 下划线 / 连字符，要求 A/B 密码不同；自动写入 staging URL、staging publishable key 和两个邮箱，并以文件权限 `600` 创建 `.env.n2.local`。仓库 `.gitignore` 的 `.env.*` 规则会忽略该文件。脚本拒绝覆盖已有环境文件。然后执行：
+
+```bash
+set -a
+source .env.n2.local
+set +a
+node scripts/e2e-hosted-supabase-sync.mjs
+```
+
+脚本不会输出密码、publishable key 或 JWT；只输出逐项 PASS / FAIL。测试覆盖：
+
+1. A / B 真实 Auth 密码登录、email confirmation、身份区分与 allowlist。
+2. 账号 A 的两个设备、账号 B 的一个设备注册。
+3. 真实 HTTP 原子写入 learning event + archive document。
+4. A 的第二设备 pull 恢复。
+5. 跨设备相同 event / document 的幂等重试。
+6. 过期 base revision 的 CAS 冲突；验证同批 event 未入库、文档 revision 未变化。
+7. 使用正确 base revision 重试并提交新事件和文档版本。
+8. B 通过 RLS 看不到 A 的事件 / 文档；B 伪造 expected_user_id、借用 A 的 device ID 均被拒绝。
+
+脚本语法检查已通过；两个合成 Auth 用户和 allowlist 已创建，但**真实 HTTP 脚本尚未执行**，因为 `.env.n2.local` 在 Mac 上尚不存在，临时密码需由用户在本机安全输入。此脚本验证真实 Supabase HTTP / Auth / RPC 协议，不代替真实浏览器离线、浏览器本地 IndexedDB 冷启动或实体 iPhone Safari 验收。
+
+#### 测试数据清理
+
+脚本每次使用随机 event ID、document ID 和 device UUID，不覆盖已存在的测试数据。验收完成并保存日志后，在 Supabase Dashboard Authentication → Users 删除两个一次性合成测试用户；依赖 Auth UUID 的授权、设备、事件和文档表均配置了 `ON DELETE CASCADE`，删除用户会清除其 staging 测试记录。不得对生产项目执行清理。
+
+
+### 8.7 最新状态：Auth 用户已建立并完成 allowlist（2026-11-04）
+
+用户提供两个 staging Auth UUID 后，已在 staging 进行只读身份匹配，并确认邮箱已验证：
+
+| 账号 | 邮箱 | Auth UUID | email confirmed | allowlist |
+|---|---|---|---|---|
+| A | `n2-sync-a@knowverse-test.invalid` | `807a4a86-dcdd-47ac-88b9-e29ce6df6a19` | true | enabled=true |
+| B | `n2-sync-b@knowverse-test.invalid` | `07a67a01-5120-4c4e-8dde-424391719e6e` | true | enabled=true |
+
+两个 UUID 在 staging `private.authorized_users` 中使用 `ON CONFLICT DO NOTHING` 加入，没有覆盖任何现有授权决定。随后只读计数确认：
+
+- 指定 Auth users：2。
+- 指定 enabled allowlist rows：2。
+- 测试 user_devices：0。
+- 测试 learning_events：0。
+- 测试 learning_archive_documents：0。
+
+本机代码与数据库验证结果：
+
+- `node --check scripts/e2e-hosted-supabase-sync.mjs`：PASS。
+- `bash -n scripts/setup-n2-staging-env.sh`：PASS。
+- `git check-ignore -v .env.n2.local`：确认由 `.gitignore: .env.*` 忽略。
+- `git diff --check`：PASS。
+- 本地 backend / IndexedDB / async wait / WebKit browser E2E：35/35 PASS。
+- `bash scripts/verify-supabase-migration-replay.sh`：PASS（空 Auth 与 seeded Auth 两种数据库）。
+- `bash scripts/verify-supabase-sync-isolation.sh`：PASS（真实 PostgreSQL 17 migration / RPC / RLS）。
+- hosted Supabase JWT / PostgREST / sync RPC 脚本：尚未运行；Mac 上尚无 `.env.n2.local`，需先使用 `bash scripts/setup-n2-staging-env.sh` 在本机隐藏输入两组临时密码。
+
+**当前 N2 状态：IN_PROGRESS / LOCAL TEST CREDENTIALS PENDING。** Auth 用户和 allowlist 阻塞已解除；真实托管认证态 HTTP 测试、真实浏览器冷恢复 / 离线补传和实体 iPhone Safari 验收仍未完成。
