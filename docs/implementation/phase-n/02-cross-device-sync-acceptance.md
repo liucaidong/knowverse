@@ -1,6 +1,6 @@
 # N2 — Supabase 跨设备学习同步验收记录
 
-**状态：** IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / REAL BROWSER DEVICE E2E PENDING
+**状态：** IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / MAC CHROMIUM STAGING E2E PASS / SECOND REAL DEVICE PENDING
 **更新日期：** 2026-11-04
 **代码基线：** `main` @ `b3c70374f147a651227675777934eac4adffea21`
 **生产 Supabase：** `sxcpareycpokcyroufww`（仅用于只读权限核验）
@@ -12,7 +12,7 @@ N2 已补齐两层隔离验证：
 1. 浏览器 / IndexedDB 层：桌面与移动视口的 Mock RPC E2E 通过。
 2. 数据库层：临时 PostgreSQL 17 执行仓库全部 12 条 migrations，并以 authenticated 角色调用真实 SQL RPC，原子提交、幂等、CAS 整批回滚、分页和 RLS 跨账号隔离通过。
 
-**N2 真实托管认证态 HTTP 验收已通过，但 N2 尚未完成。** 在 staging 上，两个合成账号均完成真实密码登录和 JWT 验证；测试注册 A 的两个设备、B 的一个设备，完成真实 Auth / PostgREST / RPC 调用，验证 event + archive document 原子提交、第二设备 pull、跨设备幂等重试、stale CAS 冲突整批回滚、正确 revision 恢复提交，以及 B 无法读取 A 的数据、伪造 A 的身份或借用 A 的 device ID。验收脚本输出 RESULT: PASS。仍未完成的是实际 KNOWVERSE 浏览器客户端在 Mac 与第二台真实设备上的冷恢复、离线补传、session 刷新和弱网验收，以及实体 iPhone Safari 验收；直接 HTTP harness 不能替代这些客户端验收。
+**N2 真实托管认证态 HTTP 与 Mac Chromium 真实应用页面验收已通过，但 N2 尚未完成。** 在 staging 上，两个合成账号真实登录并通过 JWT / allowlist 验证；A 两设备、B 一设备、原子提交、pull、幂等、CAS rollback / recovery、账号隔离全部 PASS。随后真实 KNOWVERSE 页面在 Mac Chromium 中登录 Account A，完成 IndexedDB 初次恢复、先同步再计算策略 / 投影、自动 / 手动同步、pull-only 云端恢复和页面刷新；冲突 0、RPC HTTP 200、浏览器错误 0。仍未完成第二台真实设备的同步 / 离线补传、session refresh、弱网恢复及实体 iPhone Safari 验收。
 
 ## 2. N2 验收边界
 
@@ -164,8 +164,8 @@ bash scripts/verify-supabase-sync-isolation.sh
 托管 HTTP 验收已覆盖真实 Auth 密码登录与 JWT、A/B allowlist、A 两设备 / B 一设备注册、事件 + 文档原子提交、第二设备拉取、重复提交幂等、CAS 冲突整批回滚和恢复、跨账号 RLS / identity spoof / device spoof 拒绝。当前数据库观测到的合成测试数据为：2 个 Auth users、3 个 device rows、2 个 learning_events、1 个 learning_archive_documents。
 
 N2 剩余工作收敛为：
-1. 通过真实 KNOWVERSE 浏览器客户端，在 Mac 和第二台真实设备上分别登录同一账号，验证真实 session、设备注册和双向同步。
-2. 完成真实浏览器首次 pull-only cold restore、本地 IndexedDB 恢复、离线 Outbox、重连补传、重复请求、CAS 冲突解决、session refresh、网络超时 / 弱网和设备撤销。
+1. Mac Chromium 真实应用页面与 staging Account A 的首次认证、IndexedDB 冷恢复、自动 / 手动同步、pull-only 恢复和刷新已 PASS。
+2. 通过第二台真实设备登录同一账号，完成双向同步、离线 Outbox、重连补传、重复请求、真实 CAS 冲突解决、session refresh、网络超时 / 弱网和设备撤销。
 3. 保存浏览器 request / response、服务端行数、cursor / revision、设备信息和测试时间；所有客户端验收结束后再清理 staging 合成账号及其级联测试数据。
 4. 对实体 iPhone Safari 单独验证系统权限、键盘、后台恢复和弱网行为；Playwright WebKit 不能替代真机。
 
@@ -358,4 +358,29 @@ GitHub Actions Validate run #149（run ID 41762882174）已完成，结论 SUCCE
 
 终端最后出现的 zsh: P9K_GCLOUD_PROJECT_NAME: parameter not set 是交互式 zsh / Powerlevel10k 提示符在 shell 退出后读取未设置变量的提示符配置错误。它出现在脚本已经输出 RESULT: PASS 之后，不属于 Supabase HTTP harness 的失败，也不改变上述 PASS 结果。
 
-**最新 N2 状态：IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / REAL BROWSER DEVICE E2E PENDING。** 直接 HTTP harness 证明了托管 Auth / JWT / PostgREST / RPC / RLS 服务端链路，但尚未证明真实 KNOWVERSE 浏览器客户端在 Mac 与第二台设备上的 IndexedDB 冷恢复、离线补传、session refresh、弱网恢复和实体 iPhone Safari 行为。不得因此宣布 N2 COMPLETE 或 KNOWVERSE PRODUCTION READY。
+**最新 N2 状态：IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / MAC CHROMIUM STAGING E2E PASS / SECOND REAL DEVICE PENDING。** Mac Chromium 真实页面已通过认证、IndexedDB 冷恢复、同步 / 恢复和刷新；第二台真实设备、离线 Outbox / session refresh / 弱网及实体 iPhone Safari 仍待验收。不得因此宣布 N2 COMPLETE 或 KNOWVERSE PRODUCTION READY。
+
+
+### 8.9 Mac Chromium 真实 staging 客户端验收与同步冲突修复（2026-11-04）
+
+范围与隔离：
+- 使用仓库副本 /tmp/knowverse-n2-staging-site 做本机预览；副本中的 public-config.js 固定为 staging URL 与 publishable key。
+- 生产 public-config.js、GitHub Pages、生产 Supabase (sxcpareycpokcyroufww) 均未修改 / 写入。
+- Account A / B 凭证只从 .env.n2.local 读取，不打印、不提交。
+
+DevTools 根因：
+- 首次 CDP 记录到多个静态 ES module 请求 net::ERR_CONNECTION_RESET；学习页面 boot 因核心模块未加载而提前中止，导致 #backend-account-panel 没有挂载。按钮不是 CSS 隐藏，也不是 Supabase 登录失败。
+- 本机预览服务器由单线程 HTTP server 改为 ThreadingHTTPServer。修复后学习进度启动标记完成，云端面板正常挂载；DOM 检查确认两个按钮可见。另将页面启动顺序调整为先等待本次启动的初始同步完成（失败仍 best-effort 继续本地学习），再创建学习策略与主动学习投影，避免用空事件集覆盖或冲突真实云端策略。
+
+档案冲突根因与修复：
+- 两个冲突为 learner_profile/strategy 与 proactive_learning_projection/current。策略档案的差异仅为 updatedAt 与 observedWindow.from/to 等派生窗口元数据；仪表盘快照则存在真实的 sourceEventCount / sourceFingerprint 差异，因为新设备先以空事件集计算缓存，而云端已有 2 条事件。修复后策略元数据按语义比较，仪表盘快照转为本机可重建缓存，不再进行跨设备冲突比较。
+- 策略档案仅忽略派生的 updatedAt / observedWindow 时间字段；用户配置、策略参数、history、evidence、sourceFingerprint 和 lastDecision 仍参与严格比较。proactive_learning_projection/current 则不属于权威档案，永远不上传 / 拉取，设备从本机已恢复事件中重新计算。真实用户偏好或策略参数差异仍阻断并保留两端。
+- 冲突面板改为读取 remote.document_type / remote.document_key，显示实际档案类型 / key 和本机、云端修订，不再显示 undefined · undefined。
+
+验证结果：
+- node --test scripts/verify-archive-conflicts.mjs：10/10 PASS。
+- node --test scripts/verify-backend-contract.mjs scripts/verify-archive-conflicts.mjs scripts/verify-local-learning-database.mjs scripts/verify-learning-state-storage.mjs scripts/verify-phase-f.mjs scripts/verify-phase-g.mjs：72/72 PASS。
+- node scripts/e2e-hosted-browser-sync.mjs：RESULT: PASS。真实 Account A staging 会话、先初始同步再计算策略 / 投影、自动同步、手动同步、pull-only 恢复、页面刷新均通过；冲突 0、待上传事件 / 档案 0、IndexedDB 可用、28 次已观测 RPC 全部 HTTP 200、浏览器错误 0。云端恢复动作未调用 sync_commit_learning_batch，验证为 pull-only。
+- Mac Chromium 本次只覆盖一个浏览器客户端。第二台物理设备 / iPhone Safari、离线 Outbox、session refresh、弱网、后台恢复仍未完成。
+
+最新状态：IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / MAC CHROMIUM STAGING E2E PASS / SECOND REAL DEVICE PENDING。

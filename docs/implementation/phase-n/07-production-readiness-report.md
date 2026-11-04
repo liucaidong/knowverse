@@ -7,7 +7,7 @@
 
 ## 1. 结论
 
-N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成功。N2 已完成本地与 PostgreSQL 17 集成验证，并在独立 staging 上通过真实 Auth / JWT / PostgREST / RPC 认证态 HTTP 验收，覆盖双设备 pull、原子写入、幂等、CAS rollback / recovery 和账号隔离。N2 仍缺真实 KNOWVERSE 浏览器客户端的双设备冷恢复 / 离线补传和实体 iPhone Safari 验收。
+N1 已完成 Git 合并与分支清理；main 合并后的 Validate workflow 成功。N2 已完成本地与 PostgreSQL 17 集成验证，并在独立 staging 上通过真实 Auth / JWT / PostgREST / RPC 认证态 HTTP 验收；Mac Chromium 中真实 KNOWVERSE 页面也已通过 Account A 登录、IndexedDB 冷恢复、自动 / 手动同步、pull-only 恢复和刷新。N2 仍缺第二台真实设备、离线补传、session refresh、弱网及实体 iPhone Safari 验收。
 
 当前 N2 PR #12 最新提交 8ca34e6 的 GitHub Actions Validate workflow run #149（41762882174）已 SUCCESS；同时 staging hosted Auth / JWT / HTTP harness 已输出 RESULT: PASS。这两项仍不代表真实浏览器客户端与实体 iPhone 的完整跨设备体验已验收，因此不能声明 KNOWVERSE 已具备完整生产级跨设备个人学习数据闭环。
 
@@ -114,3 +114,20 @@ staging 只读计数：2 Auth users、3 user_devices、2 learning_events、1 lea
 末尾 zsh: P9K_GCLOUD_PROJECT_NAME: parameter not set 是交互式 Powerlevel10k 提示符配置错误，在 harness 已输出 PASS 后出现，不属于 N2 测试失败。
 
 **最新结论：** N2 的服务端托管认证态 HTTP 验收 PASS；真实浏览器客户端双设备冷恢复 / 离线补传 / session refresh / 弱网及实体 iPhone Safari 仍未验收。KNOWVERSE Phase N 继续 IN_PROGRESS / NOT PRODUCTION READY。
+
+
+## 9. 2026-11-04 Mac Chromium staging 真实客户端回归
+
+本次验收在本机隔离静态预览副本中运行真实 KNOWVERSE 页面，副本仅连接 staging ypthoicwrfsblaidllyy，生产站点配置未更改。Chrome DevTools Protocol 定位到单线程静态服务器在 ES module 并发加载时重置连接，造成核心模块未加载、账户面板未挂载。改用 ThreadingHTTPServer 后，模块请求全部正常，账户面板与两个操作按钮均在 DOM 中可见。
+
+随后确认 Account A 的两项冲突分别是策略档案派生时间字段差异，以及新设备在云端事件恢复前生成的本机投影与云端投影 sourceEventCount / sourceFingerprint 不一致。实现策略档案的字段级语义比较、将主动学习投影调整为本机可重建缓存、云端事件合并后触发投影重算，并让学习进度页面先等待 best-effort 初始同步后再计算策略。冲突卡片同时修复为读取 remote.document_type / remote.document_key；真实策略参数差异仍保留人工选择。
+
+验证：
+- verify-archive-conflicts.mjs：10/10 PASS。
+- backend / IndexedDB / Phase F / G 组合回归：72/72 PASS。
+- e2e-hosted-browser-sync.mjs：真实 Account A staging 浏览器会话自动同步、手动同步、pull-only 恢复和刷新均 PASS。
+- 冲突数 0；IndexedDB 可用；待上传项为 0；28 次已观测 Supabase RPC 全部 HTTP 200；浏览器 console / page errors 0。
+- pull-only 恢复动作没有触发 sync_commit_learning_batch，没有把本机 Outbox 推上云。
+- PR #12 保持 OPEN；本次修复不触碰生产 Supabase。
+
+当前限制：Mac Chromium 只代表一台浏览器客户端。第二台物理设备双向同步、离线 Outbox / 重连补传、session refresh、弱网和实体 iPhone Safari 的权限 / 键盘 / 后台恢复仍待单独验收。N2 继续 IN_PROGRESS，Phase N 仍 NOT PRODUCTION READY。

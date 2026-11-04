@@ -62,6 +62,8 @@ jobs:
         run: node --test scripts/verify-local-learning-database.mjs scripts/verify-learning-state-storage.mjs
       - name: Test Phase D backend and Supabase security contracts
         run: node --test scripts/verify-backend-contract.mjs
+      - name: Test semantic archive conflict reconciliation and truthful conflict labels
+        run: node --test scripts/verify-archive-conflicts.mjs
       - name: Replay all Supabase migrations on PostgreSQL 17 (empty and seeded Auth)
         run: bash scripts/verify-supabase-migration-replay.sh
       - name: Verify real sync RPC transactions, RLS isolation, device ownership and CAS rollback on PostgreSQL 17
@@ -143,6 +145,7 @@ jobs:
           node --check assets/js/site-shell.mjs
           node --check assets/js/knowledge-context.mjs
           node --check scripts/e2e-hosted-supabase-sync.mjs
+          node --check scripts/e2e-hosted-browser-sync.mjs
           bash -n scripts/setup-n2-staging-env.sh
           node --check scripts/validate-site-architecture.mjs
           node --check scripts/prepare-approved-practice-publication.mjs

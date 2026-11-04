@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | AUD-P1-001 | Git 主线与生产 migration 状态分叉 | RESOLVED（version/name） / CONTENT PROVENANCE DISCLOSED | PR #11 正常合并；main = b3c7037；12 条生产 ledger version/name 与仓库文件清单一致。第 12 条 SQL 文件在生产应用后曾修订；ledger 无 checksum，字节级历史内容一致性不可证明 | 不重跑生产 migration；未来如需数据库变更，使用新的前向 migration，经单独审查 |
 | AUD-P1-002 | AI 内容发布真实闭环没有生产证据 | NOT STARTED | manifest 0、候选质量记录 0；Edge Function ACTIVE 不等于真实 provider / publication 成功 | N3 完成后，在独立 staging 配置最小权限凭证，执行一条候选闭环 |
-| AUD-P1-003 | Supabase 跨设备学习同步尚未完成真实客户端设备闭环 | LOCAL SQL / MOCK E2E PASS; HOSTED AUTH / JWT / POSTGREST / RPC PASS; REAL BROWSER DEVICE E2E PENDING | 35/35 本地 contract / IndexedDB / async-wait / WebKit 测试 PASS；PG17 全量 12 migrations + RPC / RLS PASS；托管 staging 真实 Auth 登录、A 双设备 / B 单设备、atomic event + document commit、pull、幂等、CAS rollback / recovery、跨账号 RLS 与身份 / 设备伪造拒绝全部 PASS；staging 计数 2 users / 3 devices / 2 events / 1 document；CI Run #149 SUCCESS | 使用真实 KNOWVERSE 浏览器客户端在 Mac + 第二真实设备完成 IndexedDB cold restore、离线 Outbox / 重连补传、session refresh、弱网与重试；再单独完成实体 iPhone Safari 核心路径。N2 未完成前不推进 N3 |
+| AUD-P1-003 | Supabase 跨设备学习同步尚未完成真实客户端设备闭环 | LOCAL SQL / MOCK E2E PASS; HOSTED AUTH / JWT / POSTGREST / RPC PASS; MAC CHROMIUM STAGING E2E PASS; SECOND REAL DEVICE PENDING | 35/35 本地 contract / IndexedDB / async-wait / WebKit 测试 PASS；PG17 全量 12 migrations + RPC / RLS PASS；托管 staging 真实 Auth 登录、A 双设备 / B 单设备、atomic event + document commit、pull、幂等、CAS rollback / recovery、跨账号 RLS 与身份 / 设备伪造拒绝全部 PASS；staging 计数 2 users / 3 devices / 2 events / 1 document；CI Run #149 SUCCESS | 使用真实 KNOWVERSE 浏览器客户端在 Mac + 第二真实设备完成 IndexedDB cold restore、离线 Outbox / 重连补传、session refresh、弱网与重试；再单独完成实体 iPhone Safari 核心路径。N2 未完成前不推进 N3 |
 | AUD-P1-004 | Tutor / Agent / Reviewer 真实模型调用未验证 | NOT STARTED | Edge Functions ACTIVE 不等于 Provider 可用；Provider secrets 状态不可读取；N3 依赖 N2 staging | N2 完成后配置 staging Provider credentials，并做成功/限流/超时/无凭证/恶意输出异常注入 |
 | AUD-P1-005 | 九个专题缺正式学习图谱 | NOT STARTED | AI Agent 与 AI 教育专题有公开页面，但当前无 Concept/Competency/Gap/Checkpoint/Review/source 正式映射 | N4 完成后，审校内容与官方来源，选择两个主题构建可验证图谱 |
 
@@ -42,7 +42,17 @@
 
 ## 2026-11-04 N2 托管认证态验收更新
 
-- AUD-P1-003 保持 OPEN：托管 HTTP / Auth / JWT / RPC / RLS 已 PASS，但真实浏览器客户端双设备 IndexedDB 恢复与实体 iPhone Safari 尚未验证。
+- AUD-P1-003 保持 OPEN：托管 HTTP / Auth / JWT / RPC / RLS 与 Mac Chromium 真实页面客户端同步已 PASS；第二真实设备、实体 iPhone Safari、离线补传 / session refresh / 弱网仍未验证。
 - staging 当前合成数据只读计数：2 Auth users、3 device rows、2 learning events、1 archive document；待客户端验收完成后统一清理。
 - GitHub Actions Validate run #149：SUCCESS；PR #12 仍 OPEN、未合并。
 - Phase N 总体仍 NOT PRODUCTION READY。
+
+
+## 2026-11-04 Mac Chromium staging 客户端更新
+
+- 已解决本机单线程预览服务器模块并发加载时的 ERR_CONNECTION_RESET；改为 threaded server 后，学习进度页面与动态账户面板正常挂载。
+- 已解决 learner_profile/strategy 和 proactive_learning_projection/current 的 timestamp-only 假冲突。对派生时间元数据进行语义忽略；真实学习内容 / 用户参数差异仍保持冲突保护。
+- 已解决冲突面板错误读取嵌套字段导致的 undefined · undefined。
+- verify-archive-conflicts 10/10 PASS；与 backend / IndexedDB / Phase F / G 回归合计 72/72 PASS。
+- 真实 staging Account A 的 Mac Chromium 应用页面初始恢复、策略计算、自动 / 手动同步、pull-only 恢复、刷新全部 PASS；冲突 0、浏览器错误 0、28 次 Supabase RPC 均 HTTP 200。
+- AUD-P1-003 仍 OPEN，原因收敛为第二台真实设备 / iPhone Safari、离线和弱网闭环；N2 未完成前 N3 仍 BLOCKED。

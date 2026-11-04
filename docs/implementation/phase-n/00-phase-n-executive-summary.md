@@ -13,7 +13,7 @@
 Phase N 严格按 N1 → N2 → N3 → N4 → N5 推进。
 
 - **N1 已完成主线合并与分支清理。** PR #11 已正常合并到 main，PR #10/#11 均为 MERGED；N1 阶段旧分支已清理。随后为 N2 独立创建执行分支并打开 PR #12。N1 合并后的完整 Validate workflow 成功，Pages 部署成功。
-- **N2 已通过真实托管 Supabase 认证态 HTTP 验收，但仍未完成客户端真设备闭环。** staging 真实 Auth / JWT / PostgREST / RPC 测试验证 A 两设备、B 单设备、事件 + 文档原子写入、第二设备拉取、幂等重试、CAS 整批回滚与恢复，以及跨账号 RLS / 身份 / 设备伪造拒绝。PG17、35/35 本地测试和 GitHub Actions Run #149 均 PASS。直接 HTTP harness 不等价于真实浏览器客户端的 IndexedDB 冷恢复 / 离线补传，也不等价于实体 iPhone Safari。
+- **N2 已通过托管 Supabase 认证态 HTTP 验收，并新增真实应用页面的 Mac Chromium staging E2E PASS。** 真实浏览器登录 Account A 后完成本机 IndexedDB 初次恢复、自动同步、手动同步、pull-only 云端恢复和刷新后恢复；两个派生快照的时间戳假冲突已自动消除，冲突数为 0，RPC 全部 HTTP 200，浏览器错误为 0。仍未完成第二台真实设备 / 实体 iPhone Safari、离线 Outbox、session refresh 和弱网闭环。
 - **独立 staging Supabase 项目已建立。** `knowverse-staging`（`ypthoicwrfsblaidllyy`，`eu-west-1`）已应用全部 12 条 migration；匿名表访问和同步 profile RPC 的真实 HTTP 请求均被拒绝。没有把生产环境用作测试环境，也没有复制生产用户或学习数据。
 - N3、N4、N5 继续 BLOCKED，必须按顺序等待 N2 真实 staging 验收。
 
@@ -80,7 +80,7 @@ Phase N 严格按 N1 → N2 → N3 → N4 → N5 推进。
 | 子阶段 | 状态 | 说明 |
 |---|---|---|
 | N1 Git / Migration | COMPLETE（主线流程） | PR #11 正常合并；分支清理；全量 main CI 成功。历史 migration SQL 字节级差异单独披露，不做生产重放 |
-| N2 双设备 Supabase 同步 | IN_PROGRESS / HOSTED AUTH HTTP PASS / REAL BROWSER DEVICE E2E PENDING | staging 真实 Auth/JWT/PostgREST/RPC、设备注册、pull、幂等、CAS 回滚/恢复和账号隔离通过；35/35 本地测试、PG17 和 CI Run #149 PASS；仍缺真实客户端离线/冷恢复和实体 iPhone Safari |
+| N2 双设备 Supabase 同步 | IN_PROGRESS / HOSTED AUTH HTTP PASS / MAC CHROMIUM STAGING E2E PASS / SECOND DEVICE PENDING | staging 真实 Auth/JWT/PostgREST/RPC 和 Mac 真实页面客户端同步通过；仍缺第二真实设备、实体 iPhone Safari、离线补传、session refresh 与弱网验证 |
 | N3 真实 AI Provider | BLOCKED | 必须先 N2；需要隔离 staging Provider 凭证及独立 Reviewer 凭证 |
 | N4 AI 内容发布闭环 | BLOCKED | 必须先 N3；需要 staging 发布凭证和真实候选审批链 |
 | N5 知识图谱扩展 | BLOCKED | 必须先 N4；选择 AI Agent 与 AI 教育等主题构建正式图谱 |
@@ -89,8 +89,8 @@ Phase N 严格按 N1 → N2 → N3 → N4 → N5 推进。
 
 1. **已完成：** 在已授权组织下建立独立 staging Supabase 项目，并应用 main 全部 12 条 migration；不得使用生产项目或复制生产个人数据作为测试样本。
 2. **已完成：** 托管 Supabase anon HTTP denial 验证通过；真实 Auth / JWT / PostgREST / RPC HTTP 验收也已通过，包括 A 双设备 pull、atomic commit、幂等、CAS 冲突整批回滚与恢复、B 跨账号 / 身份伪造 / 设备伪造拒绝。
-3. **仍待完成：** 真实 KNOWVERSE 浏览器客户端在 Mac 与第二台真实设备上的 IndexedDB 冷恢复、离线 Outbox 补传、session refresh、弱网与重试验证；以及实体 iPhone Safari 验收。
-4. 在真实浏览器中完成 Mac 与第二台真实设备的 cold restore、事件/文档同步、离线补传、CAS 冲突解决、重复提交和重试。
+3. **已完成 Mac Chromium staging 客户端首轮验收；仍待完成：** 第二台真实设备的 IndexedDB cold restore / 双向同步、离线 Outbox 补传、session refresh、弱网与重试验证；以及实体 iPhone Safari 后台 / 恢复验收。
+4. 在第二台真实设备完成与 Mac 的事件 / 文档同步、离线补传、CAS 冲突解决、重复提交和重试。
 5. 保存 request / response 状态、数据库行数与游标变化、设备注册信息、测试时间和清理证据；测试结束清理全部 staging 测试数据。
 6. 对实体 iPhone Safari 的系统权限、后台恢复、键盘、弱网行为做单独验收；WebKit 自动化不能替代实机。
 
@@ -134,4 +134,15 @@ Phase N 不能因为 N1 合并、CI 通过或 N2 本地测试通过而宣布 COM
 - GitHub Actions Validate run #149（41762882174）SUCCESS；PR #12 保持 OPEN，未合并。
 - 末尾 zsh / Powerlevel10k P9K_GCLOUD_PROJECT_NAME: parameter not set 为命令结束后的提示符配置问题，不影响已经输出的 harness RESULT: PASS。
 
-**N2 当前状态：IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / REAL BROWSER DEVICE E2E PENDING。** 继续完成真实 KNOWVERSE 浏览器客户端 cold restore、IndexedDB、离线 Outbox、session refresh、弱网和实体 iPhone Safari 测试。Phase N 总体仍 IN_PROGRESS / NOT PRODUCTION READY。
+**N2 当前状态：IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / MAC CHROMIUM STAGING E2E PASS / SECOND REAL DEVICE PENDING。** 继续完成第二台真实设备双向同步、离线 Outbox、session refresh、弱网和实体 iPhone Safari 测试。Phase N 总体仍 IN_PROGRESS / NOT PRODUCTION READY。
+
+
+## 10. N2 Mac Chromium 真实 staging 页面验收与冲突修复（2026-11-04）
+
+- 使用本机隔离 staging 静态预览副本；预览 public-config.js 固定指向 staging URL，生产 Pages 与生产 Supabase 未修改。
+- DevTools Protocol 首先定位出单线程静态服务器在模块并发加载时的 ERR_CONNECTION_RESET；改为 ThreadingHTTPServer 后，所有应用模块正常加载。
+- 修复档案冲突处理：learner_profile/strategy 的 updatedAt 与 observedWindow.from/to 只作为派生时间元数据比较；策略参数、历史、证据和用户决策仍严格比较。proactive_learning_projection/current 被明确作为本机可重建缓存，不再上传 / 拉取；旧缓存冲突自动退役，云端事件恢复后通过事件日志重建。
+- 修复冲突面板字段映射：档案类型与键从 conflict.remote.document_type/document_key 读取，并显示本机 / 云端修订，不再渲染 undefined · undefined。
+- 新增 scripts/verify-archive-conflicts.mjs，10/10 PASS；与 backend contract、local IndexedDB、Phase F / G 一起运行，72/72 PASS。
+- 新增本机真实托管浏览器回归 scripts/e2e-hosted-browser-sync.mjs：自动登录 Account A，先完成初始同步再计算策略，自动同步、手动同步、pull-only 恢复、页面刷新全部 PASS；冲突 0、待上传项 0、IndexedDB 可用、28 次已观测 RPC 全部 HTTP 200、浏览器错误 0。
+- 第二台物理设备和 iPhone Safari 尚未验收；N2 仍 IN_PROGRESS，Phase N 仍 NOT PRODUCTION READY。
