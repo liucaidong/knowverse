@@ -126,10 +126,10 @@ function renderSession() {
   difficulty.textContent = session.difficulty ? "难度 · " + (difficultyLabels[session.difficulty] || session.difficulty) : "";
   const source = $("question-source");
   source.replaceChildren();
-  source.hidden = !session.lessonId || session.topicId !== "promise";
+  source.hidden = !session.sourceHref;
   if (!source.hidden) {
-    const link = el("a", "", "课程来源 · " + session.lessonId.replace("lesson-", "第 ") + " 单元 ↗");
-    link.href = "../knowledge/promise/" + session.lessonId + "/";
+    const link = el("a", "", (session.sourceLabel || "课程来源") + " ↗");
+    link.href = new URL(session.sourceHref, root).href;
     source.append(link);
   }
   $("question-title").textContent = session.title;

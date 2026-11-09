@@ -190,6 +190,11 @@ test("the assessment catalog covers 15 competencies, 31 gaps and 72 targeted var
     assert.ok(ids.has(item.competencyId), item.id);
     assert.ok(item.gapIds.length > 0, item.id);
     assert.ok(item.gapIds.every(id => gaps.has(id)), item.id);
+    assert.ok(difficultyBands.has(item.difficulty), item.id + " difficulty");
+    assert.ok(item.sourceHref?.startsWith("./knowledge/"), item.id + " sourceHref");
+    assert.ok(item.sourceLabel?.trim(), item.id + " sourceLabel");
+    const sourceRoute = item.sourceHref.replace(/^\.\//, "") + "index.html";
+    await readFile(new URL("../" + sourceRoute, import.meta.url), "utf8");
   }
 });
 
@@ -222,6 +227,15 @@ test("Promise Review sessions retain official difficulty and lesson provenance",
   const assessment = await engine.getAssessment(session.sessionId);
   assert.equal(assessment.difficulty, session.difficulty);
   assert.equal(assessment.lessonId, session.lessonId);
+  assert.equal(session.sourceHref, "./knowledge/promise/lesson-03/");
+  assert.equal(session.sourceLabel, "课程来源 · 第 03 单元");
+
+  const monorepo = await engine.start({ competencyId: "workspace-resolution", variantId: "review-workspace-protocol-a" });
+  assert.equal(monorepo.difficulty, "foundation");
+  assert.equal(monorepo.sourceHref, "./knowledge/monorepo/chapter-01/");
+  const reactNative = await engine.start({ competencyId: "rn-jsi-boundaries", variantId: "review-rn-jsi-bridge-myth-a" });
+  assert.equal(reactNative.difficulty, "foundation");
+  assert.equal(reactNative.sourceHref, "./knowledge/react-native/chapter-03/");
 });
 
 test("Promise course lessons use the shared learning integration and mapped reader routes are real pages", async () => {

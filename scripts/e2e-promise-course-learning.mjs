@@ -259,3 +259,34 @@ test("Chromium: Promise Review displays calibrated difficulty and its source les
     await browser.close();
   }
 });
+
+test("Chromium: Monorepo and React Native Review sessions link to their canonical source lessons", {
+  timeout: 60000,
+}, async () => {
+  const browser = await chromium.launch({
+    headless: true,
+    ...(process.env.KNOWVERSE_CHROMIUM_EXECUTABLE
+      ? { executablePath: process.env.KNOWVERSE_CHROMIUM_EXECUTABLE }
+      : {}),
+  });
+  try {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.goto(baseURL + "/review/?competencyId=workspace-resolution", { waitUntil: "domcontentloaded" });
+    await page.locator("#question-source").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#question-difficulty").textContent(), "难度 · 基础");
+    assert.equal(await page.locator("#question-source").textContent(), "TypeScript · Monorepo · Chapter 01 ↗");
+    assert.match(await page.locator("#question-source a").getAttribute("href"), /knowledge\/monorepo\/chapter-01\/$/);
+
+    await page.goto(baseURL + "/review/?competencyId=rn-jsi-boundaries", { waitUntil: "domcontentloaded" });
+    await page.locator("#question-source").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#question-source").textContent(), "React Native · 新架构 · Chapter 03 ↗");
+    assert.match(await page.locator("#question-source a").getAttribute("href"), /knowledge\/react-native\/chapter-03\/$/);
+    assert.deepEqual(errors, []);
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});

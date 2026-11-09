@@ -21,9 +21,10 @@ function validateRegistry(registry) {
   for (const item of registry.assessments) {
     if (!item.id || ids.has(item.id) || !item.competencyId || !Array.isArray(item.options) ||
         !item.options.some(option => option.id === item.answer) ||
-        ((item.difficulty !== undefined || item.lessonId !== undefined) &&
+        ((item.difficulty !== undefined || item.sourceHref !== undefined) &&
           (!new Set(["foundation", "intermediate", "stretch"]).has(item.difficulty) ||
-            !/^lesson-\d{2}$/.test(item.lessonId || "")))) {
+            typeof item.sourceHref !== "string" || !item.sourceHref.startsWith("./knowledge/") ||
+            typeof item.sourceLabel !== "string" || !item.sourceLabel.trim()))) {
       throw new TypeError("Invalid or duplicate review assessment: " + (item.id || "unknown"));
     }
     ids.add(item.id);
@@ -172,6 +173,8 @@ export function createReviewSessionEngine(options = {}) {
       prompt: candidate.prompt,
       difficulty: candidate.difficulty || null,
       lessonId: candidate.lessonId || null,
+      sourceHref: candidate.sourceHref || null,
+      sourceLabel: candidate.sourceLabel || null,
       code: candidate.code || "",
       options: clone(candidate.options),
       hints: clone(candidate.hints || []),
