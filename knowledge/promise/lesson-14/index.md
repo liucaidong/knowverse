@@ -87,3 +87,9 @@ flowchart TD
 ## 对照你的历史薄弱点
 
 在过去的复习中，你反复要求分清 **“get 同步，call 异步”“状态落定 ≠ Job 入队 ≠ 回调输出”“resolved 仍可能 pending”**；此题专为这些概念设计。请先推理完整输出序列，再在真实浏览器运行，解释每次微任务入队原因。不能只用答案对错来判定掌握程度。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise Objects](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-objects)
+- [ECMAScript 2026 · NewPromiseResolveThenableJob](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-newpromiseresolvethenablejob)
+- [MDN · Microtask guide](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide)

@@ -47,3 +47,8 @@ p.then(() => console.log('B'));
 ## 诊断
 
 如果把 `Promise.resolve('done')` 换成一个尚未落定的 `p`，再把 `resolve()` 放在 M 的回调中，`A` 和 `B` 将延后入队：此时要重新画队列，不能照抄 `A M B`。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise Constructor](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-constructor)
+- [ECMAScript 2026 · Promise.prototype.then](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise.prototype.then)

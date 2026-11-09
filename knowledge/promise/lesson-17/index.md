@@ -65,3 +65,9 @@ ECMAScript 规范中有 `HostEnqueuePromiseJob`，宿主决定如何执行 Jobs�
 5. `Promise.all/race/any/allSettled` 及对应 PerformPromiseXxx 算法。
 
 参考：[ECMAScript 2026 · Promise Objects](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-objects)。本章是规范语义解释，不试图伪装成 ECMAScript 实现源码。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise Objects](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-objects)
+- [ECMAScript 2026 · Promise Abstract Operations](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-abstract-operations)
+- [ECMAScript 2026 · Promise Constructor Methods](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-properties-of-the-promise-constructor)

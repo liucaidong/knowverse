@@ -58,3 +58,8 @@ Promise.resolve(1)
 ## 作业
 
 画出每次 `.then` 的新对象，并在每条箭头旁写出其处理器是 `return`、`throw` 还是 `adopt`。能画出对象身份，再考虑时间顺序。
+
+## 延伸参考
+
+- [ECMAScript 2026 · PerformPromiseThen](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-performpromisethen)
+- [MDN · Promise.prototype.then()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/then)

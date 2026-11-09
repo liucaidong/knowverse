@@ -38,3 +38,8 @@ Promise.race([]);       // pending forever
 ## 工程选择
 
 独立任务汇报、批量文件处理、允许部分成功时选择 allSettled；如果全体成功才有意义，选择 all。仅需第一个可用结果选择 any；需要最先发生事件的命运选择 race。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise.allSettled](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise.allsettled)
+- [MDN · Promise.allSettled()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/allSettled)

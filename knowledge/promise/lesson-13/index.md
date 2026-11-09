@@ -53,3 +53,9 @@ function readLegacy(cbApi) {
 ## “未处理拒绝”的边界
 
 `unhandledrejection`（浏览器）与 Node 的 unhandled rejection 机制属于宿主行为。生产程序不应依赖全局监听器替代每条业务链的显式失败处理；还应避免创建未被消费的 fire-and-forget Promise。
+
+## 延伸参考
+
+- [MDN · AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController)
+- [MDN · Using Fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
+- [ECMAScript 2026 · Promise.race](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise.race)

@@ -48,3 +48,9 @@ console.log('end');
 `start → executor → end → then`。创建 Promise 时 executor 同步执行；`.then()` 注册反应，即使对象已经 fulfilled，回调也在后续 Job 中执行。
 
 </details>
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise Objects](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-objects)
+- [MDN · Using promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises)
+- [MDN · Microtask guide](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide)

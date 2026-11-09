@@ -31,3 +31,8 @@ Promise.any([slow, fast]).catch(e => {
 | 空输入 | rejected(AggregateError) | 永远 pending |
 
 **适用场景**：多个冗余镜像中找第一个可用结果；但不要用它吞掉全部失败的细节，处理时应该查看 `.errors`。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise.any](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise.any)
+- [MDN · Promise.any()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/any)

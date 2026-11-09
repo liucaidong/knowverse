@@ -61,3 +61,8 @@ const parseLater = (raw, ms) => new Promise((resolve, reject) => {
 ## 自测
 
 `finally(() => 100)` 与 `then(() => 100)` 的值传播有何不同？答案：前者正常完成时透传源结果，后者直接返回 100 作为下游兑现值。
+
+## 延伸参考
+
+- [MDN · Promise.prototype.catch()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/catch)
+- [MDN · Promise.prototype.finally()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/finally)

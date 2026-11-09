@@ -39,3 +39,8 @@ Promise.all([a, b]).catch(e => console.log(e.message));
 | `[]` | fulfilled([]) | 不涉及等待 |
 
 **适用场景**：页面同时需要多个缺一不可的数据来源；或者一项失败时这个组合结果整体失去价值。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise.all](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise.all)
+- [MDN · Promise.all()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all)

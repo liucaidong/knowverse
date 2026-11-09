@@ -70,3 +70,9 @@ async function loadData() {
 ```
 
 没有 `throw` 的 catch 会正常返回 `undefined`，使上游看到 fulfilled(undefined)；这是工程中常见的“吞掉错误”。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Async Function Definitions](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-async-function-definitions)
+- [MDN · async function](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Statements/async_function)
+- [MDN · await](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/await)

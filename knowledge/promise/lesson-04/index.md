@@ -50,3 +50,8 @@ queueMicrotask(() => console.log('M'));
 ## 环境边界
 
 浏览器事件循环的 task/microtask 规则由宿主定义；ECMAScript 定义 Promise Jobs，但不独立规定浏览器渲染时机或 Node 特有的 nextTick 队列。不要用“宏任务先后”替代具体 API 的宿主定义。
+
+## 延伸参考
+
+- [MDN · Microtask guide](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide)
+- [HTML Standard · Event loops](https://html.spec.whatwg.org/multipage/webappapis.html#event-loops)

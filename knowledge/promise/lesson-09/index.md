@@ -38,3 +38,8 @@ const result = Promise.race([fetch('/api/data'), timeout(3000)]);
 ```
 
 这样写即使超时，原始 fetch 也可能继续进行。正式工程应使用 `AbortController` 并清理 timer，见工程篇。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise.race](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise.race)
+- [MDN · Promise.race()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/race)

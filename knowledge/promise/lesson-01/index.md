@@ -48,3 +48,8 @@ console.log(a === inner, b === inner); // true false
 - “两个 Promise 最终都是 42，所以 `===` 一定相等”——错；值相等不代表对象同一。
 
 **检查点**：尝试在 `resolve(inner)` 后立即调用一次 `reject(new Error('late'))`；然后让 inner 兑现或拒绝。预测 outer 会如何落定。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise Objects（resolved / settled）](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-objects)
+- [MDN · Promise.resolve()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/resolve)

@@ -69,3 +69,9 @@ p.catch(e => console.log(e instanceof TypeError)); // true
 ## 检查点
 
 把上面 getter 改成 `throw new Error('get-failed')`，预测 `call` 是否会出现、outer 最终是什么状态。答案：`call` 不会出现，outer 拒绝，catch 在 reaction Job 中执行。
+
+## 延伸参考
+
+- [ECMAScript 2026 · CreateResolvingFunctions](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-createresolvingfunctions)
+- [ECMAScript 2026 · NewPromiseResolveThenableJob](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-newpromiseresolvethenablejob)
+- [MDN · Promise.resolve()](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/resolve)

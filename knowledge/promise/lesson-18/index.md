@@ -82,3 +82,9 @@ p.catch(e => console.error('handled:', e.message));
 | 观测结果 | 浏览器 / Node 版本、日志、异常、断言 |
 
 **实践练习**：将第 14 单元的 `thenable + inner + race` 代码拆成 `deferred` 和独立 Job 记录。不要直接把“输出相同”推导成“内部状态每个时刻都相同”。
+
+## 延伸参考
+
+- [Node.js · Test Runner](https://nodejs.org/api/test.html)
+- [MDN · Microtask guide](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide)
+- [ECMAScript 2026 · Promise.prototype.then](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise.prototype.then)

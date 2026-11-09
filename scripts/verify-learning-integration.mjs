@@ -218,6 +218,9 @@ test("Promise course lessons use the shared learning integration and mapped read
   for (const directory of lessonDirectories) {
     const html = await readFile(new URL("../knowledge/promise/" + directory + "/index.html", import.meta.url), "utf8");
     assert.match(html, /learning-integration\.mjs/, directory);
+    assert.match(html, /id="course-references"/, directory + " reference section");
+    const markdown = await readFile(new URL("../knowledge/promise/" + directory + "/index.md", import.meta.url), "utf8");
+    assert.match(markdown, /^## 延伸参考$/m, directory + " markdown references");
   }
   const lesson18Markdown = await readFile(new URL("../knowledge/promise/lesson-18/index.md", import.meta.url), "utf8");
   const lesson18Html = await readFile(new URL("../knowledge/promise/lesson-18/index.html", import.meta.url), "utf8");
