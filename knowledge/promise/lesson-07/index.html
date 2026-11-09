@@ -84,12 +84,14 @@ const [settings, alerts] = await Promise.all([
 </code></pre>
 <p>不要以为 <code>Promise.all</code> 自己“启动”异步动作：<code>getSettings()</code> 和 <code>getAlerts()</code> 已经在构造输入数组时被调用。组合 API <strong>管理结果</strong>，不是给 JavaScript 创建线程。</p>
 <h2 id="part-4">异常与调试</h2>
-<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">try {
-  const data = await fetchData();
-  return parse(data);
-} catch (e) {
-  report(e);
-  throw e; // 若希望上游知道失败，必须继续抛出
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">async function loadData() {
+  try {
+    const data = await fetchData();
+    return parse(data);
+  } catch (e) {
+    report(e);
+    throw e; // 若希望上游知道失败，必须继续抛出
+  }
 }
 </code></pre>
 <p>没有 <code>throw</code> 的 catch 会正常返回 <code>undefined</code>，使上游看到 fulfilled(undefined)；这是工程中常见的“吞掉错误”。</p>

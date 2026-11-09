@@ -58,12 +58,14 @@ const [settings, alerts] = await Promise.all([
 ## 异常与调试
 
 ```js
-try {
-  const data = await fetchData();
-  return parse(data);
-} catch (e) {
-  report(e);
-  throw e; // 若希望上游知道失败，必须继续抛出
+async function loadData() {
+  try {
+    const data = await fetchData();
+    return parse(data);
+  } catch (e) {
+    report(e);
+    throw e; // 若希望上游知道失败，必须继续抛出
+  }
 }
 ```
 
