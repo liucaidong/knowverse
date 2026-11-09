@@ -1,9 +1,9 @@
 # Promise 深度教材（专题一）
 
-本专题在保留 V2 已有历史摘要目录基础上，新增 20 个可阅读教学单元、16 题诊断、可交互微任务观察台、Mermaid 全景图。
+本专题在保留既有历史摘要与章节内容的基础上，提供 20 个可阅读教学单元（lesson-00 至 lesson-19）、配套诊断与复习评估、可交互微任务观察台和 Mermaid 全景图。
 
 - 入口：`knowledge/promise/index.html`
-- 深入单元：`knowledge/promise/lesson-00` 至 `lesson-16`，每个单元保留 `index.md`
+- 深入单元：`knowledge/promise/lesson-00` 至 `lesson-19`，共 20 个单元；每个单元保留 `index.md`
 - 实验：`knowledge/promise/observatory`
 - 图谱源：`assets/panoramas/promise.mmd`；离线图：`promise.svg`（同一拓扑生成）
 - 搜索索引：`data/search.json`

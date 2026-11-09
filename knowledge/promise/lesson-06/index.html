@@ -71,14 +71,18 @@
 }).catch(e =&gt; console.log('will not catch', e));
 </code></pre>
 <p>定时器回调在<strong>未来单独的任务执行上下文</strong>中运行，已脱离 executor 同步调用的 <code>try/catch</code>。正确的桥接方式是在回调里<strong>调用 reject</strong>，而不是在外层等待一个与定时器毫无关联的 Promise。</p>
-<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const wait = ms =&gt; new Promise((resolve, reject) =&gt; {
+<pre class="codebox"><button class="copy-snippet" type="button">复制代码</button><code class="language-js">const parseLater = (raw, ms) =&gt; new Promise((resolve, reject) =&gt; {
   setTimeout(() =&gt; {
-    try { resolve('done'); }
-    catch (error) { reject(error); }
+    try {
+      const value = JSON.parse(raw);
+      resolve(value);
+    } catch (error) {
+      reject(error);
+    }
   }, ms);
 });
 </code></pre>
-<p>上面只是演示如何把异步回调的失败交由 <code>reject</code>；<code>resolve</code> 自身一般不会向这里同步抛出业务错误。实际工程应把<strong>可能抛错的操作</strong>放进回调的 try 块，例如 <code>try { resolve(JSON.parse(raw)); } catch(e) { reject(e); }</code>。更推荐在 timer 中显式 <code>reject(new Error(...))</code> 或使用返回 Promise 的底层 API。</p>
+<p>这里真正可能抛错的是 <code>JSON.parse(raw)</code>，所以 <code>try/catch</code> 必须包住解析操作，并把异常交给 <code>reject</code>。<code>resolve(value)</code> 负责提交结果，不是用来捕获业务解析错误的；若底层 API 已返回 Promise，优先直接返回或 <code>await</code> 它，而不是再包一层无必要的 Promise。</p>
 <h2 id="part-4">自测</h2>
 <p><code>finally(() =&gt; 100)</code> 与 <code>then(() =&gt; 100)</code> 的值传播有何不同？答案：前者正常完成时透传源结果，后者直接返回 100 作为下游兑现值。</p>
 <div class="course-nav"><a href="../lesson-05/">← then 链、返回值与错误传播</a><a href="../lesson-07/">async / await 的解糖模型 →</a></div><div class="source-note">阅读提示：本篇为专题编辑性知识讲解；涉及课程历史时会另行标注来源局限。<a href="./index.md">查看 Markdown 源文件</a> · <a href="../">回到专题全景图</a></div></article><aside class="course-side"><strong>ON THIS PAGE</strong><a href="#part-1">catch 恢复与传播</a><a href="#part-2">finally 是透传，不是无条件保真</a><a href="#part-3">定时器里的 throw 为什么捕不住</a><a href="#part-4">自测</a><br><a href="../">↖ 返回课程全景</a><a href="../observatory/">⏱ 微任务执行观察台</a></aside></div></main><footer class="sitefooter kv-shared-footer"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>深入一个专题，再进入下一个 · Promise 专题增补版 / 2026-10-30</p></div><div class="footerlinks"><a href="../../../knowledge/">所有专题</a><a href="../../../timeline/">历史时间线</a><a href="../../../provenance/">来源与覆盖范围</a><a href="https://github.com/liucaidong/knowverse">GitHub 源码</a></div></div><div class="kv-footer-links" aria-label="全站快捷入口"><a href="../../../knowledge/">知识体系</a><a href="../../../works/">实践体验</a><a href="../../../progress/">学习成长</a><a href="https://github.com/liucaidong/knowverse" target="_blank" rel="noopener">GitHub ↗</a></div></footer><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="站内全文搜索"><div class="searchbox"><div class="searchheading"><strong>搜索知识宇宙</strong><button id="search-close">关闭 ✕</button></div><input id="search-input" type="search" placeholder="搜索 Promise、thenable、微任务…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div><script defer src="../../../assets/js/v2.js"></script><script defer src="../../../assets/js/promise-course.js"></script><script type="module" src="../../../assets/js/learning-integration.mjs"></script></body></html>

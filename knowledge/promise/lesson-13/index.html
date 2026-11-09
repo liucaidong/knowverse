@@ -50,13 +50,13 @@
   try {
     const response = await fetch(url, { signal: controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
+    return await response.json();
   } finally {
     clearTimeout(timer);
   }
 }
 </code></pre>
-<p><code>AbortController</code> 能否真的中止操作由具体 API 决定；它不是 <code>Promise.cancel()</code>。<code>Promise.race</code> 只裁定外层命运，不负责释放底层资源。</p>
+<p><code>AbortController</code> 能否真的中止操作由具体 API 决定；它不是 <code>Promise.cancel()</code>。<code>Promise.race</code> 只裁定外层命运，不负责释放底层资源。这里刻意使用 <code>return await response.json()</code>：如果直接 <code>return response.json()</code>，<code>finally</code> 会在响应体解析 Promise 完成前执行，计时器就会提前清理；<code>return await</code> 让 <code>finally</code> 等待 body 解析完成后再清理。</p>
 <h2 id="part-2">顺序、重试与有界并发</h2>
 <ul>
 <li><strong>串行</strong>：B 需要 A 的结果才启动，用先后两个 <code>await</code>。</li>

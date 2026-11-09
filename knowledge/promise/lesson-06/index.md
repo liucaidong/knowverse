@@ -44,15 +44,19 @@ new Promise(resolve => {
 定时器回调在**未来单独的任务执行上下文**中运行，已脱离 executor 同步调用的 `try/catch`。正确的桥接方式是在回调里**调用 reject**，而不是在外层等待一个与定时器毫无关联的 Promise。
 
 ```js
-const wait = ms => new Promise((resolve, reject) => {
+const parseLater = (raw, ms) => new Promise((resolve, reject) => {
   setTimeout(() => {
-    try { resolve('done'); }
-    catch (error) { reject(error); }
+    try {
+      const value = JSON.parse(raw);
+      resolve(value);
+    } catch (error) {
+      reject(error);
+    }
   }, ms);
 });
 ```
 
-上面只是演示如何把异步回调的失败交由 `reject`；`resolve` 自身一般不会向这里同步抛出业务错误。实际工程应把**可能抛错的操作**放进回调的 try 块，例如 `try { resolve(JSON.parse(raw)); } catch(e) { reject(e); }`。更推荐在 timer 中显式 `reject(new Error(...))` 或使用返回 Promise 的底层 API。
+这里真正可能抛错的是 `JSON.parse(raw)`，所以 `try/catch` 必须包住解析操作，并把异常交给 `reject`。`resolve(value)` 负责提交结果，不是用来捕获业务解析错误的；若底层 API 已返回 Promise，优先直接返回或 `await` 它，而不是再包一层无必要的 Promise。
 
 ## 自测
 
