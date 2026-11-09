@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test, { beforeEach } from "node:test";
 import { deleteLocalDatabaseForTests } from "../assets/js/backend/local-event-store.mjs";
@@ -190,6 +191,23 @@ test("the assessment catalog covers 15 competencies, 31 gaps and 72 targeted var
     assert.ok(item.gapIds.length > 0, item.id);
     assert.ok(item.gapIds.every(id => gaps.has(id)), item.id);
   }
+});
+
+test("Promise review examples produce the documented runtime outcomes", async () => {
+  const registry = await readJSON("../content/review-assessments.json");
+  const byId = new Map(registry.assessments.map(item => [item.id, item]));
+  const run = id => execFileSync(process.execPath, ["--input-type=module", "-e", byId.get(id).code], {
+    encoding: "utf8", timeout: 3000,
+  }).trim().split(/\r?\n/);
+  assert.deepEqual(run("review-getter-sync-a"), ["get", "after", "rejected"]);
+  assert.deepEqual(run("review-all-race-order-a"), ["race fast", "all [ 'slow', 'fast' ]"]);
+  assert.deepEqual(run("review-all-waits-all-b"), ["all rejected bad", "slow settled"]);
+  assert.deepEqual(run("review-all-no-cancel-a"), ["combined rejected fast failure", "slow still running"]);
+  assert.deepEqual(run("review-then-new-promise-b"), ["false"]);
+  assert.deepEqual(run("review-adoption-timeline-a"), ["sync end", "outer"]);
+  const explicitCancel = byId.get("review-all-no-cancel-b").code;
+  assert.match(explicitCancel, /signal: controller\.signal/);
+  assert.match(explicitCancel, /controller\.abort\(\)/);
 });
 
 test("Promise Review sessions retain official difficulty and lesson provenance", async () => {

@@ -192,7 +192,7 @@
       ],
       "title": "then Getter：同步读取与异常",
       "prompt": "thenable 的 then getter 抛出异常时，Promise.resolve 会怎样？",
-      "code": "const t = { get then() { console.log('get'); throw Error('getter'); } }; const p = Promise.resolve(t); console.log('after');",
+      "code": "const t = { get then() { console.log('get'); throw Error('getter'); } }; const p = Promise.resolve(t); console.log('after'); p.catch(() => console.log('rejected'));",
       "options": [
         {
           "id": "a",
@@ -209,7 +209,7 @@
         "区分 getter 的同步执行与 Promise 对外暴露拒绝结果的方式。",
         "沿异常路径区分两个阶段：getter 的执行是同步的，但 Promise.resolve 会把读取失败表现为返回 Promise 的拒绝。"
       ],
-      "explanation": "Get(then) 在同步解析流程中执行；读取过程的 abrupt completion 会拒绝该 Promise。",
+      "explanation": "输出顺序为 get、after、rejected。getter 在 Promise.resolve 的同步解析流程中读取；其异常转为 p 的拒绝，catch reaction 随后执行。",
       "difficulty": "foundation",
       "lessonId": "lesson-03"
     },
@@ -582,7 +582,7 @@
       ],
       "title": "then 返回值：采用处理器结果",
       "prompt": "处理器返回另一个 Promise 时，下游 Promise 会怎样？",
-      "code": "const inner = Promise.resolve(42); const next = Promise.resolve(1).then(() => inner);",
+      "code": "const inner = Promise.resolve(42); const next = Promise.resolve(1).then(() => inner); console.log(next === inner); // false",
       "options": [
         {
           "id": "a",
@@ -599,7 +599,7 @@
         "区分对象身份与 Promise Resolution Procedure 的采用行为。",
         "处理器返回 inner 后，比较“对象身份”和“采用其最终状态”这两个不同概念。"
       ],
-      "explanation": "next 与 inner 不是同一个对象。then 创建 next，并让 next 采用处理器返回的 inner 的最终状态与结果。",
+      "explanation": "输出 false。then 创建新的 next Promise；next 采用处理器返回的 inner 的最终状态与结果，但对象身份不相同。",
       "difficulty": "intermediate",
       "lessonId": "lesson-05"
     },
@@ -612,7 +612,7 @@
       ],
       "title": "all 输入顺序与 race 先落定",
       "prompt": "slow 是数组第一项，fast 先兑现。all 与 race 的结果是什么？",
-      "code": "const slow = new Promise(r => setTimeout(() => r('slow'), 20)); const fast = Promise.resolve('fast'); Promise.all([slow, fast]); Promise.race([slow, fast]);",
+      "code": "const slow = new Promise(r => setTimeout(() => r('slow'), 20)); const fast = Promise.resolve('fast'); Promise.all([slow, fast]).then(values => console.log('all', values)); Promise.race([slow, fast]).then(value => console.log('race', value));",
       "options": [
         {
           "id": "a",
@@ -629,7 +629,7 @@
         "all 结果位置看输入索引；race 看最先落定。",
         "对 all 记录输入索引，对 race 记录最先落定的输入；这两种规则不要混成一个排序。"
       ],
-      "explanation": "all 的结果按输入位置排列，因此是 slow、fast；race 则由最先落定的 fast 获胜。race 不会改变 all 的结果顺序。",
+      "explanation": "race 先输出 fast；定时器兑现 slow 后，all 才输出 ['slow', 'fast']。all 的数组顺序按输入索引，race 的结果按最先落定者决定。",
       "difficulty": "intermediate",
       "lessonId": "lesson-09"
     },
@@ -672,7 +672,7 @@
       ],
       "title": "Promise.all 的全部成功条件",
       "prompt": "Promise.all 中一项很快 fulfilled，另一项仍 pending。组合 Promise 会 fulfilled 吗？",
-      "code": "const slow = new Promise(resolve => setTimeout(() => resolve('slow'), 100)); Promise.all([Promise.resolve('fast'), slow]);",
+      "code": "const slow = new Promise(resolve => setTimeout(() => resolve('slow'), 100)); Promise.all([Promise.resolve('fast'), slow]).then(values => console.log(values));",
       "options": [
         {
           "id": "a",
@@ -689,7 +689,7 @@
         "all 的成功条件是全部输入成功，而不是任一输入成功。",
         "判断组合 Promise 的 fulfilled 条件：每个输入都必须兑现，单个成功不足以满足条件。"
       ],
-      "explanation": "不会。Promise.all 只有在所有输入都 fulfilled 后才 fulfilled；一个输入成功不能代表整个集合成功。",
+      "explanation": "不会立即 fulfilled。fast 已兑现但 slow 仍 pending；只有 slow 也兑现后，all 才输出 ['fast', 'slow']。",
       "difficulty": "foundation",
       "lessonId": "lesson-08"
     },
@@ -702,7 +702,7 @@
       ],
       "title": "Promise.all：拒绝的快速路径",
       "prompt": "输入中一项 rejected，all 是否还必须等待其它所有项 settled 才能 rejected？",
-      "code": "Promise.all([Promise.reject('bad'), new Promise(r => setTimeout(r, 1000))]);",
+      "code": "const slow = new Promise(resolve => setTimeout(() => { console.log('slow settled'); resolve(1); }, 100)); Promise.all([Promise.reject('bad'), slow]).catch(reason => console.log('all rejected', reason));",
       "options": [
         {
           "id": "a",
@@ -719,7 +719,7 @@
         "区分全部成功条件与 fail-fast 拒绝路径。",
         "区分 all 的成功条件与拒绝条件：任一输入拒绝即可使组合 Promise 拒绝，不必等待其他输入落定。"
       ],
-      "explanation": "all 的 fulfilled 需要全部成功；rejected 则不必等其它输入。",
+      "explanation": "all 会在观察到 bad 拒绝后先输出 all rejected，不必等 slow；但 slow 的底层定时器仍会继续执行并输出 slow settled。",
       "difficulty": "intermediate",
       "lessonId": "lesson-08"
     },
@@ -732,7 +732,7 @@
       ],
       "title": "Promise.all 不会取消底层任务",
       "prompt": "Promise.all 中一项 rejected，其他请求会自动停止吗？",
-      "code": "const a = fetch('/slow'); const b = fetch('/bad'); await Promise.all([a,b]);",
+      "code": "const slow = new Promise(resolve => setTimeout(() => { console.log('slow still running'); resolve('done'); }, 100)); const failed = Promise.reject(new Error('fast failure')); Promise.all([slow, failed]).catch(error => console.log('combined rejected', error.message));",
       "options": [
         {
           "id": "a",
@@ -749,7 +749,7 @@
         "Promise 组合层与网络请求/任务本身是两个不同层次。",
         "把组合 Promise 的状态与底层操作的生命周期分开；拒绝结果不会自动调用网络请求的取消接口。"
       ],
-      "explanation": "不会。Promise.all 的拒绝只改变组合 Promise 的状态，不会停止其他输入代表的操作；要取消请求，必须显式使用 AbortController 等取消机制。",
+      "explanation": "组合 Promise 先输出 combined rejected；随后 slow 仍输出 slow still running。Promise.all 不会自动取消底层操作。",
       "difficulty": "foundation",
       "lessonId": "lesson-13"
     },
@@ -762,7 +762,7 @@
       ],
       "title": "显式取消：AbortController",
       "prompt": "希望在一个请求失败后中止另一个 fetch，应该依赖什么？",
-      "code": "const controller = new AbortController(); fetch('/slow', { signal: controller.signal });",
+      "code": "const controller = new AbortController(); const requests = ['/slow', '/possibly-failing'].map(url => fetch(url, { signal: controller.signal }).then(response => { if (!response.ok) throw new Error('HTTP ' + response.status); return response; })); Promise.all(requests).catch(error => { controller.abort(); console.error('aborted remaining requests', error); });",
       "options": [
         {
           "id": "a",
@@ -779,7 +779,7 @@
         "race 只决定组合结果；AbortSignal 才会通知 fetch 取消。",
         "确认 signal 确实传给每个 fetch，并在失败分支调用 abort；race 只负责竞争结果，不负责取消。"
       ],
-      "explanation": "使用 AbortController/AbortSignal 发出取消信号。",
+      "explanation": "两个请求共享同一个 AbortSignal；当一个请求因网络错误或非成功 HTTP 状态拒绝时，catch 显式调用 abort()，向仍在进行的请求发出取消信号。具体能否及时停止仍取决于 API 的取消支持。",
       "difficulty": "stretch",
       "lessonId": "lesson-13"
     },
@@ -792,7 +792,7 @@
       ],
       "title": "Promise 采用时序：inner 先兑现",
       "prompt": "outer 采用 inner 后，inner 兑现前 outer.then 会执行吗？",
-      "code": "let finish; const inner = new Promise(r => finish = r); const outer = Promise.resolve({ then(resolve) { resolve(inner); } }); outer.then(() => console.log('outer'));",
+      "code": "let finish; const inner = new Promise(r => finish = r); const outer = Promise.resolve({ then(resolve) { resolve(inner); } }); outer.then(() => console.log('outer')); setTimeout(() => finish(1), 0); console.log('sync end');",
       "options": [
         {
           "id": "a",
@@ -809,7 +809,7 @@
         "把 thenable Job、inner 状态变化与 outer reaction 分成不同时间点。",
         "沿 outer 采用 inner 的链路追踪状态；ThenableJob 调用 resolve(inner) 并不等于 inner 已兑现。"
       ],
-      "explanation": "inner 兑现后，采用传播完成，outer 才能触发 fulfillment reaction。",
+      "explanation": "sync end 先输出；thenable Job 调用 resolve(inner) 后，outer 继续采用 pending inner。定时器兑现 inner 后，outer 才能兑现并运行 outer reaction。",
       "difficulty": "stretch",
       "lessonId": "lesson-14"
     },
