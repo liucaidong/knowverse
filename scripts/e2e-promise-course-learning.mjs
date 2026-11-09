@@ -232,3 +232,30 @@ test("WebKit mobile: Promise reading task controls remain visible inside a narro
     await browser.close();
   }
 });
+
+test("Chromium: Promise Review displays calibrated difficulty and its source lesson", {
+  timeout: 60000,
+}, async () => {
+  const browser = await chromium.launch({
+    headless: true,
+    ...(process.env.KNOWVERSE_CHROMIUM_EXECUTABLE
+      ? { executablePath: process.env.KNOWVERSE_CHROMIUM_EXECUTABLE }
+      : {}),
+  });
+  try {
+    const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+    const page = await context.newPage();
+    const errors = [];
+    page.on("pageerror", error => errors.push(error.message));
+    await page.goto(baseURL + "/review/?competencyId=thenable-adoption", { waitUntil: "domcontentloaded" });
+    await page.locator("#question-difficulty").waitFor({ state: "visible" });
+    assert.equal(await page.locator("#question-difficulty").textContent(), "难度 · 基础");
+    assert.equal(await page.locator("#question-source").textContent(), "课程来源 · 第 03 单元 ↗");
+    assert.match(await page.locator("#question-source a").getAttribute("href"), /knowledge\/promise\/lesson-03\/$/);
+    assert.equal(await page.locator("#question-title").textContent(), "Get 与 Call：同步边界");
+    assert.deepEqual(errors, []);
+    await context.close();
+  } finally {
+    await browser.close();
+  }
+});

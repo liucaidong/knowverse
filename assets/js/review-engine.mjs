@@ -20,7 +20,10 @@ function validateRegistry(registry) {
   const ids = new Set();
   for (const item of registry.assessments) {
     if (!item.id || ids.has(item.id) || !item.competencyId || !Array.isArray(item.options) ||
-        !item.options.some(option => option.id === item.answer)) {
+        !item.options.some(option => option.id === item.answer) ||
+        ((item.difficulty !== undefined || item.lessonId !== undefined) &&
+          (!new Set(["foundation", "intermediate", "stretch"]).has(item.difficulty) ||
+            !/^lesson-\d{2}$/.test(item.lessonId || "")))) {
       throw new TypeError("Invalid or duplicate review assessment: " + (item.id || "unknown"));
     }
     ids.add(item.id);
@@ -167,6 +170,8 @@ export function createReviewSessionEngine(options = {}) {
       topicId: candidate.topicId,
       title: candidate.title,
       prompt: candidate.prompt,
+      difficulty: candidate.difficulty || null,
+      lessonId: candidate.lessonId || null,
       code: candidate.code || "",
       options: clone(candidate.options),
       hints: clone(candidate.hints || []),

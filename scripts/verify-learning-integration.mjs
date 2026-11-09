@@ -176,11 +176,34 @@ test("the assessment catalog covers 15 competencies, 31 gaps and 72 targeted var
   assert.equal(ids.size, 15);
   assert.equal(gaps.size, 31);
   assert.equal(registry.assessments.length, 72);
+  const promiseAssessments = registry.assessments.filter(item => item.topicId === "promise");
+  assert.equal(promiseAssessments.length, 30);
+  const difficultyBands = new Set(["foundation", "intermediate", "stretch"]);
+  for (const item of promiseAssessments) {
+    assert.ok(difficultyBands.has(item.difficulty), item.id + " difficulty");
+    assert.match(item.lessonId, /^lesson-\d{2}$/);
+    const source = await readFile(new URL("../knowledge/promise/" + item.lessonId + "/index.md", import.meta.url), "utf8");
+    assert.ok(source.length > 500, item.id + " source lesson");
+  }
   for (const item of registry.assessments) {
     assert.ok(ids.has(item.competencyId), item.id);
     assert.ok(item.gapIds.length > 0, item.id);
     assert.ok(item.gapIds.every(id => gaps.has(id)), item.id);
   }
+});
+
+test("Promise Review sessions retain official difficulty and lesson provenance", async () => {
+  const registry = await readJSON("../content/review-assessments.json");
+  const engine = createReviewSessionEngine({ progressStore: createLearningProgressStore(), registry });
+  const session = await engine.start({
+    competencyId: "thenable-adoption",
+    variantId: "review-thenable-get-vs-call-a",
+  });
+  assert.equal(session.difficulty, "foundation");
+  assert.equal(session.lessonId, "lesson-03");
+  const assessment = await engine.getAssessment(session.sessionId);
+  assert.equal(assessment.difficulty, session.difficulty);
+  assert.equal(assessment.lessonId, session.lessonId);
 });
 
 test("Promise course lessons use the shared learning integration and mapped reader routes are real pages", async () => {
@@ -195,6 +218,12 @@ test("Promise course lessons use the shared learning integration and mapped read
   for (const directory of lessonDirectories) {
     const html = await readFile(new URL("../knowledge/promise/" + directory + "/index.html", import.meta.url), "utf8");
     assert.match(html, /learning-integration\.mjs/, directory);
+  }
+  const lesson18Markdown = await readFile(new URL("../knowledge/promise/lesson-18/index.md", import.meta.url), "utf8");
+  const lesson18Html = await readFile(new URL("../knowledge/promise/lesson-18/index.html", import.meta.url), "utf8");
+  for (const marker of ["source reaction", "nested microtask", "await downstream"]) {
+    assert.ok(lesson18Markdown.includes(marker), "lesson 18 markdown: " + marker);
+    assert.ok(lesson18Html.includes(marker), "lesson 18 HTML: " + marker);
   }
   for (const competency of topic.competencies) {
     const route = (competency.lessonHref.startsWith("./") ? competency.lessonHref.slice(2) : competency.lessonHref) + "index.html";

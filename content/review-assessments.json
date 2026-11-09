@@ -29,7 +29,9 @@
         "把“读取 then 属性”与“调用读取到的函数”分开。",
         "沿着 Promise.resolve 的同步调用栈追踪：它需要先取得 then 属性，之后才有条件安排调用 then 的 Job。"
       ],
-      "explanation": "Get(then) 同步发生；then 函数调用由后续 PromiseResolveThenableJob 执行。"
+      "explanation": "Get(then) 同步发生；then 函数调用由后续 PromiseResolveThenableJob 执行。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-03"
     },
     {
       "id": "review-thenable-get-vs-call-b",
@@ -57,7 +59,9 @@
         "getter 属于属性读取阶段；函数调用才被安排到 Job。",
         "把三个可观察点分开标记：调用 Promise.resolve 前、读取 getter 时、ThenableJob 真正调用函数时。"
       ],
-      "explanation": "输出顺序为 start、get、end、call。Promise.resolve 同步读取 then getter；取出的函数由后续 PromiseResolveThenableJob 调用。"
+      "explanation": "输出顺序为 start、get、end、call。Promise.resolve 同步读取 then getter；取出的函数由后续 PromiseResolveThenableJob 调用。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-03"
     },
     {
       "id": "review-resolved-vs-settled-a",
@@ -85,7 +89,9 @@
         "resolved 描述解决过程被锁定；settled 描述最终兑现或拒绝。",
         "画出 outer → inner 的采用关系；只要 inner 还 pending，outer 就不能报告最终兑现或拒绝。"
       ],
-      "explanation": "outer 需要采用 inner；inner pending 时 outer 也保持 pending。"
+      "explanation": "outer 需要采用 inner；inner pending 时 outer 也保持 pending。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-01"
     },
     {
       "id": "review-resolved-vs-settled-b",
@@ -113,7 +119,9 @@
         "检查 inner 的状态，不要把 resolve 被调用误当作 outer 落定。",
         "检查 outer 的 fulfillment reaction 依赖什么：它依赖 inner 最终兑现，而不是 resolve(inner) 这一调用本身。"
       ],
-      "explanation": "outer 会等待 inner 的最终状态，sync-end 先执行。"
+      "explanation": "outer 会等待 inner 的最终状态，sync-end 先执行。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-01"
     },
     {
       "id": "review-thenable-job-timing-a",
@@ -141,7 +149,9 @@
         "将 getter 的 Get 操作和随后调用 then 函数的 Job 分开。",
         "题目问的是取出的 then 函数何时被调用，不是 then 属性何时被读取；对应规范中的 ThenableJob。"
       ],
-      "explanation": "then 函数调用通过 PromiseResolveThenableJob 排队，不是当前同步调用栈中的直接调用。"
+      "explanation": "then 函数调用通过 PromiseResolveThenableJob 排队，不是当前同步调用栈中的直接调用。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-03"
     },
     {
       "id": "review-thenable-job-timing-b",
@@ -169,7 +179,9 @@
         "按任务实际入队先后推导，不要按 API 名称猜优先级。",
         "按入队时间排序：Promise.resolve 处理 thenable 时先安排 ThenableJob，随后才执行 queueMicrotask 注册。"
       ],
-      "explanation": "ThenableJob 在 queueMicrotask 调用前已被安排，因此先执行。"
+      "explanation": "ThenableJob 在 queueMicrotask 调用前已被安排，因此先执行。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-03"
     },
     {
       "id": "review-getter-sync-a",
@@ -197,7 +209,9 @@
         "区分 getter 的同步执行与 Promise 对外暴露拒绝结果的方式。",
         "沿异常路径区分两个阶段：getter 的执行是同步的，但 Promise.resolve 会把读取失败表现为返回 Promise 的拒绝。"
       ],
-      "explanation": "Get(then) 在同步解析流程中执行；读取过程的 abrupt completion 会拒绝该 Promise。"
+      "explanation": "Get(then) 在同步解析流程中执行；读取过程的 abrupt completion 会拒绝该 Promise。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-03"
     },
     {
       "id": "review-getter-sync-b",
@@ -225,7 +239,9 @@
         "属性访问器在访问时执行；不要把它与 then 函数调用混在一起。",
         "把 getter 日志放在 Promise.resolve 调用点，把 then-call 放进后续 Job，再插入同步日志比较位置。"
       ],
-      "explanation": "then getter 同步输出，then-call 由后续 ThenableJob 输出。"
+      "explanation": "then getter 同步输出，then-call 由后续 ThenableJob 输出。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-03"
     },
     {
       "id": "review-reaction-registration-timing-a",
@@ -253,7 +269,9 @@
         "区分注册 reaction 和执行 reaction 的时机。",
         "fulfilled 只表示源 Promise 已落定；then 注册的处理器仍须等对应的 PromiseReactionJob 执行。"
       ],
-      "explanation": "不会。then 会为源 Promise 注册 reaction；即使源 Promise 已 fulfilled，处理器也要等 PromiseReactionJob 执行，因此同步日志先出现。"
+      "explanation": "不会。then 会为源 Promise 注册 reaction；即使源 Promise 已 fulfilled，处理器也要等 PromiseReactionJob 执行，因此同步日志先出现。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-02"
     },
     {
       "id": "review-reaction-registration-timing-b",
@@ -281,7 +299,9 @@
         "把同步代码的观察点放在微任务检查点之前。",
         "在同步代码读取标志位时，检查回调是否已经运行，而不是只检查源 Promise 是否 fulfilled。"
       ],
-      "explanation": "输出 false。调用 then 只会注册并安排 reaction，不会同步执行回调；当前同步栈读取 flag 时，回调尚未运行。"
+      "explanation": "输出 false。调用 then 只会注册并安排 reaction，不会同步执行回调；当前同步栈读取 flag 时，回调尚未运行。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-02"
     },
     {
       "id": "review-microtask-fifo-a",
@@ -309,7 +329,9 @@
         "按调用先后画出微任务入队顺序。",
         "不要给 queueMicrotask 和 Promise reaction 人为设置优先级；把两者按实际注册顺序写进同一 FIFO 队列。"
       ],
-      "explanation": "Promise reaction 与 queueMicrotask 回调都遵循同一微任务队列的 FIFO 顺序。"
+      "explanation": "Promise reaction 与 queueMicrotask 回调都遵循同一微任务队列的 FIFO 顺序。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-04"
     },
     {
       "id": "review-microtask-fifo-b",
@@ -337,7 +359,9 @@
         "顺序由谁先入队决定，不由任务类型名称决定。",
         "逐行确认谁先注册：先注册的 reaction 先入队，后注册的 queueMicrotask 不会插队。"
       ],
-      "explanation": "B 先于 A。题目中 B 对应的任务先注册并先进入微任务队列；Promise reaction 与 queueMicrotask 回调按队列顺序执行。"
+      "explanation": "B 先于 A。题目中 B 对应的任务先注册并先进入微任务队列；Promise reaction 与 queueMicrotask 回调按队列顺序执行。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-04"
     },
     {
       "id": "review-nested-microtask-a",
@@ -365,7 +389,9 @@
         "C 要等 A 开始执行才会入队；此时 B 已经排队。",
         "A 执行时才注册 C；此时 B 已经在队列中，所以 C 被追加到 B 后面。"
       ],
-      "explanation": "顺序为 A、B、C。A 执行时才把 C 追加到队尾，而 B 已经排在队列中，所以 B 先于 C。"
+      "explanation": "顺序为 A、B、C。A 执行时才把 C 追加到队尾，而 B 已经排在队列中，所以 B 先于 C。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-04"
     },
     {
       "id": "review-nested-microtask-b",
@@ -393,7 +419,9 @@
         "初始队列是 A、B、D；C 只在 A 运行时才加入。",
         "先写出初始队列，再模拟每个任务执行时追加的新任务；每次只从队首取一个。"
       ],
-      "explanation": "顺序为 A、B、D、C。A 执行时 C 被追加到已有任务 B、D 之后；队列不会因任务嵌套而插队。"
+      "explanation": "顺序为 A、B、D、C。A 执行时 C 被追加到已有任务 B、D 之后；队列不会因任务嵌套而插队。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-04"
     },
     {
       "id": "review-then-rejection-boundary-a",
@@ -421,7 +449,9 @@
         "onRejected 处理的是源 Promise 的拒绝，不是同一 then 的成功处理器异常。",
         "then 的第二个参数只处理源 Promise 的拒绝；第一个处理器运行时抛出的异常属于下游 Promise。"
       ],
-      "explanation": "成功处理器抛错会拒绝下游 Promise；后续 catch 才处理它。"
+      "explanation": "成功处理器抛错会拒绝下游 Promise；后续 catch 才处理它。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-05"
     },
     {
       "id": "review-then-rejection-boundary-b",
@@ -449,7 +479,9 @@
         "这次 onRejected 接收的是源 Promise 的拒绝原因。",
         "先判断源 Promise 的状态，再决定 then 的哪个处理器被调用；fulfilled/rejected 不会同时调用两个处理器。"
       ],
-      "explanation": "结果为 rejected。源 Promise 已拒绝，因此 then 的第二个参数处理该拒绝；第一个 onFulfilled 不会执行。"
+      "explanation": "结果为 rejected。源 Promise 已拒绝，因此 then 的第二个参数处理该拒绝；第一个 onFulfilled 不会执行。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-05"
     },
     {
       "id": "review-chain-state-recovery-a",
@@ -477,7 +509,9 @@
         "单个 Promise 状态不可逆；catch 通过返回的新 Promise 恢复下游链。",
         "分别标记 source 与 next：catch 不会改写 source 的状态，它的返回值决定 next 的状态和值。"
       ],
-      "explanation": "source 状态不变，catch 的返回值决定新 Promise 的结果。"
+      "explanation": "source 状态不变，catch 的返回值决定新 Promise 的结果。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-06"
     },
     {
       "id": "review-chain-state-recovery-b",
@@ -505,7 +539,9 @@
         "catch 不保证成功；它返回的新 Promise 仍遵守解析流程。",
         "catch 本身也是 then 链的一环；如果它抛出异常，catch 返回的新 Promise 会再次拒绝。"
       ],
-      "explanation": "下游 Promise 再次 rejected。catch 处理器抛出的异常会拒绝 catch 返回的新 Promise，后续 catch 可以捕获该异常。"
+      "explanation": "下游 Promise 再次 rejected。catch 处理器抛出的异常会拒绝 catch 返回的新 Promise，后续 catch 可以捕获该异常。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-06"
     },
     {
       "id": "review-then-new-promise-a",
@@ -533,7 +569,9 @@
         "区分源 Promise 与每一次 then 返回的下游 Promise。",
         "关注 then 的返回值：它是一个新的 Promise capability，而不是原 Promise 的别名。"
       ],
-      "explanation": "不会。每次调用 then 都会返回一个新的 Promise；源 Promise 保存 reaction，链式结果由新 Promise 表示。"
+      "explanation": "不会。每次调用 then 都会返回一个新的 Promise；源 Promise 保存 reaction，链式结果由新 Promise 表示。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-05"
     },
     {
       "id": "review-then-new-promise-b",
@@ -561,7 +599,9 @@
         "区分对象身份与 Promise Resolution Procedure 的采用行为。",
         "处理器返回 inner 后，比较“对象身份”和“采用其最终状态”这两个不同概念。"
       ],
-      "explanation": "next 与 inner 不是同一个对象。then 创建 next，并让 next 采用处理器返回的 inner 的最终状态与结果。"
+      "explanation": "next 与 inner 不是同一个对象。then 创建 next，并让 next 采用处理器返回的 inner 的最终状态与结果。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-05"
     },
     {
       "id": "review-all-race-order-a",
@@ -589,7 +629,9 @@
         "all 结果位置看输入索引；race 看最先落定。",
         "对 all 记录输入索引，对 race 记录最先落定的输入；这两种规则不要混成一个排序。"
       ],
-      "explanation": "all 的结果按输入位置排列，因此是 slow、fast；race 则由最先落定的 fast 获胜。race 不会改变 all 的结果顺序。"
+      "explanation": "all 的结果按输入位置排列，因此是 slow、fast；race 则由最先落定的 fast 获胜。race 不会改变 all 的结果顺序。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-09"
     },
     {
       "id": "review-all-race-order-b",
@@ -617,7 +659,9 @@
         "all 收集结果时使用输入位置索引，而不是完成时间。",
         "即使 B 先完成，all 的结果槽位仍由 B 的原始输入索引决定。"
       ],
-      "explanation": "不会。Promise.all 为每个输入保留对应索引；B 即使先完成，也写入第二个结果位置，最终仍是 A、B。"
+      "explanation": "不会。Promise.all 为每个输入保留对应索引；B 即使先完成，也写入第二个结果位置，最终仍是 A、B。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-09"
     },
     {
       "id": "review-all-waits-all-a",
@@ -645,7 +689,9 @@
         "all 的成功条件是全部输入成功，而不是任一输入成功。",
         "判断组合 Promise 的 fulfilled 条件：每个输入都必须兑现，单个成功不足以满足条件。"
       ],
-      "explanation": "不会。Promise.all 只有在所有输入都 fulfilled 后才 fulfilled；一个输入成功不能代表整个集合成功。"
+      "explanation": "不会。Promise.all 只有在所有输入都 fulfilled 后才 fulfilled；一个输入成功不能代表整个集合成功。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-08"
     },
     {
       "id": "review-all-waits-all-b",
@@ -673,7 +719,9 @@
         "区分全部成功条件与 fail-fast 拒绝路径。",
         "区分 all 的成功条件与拒绝条件：任一输入拒绝即可使组合 Promise 拒绝，不必等待其他输入落定。"
       ],
-      "explanation": "all 的 fulfilled 需要全部成功；rejected 则不必等其它输入。"
+      "explanation": "all 的 fulfilled 需要全部成功；rejected 则不必等其它输入。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-08"
     },
     {
       "id": "review-all-no-cancel-a",
@@ -701,7 +749,9 @@
         "Promise 组合层与网络请求/任务本身是两个不同层次。",
         "把组合 Promise 的状态与底层操作的生命周期分开；拒绝结果不会自动调用网络请求的取消接口。"
       ],
-      "explanation": "不会。Promise.all 的拒绝只改变组合 Promise 的状态，不会停止其他输入代表的操作；要取消请求，必须显式使用 AbortController 等取消机制。"
+      "explanation": "不会。Promise.all 的拒绝只改变组合 Promise 的状态，不会停止其他输入代表的操作；要取消请求，必须显式使用 AbortController 等取消机制。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-13"
     },
     {
       "id": "review-all-no-cancel-b",
@@ -729,7 +779,9 @@
         "race 只决定组合结果；AbortSignal 才会通知 fetch 取消。",
         "确认 signal 确实传给每个 fetch，并在失败分支调用 abort；race 只负责竞争结果，不负责取消。"
       ],
-      "explanation": "使用 AbortController/AbortSignal 发出取消信号。"
+      "explanation": "使用 AbortController/AbortSignal 发出取消信号。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-13"
     },
     {
       "id": "review-adoption-timeline-a",
@@ -757,7 +809,9 @@
         "把 thenable Job、inner 状态变化与 outer reaction 分成不同时间点。",
         "沿 outer 采用 inner 的链路追踪状态；ThenableJob 调用 resolve(inner) 并不等于 inner 已兑现。"
       ],
-      "explanation": "inner 兑现后，采用传播完成，outer 才能触发 fulfillment reaction。"
+      "explanation": "inner 兑现后，采用传播完成，outer 才能触发 fulfillment reaction。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-14"
     },
     {
       "id": "review-adoption-timeline-b",
@@ -785,7 +839,9 @@
         "resolved-but-pending 仍然 pending；reaction 不会跳过采用过程。",
         "reaction 依附于 outer 的最终兑现结果；outer 采用 inner 时，必须继续等待 inner 的状态。"
       ],
-      "explanation": "waiting 先同步输出，done 要等 inner 兑现并完成传播后才执行。"
+      "explanation": "waiting 先同步输出，done 要等 inner 兑现并完成传播后才执行。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-14"
     },
     {
       "id": "review-workspace-protocol-a",
@@ -981,7 +1037,9 @@
         "先确定 Promise.resolve 读取 then 后安排 Job 的位置。",
         "再看 queueMicrotask 是在 Promise.resolve 返回后才注册。"
       ],
-      "explanation": "ThenableJob 先入队，之后 queueMicrotask 再入队，因此 then-call 先于 micro。"
+      "explanation": "ThenableJob 先入队，之后 queueMicrotask 再入队，因此 then-call 先于 micro。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-14"
     },
     {
       "id": "review-integrated-thenable-job-timing-b",
@@ -1009,7 +1067,9 @@
         "Get(then) 是同步属性读取。",
         "调用取出的 then 函数才是后续 Job。"
       ],
-      "explanation": "同步段依次输出 A、get、B；call 由后续 ThenableJob 执行。"
+      "explanation": "同步段依次输出 A、get、B；call 由后续 ThenableJob 执行。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-14"
     },
     {
       "id": "review-cache-input-coverage-a",

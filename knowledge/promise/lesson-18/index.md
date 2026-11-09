@@ -14,24 +14,38 @@ function deferred() {
   return { promise, resolve, reject };
 }
 
-const d = deferred();
-const events = [];
-d.promise.then(v => events.push(v));
-d.resolve(42);
-await d.promise;
-// 不要仅根据 await d.promise 就断言所有后续级联反应一定已完成；
-// 如需测试某个 downstream，请显式 await 该 downstream Promise。
+async function example() {
+  const d = deferred();
+  const events = [];
+  const downstream = d.promise.then(value => {
+    events.push("source reaction");
+    queueMicrotask(() => events.push("nested microtask"));
+    return value * 2;
+  });
+
+  d.resolve(21);
+  await d.promise;
+  console.log(events); // ["source reaction"]：嵌套任务仍在队列中
+
+  const result = await downstream;
+  console.log(result, events); // 42 ["source reaction", "nested microtask"]
+}
+example();
 ```
 
-与其依赖设备快慢，不如使用可控 `deferred` 来安排**何时解决**。注意 `await d.promise` 和提前注册的 `d.promise.then` 的先后仍受 reaction Jobs 具体入队规则控制，所以在复杂链上，最稳妥的断言目标是你要测试的那个“最终结果 Promise”。
+与其依赖设备快慢，不如使用可控 `deferred` 来安排**何时解决**。上例中，`await d.promise` 会等待源 Promise 的 reaction 先执行，但该 reaction 新加入的嵌套微任务仍可能排在当前 async 函数的续体之后。若测试目标是下游处理器的完整结果，应显式等待 `downstream`，而不是只等待源 Promise。
 
 ## 测试可观察行为，而非隐藏内部槽
 
 ```js
-const source = Promise.resolve(4);
-const downstream = source.then(v => v * 2);
-const result = await downstream;
-if (result !== 8) throw new Error('bad result');
+async function verifyDownstreamResult() {
+  const source = Promise.resolve(4);
+  const downstream = source.then(v => v * 2);
+  const result = await downstream;
+  if (result !== 8) throw new Error('bad result');
+  return result;
+}
+verifyDownstreamResult();
 ```
 
 断言最终值、外部副作用和错误传播，不依赖非标准的 Promise 状态 inspection。想验证具体入队行为时，使用日志序列测试，但要声明运行环境和控制 timer、I/O 的方式。

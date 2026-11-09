@@ -27,7 +27,7 @@ AI 候选练习 → 确定性校验 → 独立 AI Reviewer → 修改 / 重新�
 ## 2. 现有正式测评契约
 
 当前 `content/review-assessments.json` 的 Review Assessment 字段为：
-`id`、`competencyId`、`topicId`、`gapIds`、`title`、`prompt`、`code`、`options`、`answer`、`hints`、`explanation`。Review Engine 要求 `answer` 对应某个 `options[].id`。
+`id`、`competencyId`、`topicId`、`gapIds`、`title`、`prompt`、`code`、`options`、`answer`、`hints`、`explanation`；正式课程题目还可提供 `difficulty`（`foundation` / `intermediate` / `stretch`）和 `lessonId`（如 `lesson-03`）作为题目难度与教学来源元数据。Review Engine 要求 `answer` 对应某个 `options[].id`；带有难度元数据的题目必须同时提供合法难度和来源单元。
 
 Phase L 原始候选是开放式题目，因此不会直接转为带唯一答案的选择题。Reviewer 必须另行给出更窄、具有单一可辩护答案的 companion Assessment；原始开放式候选仍保留为私有档案内容。该 companion 仍需人工审核。
 
