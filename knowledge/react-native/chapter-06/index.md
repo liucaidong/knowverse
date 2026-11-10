@@ -36,3 +36,13 @@ Render 阶段可被中断。当高优先级离散事件到达时，React / Rende
 ## 官方资料
 - [Threading Model](https://reactnative.dev/architecture/threading-model)
 - [Render, Commit, and Mount](https://reactnative.dev/architecture/render-pipeline)
+
+
+## v0.88.1 源码走读
+
+源码阅读要区分 Scheduler 的任务调度、ShadowTree 的 revision / commit、MountingCoordinator 的 mutation 交付，以及 UI Manager 最终应用平台 View 的责任。不要把“Render 可中断”简化为任意 C++ 函数都可抢占。
+
+- [Scheduler](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/scheduler/Scheduler.cpp)
+- [ShadowTree 提交实现](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/mounting/ShadowTree.cpp)
+- [MountingCoordinator](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/mounting/MountingCoordinator.cpp)
+- [EventQueue](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/core/EventQueue.cpp)

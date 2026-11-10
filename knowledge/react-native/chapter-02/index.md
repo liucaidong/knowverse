@@ -49,3 +49,12 @@ JavaScript Thread 执行常见 React render 与布局工作；UI Thread 是唯�
 ## 资料来源
 - [About the New Architecture](https://reactnative.dev/architecture/landing-page)
 - [Threading Model](https://reactnative.dev/architecture/threading-model)
+
+
+## v0.88.1 源码走读
+
+0.88 的重要变化：默认事件分发路径切换为基于 W3C EventTarget 的 Web-based dispatching。它带来 capture / target / bubble 的真实路径；不要据此误判 touch responder 系统也已被替换，官方 0.88 发布说明明确说 responder system unchanged。
+
+- [事件队列](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/core/EventQueue.cpp)
+- [事件分发器](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/core/EventDispatcher.cpp)
+- [EventTarget 实现](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/core/EventTarget.cpp)

@@ -1,6 +1,6 @@
 # Build / Startup / Runtime：先建立阶段模型
 
-> 版本基线：React Native 0.88。Build / Startup / Runtime 是帮助定位职责的教学分层，不代表每个步骤都严格串行。
+> 版本基线：React Native v0.88.1。Build / Startup / Runtime 是帮助定位职责的教学分层，不代表每个步骤都严格串行。
 
 ## 一张图先看三阶段
 
@@ -37,3 +37,12 @@ Runtime 包含 JavaScript 逻辑、JSI 跨语言接口、Native 模块调用、�
 - [Using Hermes](https://reactnative.dev/docs/hermes)
 - [What is Codegen?](https://reactnative.dev/docs/the-new-architecture/what-is-codegen)
 - [Architecture Overview](https://reactnative.dev/architecture/overview)
+
+
+## v0.88.1 源码走读
+
+走读时请把“仓库目录”与“构建阶段”分开：Codegen 的 parser / generator 属于构建工具；生成物进入平台构建；Hermes bytecode 则是 JS 引擎侧产物。不要把 Codegen 当作 Hermes 的子步骤。
+
+- [仓库结构与构建约定](https://github.com/react/react-native/blob/v0.88.1/AGENTS.md)
+- [Codegen 工具包说明](https://github.com/react/react-native/blob/v0.88.1/packages/react-native-codegen/README.md)
+- [Codegen 模块头文件生成器](https://github.com/react/react-native/blob/v0.88.1/packages/react-native-codegen/src/generators/modules/GenerateModuleH.js)

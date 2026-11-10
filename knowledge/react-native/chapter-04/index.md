@@ -43,3 +43,13 @@ spec 描述 JavaScript 与 Native 之间的方法和数据类型。它是接口�
 ## 官方资料
 - [Native Modules: Introduction](https://reactnative.dev/docs/turbo-native-modules-introduction)
 - [What is Codegen?](https://reactnative.dev/docs/the-new-architecture/what-is-codegen)
+
+
+## v0.88.1 源码走读
+
+建议沿 JS Registry → C++ TurboModule → Codegen schema / generator → 平台实现反向追踪。Registry 的查找、Native module proxy 与旧模块回退路径需要结合源码阅读，不能仅凭“按需初始化”一句话推断所有模块的实例生命周期。
+
+- [TurboModule C++ 抽象](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/nativemodule/core/ReactCommon/TurboModule.h)
+- [TurboModule C++ 实现](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/nativemodule/core/ReactCommon/TurboModule.cpp)
+- [JS 侧 TurboModuleRegistry](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/Libraries/TurboModule/TurboModuleRegistry.js)
+- [Codegen 生成器入口](https://github.com/react/react-native/blob/v0.88.1/packages/react-native-codegen/src/generators/modules/GenerateModuleH.js)

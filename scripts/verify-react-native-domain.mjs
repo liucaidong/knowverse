@@ -93,6 +93,43 @@ test("React Native is a complete third learning domain across the three product 
   assert.ok(rnCheckpoints.every(checkpoint => liveWorks.some(work => work.id === checkpoint.workId)));
 });
 
+test("React Native course exposes version-pinned v0.88.1 source paths and patch-level facts", async () => {
+  const chapters = ["chapter-01", "chapter-02", "chapter-03", "chapter-04", "chapter-05", "chapter-06", "chapter-07"];
+  const expected = {
+    "chapter-01": ["packages/react-native-codegen/README.md", "packages/react-native-codegen/src/generators/modules/GenerateModuleH.js"],
+    "chapter-02": ["packages/react-native/ReactCommon/react/renderer/core/EventQueue.cpp", "packages/react-native/ReactCommon/react/renderer/core/EventTarget.cpp"],
+    "chapter-03": ["packages/react-native/ReactCommon/jsi/jsi/jsi.h", "packages/react-native/ReactCommon/jsi/jsi/jsi.cpp"],
+    "chapter-04": ["packages/react-native/ReactCommon/react/nativemodule/core/ReactCommon/TurboModule.h", "packages/react-native/Libraries/TurboModule/TurboModuleRegistry.js"],
+    "chapter-05": ["packages/react-native/ReactCommon/react/renderer/mounting/ShadowTree.cpp", "packages/react-native/ReactCommon/react/renderer/mounting/MountingCoordinator.cpp"],
+    "chapter-06": ["packages/react-native/ReactCommon/react/renderer/scheduler/Scheduler.cpp", "packages/react-native/ReactCommon/react/renderer/core/EventQueue.cpp"],
+    "chapter-07": ["packages/react-native/ReactAndroid/src/main/java/com/facebook/react/bridge/ArrayBuffer.kt", "packages/react-native/ReactCommon/jsi/jsi/jsi.h"],
+  };
+  for (const chapter of chapters) {
+    const [md, html] = await Promise.all([
+      readFile(new URL(`../knowledge/react-native/${chapter}/index.md`, import.meta.url), "utf8"),
+      readFile(new URL(`../knowledge/react-native/${chapter}/index.html`, import.meta.url), "utf8"),
+    ]);
+    assert.match(md, /## v0\.88\.1 源码走读/, chapter);
+    assert.match(html, /v0\.88\.1 源码走读/, chapter);
+    for (const path of expected[chapter]) {
+      const href = `https://github.com/react/react-native/blob/v0.88.1/${path}`;
+      assert.ok(md.includes(href), `${chapter} Markdown missing ${href}`);
+      assert.ok(html.includes(href), `${chapter} HTML missing ${href}`);
+    }
+  }
+  const landing = await readFile(new URL("../knowledge/react-native/index.html", import.meta.url), "utf8");
+  assert.match(landing, /REACT NATIVE 0\.88\.1 \/ COMPLETE LEARNING DOMAIN/);
+  assert.match(landing, /<strong>0\.88\.1<\/strong>/);
+  assert.match(landing, /react\/react-native@v0\.88\.1/);
+  const versionMd = await readFile(new URL("../knowledge/react-native/chapter-07/index.md", import.meta.url), "utf8");
+  assert.match(versionMd, /Java TurboModule ArrayBuffer/);
+  assert.match(versionMd, /RuntimeDecorator/);
+  assert.match(versionMd, /flex shrink/);
+  const eventMd = await readFile(new URL("../knowledge/react-native/chapter-02/index.md", import.meta.url), "utf8");
+  assert.match(eventMd, /W3C EventTarget/);
+  assert.match(eventMd, /responder system unchanged/);
+});
+
 test("React Native challenge creates a precise gap and only adds evidence on completion", async () => {
   const [map, registry] = await Promise.all([
     readJSON("content/learning-map.json"),
