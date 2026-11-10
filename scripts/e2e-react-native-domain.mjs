@@ -34,6 +34,23 @@ async function startServer() {
 const {server,baseURL}=await startServer();
 test.after(()=>new Promise(resolveServer=>server.close(resolveServer)));
 
+test("React Native v0.88.1 course pages render pinned source links", {timeout:60000}, async()=>{
+  const browser=await chromium.launch({headless:true});
+  try {
+    const page=await browser.newPage({viewport:{width:1440,height:960}});
+    const errors=[];page.on("pageerror",error=>errors.push(error.message));
+    await page.goto(baseURL+"/knowledge/react-native/",{waitUntil:"domcontentloaded"});
+    assert.match(await page.locator(".rn-hero-version strong").textContent(),/0\.88\.1/);
+    for(let i=1;i<=7;i++){
+      await page.goto(baseURL+`/knowledge/react-native/chapter-${String(i).padStart(2,"0")}/`,{waitUntil:"domcontentloaded"});
+      await page.getByRole("heading",{name:"v0.88.1 源码走读"}).waitFor();
+      const sourceLinks=page.locator('a[href^="https://github.com/react/react-native/blob/v0.88.1/"]');
+      assert.ok(await sourceLinks.count()>=2,`Chapter ${i} must expose at least two pinned source links`);
+    }
+    assert.deepEqual(errors,[]);
+  } finally { await browser.close(); }
+});
+
 test("React Native lab: phase tabs, step navigation and real checkpoint", {timeout:60000}, async()=>{
   const browser=await chromium.launch({headless:true});
   try {

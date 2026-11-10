@@ -20,6 +20,39 @@ const allowedDocumentTypes = new Set([
 const randomId = () => globalThis.crypto?.randomUUID?.()
   || "device-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
 const documentId = (type, key) => type + ":" + encodeURIComponent(String(key));
+
+// Proactive projections are disposable, deterministic caches rebuilt from the
+// append-only event log on each device. They are intentionally never uploaded
+// or pulled as archive documents; syncing them can race a cold event restore.
+const isLocalOnlyArchiveDocument = (type, key) =>
+  type === "proactive_learning_projection" && key === "current";
+
+// Strategy profile evidence windows are recalculated at bootstrap. Ignore only
+// their wall-clock window metadata during comparison; preferences, parameters,
+// evidence, history, fingerprints, and decisions remain conflict-protected.
+function comparableArchivePayload(type, key, payload) {
+  const value = structuredClone(payload);
+  const stripStrategyWindowMetadata = profile => {
+    if (!profile || typeof profile !== "object" || Array.isArray(profile)) return;
+    delete profile.updatedAt;
+    if (profile.observedWindow && typeof profile.observedWindow === "object") {
+      delete profile.observedWindow.from;
+      delete profile.observedWindow.to;
+    }
+  };
+
+  if (type === "learner_profile" && key === "strategy") {
+    stripStrategyWindowMetadata(value);
+  }
+  return value;
+}
+function areEquivalentArchiveDocuments(type, key, localPayload, remotePayload) {
+  if (!localPayload || !remotePayload ||
+      typeof localPayload !== "object" || typeof remotePayload !== "object" ||
+      Array.isArray(localPayload) || Array.isArray(remotePayload)) return false;
+  return fingerprintLearningEvent(comparableArchivePayload(type, key, localPayload)) ===
+    fingerprintLearningEvent(comparableArchivePayload(type, key, remotePayload));
+}
 const nowIso = () => new Date().toISOString();
 
 function ensureStore(db, name, options) {
@@ -167,6 +200,15 @@ function requestValue(request) {
     request.onerror = () => reject(request.error || new Error("IndexedDB request failed."));
   });
 }
+
+async function removeSupersededArchiveConflicts(conflictsStore, id, revision) {
+  const rows = await requestValue(conflictsStore.getAll());
+  for (const row of rows) {
+    if (row.documentId === id && Number(row.remote?.revision || 0) <= revision) {
+      conflictsStore.delete(row.id);
+    }
+  }
+}
 async function openDatabase() {
   if (!globalThis.indexedDB) throw new Error("This browser does not support IndexedDB.");
   return new Promise((resolve, reject) => {
@@ -260,11 +302,12 @@ export async function commitLearningBatch(input = {}) {
     }
   }
   return withTransaction(
-    [STORE_EVENTS, STORE_OUTBOX, STORE_DEVICES, STORE_SYNC, STORE_DOCUMENTS, STORE_MIGRATIONS],
+    [STORE_EVENTS, STORE_OUTBOX, STORE_DEVICES, STORE_SYNC, STORE_DOCUMENTS, STORE_CONFLICTS, STORE_MIGRATIONS],
     async transaction => {
       const eventsStore = transaction.objectStore(STORE_EVENTS);
       const outboxStore = transaction.objectStore(STORE_OUTBOX);
       const documentsStore = transaction.objectStore(STORE_DOCUMENTS);
+      const conflictsStore = transaction.objectStore(STORE_CONFLICTS);
       const migrationStore = transaction.objectStore(STORE_MIGRATIONS);
       const boundUser = await requestValue(transaction.objectStore(STORE_SYNC).get("bound-user-id"));
       const phaseCBinding = await requestValue(transaction.objectStore(STORE_SYNC).get("archive:bound-user-id"));
@@ -325,6 +368,7 @@ export async function commitLearningBatch(input = {}) {
         const payload = structuredClone(item.payload);
         const hash = fingerprintLearningEvent(payload);
         if (previous?.hash === hash && !item.forceRevision) continue;
+        const localOnly = isLocalOnlyArchiveDocument(item.type, item.key);
         const next = {
           id, type: item.type, key: item.key, payload, hash,
           accountId: accountId || previous?.accountId || null,
@@ -332,9 +376,15 @@ export async function commitLearningBatch(input = {}) {
           cloudRevision: Number(previous?.cloudRevision) || 0,
           baseRevision: Number(previous?.baseRevision ?? previous?.cloudRevision) || 0,
           documentSeq: Number(previous?.documentSeq) || 0, deviceId: device.id,
-          updatedAt: nowIso(), dirty: true, conflict: Boolean(previous?.conflict),
+          updatedAt: nowIso(), dirty: !localOnly, conflict: localOnly ? false : Boolean(previous?.conflict),
         };
         documentsStore.put(next);
+        if (localOnly) {
+          const oldConflicts = await requestValue(conflictsStore.getAll());
+          for (const conflict of oldConflicts) {
+            if (conflict.documentId === id) conflictsStore.delete(conflict.id);
+          }
+        }
         changedDocuments.push(next);
       }
       if (input.migrationMarker) migrationStore.put({ ...input.migrationMarker, completedAt: nowIso() });
@@ -390,10 +440,10 @@ export async function countLearningEvents() {
 }
 export async function mergeRemoteLearningEvents(rows, accountId) {
   if (!Array.isArray(rows) || !rows.length) return 0;
-  return withTransaction([STORE_EVENTS, STORE_OUTBOX], async tx => {
+  const result = await withTransaction([STORE_EVENTS, STORE_OUTBOX], async tx => {
     const events = tx.objectStore(STORE_EVENTS);
     const outbox = tx.objectStore(STORE_OUTBOX);
-    let merged = 0;
+    const addedEvents = [];
     for (const remote of rows) {
       const event = normalizeLearningEvent(remote?.event_payload || remote?.event);
       if (!event || (remote.event_id && remote.event_id !== event.id)) throw new Error("云端返回了无效或 ID 不匹配的学习事件。");
@@ -411,10 +461,16 @@ export async function mergeRemoteLearningEvents(rows, accountId) {
         createdAt: existing?.createdAt || nowIso(), syncedAt: nowIso(),
       });
       outbox.delete(event.id);
-      merged += existing ? 0 : 1;
+      if (!existing) addedEvents.push(event);
     }
-    return merged;
+    return { merged: addedEvents.length, addedEvents };
   });
+  if (result.addedEvents.length && typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("knowverse:learning-events-appended", {
+      detail: { events: result.addedEvents, remote: true },
+    }));
+  }
+  return result.merged;
 }
 export async function acknowledgeOutbox(confirmed) {
   if (!Array.isArray(confirmed) || !confirmed.length) return 0;
@@ -510,7 +566,8 @@ export async function listArchiveDocuments(limit = 500) {
     .slice(0, Math.max(1, Math.min(1000, Number(limit) || 500)));
 }
 export async function listPendingArchiveDocuments(limit = 50) {
-  return (await listArchiveDocuments()).filter(row => row.dirty && !row.conflict)
+  return (await listArchiveDocuments()).filter(row =>
+    row.dirty && !row.conflict && !isLocalOnlyArchiveDocument(row.type, row.key))
     .slice(0, Math.max(1, Math.min(50, Number(limit) || 50)));
 }
 export async function acknowledgeArchiveDocuments(confirmed) {
@@ -543,18 +600,32 @@ export async function applyRemoteArchiveDocument(remote, accountId) {
     const conflicts = tx.objectStore(STORE_CONFLICTS);
     const previous = await requestValue(store.get(remote.document_id));
     assertAccount(previous, accountId);
+    if (isLocalOnlyArchiveDocument(remote.document_type, remote.document_key)) {
+      if (previous) store.put({ ...previous, dirty: false, conflict: false });
+      const oldConflicts = await requestValue(conflicts.getAll());
+      for (const conflict of oldConflicts) {
+        if (conflict.documentId === remote.document_id) conflicts.delete(conflict.id);
+      }
+      return { status: "ignored", record: previous || null, reason: "derived-cache-local-only" };
+    }
     const revision = Number(remote.revision) || 0;
     if (previous && revision <= Number(previous.cloudRevision || 0)) return { status: "ignored", record: previous };
     const remoteHash = fingerprintLearningEvent(remote.document_payload);
-    if (previous?.dirty && previous.hash === remoteHash) {
+    const exactMatch = previous?.hash === remoteHash;
+    const semanticMatch = previous?.dirty && areEquivalentArchiveDocuments(
+      remote.document_type, remote.document_key, previous.payload, remote.document_payload,
+    );
+    if (previous?.dirty && (exactMatch || semanticMatch)) {
       const record = {
         ...previous, accountId: accountId || previous.accountId || null,
         cloudRevision: revision, baseRevision: revision, documentSeq: Number(remote.document_seq) || 0,
         deviceId: remote.device_id || previous.deviceId || null,
-        updatedAt: remote.updated_at || nowIso(), dirty: false, conflict: false, syncedAt: nowIso(),
+        updatedAt: remote.updated_at || previous.updatedAt || nowIso(),
+        dirty: false, conflict: false, syncedAt: nowIso(),
       };
       store.put(record);
-      return { status: "applied", record, identical: true };
+      await removeSupersededArchiveConflicts(conflicts, remote.document_id, revision);
+      return { status: "applied", record, identical: exactMatch, semanticIdentical: semanticMatch };
     }
     if (previous?.dirty && Number(previous.baseRevision || 0) < revision) {
       const conflictId = remote.document_id + ":" + revision;
@@ -577,8 +648,67 @@ export async function applyRemoteArchiveDocument(remote, accountId) {
   });
 }
 export async function listArchiveConflicts() {
-  const rows = await withTransaction([STORE_CONFLICTS], tx => requestValue(tx.objectStore(STORE_CONFLICTS).getAll()), "readonly");
-  return rows.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  // Reconcile legacy timestamp-only conflicts and retire rows for local-only
+  // rebuildable caches. True user-owned document differences remain explicit.
+  return withTransaction([STORE_DOCUMENTS, STORE_CONFLICTS], async tx => {
+    const documents = tx.objectStore(STORE_DOCUMENTS);
+    const conflicts = tx.objectStore(STORE_CONFLICTS);
+    const [documentRows, conflictRows] = await Promise.all([
+      requestValue(documents.getAll()),
+      requestValue(conflicts.getAll()),
+    ]);
+    const resolvedRevisionByDocument = new Map();
+
+    for (const local of documentRows) {
+      if (isLocalOnlyArchiveDocument(local.type, local.key)) {
+        if (local.dirty || local.conflict) documents.put({ ...local, dirty: false, conflict: false });
+        // This cache has no authoritative cloud revision; retire every legacy
+        // conflict row for it, regardless of the stale server-side revision.
+        resolvedRevisionByDocument.set(local.id, Number.MAX_SAFE_INTEGER);
+        continue;
+      }
+      const candidates = conflictRows.filter(row => row.documentId === local.id && row.remote);
+      if (!candidates.length) continue;
+      const matching = candidates.filter(row => {
+        const remote = row.remote;
+        const type = remote.document_type || local.type;
+        const key = remote.document_key || local.key;
+        return type === local.type && key === local.key &&
+          areEquivalentArchiveDocuments(type, key, local.payload, remote.document_payload);
+      });
+      if (!matching.length) continue;
+
+      const latest = matching.reduce((best, row) =>
+        Number(row.remote.revision || 0) > Number(best.remote.revision || 0) ? row : best);
+      const remote = latest.remote;
+      const revision = Number(remote.revision) || 0;
+      if (revision < Number(local.cloudRevision || 0)) continue;
+
+      documents.put({
+        ...local,
+        cloudRevision: revision,
+        baseRevision: revision,
+        documentSeq: Number(remote.document_seq) || local.documentSeq || 0,
+        deviceId: remote.device_id || local.deviceId || null,
+        dirty: false,
+        conflict: false,
+        syncedAt: nowIso(),
+      });
+      resolvedRevisionByDocument.set(local.id, revision);
+    }
+
+    const unresolved = [];
+    for (const row of conflictRows) {
+      const resolvedRevision = resolvedRevisionByDocument.get(row.documentId);
+      const remoteRevision = Number(row.remote?.revision) || 0;
+      if (resolvedRevision !== undefined && remoteRevision <= resolvedRevision) {
+        conflicts.delete(row.id);
+      } else {
+        unresolved.push(row);
+      }
+    }
+    return unresolved.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+  });
 }
 export async function resolveArchiveConflict(conflictId, choice) {
   if (!["local", "remote"].includes(choice)) throw new TypeError("冲突解决方式无效。");
@@ -630,7 +760,8 @@ export async function getArchiveStatus() {
   return {
     indexedDbAvailable: isIndexedDbAvailable(), deviceId: device?.id || null,
     documents: documents.length, pendingEvents, eventRecords,
-    pendingDocuments: documents.filter(item => item.dirty && !item.conflict).length,
+    pendingDocuments: documents.filter(item =>
+      item.dirty && !item.conflict && !isLocalOnlyArchiveDocument(item.type, item.key)).length,
     conflicts: conflicts.length, lastSyncAt: lastSyncAt || null,
     lastRestoreAt: lastRestoreAt || null, lastSyncError: lastSyncError || null,
   };

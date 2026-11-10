@@ -6,7 +6,7 @@ from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 root = Path(__file__).resolve().parents[1]
 project = root / "knowledge/monorepo/fullstack/project"
 output = root / "knowledge/monorepo/fullstack/fullstack-project.zip"
-excluded = {"node_modules", ".git", ".expo", "android", "ios"}
+excluded = {"node_modules", ".git", ".expo", ".turbo", ".cache", "dist", "build", "coverage", "android", "ios"}
 files = sorted(
     path for path in project.rglob("*")
     if path.is_file() and not any(part in excluded for part in path.relative_to(project).parts)

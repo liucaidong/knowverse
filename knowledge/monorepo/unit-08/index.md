@@ -1,6 +1,7 @@
 # 08 · 工具选型：pnpm、Turbo、Nx、Rush
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## 我们不做没有前提的冠军榜
 
@@ -37,3 +38,11 @@ Nx 24 的 task-based affected 默认策略与旧版的 project-based affected �
 ## 诊断题
 
 团队迁移 Rush 三个月后发布错误减少但日常开发变慢，你要看哪些数据才能判断继续还是回退？
+
+
+## 官方资料与规范
+
+- [pnpm Workspaces](https://pnpm.io/workspaces)
+- [Turborepo Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
+- [Nx 24 Release Notes](https://nx.dev/blog/nx-24-release)
+- [Rush Files and Folders](https://rushjs.io/pages/advanced/rush_files_and_folders/)

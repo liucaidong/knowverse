@@ -1,6 +1,7 @@
 # 09 · React + React Native + NestJS 的跨端边界
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## 跨端最容易犯的错：把 TypeScript 等同于可移植性
 
@@ -41,3 +42,10 @@ Nest CLI 自身有标准/Monorepo 两种组织模式，但与 pnpm Workspace 或
 ## 诊断题
 
 跨端类型库里有一个 `import type` 指向 `@nestjs/common`，虽然 TS 可以擦除类型导入，但这条依赖是否真的没有成本？为什么？
+
+
+## 官方资料与规范
+
+- [Metro Package Exports](https://metrobundler.dev/docs/package-exports/)
+- [Metro Module Resolution](https://metrobundler.dev/docs/resolution/)
+- [NestJS CLI Monorepo Mode](https://docs.nestjs.com/cli/monorepo)

@@ -65,3 +65,9 @@ flowchart TD
 ## 完成专题的判定
 
 掌握 Promise 不止是能够背出四种组合 API：你应能把任意故障拆成“触发、对象、结果、解决权、reaction、微任务、底层操作”七个维度，知道什么由语言保证，什么必须交给宿主或业务来保证。至此再去学习复杂 3D Promise 解谜世界，才能明确何处是知识机制、何处是为了游戏体验的可视化隐喻。
+
+## 延伸参考
+
+- [MDN · AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController)
+- [MDN · Using Fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
+- [ECMAScript 2026 · Promise.all](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise.all)

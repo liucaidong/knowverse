@@ -36,3 +36,11 @@ Bridgeless 表示 New Architecture 不再依赖旧 Bridge 作为 JS 与 Native �
 - [About the New Architecture](https://reactnative.dev/architecture/landing-page)
 - [Fabric](https://reactnative.dev/architecture/fabric-renderer)
 - [React Native Glossary](https://reactnative.dev/architecture/glossary)
+
+
+## v0.88.1 源码走读
+
+阅读 jsi.h 时重点标注 Runtime、Value、Object、Function、HostObject、HostFunction 与 PropNameID 的所有权和调用边界。JSI 是抽象接口；具体 Runtime 实现、线程约束和异步语义需要继续向调用方追踪。
+
+- [JSI 核心接口定义](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/jsi/jsi/jsi.h)
+- [JSI 核心实现](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/jsi/jsi/jsi.cpp)

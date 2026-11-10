@@ -11,14 +11,14 @@ async function fetchWithTimeout(url, ms = 3000) {
   try {
     const response = await fetch(url, { signal: controller.signal });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return response.json();
+    return await response.json();
   } finally {
     clearTimeout(timer);
   }
 }
 ```
 
-`AbortController` 能否真的中止操作由具体 API 决定；它不是 `Promise.cancel()`。`Promise.race` 只裁定外层命运，不负责释放底层资源。
+`AbortController` 能否真的中止操作由具体 API 决定；它不是 `Promise.cancel()`。`Promise.race` 只裁定外层命运，不负责释放底层资源。这里刻意使用 `return await response.json()`：如果直接 `return response.json()`，`finally` 会在响应体解析 Promise 完成前执行，计时器就会提前清理；`return await` 让 `finally` 等待 body 解析完成后再清理。
 
 ## 顺序、重试与有界并发
 
@@ -53,3 +53,9 @@ function readLegacy(cbApi) {
 ## “未处理拒绝”的边界
 
 `unhandledrejection`（浏览器）与 Node 的 unhandled rejection 机制属于宿主行为。生产程序不应依赖全局监听器替代每条业务链的显式失败处理；还应避免创建未被消费的 fire-and-forget Promise。
+
+## 延伸参考
+
+- [MDN · AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController)
+- [MDN · Using Fetch](https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API/Using_Fetch)
+- [ECMAScript 2026 · Promise.race](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise.race)

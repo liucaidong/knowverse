@@ -1,7 +1,7 @@
 # KNOWVERSE 第三个完整知识领域：React Native 新架构
 
-实施基线：2026-11-01
-版本语境：React Native 0.88
+实施基线：2026-11-10
+版本语境：React Native v0.88.1
 产品边界：沿用三条体验主线和统一 Learning Intelligence，不新增第四条主线。
 
 ## 建设结果
@@ -37,11 +37,11 @@ rn-build-artifacts
 
 ## 当前版本基线与纠错
 
-- React Native 0.88 于 2026-10-19 发布，是本轮内容版本基线。
+- React Native 0.88.0 于 2026-10-19 发布；课程源码固定到 v0.88.1 tag。
 - RN 0.82 起为 New Architecture only；不要把 Legacy Architecture 写成现代项目的并列默认选项。
 - RN 0.84 将 Hermes V1 设为默认。
 - RN 0.87 将 Strict TypeScript API 设为默认 JavaScript API。
-- RN 0.88 引入 Web-based Event Dispatching 默认路径及 iOS SceneDelegate 支持等变化。
+- RN 0.88.0 引入 Web-based Event Dispatching 默认路径、iOS SceneDelegate 支持及 Java TurboModule ArrayBuffer；0.88.1 补齐 JSI RuntimeDecorator 转发并修复 Yoga flex-shrink 浮点残差。
 
 版本信息会继续演进；课程保留官方资料链接，发布更新时需要重新核对。
 
@@ -65,3 +65,8 @@ rn-build-artifacts
 - https://reactnative.dev/docs/the-new-architecture/what-is-codegen
 - https://reactnative.dev/docs/turbo-native-modules-introduction
 - https://reactnative.dev/docs/hermes
+
+
+## v0.88.1 源码基线
+
+七章课程均提供固定到 `react/react-native@v0.88.1` 的源码入口；重点覆盖 JSI、TurboModules / Codegen、Fabric ShadowTree / MountingCoordinator、Scheduler、EventTarget 与 Android ArrayBuffer。版本升级时先核对官方 Release Overview，再更新 tag 与源码路径。

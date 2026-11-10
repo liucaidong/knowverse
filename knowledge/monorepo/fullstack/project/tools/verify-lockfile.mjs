@@ -18,5 +18,5 @@ assert.match(projectDoc, /^  react-native@/m, 'Expected React Native package res
 assert.match(projectDoc, /^  '@nestjs\/common@/m, 'Expected NestJS resolution in project document');
 const lock = raw.match(/lockfileVersion:\s*['"]?([^'"\s]+)/)?.[1];
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url),'utf8'));
-assert.equal(pkg.packageManager, 'pnpm@12.16.1');
+assert.equal(pkg.packageManager, 'pnpm@12.17.0');
 console.log(`pnpm lockfile v${lock} contains all five workspace importers`);

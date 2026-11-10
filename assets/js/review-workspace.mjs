@@ -120,6 +120,18 @@ function renderSession() {
   $("session-variant").textContent = session.variantId.toUpperCase();
   $("question-topic").textContent = (session.topicId || "KNOWLEDGE").toUpperCase();
   $("question-progress").textContent = session.targetGapId ? "TARGETED GAP REVIEW" : "INDEPENDENT CHECK";
+  const difficultyLabels = { foundation: "基础", intermediate: "进阶", stretch: "挑战" };
+  const difficulty = $("question-difficulty");
+  difficulty.hidden = !session.difficulty;
+  difficulty.textContent = session.difficulty ? "难度 · " + (difficultyLabels[session.difficulty] || session.difficulty) : "";
+  const source = $("question-source");
+  source.replaceChildren();
+  source.hidden = !session.sourceHref;
+  if (!source.hidden) {
+    const link = el("a", "", (session.sourceLabel || "课程来源") + " ↗");
+    link.href = new URL(session.sourceHref, root).href;
+    source.append(link);
+  }
   $("question-title").textContent = session.title;
   $("question-prompt").textContent = session.prompt;
   const code = $("question-code");

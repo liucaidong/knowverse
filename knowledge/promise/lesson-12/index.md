@@ -46,3 +46,9 @@ queueMicrotask(() => console.log('microtask'));
 - [MDN microtask guide](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide)
 
 **实践建议**：浏览器演示使用 `queueMicrotask` + Promise；涉及 `nextTick` 时使用独立 `.cjs` / `.mjs` 文件实验并明确运行环境。
+
+## 延伸参考
+
+- [HTML Standard · Event loops](https://html.spec.whatwg.org/multipage/webappapis.html#event-loops)
+- [Node.js · queueMicrotask() vs process.nextTick()](https://nodejs.org/api/process.html#when-to-use-queuemicrotask-vs-processnexttick)
+- [MDN · Microtask guide](https://developer.mozilla.org/en-US/docs/Web/API/HTML_DOM_API/Microtask_guide)

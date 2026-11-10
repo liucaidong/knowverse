@@ -36,3 +36,12 @@ flowchart TD
 ## 官方资料
 - [Fabric](https://reactnative.dev/architecture/fabric-renderer)
 - [Render, Commit, and Mount](https://reactnative.dev/architecture/render-pipeline)
+
+
+## v0.88.1 源码走读
+
+在 ShadowTree.cpp 中追踪 revision、commit、layout 与 mounting coordinator 的交接；再看 MountingCoordinator 如何准备 mutations。教学图中的 Render / Commit / Mount 是逻辑阶段，不应误读为每个函数都在单一线程同步串行执行。
+
+- [ShadowTree 定义](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/mounting/ShadowTree.h)
+- [ShadowTree 更新与提交实现](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/mounting/ShadowTree.cpp)
+- [MountingCoordinator](https://github.com/react/react-native/blob/v0.88.1/packages/react-native/ReactCommon/react/renderer/mounting/MountingCoordinator.cpp)

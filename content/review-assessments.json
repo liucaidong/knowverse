@@ -27,9 +27,13 @@
       "answer": "b",
       "hints": [
         "把“读取 then 属性”与“调用读取到的函数”分开。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "沿着 Promise.resolve 的同步调用栈追踪：它需要先取得 then 属性，之后才有条件安排调用 then 的 Job。"
       ],
-      "explanation": "Get(then) 同步发生；then 函数调用由后续 PromiseResolveThenableJob 执行。"
+      "explanation": "Get(then) 同步发生；then 函数调用由后续 PromiseResolveThenableJob 执行。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 03 单元"
     },
     {
       "id": "review-thenable-get-vs-call-b",
@@ -55,9 +59,13 @@
       "answer": "b",
       "hints": [
         "getter 属于属性读取阶段；函数调用才被安排到 Job。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "把三个可观察点分开标记：调用 Promise.resolve 前、读取 getter 时、ThenableJob 真正调用函数时。"
       ],
-      "explanation": "正确顺序是 start、get、end、call。"
+      "explanation": "输出顺序为 start、get、end、call。Promise.resolve 同步读取 then getter；取出的函数由后续 PromiseResolveThenableJob 调用。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 03 单元"
     },
     {
       "id": "review-resolved-vs-settled-a",
@@ -83,9 +91,13 @@
       "answer": "b",
       "hints": [
         "resolved 描述解决过程被锁定；settled 描述最终兑现或拒绝。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "画出 outer → inner 的采用关系；只要 inner 还 pending，outer 就不能报告最终兑现或拒绝。"
       ],
-      "explanation": "outer 需要采用 inner；inner pending 时 outer 也保持 pending。"
+      "explanation": "outer 需要采用 inner；inner pending 时 outer 也保持 pending。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-01",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 01 单元"
     },
     {
       "id": "review-resolved-vs-settled-b",
@@ -111,9 +123,13 @@
       "answer": "b",
       "hints": [
         "检查 inner 的状态，不要把 resolve 被调用误当作 outer 落定。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "检查 outer 的 fulfillment reaction 依赖什么：它依赖 inner 最终兑现，而不是 resolve(inner) 这一调用本身。"
       ],
-      "explanation": "outer 会等待 inner 的最终状态，sync-end 先执行。"
+      "explanation": "outer 会等待 inner 的最终状态，sync-end 先执行。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-01",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 01 单元"
     },
     {
       "id": "review-thenable-job-timing-a",
@@ -139,9 +155,13 @@
       "answer": "b",
       "hints": [
         "将 getter 的 Get 操作和随后调用 then 函数的 Job 分开。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "题目问的是取出的 then 函数何时被调用，不是 then 属性何时被读取；对应规范中的 ThenableJob。"
       ],
-      "explanation": "then 函数调用通过 PromiseResolveThenableJob 排队，不是当前同步调用栈中的直接调用。"
+      "explanation": "then 函数调用通过 PromiseResolveThenableJob 排队，不是当前同步调用栈中的直接调用。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 03 单元"
     },
     {
       "id": "review-thenable-job-timing-b",
@@ -167,9 +187,13 @@
       "answer": "b",
       "hints": [
         "按任务实际入队先后推导，不要按 API 名称猜优先级。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "按入队时间排序：Promise.resolve 处理 thenable 时先安排 ThenableJob，随后才执行 queueMicrotask 注册。"
       ],
-      "explanation": "ThenableJob 在 queueMicrotask 调用前已被安排，因此先执行。"
+      "explanation": "ThenableJob 在 queueMicrotask 调用前已被安排，因此先执行。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 03 单元"
     },
     {
       "id": "review-getter-sync-a",
@@ -180,7 +204,7 @@
       ],
       "title": "then Getter：同步读取与异常",
       "prompt": "thenable 的 then getter 抛出异常时，Promise.resolve 会怎样？",
-      "code": "const t = { get then() { console.log('get'); throw Error('getter'); } }; const p = Promise.resolve(t); console.log('after');",
+      "code": "const t = { get then() { console.log('get'); throw Error('getter'); } }; const p = Promise.resolve(t); console.log('after'); p.catch(() => console.log('rejected'));",
       "options": [
         {
           "id": "a",
@@ -195,9 +219,13 @@
       "answer": "b",
       "hints": [
         "区分 getter 的同步执行与 Promise 对外暴露拒绝结果的方式。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "沿异常路径区分两个阶段：getter 的执行是同步的，但 Promise.resolve 会把读取失败表现为返回 Promise 的拒绝。"
       ],
-      "explanation": "Get(then) 在同步解析流程中执行；读取过程的 abrupt completion 会拒绝该 Promise。"
+      "explanation": "输出顺序为 get、after、rejected。getter 在 Promise.resolve 的同步解析流程中读取；其异常转为 p 的拒绝，catch reaction 随后执行。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-14/",
+      "sourceLabel": "课程来源 · 第 03 单元"
     },
     {
       "id": "review-getter-sync-b",
@@ -223,9 +251,13 @@
       "answer": "b",
       "hints": [
         "属性访问器在访问时执行；不要把它与 then 函数调用混在一起。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "把 getter 日志放在 Promise.resolve 调用点，把 then-call 放进后续 Job，再插入同步日志比较位置。"
       ],
-      "explanation": "then getter 同步输出，then-call 由后续 ThenableJob 输出。"
+      "explanation": "then getter 同步输出，then-call 由后续 ThenableJob 输出。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-14/",
+      "sourceLabel": "课程来源 · 第 03 单元"
     },
     {
       "id": "review-reaction-registration-timing-a",
@@ -251,9 +283,13 @@
       "answer": "b",
       "hints": [
         "区分注册 reaction 和执行 reaction 的时机。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "fulfilled 只表示源 Promise 已落定；then 注册的处理器仍须等对应的 PromiseReactionJob 执行。"
       ],
-      "explanation": "then 不同步调用处理器；反应任务在后续微任务检查点执行。"
+      "explanation": "不会。then 会为源 Promise 注册 reaction；即使源 Promise 已 fulfilled，处理器也要等 PromiseReactionJob 执行，因此同步日志先出现。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-02",
+      "sourceHref": "./knowledge/promise/lesson-04/",
+      "sourceLabel": "课程来源 · 第 02 单元"
     },
     {
       "id": "review-reaction-registration-timing-b",
@@ -279,9 +315,13 @@
       "answer": "b",
       "hints": [
         "把同步代码的观察点放在微任务检查点之前。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "在同步代码读取标志位时，检查回调是否已经运行，而不是只检查源 Promise 是否 fulfilled。"
       ],
-      "explanation": "回调稍后执行，因此同步读取 ran 仍是 false。"
+      "explanation": "输出 false。调用 then 只会注册并安排 reaction，不会同步执行回调；当前同步栈读取 flag 时，回调尚未运行。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-02",
+      "sourceHref": "./knowledge/promise/lesson-04/",
+      "sourceLabel": "课程来源 · 第 02 单元"
     },
     {
       "id": "review-microtask-fifo-a",
@@ -307,9 +347,13 @@
       "answer": "b",
       "hints": [
         "按调用先后画出微任务入队顺序。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "不要给 queueMicrotask 和 Promise reaction 人为设置优先级；把两者按实际注册顺序写进同一 FIFO 队列。"
       ],
-      "explanation": "Promise reaction 与 queueMicrotask 回调都遵循同一微任务队列的 FIFO 顺序。"
+      "explanation": "Promise reaction 与 queueMicrotask 回调都遵循同一微任务队列的 FIFO 顺序。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-04",
+      "sourceHref": "./knowledge/promise/lesson-04/",
+      "sourceLabel": "课程来源 · 第 04 单元"
     },
     {
       "id": "review-microtask-fifo-b",
@@ -335,9 +379,13 @@
       "answer": "b",
       "hints": [
         "顺序由谁先入队决定，不由任务类型名称决定。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "逐行确认谁先注册：先注册的 reaction 先入队，后注册的 queueMicrotask 不会插队。"
       ],
-      "explanation": "先入队的 B 执行后，才轮到 A。"
+      "explanation": "B 先于 A。题目中 B 对应的任务先注册并先进入微任务队列；Promise reaction 与 queueMicrotask 回调按队列顺序执行。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-04",
+      "sourceHref": "./knowledge/promise/lesson-04/",
+      "sourceLabel": "课程来源 · 第 04 单元"
     },
     {
       "id": "review-nested-microtask-a",
@@ -363,9 +411,13 @@
       "answer": "b",
       "hints": [
         "C 要等 A 开始执行才会入队；此时 B 已经排队。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "A 执行时才注册 C；此时 B 已经在队列中，所以 C 被追加到 B 后面。"
       ],
-      "explanation": "当前回调内新增的微任务追加到队列尾部，已排队的 B 先于 C。"
+      "explanation": "顺序为 A、B、C。A 执行时才把 C 追加到队尾，而 B 已经排在队列中，所以 B 先于 C。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-04",
+      "sourceHref": "./knowledge/promise/lesson-04/",
+      "sourceLabel": "课程来源 · 第 04 单元"
     },
     {
       "id": "review-nested-microtask-b",
@@ -391,9 +443,13 @@
       "answer": "b",
       "hints": [
         "初始队列是 A、B、D；C 只在 A 运行时才加入。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "先写出初始队列，再模拟每个任务执行时追加的新任务；每次只从队首取一个。"
       ],
-      "explanation": "C 被追加到既有任务之后，所以最后输出。"
+      "explanation": "顺序为 A、B、D、C。A 执行时 C 被追加到已有任务 B、D 之后；队列不会因任务嵌套而插队。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-04",
+      "sourceHref": "./knowledge/promise/lesson-04/",
+      "sourceLabel": "课程来源 · 第 04 单元"
     },
     {
       "id": "review-then-rejection-boundary-a",
@@ -419,9 +475,13 @@
       "answer": "b",
       "hints": [
         "onRejected 处理的是源 Promise 的拒绝，不是同一 then 的成功处理器异常。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "then 的第二个参数只处理源 Promise 的拒绝；第一个处理器运行时抛出的异常属于下游 Promise。"
       ],
-      "explanation": "成功处理器抛错会拒绝下游 Promise；后续 catch 才处理它。"
+      "explanation": "成功处理器抛错会拒绝下游 Promise；后续 catch 才处理它。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-05",
+      "sourceHref": "./knowledge/promise/lesson-05/",
+      "sourceLabel": "课程来源 · 第 05 单元"
     },
     {
       "id": "review-then-rejection-boundary-b",
@@ -447,9 +507,13 @@
       "answer": "b",
       "hints": [
         "这次 onRejected 接收的是源 Promise 的拒绝原因。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "先判断源 Promise 的状态，再决定 then 的哪个处理器被调用；fulfilled/rejected 不会同时调用两个处理器。"
       ],
-      "explanation": "onRejected 负责处理源 Promise 的拒绝。"
+      "explanation": "结果为 rejected。源 Promise 已拒绝，因此 then 的第二个参数处理该拒绝；第一个 onFulfilled 不会执行。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-05",
+      "sourceHref": "./knowledge/promise/lesson-05/",
+      "sourceLabel": "课程来源 · 第 05 单元"
     },
     {
       "id": "review-chain-state-recovery-a",
@@ -475,9 +539,13 @@
       "answer": "b",
       "hints": [
         "单个 Promise 状态不可逆；catch 通过返回的新 Promise 恢复下游链。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "分别标记 source 与 next：catch 不会改写 source 的状态，它的返回值决定 next 的状态和值。"
       ],
-      "explanation": "source 状态不变，catch 的返回值决定新 Promise 的结果。"
+      "explanation": "source 状态不变，catch 的返回值决定新 Promise 的结果。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-06",
+      "sourceHref": "./knowledge/promise/lesson-05/",
+      "sourceLabel": "课程来源 · 第 06 单元"
     },
     {
       "id": "review-chain-state-recovery-b",
@@ -503,9 +571,13 @@
       "answer": "b",
       "hints": [
         "catch 不保证成功；它返回的新 Promise 仍遵守解析流程。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "catch 本身也是 then 链的一环；如果它抛出异常，catch 返回的新 Promise 会再次拒绝。"
       ],
-      "explanation": "catch 回调抛错会拒绝它返回的新 Promise。"
+      "explanation": "下游 Promise 再次 rejected。catch 处理器抛出的异常会拒绝 catch 返回的新 Promise，后续 catch 可以捕获该异常。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-06",
+      "sourceHref": "./knowledge/promise/lesson-05/",
+      "sourceLabel": "课程来源 · 第 06 单元"
     },
     {
       "id": "review-then-new-promise-a",
@@ -531,9 +603,13 @@
       "answer": "b",
       "hints": [
         "区分源 Promise 与每一次 then 返回的下游 Promise。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "关注 then 的返回值：它是一个新的 Promise capability，而不是原 Promise 的别名。"
       ],
-      "explanation": "a 与 b 是两个不同的新 Promise。"
+      "explanation": "不会。每次调用 then 都会返回一个新的 Promise；源 Promise 保存 reaction，链式结果由新 Promise 表示。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-05",
+      "sourceHref": "./knowledge/promise/lesson-05/",
+      "sourceLabel": "课程来源 · 第 05 单元"
     },
     {
       "id": "review-then-new-promise-b",
@@ -544,7 +620,7 @@
       ],
       "title": "then 返回值：采用处理器结果",
       "prompt": "处理器返回另一个 Promise 时，下游 Promise 会怎样？",
-      "code": "const inner = Promise.resolve(42); const next = Promise.resolve(1).then(() => inner);",
+      "code": "const inner = Promise.resolve(42); const next = Promise.resolve(1).then(() => inner); console.log(next === inner); // false",
       "options": [
         {
           "id": "a",
@@ -559,9 +635,13 @@
       "answer": "b",
       "hints": [
         "区分对象身份与 Promise Resolution Procedure 的采用行为。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "处理器返回 inner 后，比较“对象身份”和“采用其最终状态”这两个不同概念。"
       ],
-      "explanation": "下游 Promise 会采用 inner，但对象身份不会因此合并。"
+      "explanation": "输出 false。then 创建新的 next Promise；next 采用处理器返回的 inner 的最终状态与结果，但对象身份不相同。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-05",
+      "sourceHref": "./knowledge/promise/lesson-05/",
+      "sourceLabel": "课程来源 · 第 05 单元"
     },
     {
       "id": "review-all-race-order-a",
@@ -572,7 +652,7 @@
       ],
       "title": "all 输入顺序与 race 先落定",
       "prompt": "slow 是数组第一项，fast 先兑现。all 与 race 的结果是什么？",
-      "code": "const slow = new Promise(r => setTimeout(() => r('slow'), 20)); const fast = Promise.resolve('fast'); Promise.all([slow, fast]); Promise.race([slow, fast]);",
+      "code": "const slow = new Promise(r => setTimeout(() => r('slow'), 20)); const fast = Promise.resolve('fast'); Promise.all([slow, fast]).then(values => console.log('all', values)); Promise.race([slow, fast]).then(value => console.log('race', value));",
       "options": [
         {
           "id": "a",
@@ -587,9 +667,13 @@
       "answer": "b",
       "hints": [
         "all 结果位置看输入索引；race 看最先落定。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "对 all 记录输入索引，对 race 记录最先落定的输入；这两种规则不要混成一个排序。"
       ],
-      "explanation": "all 等待全部兑现且保持输入顺序；race 由 fast 先落定。"
+      "explanation": "race 先输出 fast；定时器兑现 slow 后，all 才输出 ['slow', 'fast']。all 的数组顺序按输入索引，race 的结果按最先落定者决定。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-09",
+      "sourceHref": "./knowledge/promise/lesson-08/",
+      "sourceLabel": "课程来源 · 第 09 单元"
     },
     {
       "id": "review-all-race-order-b",
@@ -615,9 +699,13 @@
       "answer": "b",
       "hints": [
         "all 收集结果时使用输入位置索引，而不是完成时间。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "即使 B 先完成，all 的结果槽位仍由 B 的原始输入索引决定。"
       ],
-      "explanation": "Promise.all 的结果顺序与兑现顺序无关。"
+      "explanation": "不会。Promise.all 为每个输入保留对应索引；B 即使先完成，也写入第二个结果位置，最终仍是 A、B。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-09",
+      "sourceHref": "./knowledge/promise/lesson-08/",
+      "sourceLabel": "课程来源 · 第 09 单元"
     },
     {
       "id": "review-all-waits-all-a",
@@ -628,7 +716,7 @@
       ],
       "title": "Promise.all 的全部成功条件",
       "prompt": "Promise.all 中一项很快 fulfilled，另一项仍 pending。组合 Promise 会 fulfilled 吗？",
-      "code": "const slow = new Promise(resolve => setTimeout(() => resolve('slow'), 100)); Promise.all([Promise.resolve('fast'), slow]);",
+      "code": "const slow = new Promise(resolve => setTimeout(() => resolve('slow'), 100)); Promise.all([Promise.resolve('fast'), slow]).then(values => console.log(values));",
       "options": [
         {
           "id": "a",
@@ -643,9 +731,13 @@
       "answer": "b",
       "hints": [
         "all 的成功条件是全部输入成功，而不是任一输入成功。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "判断组合 Promise 的 fulfilled 条件：每个输入都必须兑现，单个成功不足以满足条件。"
       ],
-      "explanation": "Promise.all 会等待 slow 完成后才交付结果数组。"
+      "explanation": "不会立即 fulfilled。fast 已兑现但 slow 仍 pending；只有 slow 也兑现后，all 才输出 ['fast', 'slow']。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-08",
+      "sourceHref": "./knowledge/promise/lesson-08/",
+      "sourceLabel": "课程来源 · 第 08 单元"
     },
     {
       "id": "review-all-waits-all-b",
@@ -656,7 +748,7 @@
       ],
       "title": "Promise.all：拒绝的快速路径",
       "prompt": "输入中一项 rejected，all 是否还必须等待其它所有项 settled 才能 rejected？",
-      "code": "Promise.all([Promise.reject('bad'), new Promise(r => setTimeout(r, 1000))]);",
+      "code": "const slow = new Promise(resolve => setTimeout(() => { console.log('slow settled'); resolve(1); }, 100)); Promise.all([Promise.reject('bad'), slow]).catch(reason => console.log('all rejected', reason));",
       "options": [
         {
           "id": "a",
@@ -671,9 +763,13 @@
       "answer": "b",
       "hints": [
         "区分全部成功条件与 fail-fast 拒绝路径。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "区分 all 的成功条件与拒绝条件：任一输入拒绝即可使组合 Promise 拒绝，不必等待其他输入落定。"
       ],
-      "explanation": "all 的 fulfilled 需要全部成功；rejected 则不必等其它输入。"
+      "explanation": "all 会在观察到 bad 拒绝后先输出 all rejected，不必等 slow；但 slow 的底层定时器仍会继续执行并输出 slow settled。",
+      "difficulty": "intermediate",
+      "lessonId": "lesson-08",
+      "sourceHref": "./knowledge/promise/lesson-08/",
+      "sourceLabel": "课程来源 · 第 08 单元"
     },
     {
       "id": "review-all-no-cancel-a",
@@ -684,7 +780,7 @@
       ],
       "title": "Promise.all 不会取消底层任务",
       "prompt": "Promise.all 中一项 rejected，其他请求会自动停止吗？",
-      "code": "const a = fetch('/slow'); const b = fetch('/bad'); await Promise.all([a,b]);",
+      "code": "const slow = new Promise(resolve => setTimeout(() => { console.log('slow still running'); resolve('done'); }, 100)); const failed = Promise.reject(new Error('fast failure')); Promise.all([slow, failed]).catch(error => console.log('combined rejected', error.message));",
       "options": [
         {
           "id": "a",
@@ -699,9 +795,13 @@
       "answer": "b",
       "hints": [
         "Promise 组合层与网络请求/任务本身是两个不同层次。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "把组合 Promise 的状态与底层操作的生命周期分开；拒绝结果不会自动调用网络请求的取消接口。"
       ],
-      "explanation": "Promise.all 不自带取消协议；需要底层 API 支持取消。"
+      "explanation": "组合 Promise 先输出 combined rejected；随后 slow 仍输出 slow still running。Promise.all 不会自动取消底层操作。",
+      "difficulty": "foundation",
+      "lessonId": "lesson-13",
+      "sourceHref": "./knowledge/promise/lesson-08/",
+      "sourceLabel": "课程来源 · 第 13 单元"
     },
     {
       "id": "review-all-no-cancel-b",
@@ -712,7 +812,7 @@
       ],
       "title": "显式取消：AbortController",
       "prompt": "希望在一个请求失败后中止另一个 fetch，应该依赖什么？",
-      "code": "const controller = new AbortController(); fetch('/slow', { signal: controller.signal });",
+      "code": "const controller = new AbortController(); const requests = ['/slow', '/possibly-failing'].map(url => fetch(url, { signal: controller.signal }).then(response => { if (!response.ok) throw new Error('HTTP ' + response.status); return response; })); Promise.all(requests).catch(error => { controller.abort(); console.error('aborted remaining requests', error); });",
       "options": [
         {
           "id": "a",
@@ -727,9 +827,13 @@
       "answer": "b",
       "hints": [
         "race 只决定组合结果；AbortSignal 才会通知 fetch 取消。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "确认 signal 确实传给每个 fetch，并在失败分支调用 abort；race 只负责竞争结果，不负责取消。"
       ],
-      "explanation": "使用 AbortController/AbortSignal 发出取消信号。"
+      "explanation": "两个请求共享同一个 AbortSignal；当一个请求因网络错误或非成功 HTTP 状态拒绝时，catch 显式调用 abort()，向仍在进行的请求发出取消信号。具体能否及时停止仍取决于 API 的取消支持。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-13",
+      "sourceHref": "./knowledge/promise/lesson-08/",
+      "sourceLabel": "课程来源 · 第 13 单元"
     },
     {
       "id": "review-adoption-timeline-a",
@@ -740,7 +844,7 @@
       ],
       "title": "Promise 采用时序：inner 先兑现",
       "prompt": "outer 采用 inner 后，inner 兑现前 outer.then 会执行吗？",
-      "code": "let finish; const inner = new Promise(r => finish = r); const outer = Promise.resolve({ then(resolve) { resolve(inner); } }); outer.then(() => console.log('outer'));",
+      "code": "let finish; const inner = new Promise(r => finish = r); const outer = Promise.resolve({ then(resolve) { resolve(inner); } }); outer.then(() => console.log('outer')); setTimeout(() => finish(1), 0); console.log('sync end');",
       "options": [
         {
           "id": "a",
@@ -755,9 +859,13 @@
       "answer": "b",
       "hints": [
         "把 thenable Job、inner 状态变化与 outer reaction 分成不同时间点。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "沿 outer 采用 inner 的链路追踪状态；ThenableJob 调用 resolve(inner) 并不等于 inner 已兑现。"
       ],
-      "explanation": "inner 兑现后，采用传播完成，outer 才能触发 fulfillment reaction。"
+      "explanation": "sync end 先输出；thenable Job 调用 resolve(inner) 后，outer 继续采用 pending inner。定时器兑现 inner 后，outer 才能兑现并运行 outer reaction。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-14",
+      "sourceHref": "./knowledge/promise/lesson-14/",
+      "sourceLabel": "课程来源 · 第 14 单元"
     },
     {
       "id": "review-adoption-timeline-b",
@@ -783,9 +891,13 @@
       "answer": "b",
       "hints": [
         "resolved-but-pending 仍然 pending；reaction 不会跳过采用过程。",
-        "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
+        "reaction 依附于 outer 的最终兑现结果；outer 采用 inner 时，必须继续等待 inner 的状态。"
       ],
-      "explanation": "waiting 先同步输出，done 要等 inner 兑现并完成传播后才执行。"
+      "explanation": "waiting 先同步输出，done 要等 inner 兑现并完成传播后才执行。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-14",
+      "sourceHref": "./knowledge/promise/lesson-14/",
+      "sourceLabel": "课程来源 · 第 14 单元"
     },
     {
       "id": "review-workspace-protocol-a",
@@ -813,7 +925,10 @@
         "用协议表达仓库内依赖，消费者仍显式声明直接依赖。",
         "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
       ],
-      "explanation": "workspace:* 明确工作区边界并避免意外解析 registry 版本。"
+      "explanation": "workspace:* 明确工作区边界并避免意外解析 registry 版本。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/monorepo/chapter-01/",
+      "sourceLabel": "TypeScript · Monorepo · Chapter 01"
     },
     {
       "id": "review-workspace-protocol-b",
@@ -841,7 +956,10 @@
         "依赖关系应属于真实消费者，不依赖 hoisting 或幽灵依赖。",
         "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
       ],
-      "explanation": "直接 import 的包必须由消费者 package.json 声明。"
+      "explanation": "直接 import 的包必须由消费者 package.json 声明。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/monorepo/chapter-01/",
+      "sourceLabel": "TypeScript · Monorepo · Chapter 01"
     },
     {
       "id": "review-build-dependency-order-a",
@@ -869,7 +987,10 @@
         "构建必须遵守 provider 先于 consumer 的依赖约束。",
         "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
       ],
-      "explanation": "utils 是最底层依赖，domain 和 web 依次等待上游。"
+      "explanation": "utils 是最底层依赖，domain 和 web 依次等待上游。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/monorepo/chapter-02/",
+      "sourceLabel": "TypeScript · Monorepo · Chapter 02"
     },
     {
       "id": "review-build-dependency-order-b",
@@ -897,7 +1018,10 @@
         "拓扑排序限制依赖路径，不限制无关节点并行。",
         "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
       ],
-      "explanation": "互不依赖的 A、B 可同层执行，消费者等待各自上游。"
+      "explanation": "互不依赖的 A、B 可同层执行，消费者等待各自上游。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/monorepo/chapter-02/",
+      "sourceLabel": "TypeScript · Monorepo · Chapter 02"
     },
     {
       "id": "review-affected-reverse-closure-a",
@@ -925,7 +1049,10 @@
         "影响传播方向是依赖边的反向，且需要递归。",
         "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
       ],
-      "explanation": "完整闭包包含变更源和所有直接、间接消费者。"
+      "explanation": "完整闭包包含变更源和所有直接、间接消费者。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/monorepo/unit-06/",
+      "sourceLabel": "TypeScript · Monorepo · Unit 06"
     },
     {
       "id": "review-affected-reverse-closure-b",
@@ -953,7 +1080,10 @@
         "每个新增受影响包本身也可能有消费者。",
         "回到题目中的执行边界，按事件发生的先后关系逐项检查。"
       ],
-      "explanation": "affected 必须递归到 B、C、D，并包含 A。"
+      "explanation": "affected 必须递归到 B、C、D，并包含 A。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/monorepo/unit-06/",
+      "sourceLabel": "TypeScript · Monorepo · Unit 06"
     },
     {
       "id": "review-integrated-thenable-job-timing-a",
@@ -981,7 +1111,11 @@
         "先确定 Promise.resolve 读取 then 后安排 Job 的位置。",
         "再看 queueMicrotask 是在 Promise.resolve 返回后才注册。"
       ],
-      "explanation": "ThenableJob 先入队，之后 queueMicrotask 再入队，因此 then-call 先于 micro。"
+      "explanation": "ThenableJob 先入队，之后 queueMicrotask 再入队，因此 then-call 先于 micro。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-14",
+      "sourceHref": "./knowledge/promise/lesson-14/",
+      "sourceLabel": "课程来源 · 第 14 单元"
     },
     {
       "id": "review-integrated-thenable-job-timing-b",
@@ -1009,7 +1143,11 @@
         "Get(then) 是同步属性读取。",
         "调用取出的 then 函数才是后续 Job。"
       ],
-      "explanation": "同步段依次输出 A、get、B；call 由后续 ThenableJob 执行。"
+      "explanation": "同步段依次输出 A、get、B；call 由后续 ThenableJob 执行。",
+      "difficulty": "stretch",
+      "lessonId": "lesson-14",
+      "sourceHref": "./knowledge/promise/lesson-14/",
+      "sourceLabel": "课程来源 · 第 14 单元"
     },
     {
       "id": "review-cache-input-coverage-a",
@@ -1037,7 +1175,10 @@
         "列出所有影响输出的输入。",
         "环境变量也可能是构建函数的输入。"
       ],
-      "explanation": "缓存键应覆盖所有影响产物的输入；PUBLIC_URL 改变必须改变任务指纹。"
+      "explanation": "缓存键应覆盖所有影响产物的输入；PUBLIC_URL 改变必须改变任务指纹。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/monorepo/labs/cache/",
+      "sourceLabel": "TypeScript · Monorepo · Cache 实验"
     },
     {
       "id": "review-cache-input-coverage-b",
@@ -1065,7 +1206,10 @@
         "改变该输入时，产物是否可能改变？",
         "缓存键是任务输入的指纹。"
       ],
-      "explanation": "凡是会改变产物的输入都必须纳入缓存键或等效任务指纹。"
+      "explanation": "凡是会改变产物的输入都必须纳入缓存键或等效任务指纹。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/monorepo/labs/cache/",
+      "sourceLabel": "TypeScript · Monorepo · Cache 实验"
     },
     {
       "id": "review-cache-stale-output-a",
@@ -1093,7 +1237,10 @@
         "区分缓存命中与缓存键完整性。",
         "命中只证明已纳入指纹的输入相同。"
       ],
-      "explanation": "系统无法感知未进入指纹的输入变化，因此 cache hit 不自动保证产物正确。"
+      "explanation": "系统无法感知未进入指纹的输入变化，因此 cache hit 不自动保证产物正确。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/monorepo/labs/cache/",
+      "sourceLabel": "TypeScript · Monorepo · Cache 实验"
     },
     {
       "id": "review-cache-stale-output-b",
@@ -1121,7 +1268,10 @@
         "缓存失效通常是输入建模问题。",
         "清空缓存只是绕过，不会修复错误命中。"
       ],
-      "explanation": "应将影响产物的输入纳入指纹，而不是依赖反复清空缓存。"
+      "explanation": "应将影响产物的输入纳入指纹，而不是依赖反复清空缓存。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/monorepo/labs/cache/",
+      "sourceLabel": "TypeScript · Monorepo · Cache 实验"
     },
     {
       "id": "review-rn-hermes-bytecode-timing-a",
@@ -1153,7 +1303,10 @@
         "把 Hermes 编译放在 Build，而不是将它与 Startup / Runtime 混淆。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "React Native 构建期间会把 JavaScript 编译为 Hermes Bytecode（.hbc）。"
+      "explanation": "React Native 构建期间会把 JavaScript 编译为 Hermes Bytecode（.hbc）。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-01/",
+      "sourceLabel": "React Native · 新架构 · Chapter 01"
     },
     {
       "id": "review-rn-hermes-bytecode-timing-b",
@@ -1186,7 +1339,10 @@
         "把 Hermes 编译放在 Build，而不是将它与 Startup / Runtime 混淆。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "React Native 构建期间会把 JavaScript 编译为 Hermes Bytecode（.hbc）。"
+      "explanation": "React Native 构建期间会把 JavaScript 编译为 Hermes Bytecode（.hbc）。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-01/",
+      "sourceLabel": "React Native · 新架构 · Chapter 01"
     },
     {
       "id": "review-rn-codegen-generated-output-a",
@@ -1218,7 +1374,10 @@
         "区分接口脚手架与开发者实现的原生行为。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Codegen 生成 C++ glue 与平台接口脚手架；业务实现仍需编写。"
+      "explanation": "Codegen 生成 C++ glue 与平台接口脚手架；业务实现仍需编写。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-01/",
+      "sourceLabel": "React Native · 新架构 · Chapter 01"
     },
     {
       "id": "review-rn-codegen-generated-output-b",
@@ -1251,7 +1410,10 @@
         "区分接口脚手架与开发者实现的原生行为。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Codegen 生成 C++ glue 与平台接口脚手架；业务实现仍需编写。"
+      "explanation": "Codegen 生成 C++ glue 与平台接口脚手架；业务实现仍需编写。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-01/",
+      "sourceLabel": "React Native · 新架构 · Chapter 01"
     },
     {
       "id": "review-rn-jsi-bridge-myth-a",
@@ -1283,7 +1445,10 @@
         "把接口层、旧消息通路和调度语义分开。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "JSI 提供 JS Runtime 与 C++ 的接口能力；New Architecture 不依赖旧 Bridge 的核心 JSON 批量消息通路。"
+      "explanation": "JSI 提供 JS Runtime 与 C++ 的接口能力；New Architecture 不依赖旧 Bridge 的核心 JSON 批量消息通路。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-03/",
+      "sourceLabel": "React Native · 新架构 · Chapter 03"
     },
     {
       "id": "review-rn-jsi-bridge-myth-b",
@@ -1316,7 +1481,10 @@
         "把接口层、旧消息通路和调度语义分开。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "JSI 提供 JS Runtime 与 C++ 的接口能力；New Architecture 不依赖旧 Bridge 的核心 JSON 批量消息通路。"
+      "explanation": "JSI 提供 JS Runtime 与 C++ 的接口能力；New Architecture 不依赖旧 Bridge 的核心 JSON 批量消息通路。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-03/",
+      "sourceLabel": "React Native · 新架构 · Chapter 03"
     },
     {
       "id": "review-rn-jsi-zero-copy-myth-a",
@@ -1348,7 +1516,10 @@
         "减少特定序列化，不等于消除所有数据转换。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "不保证；复制与否取决于数据类型、HostObject / HostFunction 和具体实现。"
+      "explanation": "不保证；复制与否取决于数据类型、HostObject / HostFunction 和具体实现。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-03/",
+      "sourceLabel": "React Native · 新架构 · Chapter 03"
     },
     {
       "id": "review-rn-jsi-zero-copy-myth-b",
@@ -1381,7 +1552,10 @@
         "减少特定序列化，不等于消除所有数据转换。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "不保证；复制与否取决于数据类型、HostObject / HostFunction 和具体实现。"
+      "explanation": "不保证；复制与否取决于数据类型、HostObject / HostFunction 和具体实现。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-03/",
+      "sourceLabel": "React Native · 新架构 · Chapter 03"
     },
     {
       "id": "review-rn-turbo-spec-implementation-a",
@@ -1413,7 +1587,10 @@
         "把 API 契约、生成代码和平台实现分为三层。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "类型化 spec、Codegen 生成接口、平台原生实现和 Registry 访问。"
+      "explanation": "类型化 spec、Codegen 生成接口、平台原生实现和 Registry 访问。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-04/",
+      "sourceLabel": "React Native · 新架构 · Chapter 04"
     },
     {
       "id": "review-rn-turbo-spec-implementation-b",
@@ -1446,7 +1623,10 @@
         "把 API 契约、生成代码和平台实现分为三层。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "类型化 spec、Codegen 生成接口、平台原生实现和 Registry 访问。"
+      "explanation": "类型化 spec、Codegen 生成接口、平台原生实现和 Registry 访问。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-04/",
+      "sourceLabel": "React Native · 新架构 · Chapter 04"
     },
     {
       "id": "review-rn-turbo-lazy-init-a",
@@ -1478,7 +1658,10 @@
         "注册、查找和创建实例是不同生命周期动作。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "接口可注册和查找，模块实例可按需初始化。"
+      "explanation": "接口可注册和查找，模块实例可按需初始化。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-04/",
+      "sourceLabel": "React Native · 新架构 · Chapter 04"
     },
     {
       "id": "review-rn-turbo-lazy-init-b",
@@ -1511,7 +1694,10 @@
         "注册、查找和创建实例是不同生命周期动作。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "接口可注册和查找，模块实例可按需初始化。"
+      "explanation": "接口可注册和查找，模块实例可按需初始化。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-04/",
+      "sourceLabel": "React Native · 新架构 · Chapter 04"
     },
     {
       "id": "review-rn-render-commit-mount-a",
@@ -1543,7 +1729,10 @@
         "从 Shadow Tree、布局提交和平台视图更新三个动作推导。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Render → Commit → Mount。"
+      "explanation": "Render → Commit → Mount。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-05/",
+      "sourceLabel": "React Native · 新架构 · Chapter 05"
     },
     {
       "id": "review-rn-render-commit-mount-b",
@@ -1576,7 +1765,10 @@
         "从 Shadow Tree、布局提交和平台视图更新三个动作推导。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Render → Commit → Mount。"
+      "explanation": "Render → Commit → Mount。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-05/",
+      "sourceLabel": "React Native · 新架构 · Chapter 05"
     },
     {
       "id": "review-rn-yoga-vs-mount-a",
@@ -1608,7 +1800,10 @@
         "分清布局计算与真正操作平台视图。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Yoga 布局属于 Commit；之后 Mount 计算 diff 并更新 Host Views。"
+      "explanation": "Yoga 布局属于 Commit；之后 Mount 计算 diff 并更新 Host Views。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-05/",
+      "sourceLabel": "React Native · 新架构 · Chapter 05"
     },
     {
       "id": "review-rn-yoga-vs-mount-b",
@@ -1641,7 +1836,10 @@
         "分清布局计算与真正操作平台视图。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Yoga 布局属于 Commit；之后 Mount 计算 diff 并更新 Host Views。"
+      "explanation": "Yoga 布局属于 Commit；之后 Mount 计算 diff 并更新 Host Views。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-05/",
+      "sourceLabel": "React Native · 新架构 · Chapter 05"
     },
     {
       "id": "review-rn-js-ui-thread-roles-a",
@@ -1673,7 +1871,10 @@
         "关注谁执行 React 逻辑、谁拥有平台 View。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "JS Thread 执行常见 React render 与布局；UI Thread 是唯一能操作 Host Views 的线程。"
+      "explanation": "JS Thread 执行常见 React render 与布局；UI Thread 是唯一能操作 Host Views 的线程。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-06/",
+      "sourceLabel": "React Native · 新架构 · Chapter 06"
     },
     {
       "id": "review-rn-js-ui-thread-roles-b",
@@ -1706,7 +1907,10 @@
         "关注谁执行 React 逻辑、谁拥有平台 View。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "JS Thread 执行常见 React render 与布局；UI Thread 是唯一能操作 Host Views 的线程。"
+      "explanation": "JS Thread 执行常见 React render 与布局；UI Thread 是唯一能操作 Host Views 的线程。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-06/",
+      "sourceLabel": "React Native · 新架构 · Chapter 06"
     },
     {
       "id": "review-rn-render-interruptibility-a",
@@ -1738,7 +1942,10 @@
         "区分 Render 的可中断性与 Mount 的 UI Thread 操作。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Render 可中断；高优先级事件优先处理，特定场景可在 UI Thread 同步执行渲染工作。"
+      "explanation": "Render 可中断；高优先级事件优先处理，特定场景可在 UI Thread 同步执行渲染工作。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-06/",
+      "sourceLabel": "React Native · 新架构 · Chapter 06"
     },
     {
       "id": "review-rn-render-interruptibility-b",
@@ -1771,7 +1978,10 @@
         "区分 Render 的可中断性与 Mount 的 UI Thread 操作。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Render 可中断；高优先级事件优先处理，特定场景可在 UI Thread 同步执行渲染工作。"
+      "explanation": "Render 可中断；高优先级事件优先处理，特定场景可在 UI Thread 同步执行渲染工作。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-06/",
+      "sourceLabel": "React Native · 新架构 · Chapter 06"
     },
     {
       "id": "review-rn-legacy-bridge-current-a",
@@ -1803,7 +2013,10 @@
         "使用明确版本边界，而不是套用旧迁移教程。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "0.82 起仅运行 New Architecture；Legacy Bridge 是历史对照。"
+      "explanation": "0.82 起仅运行 New Architecture；Legacy Bridge 是历史对照。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-07/",
+      "sourceLabel": "React Native · 新架构 · Chapter 07"
     },
     {
       "id": "review-rn-legacy-bridge-current-b",
@@ -1836,7 +2049,10 @@
         "使用明确版本边界，而不是套用旧迁移教程。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "0.82 起仅运行 New Architecture；Legacy Bridge 是历史对照。"
+      "explanation": "0.82 起仅运行 New Architecture；Legacy Bridge 是历史对照。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-07/",
+      "sourceLabel": "React Native · 新架构 · Chapter 07"
     },
     {
       "id": "review-rn-build-startup-runtime-boundary-a",
@@ -1868,7 +2084,10 @@
         "先按阶段分类，再把组件放回其生命周期。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Hermes / Codegen 产物属于 Build；Runtime 初始化属于 Startup；执行、事件和渲染属于 Runtime。"
+      "explanation": "Hermes / Codegen 产物属于 Build；Runtime 初始化属于 Startup；执行、事件和渲染属于 Runtime。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/react-native/chapter-07/",
+      "sourceLabel": "React Native · 新架构 · Chapter 07"
     },
     {
       "id": "review-rn-build-startup-runtime-boundary-b",
@@ -1901,7 +2120,10 @@
         "先按阶段分类，再把组件放回其生命周期。",
         "判断对象属于构建产物、接口契约、渲染阶段还是平台线程。"
       ],
-      "explanation": "Hermes / Codegen 产物属于 Build；Runtime 初始化属于 Startup；执行、事件和渲染属于 Runtime。"
+      "explanation": "Hermes / Codegen 产物属于 Build；Runtime 初始化属于 Startup；执行、事件和渲染属于 Runtime。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-07/",
+      "sourceLabel": "React Native · 新架构 · Chapter 07"
     },
     {
       "id": "review-rn-codegen-generated-output-rn-turbomodules-codegen-a",
@@ -1933,7 +2155,10 @@
         "先区分接口脚手架与平台业务行为。",
         "Codegen 生成跨语言 glue / interfaces；系统 API、权限和具体行为仍要写原生实现。"
       ],
-      "explanation": "Codegen 输出 C++ glue 和平台接口，不会自动实现 NativeFoo 的业务逻辑。开发者仍需实现 Android / iOS 原生功能。"
+      "explanation": "Codegen 输出 C++ glue 和平台接口，不会自动实现 NativeFoo 的业务逻辑。开发者仍需实现 Android / iOS 原生功能。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-04/",
+      "sourceLabel": "React Native · 新架构 · Chapter 04"
     },
     {
       "id": "review-rn-codegen-generated-output-rn-turbomodules-codegen-b",
@@ -1966,7 +2191,10 @@
         "spec 变化首先影响生成契约。",
         "生成代码与平台行为实现是两个不同交付物。"
       ],
-      "explanation": "spec 描述 JS / Native 类型契约；Codegen 生成接口胶水；原生系统调用仍需要平台实现。"
+      "explanation": "spec 描述 JS / Native 类型契约；Codegen 生成接口胶水；原生系统调用仍需要平台实现。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/react-native/chapter-04/",
+      "sourceLabel": "React Native · 新架构 · Chapter 04"
     },
     {
       "id": "review-rn-codegen-generated-output-rn-integrated-architecture-a",
@@ -1998,7 +2226,10 @@
         "判断它是否需要设备上的 JS Runtime 已经启动。",
         "Codegen 在应用构建时运行，不是每次运行期调用都发生。"
       ],
-      "explanation": "Codegen 在构建阶段读取类型化 spec，生成 C++ glue 与平台接口，再参与原生 App Build。"
+      "explanation": "Codegen 在构建阶段读取类型化 spec，生成 C++ glue 与平台接口，再参与原生 App Build。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/react-native/chapter-07/",
+      "sourceLabel": "React Native · 新架构 · Chapter 07"
     },
     {
       "id": "review-rn-codegen-generated-output-rn-integrated-architecture-b",
@@ -2031,7 +2262,10 @@
         "沿着两个不同输入分别跟踪输出。",
         "一个服务 JS Runtime 的代码产物；另一个服务类型化 Native 接口。"
       ],
-      "explanation": "Hermes 编译 JavaScript；Codegen 处理 Native spec。二者是职责不同的构建路径，不是互相替代的串行步骤。"
+      "explanation": "Hermes 编译 JavaScript；Codegen 处理 Native spec。二者是职责不同的构建路径，不是互相替代的串行步骤。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/react-native/chapter-07/",
+      "sourceLabel": "React Native · 新架构 · Chapter 07"
     },
     {
       "id": "review-rn-jsi-bridge-myth-rn-integrated-architecture-a",
@@ -2063,7 +2297,10 @@
         "把“旧通信机制不再是核心通路”和“异步机制消失”分开。",
         "JSI 是 JS Runtime 与 C++ 的接口能力，不能推出所有 API 都同步。"
       ],
-      "explanation": "Bridgeless 描述核心架构不再依赖旧 Bridge，并不意味着 Promise、事件或线程调度消失。"
+      "explanation": "Bridgeless 描述核心架构不再依赖旧 Bridge，并不意味着 Promise、事件或线程调度消失。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/react-native/chapter-07/",
+      "sourceLabel": "React Native · 新架构 · Chapter 07"
     },
     {
       "id": "review-rn-jsi-bridge-myth-rn-integrated-architecture-b",
@@ -2096,7 +2333,10 @@
         "区分调用进入原生接口的方式与操作最终完成的时间。",
         "JSI 不会把系统 I/O、网络或权限操作自动变成同步。"
       ],
-      "explanation": "JSI 改善跨语言接口机制，但 API 仍可异步。Bridgeless 并不等于 Async-less。"
+      "explanation": "JSI 改善跨语言接口机制，但 API 仍可异步。Bridgeless 并不等于 Async-less。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/react-native/chapter-07/",
+      "sourceLabel": "React Native · 新架构 · Chapter 07"
     },
     {
       "id": "review-rn-build-startup-runtime-boundary-rn-build-artifacts-a",
@@ -2128,7 +2368,10 @@
         "把“生成可执行产物”与“设备加载并使用产物”分开。",
         "Hermes 编译与 Codegen 都在 App Build 流程。"
       ],
-      "explanation": "Hermes Bytecode 和 Codegen 产物在构建期生成；应用启动时再建立 JS Runtime 并加载这些产物。"
+      "explanation": "Hermes Bytecode 和 Codegen 产物在构建期生成；应用启动时再建立 JS Runtime 并加载这些产物。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/react-native/chapter-01/",
+      "sourceLabel": "React Native · 新架构 · Chapter 01"
     },
     {
       "id": "review-rn-build-startup-runtime-boundary-rn-build-artifacts-b",
@@ -2161,7 +2404,10 @@
         "题目给出的是已经完成 Release Build 的 App。",
         "Startup 会加载构建产物，不是重新执行 Codegen 与 Hermes 编译流水线。"
       ],
-      "explanation": "Hermes / Codegen 的构建产物随 App 交付；Startup 创建 Runtime、加载代码并准备模块访问。"
+      "explanation": "Hermes / Codegen 的构建产物随 App 交付；Startup 创建 Runtime、加载代码并准备模块访问。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/react-native/chapter-01/",
+      "sourceLabel": "React Native · 新架构 · Chapter 01"
     }
   ],
   "version": "2.0.0"

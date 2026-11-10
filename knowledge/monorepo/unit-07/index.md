@@ -1,6 +1,7 @@
 # 07 · Rush 治理：从单仓编排到组织契约
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## 为什么有些组织选择 Rush
 
@@ -41,3 +42,11 @@ Nx 的项目图和边界规则更容易直接回答「谁依赖谁」，也有�
 ## 诊断题
 
 一个只有 6 个内部包、从不向 npm 发布、团队 3 人的仓库，是不是也必须上 Rush？怎样量化它带来的收益？
+
+
+## 官方资料与规范
+
+- [Rush Change Files](https://rushjs.io/pages/commands/rush_change/)
+- [Rush Publishing / Dry Run](https://rushjs.io/pages/maintainer/publishing/)
+- [Rush Build Cache](https://rushjs.io/pages/maintainer/build_cache/)
+- [Rush Phased Builds](https://rushjs.io/pages/maintainer/phased_builds/)

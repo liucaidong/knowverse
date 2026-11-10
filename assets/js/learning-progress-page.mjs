@@ -1,6 +1,7 @@
 import { createLearningProgressStore, deriveLearningInsights } from "./learning-progress.mjs";
 import { buildAdaptiveLearningPlan, createLearningPlanPreferencesStore, recordLearningPlanAction } from "./learning-planner.mjs";
 import { mountBackendAccountPanel } from "./backend/account-panel.mjs";
+import { getArchiveRuntime } from "./backend/archive-bootstrap.mjs";
 import { getLearningRepository } from "./backend/learning-repository.mjs";
 import { createLearnerProfileStore } from "./learning-agent/learner-profile.mjs";
 import { createLearningGoalManager } from "./learning-agent/goal-manager.mjs";
@@ -1098,6 +1099,12 @@ async function boot() {
   // getLearningRepository resolves only after the one-time local archive migration
   // has completed; do not expose editable controls before this await.
   const repository = await getLearningRepository();
+
+  // Restore and merge the authenticated cloud journal / user-owned documents
+  // before deriving strategy and proactive state. Otherwise a cold device can
+  // persist an empty-history profile while the cloud already has real evidence.
+  const archiveRuntime = await getArchiveRuntime();
+  await archiveRuntime.initialSyncPromise?.catch(() => null);
 
   const backendPanel = document.getElementById("backend-account-panel");
   if (backendPanel) {

@@ -13,6 +13,8 @@ for name in packages:
  assert package['name'].startswith('@kv/'), name
  assert (q/name/'src').is_dir(),name
 for target in p.rglob('*.html'):
+ if any(part in {'node_modules','dist','.expo','.git'} for part in target.parts):
+  continue
  text=target.read_text()
  root_match=re.search(r'''<body[^>]*data-root=["']([^"']+)["']''',text)
  root_prefix=root_match.group(1) if root_match else None

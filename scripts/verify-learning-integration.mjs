@@ -1,5 +1,6 @@
 import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import test, { beforeEach } from "node:test";
 import { deleteLocalDatabaseForTests } from "../assets/js/backend/local-event-store.mjs";
@@ -176,11 +177,65 @@ test("the assessment catalog covers 15 competencies, 31 gaps and 72 targeted var
   assert.equal(ids.size, 15);
   assert.equal(gaps.size, 31);
   assert.equal(registry.assessments.length, 72);
+  const promiseAssessments = registry.assessments.filter(item => item.topicId === "promise");
+  assert.equal(promiseAssessments.length, 30);
+  const difficultyBands = new Set(["foundation", "intermediate", "stretch"]);
+  for (const item of promiseAssessments) {
+    assert.ok(difficultyBands.has(item.difficulty), item.id + " difficulty");
+    assert.match(item.lessonId, /^lesson-\d{2}$/);
+    const source = await readFile(new URL("../knowledge/promise/" + item.lessonId + "/index.md", import.meta.url), "utf8");
+    assert.ok(source.length > 500, item.id + " source lesson");
+  }
   for (const item of registry.assessments) {
     assert.ok(ids.has(item.competencyId), item.id);
     assert.ok(item.gapIds.length > 0, item.id);
     assert.ok(item.gapIds.every(id => gaps.has(id)), item.id);
+    assert.ok(difficultyBands.has(item.difficulty), item.id + " difficulty");
+    assert.ok(item.sourceHref?.startsWith("./knowledge/"), item.id + " sourceHref");
+    assert.ok(item.sourceLabel?.trim(), item.id + " sourceLabel");
+    const sourceRoute = item.sourceHref.replace(/^\.\//, "") + "index.html";
+    await readFile(new URL("../" + sourceRoute, import.meta.url), "utf8");
   }
+});
+
+test("Promise review examples produce the documented runtime outcomes", async () => {
+  const registry = await readJSON("../content/review-assessments.json");
+  const byId = new Map(registry.assessments.map(item => [item.id, item]));
+  const run = id => execFileSync(process.execPath, ["--input-type=module", "-e", byId.get(id).code], {
+    encoding: "utf8", timeout: 3000,
+  }).trim().split(/\r?\n/);
+  assert.deepEqual(run("review-getter-sync-a"), ["get", "after", "rejected"]);
+  assert.deepEqual(run("review-all-race-order-a"), ["race fast", "all [ 'slow', 'fast' ]"]);
+  assert.deepEqual(run("review-all-waits-all-b"), ["all rejected bad", "slow settled"]);
+  assert.deepEqual(run("review-all-no-cancel-a"), ["combined rejected fast failure", "slow still running"]);
+  assert.deepEqual(run("review-then-new-promise-b"), ["false"]);
+  assert.deepEqual(run("review-adoption-timeline-a"), ["sync end", "outer"]);
+  const explicitCancel = byId.get("review-all-no-cancel-b").code;
+  assert.match(explicitCancel, /signal: controller\.signal/);
+  assert.match(explicitCancel, /controller\.abort\(\)/);
+});
+
+test("Promise Review sessions retain official difficulty and lesson provenance", async () => {
+  const registry = await readJSON("../content/review-assessments.json");
+  const engine = createReviewSessionEngine({ progressStore: createLearningProgressStore(), registry });
+  const session = await engine.start({
+    competencyId: "thenable-adoption",
+    variantId: "review-thenable-get-vs-call-a",
+  });
+  assert.equal(session.difficulty, "foundation");
+  assert.equal(session.lessonId, "lesson-03");
+  const assessment = await engine.getAssessment(session.sessionId);
+  assert.equal(assessment.difficulty, session.difficulty);
+  assert.equal(assessment.lessonId, session.lessonId);
+  assert.equal(session.sourceHref, "./knowledge/promise/lesson-03/");
+  assert.equal(session.sourceLabel, "课程来源 · 第 03 单元");
+
+  const monorepo = await engine.start({ competencyId: "workspace-resolution", variantId: "review-workspace-protocol-a" });
+  assert.equal(monorepo.difficulty, "foundation");
+  assert.equal(monorepo.sourceHref, "./knowledge/monorepo/chapter-01/");
+  const reactNative = await engine.start({ competencyId: "rn-jsi-boundaries", variantId: "review-rn-jsi-bridge-myth-a" });
+  assert.equal(reactNative.difficulty, "foundation");
+  assert.equal(reactNative.sourceHref, "./knowledge/react-native/chapter-03/");
 });
 
 test("Promise course lessons use the shared learning integration and mapped reader routes are real pages", async () => {
@@ -195,6 +250,15 @@ test("Promise course lessons use the shared learning integration and mapped read
   for (const directory of lessonDirectories) {
     const html = await readFile(new URL("../knowledge/promise/" + directory + "/index.html", import.meta.url), "utf8");
     assert.match(html, /learning-integration\.mjs/, directory);
+    assert.match(html, /id="course-references"/, directory + " reference section");
+    const markdown = await readFile(new URL("../knowledge/promise/" + directory + "/index.md", import.meta.url), "utf8");
+    assert.match(markdown, /^## 延伸参考$/m, directory + " markdown references");
+  }
+  const lesson18Markdown = await readFile(new URL("../knowledge/promise/lesson-18/index.md", import.meta.url), "utf8");
+  const lesson18Html = await readFile(new URL("../knowledge/promise/lesson-18/index.html", import.meta.url), "utf8");
+  for (const marker of ["source reaction", "nested microtask", "await downstream"]) {
+    assert.ok(lesson18Markdown.includes(marker), "lesson 18 markdown: " + marker);
+    assert.ok(lesson18Html.includes(marker), "lesson 18 HTML: " + marker);
   }
   for (const competency of topic.competencies) {
     const route = (competency.lessonHref.startsWith("./") ? competency.lessonHref.slice(2) : competency.lessonHref) + "index.html";

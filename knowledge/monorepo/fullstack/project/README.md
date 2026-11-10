@@ -4,7 +4,7 @@
 
 ## 系统要求
 
-- Node.js >=22.13（推荐当前 LTS），pnpm 12.16.1
+- Node.js >=22.13（推荐当前 LTS），pnpm 12.17.0
 - iOS 真机/模拟器需配置 Xcode / CocoaPods，Android 需 Android SDK，**GitHub Pages 不运行 NestJS 后端**。
 - 本项目不提交 node_modules、构建产物或密钥。
 

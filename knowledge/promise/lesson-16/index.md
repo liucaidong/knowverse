@@ -214,3 +214,8 @@ Promise.resolve(t).then(console.log, console.error);
 ## 下一步
 
 使用专题首页的交互实验室逐题运行 Q01–Q16。需要分辨**日志顺序**和**对象实际落定时间**时，用纸绘制 Jobs 队列并逐帧记录。
+
+## 延伸参考
+
+- [ECMAScript 2026 · Promise Objects](https://tc39.es/ecma262/2026/multipage/control-abstraction-objects.html#sec-promise-objects)
+- [MDN · Using promises](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Using_promises)
