@@ -6,10 +6,10 @@ import { resolve, relative } from "node:path";
 const root = process.cwd();
 const read = path => readFile(resolve(root, path), "utf8");
 
-test("publication dispatch is trusted-main-only and never auto-merges", async () => {
+test("publication dispatch is trusted-develop-only and never auto-merges", async () => {
   const workflow = await read(".github/workflows/publish-approved-practice-candidate.yml");
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
+  assert.match(workflow, /github\.ref == 'refs\/heads\/develop'/);
   assert.match(workflow, /github\.repository == 'liucaidong\/knowverse'/);
   assert.match(workflow, /contents: write[\s\S]*pull-requests: write/);
   assert.match(workflow, /git push origin "\$branch"/);
@@ -20,7 +20,7 @@ test("publication dispatch is trusted-main-only and never auto-merges", async ()
 test("reused publication branches and PRs are recovered without history rewriting", async () => {
   const workflow = await read(".github/workflows/publish-approved-practice-candidate.yml");
   assert.match(workflow, /git fetch origin "\$branch"/);
-  assert.match(workflow, /git merge --no-edit origin\/main/);
+  assert.match(workflow, /git merge --no-edit origin\/develop/);
   assert.match(workflow, /Existing open PR was revalidated/);
   assert.match(workflow, /merged PR already exists/);
   assert.match(workflow, /closed unmerged publication PR already exists/);
@@ -28,13 +28,13 @@ test("reused publication branches and PRs are recovered without history rewritin
   assert.match(workflow, /Protected publication commit is missing expected artifact/);
 });
 
-test("Pages callback accepts only successful main deployment from the same repository", async () => {
+test("Pages callback accepts only successful develop deployment from the same repository", async () => {
   const workflow = await read(".github/workflows/publish-approved-practice-candidate.yml");
   const pages = await read(".github/workflows/pages.yml");
   assert.match(pages, /^name: Deploy KNOWVERSE to GitHub Pages$/m);
   assert.match(workflow, /workflows: \["Deploy KNOWVERSE to GitHub Pages"\]/);
   assert.match(workflow, /github\.event\.workflow_run\.conclusion == 'success'/);
-  assert.match(workflow, /github\.event\.workflow_run\.head_branch == 'main'/);
+  assert.match(workflow, /github\.event\.workflow_run\.head_branch == 'develop'/);
   assert.match(workflow, /github\.event\.workflow_run\.head_repository\.full_name == github\.repository/);
   assert.match(workflow, /ref: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
   assert.match(workflow, /PAGES_DEPLOY_SHA: \$\{\{ github\.event\.workflow_run\.head_sha \}\}/);
