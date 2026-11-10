@@ -1,0 +1,744 @@
+{
+  "schema_version": "1.0.0",
+  "audit_date": "2026-11-04",
+  "severity_order": [
+    "P0",
+    "P1",
+    "P2",
+    "P3"
+  ],
+  "summary": {
+    "total": 14,
+    "by_severity": {
+      "P1": 5,
+      "P2": 7,
+      "P3": 2
+    },
+    "P0_confirmed": 0
+  },
+  "issues": [
+    {
+      "issue_id": "AUD-P1-001",
+      "severity": "P1",
+      "audit_direction": "release-integrity",
+      "title": "Production DB applied an authorization migration from still-open PR #11",
+      "description": "The production migration ledger contains 20261103224708_phase_m_authorize_initial_content_admin; private reviewer and authorized user tables each have one row. PR #11 remains OPEN/NOT MERGED and Pages/main are at a50eaca.",
+      "evidence": [
+        "Supabase migration ledger v12 includes 20261103224708",
+        "private.practice_content_reviewers row count=1",
+        "private.authorized_users row count=1",
+        "PR https://github.com/liucaidong/knowverse/pull/11 OPEN, head 7b788f1",
+        "origin/main and Pages deployment SHA a50eaca"
+      ],
+      "root_cause": "Production database migration and Git main release state were not advanced atomically.",
+      "recommendation": "Have maintainers review PR #11, migration contents and authorization evidence; then reconcile main and migration ledger using the controlled release process. Do not rerun the already applied migration or change reviewer roles to hide drift.",
+      "dependencies": [
+        "PR #11 review",
+        "migration ledger/main alignment"
+      ],
+      "acceptance_criteria": [
+        "main contains the reviewed migration",
+        "clean database replay matches production migration history",
+        "no duplicate reviewer/allowlist records",
+        "PR and production state are traceable"
+      ],
+      "related_feature_ids": [
+        "KV-F-033",
+        "KV-F-034"
+      ],
+      "impact_scope": "Reviewer 授权、Phase M 审核发布、迁移重放和 main/production 环境一致性。",
+      "related_content_ids": []
+    },
+    {
+      "issue_id": "AUD-P1-002",
+      "severity": "P1",
+      "audit_direction": "ai-content-publishing",
+      "title": "No production candidate/audit records; repository-level Actions secrets are empty",
+      "description": "Publication manifest entries=0, practice_candidate_quality_records=0, repo-level GitHub Actions secrets and variables are empty, and the most recent candidate workflow prepare-pr job was skipped. Successful Pages verification is not proof that a candidate traversed the full publication chain.",
+      "evidence": [
+        "content/practice-publication-manifest.json entries=[]",
+        "public.practice_candidate_quality_records=0",
+        "gh secret list --repo liucaidong/knowverse => []",
+        "gh variable list --repo liucaidong/knowverse => []",
+        "workflow run 41732099172 prepare-pr SKIPPED; verify-pages SUCCESS"
+      ],
+      "root_cause": "Workflow code exists but no auditable production candidate and repository-level release credential chain was demonstrated; organization secrets were not independently checked.",
+      "recommendation": "Use an isolated staging environment and least-privilege credentials to prove candidate -> deterministic validation -> independent Reviewer -> human approval -> PR -> Pages exact comparison -> registration. Never auto-merge.",
+      "dependencies": [
+        "staging test candidate",
+        "PR #11 reconciliation",
+        "least-privilege Actions credentials"
+      ],
+      "acceptance_criteria": [
+        "complete append-only quality record chain",
+        "reviewer and human approval are distinct",
+        "Pages artifact exact comparison succeeds",
+        "registration occurs only after publication verification",
+        "candidate self-check never writes mastery evidence"
+      ],
+      "related_feature_ids": [
+        "KV-F-031",
+        "KV-F-032",
+        "KV-F-033",
+        "KV-F-034",
+        "KV-F-035",
+        "KV-F-037"
+      ],
+      "impact_scope": "AI 候选生成、独立 Reviewer、人工审批、GitHub PR、Pages 发布核验和正式题库注册。",
+      "related_content_ids": []
+    },
+    {
+      "issue_id": "AUD-P1-003",
+      "severity": "P1",
+      "audit_direction": "backend-data",
+      "title": "Real Supabase cross-device learning sync has not passed production E2E",
+      "description": "Production learning_events=0, user_devices=1 and learning_archive_documents=3. Local cross-device browser E2E uses isolated/mock RPC services. No real production OAuth session wrote and read learning data on two devices.",
+      "evidence": [
+        "Supabase read-only counts: learning_events=0; user_devices=1; learning_archive_documents=3",
+        "scripts/e2e-cross-device-archive.mjs uses isolated/mock archive service",
+        "scripts/verify-backend-contract.mjs passed but is a contract test"
+      ],
+      "root_cause": "Client algorithms and protocol are tested in isolation; production OAuth, account isolation, RLS and multi-device merge remain unaccepted.",
+      "recommendation": "Use a non-production Supabase project and test identities to execute login, event append, Outbox retry, pull/merge, CAS conflict, logout/revocation and cross-account denial on two devices.",
+      "dependencies": [
+        "staging Auth",
+        "test users",
+        "RLS isolation matrix",
+        "two-device test script"
+      ],
+      "acceptance_criteria": [
+        "same-account devices converge after offline/online",
+        "retries are idempotent and CAS conflicts handled",
+        "account A cannot read/write account B",
+        "no production business data used",
+        "mastery derives only from valid assessment events"
+      ],
+      "related_feature_ids": [
+        "KV-F-025",
+        "KV-F-026",
+        "KV-F-028"
+      ],
+      "impact_scope": "学习事件、用户设备、Outbox、云端档案、掌握度与 Gap 跨设备恢复。",
+      "related_content_ids": []
+    },
+    {
+      "issue_id": "AUD-P1-004",
+      "severity": "P1",
+      "audit_direction": "ai-runtime",
+      "title": "Real model Provider execution for Tutor, Agent and Reviewer is unverified",
+      "description": "learning-agent ACTIVE v9 and practice-quality-review ACTIVE v3 with JWT verification. Source reads AI_PROVIDER_* and PRACTICE_REVIEWER_* variables; Supabase secret state/value was not accessible and no real model call was made.",
+      "evidence": [
+        "learning-agent ACTIVE v9 verify_jwt=true",
+        "practice-quality-review ACTIVE v3 verify_jwt=true",
+        "Deno.env.get AI_PROVIDER_API_KEY / MODEL / BASE_URL",
+        "Deno.env.get PRACTICE_REVIEWER_API_BASE_URL / KEY / MODEL",
+        "no authenticated production model request performed"
+      ],
+      "root_cause": "Deployed endpoints do not prove secret configuration, provider reachability or structured response correctness.",
+      "recommendation": "In staging verify real Tutor, Agent and independent Reviewer requests plus 401/403, timeout, 429, 5xx, invalid JSON and fail-closed behavior.",
+      "dependencies": [
+        "staging Provider credentials",
+        "authenticated test user",
+        "model acceptance tests"
+      ],
+      "acceptance_criteria": [
+        "real Provider responses for Tutor/Agent",
+        "Reviewer uses an independent credential",
+        "provider failure never produces pass records",
+        "AI output does not directly mutate mastery"
+      ],
+      "related_feature_ids": [
+        "KV-F-029",
+        "KV-F-030",
+        "KV-F-033",
+        "KV-F-037"
+      ],
+      "impact_scope": "AI Tutor、AI Learning Agent、独立 AI Reviewer 的模型调用、输出质量和失败安全。",
+      "related_content_ids": []
+    },
+    {
+      "issue_id": "AUD-P1-005",
+      "severity": "P1",
+      "audit_direction": "content-coverage",
+      "title": "Nine of twelve knowledge topics lack a formal Concept/Competency/Assessment map",
+      "description": "Only Promise, Monorepo and React Native have formal Concept, Competency, Gap, prerequisite and Assessment models. Nine other topics have public pages but no equivalent graph.",
+      "evidence": [
+        "content/knowledge.json has 12 topics",
+        "content/concepts.json has 16 concepts, all in 3 topics",
+        "content/learning-map.json has 3 topics, 15 competencies, 31 gaps",
+        "review-assessments=72 and checkpoints=14 only cover the same 3 topics"
+      ],
+      "root_cause": "Topic directory expansion outpaced knowledge modeling and assessment coverage.",
+      "recommendation": "Select 2-3 high-value topics and build Concept -> Competency -> prerequisites -> assessment -> work links. Do not mass-generate weak maps.",
+      "dependencies": [
+        "topic priorities",
+        "official references",
+        "competency definitions",
+        "assessment review"
+      ],
+      "acceptance_criteria": [
+        "stable IDs for concepts and competencies",
+        "prerequisite DAG is justified and acyclic",
+        "each core competency has a learning entry and assessment",
+        "Tutor/Agent context is grounded",
+        "unmapped topics show no fake mastery"
+      ],
+      "related_feature_ids": [
+        "KV-F-006",
+        "KV-F-007",
+        "KV-F-008"
+      ],
+      "impact_scope": "九个未建模专题的学习规划、掌握度、Gap 诊断、测评和 AI 知识上下文。",
+      "related_content_ids": [
+        "TOPIC-0004",
+        "TOPIC-0005",
+        "TOPIC-0006",
+        "TOPIC-0007",
+        "TOPIC-0008",
+        "TOPIC-0009",
+        "TOPIC-0010",
+        "TOPIC-0011",
+        "TOPIC-0012"
+      ]
+    },
+    {
+      "issue_id": "AUD-P2-006",
+      "severity": "P2",
+      "audit_direction": "assessment-quality",
+      "title": "All 72 formal Review Assessments lack difficulty metadata",
+      "description": "The difficulty field is undefined for all 72 review assessment records, preventing auditable difficulty bands and reliable adaptive difficulty selection.",
+      "evidence": [
+        "content/review-assessments.json has 72 records",
+        "read-only scan: difficulty absent for 72/72"
+      ],
+      "root_cause": "Question schema carries prompt/options/answer/hints/explanation but no consistent difficulty metadata.",
+      "recommendation": "Define difficulty levels and cognitive-load tags, then fill through human review rather than inferring from titles.",
+      "dependencies": [
+        "assessment schema",
+        "difficulty rubric",
+        "question review"
+      ],
+      "acceptance_criteria": [
+        "all items have a reviewed difficulty or explicit unclassified state",
+        "difficulty rubric has examples",
+        "difficulty matches required reasoning",
+        "planner can explain the selected difficulty"
+      ],
+      "related_feature_ids": [
+        "KV-F-020",
+        "KV-F-022",
+        "KV-F-023"
+      ],
+      "impact_scope": "72 道 Review Assessment 的难度分级、自适应排序和学习任务解释。",
+      "related_content_ids": [
+        "ASSESS-0001",
+        "ASSESS-0002",
+        "ASSESS-0003",
+        "ASSESS-0004",
+        "ASSESS-0005",
+        "ASSESS-0006",
+        "ASSESS-0007",
+        "ASSESS-0008",
+        "ASSESS-0009",
+        "ASSESS-0010",
+        "ASSESS-0011",
+        "ASSESS-0012",
+        "ASSESS-0013",
+        "ASSESS-0014",
+        "ASSESS-0015",
+        "ASSESS-0016",
+        "ASSESS-0017",
+        "ASSESS-0018",
+        "ASSESS-0019",
+        "ASSESS-0020",
+        "ASSESS-0021",
+        "ASSESS-0022",
+        "ASSESS-0023",
+        "ASSESS-0024",
+        "ASSESS-0025",
+        "ASSESS-0026",
+        "ASSESS-0027",
+        "ASSESS-0028",
+        "ASSESS-0029",
+        "ASSESS-0030",
+        "ASSESS-0031",
+        "ASSESS-0032",
+        "ASSESS-0033",
+        "ASSESS-0034",
+        "ASSESS-0035",
+        "ASSESS-0036",
+        "ASSESS-0037",
+        "ASSESS-0038",
+        "ASSESS-0039",
+        "ASSESS-0040",
+        "ASSESS-0041",
+        "ASSESS-0042",
+        "ASSESS-0043",
+        "ASSESS-0044",
+        "ASSESS-0045",
+        "ASSESS-0046",
+        "ASSESS-0047",
+        "ASSESS-0048",
+        "ASSESS-0049",
+        "ASSESS-0050",
+        "ASSESS-0051",
+        "ASSESS-0052",
+        "ASSESS-0053",
+        "ASSESS-0054",
+        "ASSESS-0055",
+        "ASSESS-0056",
+        "ASSESS-0057",
+        "ASSESS-0058",
+        "ASSESS-0059",
+        "ASSESS-0060",
+        "ASSESS-0061",
+        "ASSESS-0062",
+        "ASSESS-0063",
+        "ASSESS-0064",
+        "ASSESS-0065",
+        "ASSESS-0066",
+        "ASSESS-0067",
+        "ASSESS-0068",
+        "ASSESS-0069",
+        "ASSESS-0070",
+        "ASSESS-0071",
+        "ASSESS-0072"
+      ]
+    },
+    {
+      "issue_id": "AUD-P2-007",
+      "severity": "P2",
+      "audit_direction": "references",
+      "title": "Thirteen official references cover only three mapped topics",
+      "description": "All 13 source records belong to Promise, Monorepo and React Native. Other nine topics have no source registry records. All URLs returned HEAD 200; this is not a version/content match audit.",
+      "evidence": [
+        "content/sources.json=13",
+        "Promise=4, Monorepo=4, React Native=5",
+        "other nine topics=0",
+        "13/13 HEAD HTTP 200"
+      ],
+      "root_cause": "Source registration followed the three course builds, while the other topics lack reference governance.",
+      "recommendation": "Attach authoritative sources, versions, access dates and citation anchors to important claims; prioritize AI Agents, database, model infrastructure, math and engineering.",
+      "dependencies": [
+        "content owner",
+        "official references",
+        "citation data model"
+      ],
+      "acceptance_criteria": [
+        "core claims have traceable sources",
+        "version-sensitive claims record version/date",
+        "dead links are checked in CI",
+        "Tutor can include grounded citations"
+      ],
+      "related_feature_ids": [
+        "KV-F-005",
+        "KV-F-006",
+        "KV-F-029",
+        "KV-F-030"
+      ],
+      "impact_scope": "九个知识专题的技术事实可追溯性、AI grounding 和版本维护。",
+      "related_content_ids": [
+        "SOURCE-0001",
+        "SOURCE-0002",
+        "SOURCE-0003",
+        "SOURCE-0004",
+        "SOURCE-0005",
+        "SOURCE-0006",
+        "SOURCE-0007",
+        "SOURCE-0008",
+        "SOURCE-0009",
+        "SOURCE-0010",
+        "SOURCE-0011",
+        "SOURCE-0012",
+        "SOURCE-0013",
+        "TOPIC-0004",
+        "TOPIC-0005",
+        "TOPIC-0006",
+        "TOPIC-0007",
+        "TOPIC-0008",
+        "TOPIC-0009",
+        "TOPIC-0010",
+        "TOPIC-0011",
+        "TOPIC-0012"
+      ]
+    },
+    {
+      "issue_id": "AUD-P2-008",
+      "severity": "P2",
+      "audit_direction": "documentation",
+      "title": "README route count and Phase M status are stale",
+      "description": "Root README reports 42 canonical routes while routes.json and the architecture validator report 44. README also describes content_admin provisioning as future work while production already contains a reviewer row; PR #11 is still open and repository Actions secrets are empty.",
+      "evidence": [
+        "README.md says 42 routes",
+        "content/routes.json says 44 routes",
+        "validate-site-architecture reports 44",
+        "production reviewer row count=1",
+        "PR #11 OPEN; repo Actions secrets=[]"
+      ],
+      "root_cause": "The root README has not been reconciled with registry, PR, database and secret state.",
+      "recommendation": "After PR #11 reconciliation, update the README and clearly separate reviewer row provision, PR status, Actions credentials, Provider configuration and actual publication acceptance.",
+      "dependencies": [
+        "AUD-P1-001",
+        "AUD-P1-002"
+      ],
+      "acceptance_criteria": [
+        "route count derives from Registry",
+        "docs distinguish code, DB, secrets and deploy state",
+        "CI detects drift"
+      ],
+      "related_feature_ids": [
+        "KV-F-002",
+        "KV-F-034",
+        "KV-F-036",
+        "KV-F-037"
+      ],
+      "impact_scope": "项目接管、路由总量、Phase M 交付判断和日常运维手册。",
+      "related_content_ids": []
+    },
+    {
+      "issue_id": "AUD-P2-009",
+      "severity": "P2",
+      "audit_direction": "security",
+      "title": "Supabase Auth leaked-password protection is disabled",
+      "description": "Security Advisor reports auth_leaked_password_protection WARN. All seven public business tables have RLS and policies. Two private tables have RLS but no policies (INFO); confirm that private schema is not exposed through REST.",
+      "evidence": [
+        "Supabase Security Advisor auth_leaked_password_protection WARN",
+        "pg_policies: seven public tables / 16 policies",
+        "private reviewer/allowlist RLS no policy INFO"
+      ],
+      "root_cause": "Auth leaked-password protection is not enabled; private schema exposure boundary needs recurring verification.",
+      "recommendation": "Evaluate and enable leaked-password protection; confirm private schema is not exposed and test anon/authenticated denial.",
+      "dependencies": [
+        "Auth settings review",
+        "exposed schema review"
+      ],
+      "acceptance_criteria": [
+        "Auth Advisor warning cleared",
+        "anon/authenticated cannot read private reviewer/allowlist tables",
+        "RPC exposes minimum data"
+      ],
+      "related_feature_ids": [
+        "KV-F-026",
+        "KV-F-027"
+      ],
+      "impact_scope": "Supabase Auth 账户密码安全和 private reviewer/allowlist 数据暴露边界。",
+      "related_content_ids": []
+    },
+    {
+      "issue_id": "AUD-P2-010",
+      "severity": "P2",
+      "audit_direction": "content-quality",
+      "title": "Full semantic fact-check and teaching-quality review is not complete",
+      "description": "Asset census, route checks, registry relationship checks and automation completed, but no line-by-line factual audit of all 74 public pages, 72 question answers/explanations and 51 internal engineering docs was performed. Technical accuracy therefore remains UNVERIFIED.",
+      "evidence": [
+        "74 public pages production GET 200",
+        "72 review questions structurally mapped",
+        "13 source URLs HEAD 200",
+        "no complete expert line-by-line review performed"
+      ],
+      "root_cause": "Automated structure/behavior tests are not equivalent to fact checking each technical claim.",
+      "recommendation": "Review the three core courses page-by-page and question-by-question, record source/version dates, validate runnable snippets and check ambiguous questions.",
+      "dependencies": [
+        "official references",
+        "course reviewers",
+        "assessment review rubric"
+      ],
+      "acceptance_criteria": [
+        "each published item has review status/evidence",
+        "outdated API issues tracked",
+        "all answer explanations independently checked",
+        "unreviewed items remain UNVERIFIED"
+      ],
+      "related_feature_ids": [
+        "KV-F-005",
+        "KV-F-010",
+        "KV-F-014",
+        "KV-F-017",
+        "KV-F-022"
+      ],
+      "impact_scope": "74 个公开教学页、72 道 Review 题、14 个 Checkpoint、挑战和内部技术文档的可信度。",
+      "related_content_ids": [
+        "PAGE-0001",
+        "PAGE-0002",
+        "PAGE-0003",
+        "PAGE-0004",
+        "PAGE-0005",
+        "PAGE-0006",
+        "PAGE-0007",
+        "PAGE-0008",
+        "PAGE-0009",
+        "PAGE-0010",
+        "PAGE-0011",
+        "PAGE-0012",
+        "PAGE-0013",
+        "PAGE-0014",
+        "PAGE-0015",
+        "PAGE-0016",
+        "PAGE-0017",
+        "PAGE-0018",
+        "PAGE-0019",
+        "PAGE-0020",
+        "PAGE-0021",
+        "PAGE-0022",
+        "PAGE-0023",
+        "PAGE-0024",
+        "PAGE-0025",
+        "PAGE-0026",
+        "PAGE-0027",
+        "PAGE-0028",
+        "PAGE-0029",
+        "PAGE-0030",
+        "PAGE-0031",
+        "PAGE-0032",
+        "PAGE-0033",
+        "PAGE-0034",
+        "PAGE-0035",
+        "PAGE-0036",
+        "PAGE-0037",
+        "PAGE-0038",
+        "PAGE-0039",
+        "PAGE-0040",
+        "PAGE-0041",
+        "PAGE-0042",
+        "PAGE-0043",
+        "PAGE-0044",
+        "PAGE-0045",
+        "PAGE-0046",
+        "PAGE-0047",
+        "PAGE-0048",
+        "PAGE-0049",
+        "PAGE-0050",
+        "PAGE-0051",
+        "PAGE-0052",
+        "PAGE-0053",
+        "PAGE-0054",
+        "PAGE-0055",
+        "PAGE-0056",
+        "PAGE-0057",
+        "PAGE-0058",
+        "PAGE-0059",
+        "PAGE-0060",
+        "PAGE-0061",
+        "PAGE-0062",
+        "PAGE-0063",
+        "PAGE-0064",
+        "PAGE-0065",
+        "PAGE-0066",
+        "PAGE-0067",
+        "PAGE-0068",
+        "PAGE-0069",
+        "PAGE-0070",
+        "PAGE-0071",
+        "PAGE-0072",
+        "PAGE-0073",
+        "PAGE-0074",
+        "ASSESS-0001",
+        "ASSESS-0002",
+        "ASSESS-0003",
+        "ASSESS-0004",
+        "ASSESS-0005",
+        "ASSESS-0006",
+        "ASSESS-0007",
+        "ASSESS-0008",
+        "ASSESS-0009",
+        "ASSESS-0010",
+        "ASSESS-0011",
+        "ASSESS-0012",
+        "ASSESS-0013",
+        "ASSESS-0014",
+        "ASSESS-0015",
+        "ASSESS-0016",
+        "ASSESS-0017",
+        "ASSESS-0018",
+        "ASSESS-0019",
+        "ASSESS-0020",
+        "ASSESS-0021",
+        "ASSESS-0022",
+        "ASSESS-0023",
+        "ASSESS-0024",
+        "ASSESS-0025",
+        "ASSESS-0026",
+        "ASSESS-0027",
+        "ASSESS-0028",
+        "ASSESS-0029",
+        "ASSESS-0030",
+        "ASSESS-0031",
+        "ASSESS-0032",
+        "ASSESS-0033",
+        "ASSESS-0034",
+        "ASSESS-0035",
+        "ASSESS-0036",
+        "ASSESS-0037",
+        "ASSESS-0038",
+        "ASSESS-0039",
+        "ASSESS-0040",
+        "ASSESS-0041",
+        "ASSESS-0042",
+        "ASSESS-0043",
+        "ASSESS-0044",
+        "ASSESS-0045",
+        "ASSESS-0046",
+        "ASSESS-0047",
+        "ASSESS-0048",
+        "ASSESS-0049",
+        "ASSESS-0050",
+        "ASSESS-0051",
+        "ASSESS-0052",
+        "ASSESS-0053",
+        "ASSESS-0054",
+        "ASSESS-0055",
+        "ASSESS-0056",
+        "ASSESS-0057",
+        "ASSESS-0058",
+        "ASSESS-0059",
+        "ASSESS-0060",
+        "ASSESS-0061",
+        "ASSESS-0062",
+        "ASSESS-0063",
+        "ASSESS-0064",
+        "ASSESS-0065",
+        "ASSESS-0066",
+        "ASSESS-0067",
+        "ASSESS-0068",
+        "ASSESS-0069",
+        "ASSESS-0070",
+        "ASSESS-0071",
+        "ASSESS-0072",
+        "CHECK-0001",
+        "CHECK-0002",
+        "CHECK-0003",
+        "CHECK-0004",
+        "CHECK-0005",
+        "CHECK-0006",
+        "CHECK-0007",
+        "CHECK-0008",
+        "CHECK-0009",
+        "CHECK-0010",
+        "CHECK-0011",
+        "CHECK-0012",
+        "CHECK-0013",
+        "CHECK-0014"
+      ]
+    },
+    {
+      "issue_id": "AUD-P2-011",
+      "severity": "P2",
+      "audit_direction": "operations",
+      "title": "Backup, restore and disaster-recovery drill have no evidence in this audit",
+      "description": "Project health, migrations and schema are accessible, but no backup retention, PITR configuration or successful restore drill was inspected.",
+      "evidence": [
+        "Supabase project ACTIVE_HEALTHY, Postgres 17",
+        "no backup/PITR configuration or restore artifact observed"
+      ],
+      "root_cause": "Operational restore proof is not part of the available handover evidence.",
+      "recommendation": "Check plan-specific backup/PITR, retention, RPO/RTO, and perform a restore into an isolated project.",
+      "dependencies": [
+        "backup settings access",
+        "restore project",
+        "data retention policy"
+      ],
+      "acceptance_criteria": [
+        "RPO/RTO defined",
+        "backup policy and owner documented",
+        "restore drill succeeds",
+        "no test data written to production"
+      ],
+      "related_feature_ids": [
+        "KV-F-038"
+      ],
+      "impact_scope": "用户学习事件、学习档案、任务和审批审计记录的灾难恢复能力。",
+      "related_content_ids": []
+    },
+    {
+      "issue_id": "AUD-P2-012",
+      "severity": "P2",
+      "audit_direction": "device-acceptance",
+      "title": "Mobile acceptance uses WebKit emulation rather than physical iPhone Safari",
+      "description": "Local Chromium/WebKit 390px viewports cover navigation, progress, Tutor, review and reviewer panels; no real iPhone Safari session on real network/account was performed.",
+      "evidence": [
+        "scripts/e2e-site-navigation.mjs",
+        "scripts/e2e-learning-tutor.mjs",
+        "scripts/e2e-phase-m-practice-quality.mjs",
+        "no physical iPhone session"
+      ],
+      "root_cause": "Browser emulation cannot cover OS keyboard, system permissions, network and Safari lifecycle differences.",
+      "recommendation": "Run a staging-account acceptance on a physical iPhone Safari for learning, offline, restore, keyboard, permissions and weak network.",
+      "dependencies": [
+        "staging login",
+        "physical iPhone",
+        "device runbook"
+      ],
+      "acceptance_criteria": [
+        "core learning flow works on physical iPhone",
+        "keyboard/background/weak network handled",
+        "two-device sync verified without production test data"
+      ],
+      "related_feature_ids": [
+        "KV-F-028",
+        "KV-F-029",
+        "KV-F-039"
+      ],
+      "impact_scope": "移动端学习流程、Tutor、复习、审核面板和双设备切换体验。",
+      "related_content_ids": [
+        "WORK-0015",
+        "WORK-0016",
+        "WORK-0017"
+      ]
+    },
+    {
+      "issue_id": "AUD-P3-013",
+      "severity": "P3",
+      "audit_direction": "site-discovery",
+      "title": "Production sitemap.xml returns 404",
+      "description": "robots.txt is reachable, but sitemap.xml returns 404. Public pages and canonical routes remain available.",
+      "evidence": [
+        "GET /sitemap.xml => 404",
+        "GET /robots.txt => 200"
+      ],
+      "root_cause": "Static Pages build does not generate sitemap.xml.",
+      "recommendation": "Generate sitemap from canonical routes and exclude hash-only/private routes.",
+      "dependencies": [
+        "routes.json",
+        "Pages build allowlist"
+      ],
+      "acceptance_criteria": [
+        "sitemap.xml HTTP 200",
+        "all public canonical pages included once",
+        "no private/hash-only duplicates"
+      ],
+      "related_feature_ids": [
+        "KV-F-002",
+        "KV-F-036"
+      ],
+      "impact_scope": "站点地图发现、搜索引擎索引和 canonical public pages 抓取。",
+      "related_content_ids": []
+    },
+    {
+      "issue_id": "AUD-P3-014",
+      "severity": "P3",
+      "audit_direction": "database-performance",
+      "title": "Supabase Advisor reports two unused indexes",
+      "description": "learning_events_user_occurred_idx and user_devices_last_seen_idx are marked unused; project is new and learning_events currently has zero rows, so indexes should not be deleted on that basis alone.",
+      "evidence": [
+        "Supabase Performance Advisor unused_index x2",
+        "learning_events row count=0"
+      ],
+      "root_cause": "Current workload is too small to provide meaningful index usage evidence.",
+      "recommendation": "Review after production query plans and real workload are available.",
+      "dependencies": [
+        "query plans",
+        "slow query/load evidence"
+      ],
+      "acceptance_criteria": [
+        "index decisions supported by EXPLAIN/workload data",
+        "important queries do not regress"
+      ],
+      "related_feature_ids": [
+        "KV-F-025",
+        "KV-F-028"
+      ],
+      "impact_scope": "学习事件和设备列表相关查询的索引成本与潜在性能。",
+      "related_content_ids": []
+    }
+  ]
+}
