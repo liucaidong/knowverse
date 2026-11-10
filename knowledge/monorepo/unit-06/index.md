@@ -1,6 +1,7 @@
 # 06 · Affected：从文件变更到任务的精确传播
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## 一条变化如何扩散
 
@@ -37,3 +38,10 @@ Affected 工具至少应输出：变更文件列表、文件到包的归属理�
 ## 诊断题
 
 如果 `domain:build` 已缓存，而 `web:test` 仍必须重跑，这两件事矛盾吗？需要怎样声明它们各自的输入？
+
+
+## 官方资料与规范
+
+- [Nx Task-based Affected](https://nx.dev/docs/features/ci-features/affected)
+- [Nx 24 Release Notes](https://nx.dev/blog/nx-24-release)
+- [pnpm Filtering / Since](https://pnpm.io/filtering)

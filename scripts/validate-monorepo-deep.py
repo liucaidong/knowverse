@@ -30,6 +30,32 @@ for i in range(1,11):
   if not (unit/f'index.{ext}').is_file():errors.append(f'missing lesson {i} .{ext}')
  for ext in ('mmd','svg'):
   if not (root/'assets/panoramas'/f'monorepo-unit-{i:02}.{ext}').is_file():errors.append(f'missing lesson diagram {i} .{ext}')
+source_requirements={
+ 'unit-01':['https://pnpm.io/workspaces','https://nx.dev/docs/features/explore-graph'],
+ 'unit-02':['https://pnpm.io/workspaces','https://pnpm.io/filtering','https://pnpm.io/blog/releases/12.17.0'],
+ 'unit-03':['https://www.typescriptlang.org/docs/handbook/project-references.html'],
+ 'unit-04':['https://nodejs.org/api/packages.html#package-entry-points','https://metrobundler.dev/docs/package-exports/'],
+ 'unit-05':['https://turborepo.dev/docs/crafting-your-repository/caching','https://nx.dev/docs/reference/inputs'],
+ 'unit-06':['https://nx.dev/docs/features/ci-features/affected'],
+ 'unit-07':['https://rushjs.io/pages/commands/rush_change/','https://rushjs.io/pages/maintainer/publishing/'],
+ 'unit-08':['https://nx.dev/blog/nx-24-release'],
+ 'unit-09':['https://metrobundler.dev/docs/package-exports/','https://docs.nestjs.com/cli/monorepo'],
+ 'unit-10':['https://learn.chatgpt.com/docs/agent-configuration/agents-md'],
+}
+for unit,urls in source_requirements.items():
+ md=(base/unit/'index.md').read_text(encoding='utf8')
+ html=(base/unit/'index.html').read_text(encoding='utf8')
+ if '## 官方资料与规范' not in md or '官方资料与规范' not in html: errors.append(f'{unit}: missing official source section')
+ for url in urls:
+  if url not in md: errors.append(f'{unit}: Markdown missing official reference {url}')
+  if url not in html: errors.append(f'{unit}: HTML missing official reference {url}')
+ if '资料复核：2026-11-10' not in md: errors.append(f'{unit}: missing source review date')
+unit2=(base/'unit-02/index.md').read_text(encoding='utf8')
+if 'pnpm 12.7.0 起' not in unit2 or 'merge-base' not in unit2 or '浅克隆' not in unit2: errors.append('unit-02: missing pnpm 12.7+ merge-base semantics')
+project_pkg=json.loads((base/'fullstack/project/package.json').read_text(encoding='utf8'))
+if project_pkg.get('packageManager')!='pnpm@12.17.0': errors.append('fullstack sample must pin pnpm 12.17.0')
+lock=(base/'fullstack/project/pnpm-lock.yaml').read_text(encoding='utf8')
+if 'specifier: 12.17.0' not in lock or 'version: 12.17.0' not in lock: errors.append('fullstack lockfile does not pin pnpm 12.17.0')
 for guide in ('ghost-deps','nx24-affected','rush-rollout','cross-platform'):
  if not (base/'guides'/guide/'index.html').is_file():errors.append(f'missing practical guide {guide}')
 for lab in ('graph','cache','build'):

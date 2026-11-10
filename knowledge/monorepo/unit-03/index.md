@@ -1,6 +1,7 @@
 # 03 · TypeScript Project References 的真正边界
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## references 不是路径别名，也不是 npm dependencies
 
@@ -61,3 +62,9 @@ pnpm exec tsc -b --clean
 ## 诊断题
 
 如果根 `tsconfig.json` 有 references，但只执行 `tsc -p apps/api`，为什么不能假设上游包会自动重建？如果使用 `paths` 指向 `contracts/src`，又有什么隐患？
+
+
+## 官方资料与规范
+
+- [TypeScript Project References](https://www.typescriptlang.org/docs/handbook/project-references.html)
+- [TypeScript Compiler Options](https://www.typescriptlang.org/tsconfig/)

@@ -1,6 +1,7 @@
 # 02 · pnpm Workspace：严格依赖是怎么形成的
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## `workspace:` 的价值不是方便，而是阻止错误来源
 
@@ -39,7 +40,7 @@ pnpm --filter '...@knowverse/domain' run test    # Domain 以及依赖它的包
 pnpm --filter '...[origin/main]' run test         # 相对基准变更及相关依赖者
 ```
 
-第三条命令要求 Git baseline 在 CI 中可用。浅克隆、没有 fetch 对应分支、rename / root config 变化都可能让选择结果与直觉不符。pnpm 11/12 的过滤语义细节要看**运行版本**，不要从多年以前的博客复制命令。
+第三条命令要求 Git baseline 在 CI 中可用。**pnpm 12.7.0 起**，`[origin/main]` 按当前分支与该基准的 merge-base 比较，而不是简单比较整个 `origin/main` 历史；未提交变更也会计入。浅克隆如果缺少 merge-base，pnpm 会退回直接与 `origin/main` 比较，因此结果可能比完整克隆更宽或与预期不同。Git rename 和根级 workspace / lockfile / catalog 变化也会影响包选择。务必在 CI 中 fetch 足够历史，并对根级配置变更采用扩大验证范围的策略。
 
 ## 可复现实验：制造一个幽灵依赖
 
@@ -55,3 +56,10 @@ React 和 React Native 等运行时有宿主单例与版本兼容要求。共享
 ## 诊断题
 
 `foo...` 和 `...foo` 哪个适合「改动基础类型库，筛出需要运行测试的消费者」？如果修改根 `pnpm-workspace.yaml`，为什么只筛出一个包可能不安全？
+
+
+## 官方资料与规范
+
+- [pnpm Workspace Protocol](https://pnpm.io/workspaces)
+- [pnpm Filtering / Since / Dependents](https://pnpm.io/filtering)
+- [pnpm 12.17.0 Release Notes](https://pnpm.io/blog/releases/12.17.0)

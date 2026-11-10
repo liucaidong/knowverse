@@ -1,6 +1,7 @@
 # 01 · 先有依赖图，才有 Monorepo
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## 本章的真实问题：为什么「放进同一个仓库」还不够
 
@@ -53,3 +54,10 @@ node --test tests/*.test.mjs
 ## 自检问题
 
 某人说「我们已经用 pnpm Workspace，所以有缓存、affected 和发布治理」。这句话混淆了哪些层？应怎样用证据逐项验证？
+
+
+## 官方资料与规范
+
+- [pnpm Workspaces](https://pnpm.io/workspaces)
+- [Nx Project Graph](https://nx.dev/docs/features/explore-graph)
+- [Rush 文件与目录约定](https://rushjs.io/pages/advanced/rush_files_and_folders/)

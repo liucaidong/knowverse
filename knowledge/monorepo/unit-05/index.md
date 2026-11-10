@@ -1,6 +1,7 @@
 # 05 · 任务图、增量构建与缓存键
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## 区分三种加速
 
@@ -39,3 +40,11 @@ Rush 官方说明中，增量分析与 build cache 是两个不同机制：前�
 ## 诊断题
 
 构建任务恢复成功但缺少 `dist/assets`，你优先怀疑缓存键、outputs 声明还是 pnpm 安装？为什么？
+
+
+## 官方资料与规范
+
+- [Turborepo Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
+- [Turborepo Task Configuration](https://turborepo.dev/docs/crafting-your-repository/configuring-tasks)
+- [Nx Inputs and Named Inputs](https://nx.dev/docs/reference/inputs)
+- [Rush Build Cache](https://rushjs.io/pages/maintainer/build_cache/)

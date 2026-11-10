@@ -23,7 +23,7 @@ const routeAnchorExists = async raw => {
 async function walk(dir, rel = "") {
   const output = [];
   for (const entry of await readdir(dir, { withFileTypes: true })) {
-    if ([".git", "node_modules", "_site"].includes(entry.name)) continue;
+    if ([".git", "node_modules", "dist", "build", ".expo", ".turbo", ".cache", "_site"].includes(entry.name)) continue;
     const childRel = path.posix.join(rel, entry.name);
     const child = path.join(dir, entry.name);
     if (entry.isDirectory()) output.push(...await walk(child, childRel));

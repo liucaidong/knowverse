@@ -1,6 +1,7 @@
 # 04 · 包入口：types、exports 与跨端条件导出
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## 包边界存在三层，缺一不可
 
@@ -40,3 +41,10 @@
 ## 诊断题
 
 为什么「编辑器可自动补全」不是「包可以跨端运行」的证据？如果一个包需要区分 Node.js、浏览器和原生端，你会优先写哪三种契约测试？
+
+
+## 官方资料与规范
+
+- [Node.js Package Entry Points / exports](https://nodejs.org/api/packages.html#package-entry-points)
+- [Metro Package Exports Support](https://metrobundler.dev/docs/package-exports/)
+- [Metro Module Resolution](https://metrobundler.dev/docs/resolution/)

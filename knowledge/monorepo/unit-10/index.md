@@ -1,6 +1,7 @@
 # 10 · 从代码治理到 AI Agent 的单仓闭环
 
 > 来源说明：根据历史对话与官方文档归纳编写的独立教材，不是原始聊天逐字转录。技术事实以校对日期与项目实际版本为准。
+> 资料复核：2026-11-10
 
 ## 「项目健康」不是单一 lint 通过率
 
@@ -41,3 +42,9 @@ Agent 可以通过 `AGENTS.md` 读取仓库规则，例如：「修改 contracts
 ## 诊断题
 
 当代码文档说 `contracts` 不应依赖 `api`，但真实 import 已经出现这条边，应该相信谁？怎样组织 CI 才能及时让漂移失败？
+
+
+## 官方资料与规范
+
+- [OpenAI Codex AGENTS.md Guide](https://learn.chatgpt.com/docs/agent-configuration/agents-md)
+- [GitHub Copilot Repository Instructions](https://docs.github.com/en/copilot/how-tos/copilot-on-github/customize-copilot/add-custom-instructions/add-repository-instructions)
