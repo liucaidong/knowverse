@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { chromium, webkit } from "playwright";
+import { mockAuthorizedSyncProfile, mockSupabaseProjectRequests } from "./helpers/mock-supabase-project.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const mime = {
@@ -50,6 +51,8 @@ async function openTutor(browser, viewport) {
     }));
   });
   const page = await context.newPage();
+  await mockSupabaseProjectRequests(page);
+  await mockAuthorizedSyncProfile(page);
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => {

@@ -5,6 +5,7 @@ import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { chromium, webkit } from "playwright";
+import { mockSupabaseProjectRequests } from "./helpers/mock-supabase-project.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const mime = {
@@ -137,6 +138,7 @@ async function setupBrowserContext(browser, viewport) {
     }));
   });
   const page = await context.newPage();
+  await mockSupabaseProjectRequests(page);
   const errors = [];
   const httpErrors = [];
   page.on("pageerror", error => errors.push(error.message));
