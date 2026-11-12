@@ -16,6 +16,86 @@ const REVIEWER_VERSION = "practice-reviewer-v1";
 const VALIDATOR_VERSION = "phase-m-server-validator-v1";
 const taskTypes = new Set(["predict", "trace", "diagnose", "transfer", "explain"]);
 const difficulties = new Set(["foundation", "intermediate", "stretch"]);
+
+const reviewerTextSchema = (minLength: number, maxLength: number) => ({
+  type: "string", minLength, maxLength,
+});
+const reviewerDimensionSchema = {
+  type: "object",
+  properties: {
+    status: { type: "string", enum: ["pass", "concern", "unverified"] },
+    assessment: reviewerTextSchema(1, 1600),
+    evidence: { type: "array", minItems: 1, maxItems: 8, items: reviewerTextSchema(1, 800) },
+  },
+  required: ["status", "assessment", "evidence"],
+  additionalProperties: false,
+};
+const REVIEWER_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    verdict: { type: "string", enum: ["pass", "needs_revision", "reject"] },
+    riskLevel: { type: "string", enum: ["low", "medium", "high", "critical"] },
+    overallAssessment: reviewerTextSchema(1, 5000),
+    findings: { type: "array", maxItems: 20, items: {
+      type: "object",
+      properties: {
+        category: { type: "string", enum: [
+          "source_alignment", "solvability", "answer_quality", "pedagogical_quality",
+          "code_semantics", "safety", "duplication", "registration_compatibility", "other",
+        ] },
+        severity: { type: "string", enum: ["info", "low", "medium", "high", "critical"] },
+        description: reviewerTextSchema(1, 1200),
+        evidence: reviewerTextSchema(1, 1200),
+        suggestedFix: reviewerTextSchema(1, 1200),
+      },
+      required: ["category", "severity", "description", "evidence", "suggestedFix"],
+      additionalProperties: false,
+    } },
+    sourceAlignment: reviewerDimensionSchema,
+    solvability: reviewerDimensionSchema,
+    answerConsistency: reviewerDimensionSchema,
+    pedagogicalQuality: reviewerDimensionSchema,
+    suggestedRevisions: { type: "array", maxItems: 12, items: {
+      type: "object",
+      properties: {
+        field: reviewerTextSchema(1, 80),
+        reason: reviewerTextSchema(1, 800),
+        proposal: reviewerTextSchema(1, 1200),
+      },
+      required: ["field", "reason", "proposal"],
+      additionalProperties: false,
+    } },
+    reviewerLimitations: { type: "array", minItems: 1, maxItems: 10, items: reviewerTextSchema(1, 800) },
+    registrationAssessment: { anyOf: [
+      { type: "null" },
+      { type: "object", properties: {
+        title: reviewerTextSchema(4, 120),
+        prompt: reviewerTextSchema(16, 900),
+        code: { type: "string", maxLength: 2400 },
+        options: { type: "array", minItems: 2, maxItems: 4, items: {
+          type: "object", properties: {
+            id: { type: "string", minLength: 1, maxLength: 32, pattern: "^[a-zA-Z0-9_-]{1,32}$" },
+            label: reviewerTextSchema(1, 320),
+          },
+          required: ["id", "label"],
+          additionalProperties: false,
+        } },
+        answer: reviewerTextSchema(1, 32),
+        explanation: reviewerTextSchema(8, 1600),
+        hints: { type: "array", minItems: 2, maxItems: 2, items: reviewerTextSchema(4, 320) },
+      },
+      required: ["title", "prompt", "code", "options", "answer", "explanation", "hints"],
+      additionalProperties: false,
+      },
+    ] },
+  },
+  required: [
+    "verdict", "riskLevel", "overallAssessment", "findings", "sourceAlignment",
+    "solvability", "answerConsistency", "pedagogicalQuality", "suggestedRevisions",
+    "reviewerLimitations", "registrationAssessment",
+  ],
+  additionalProperties: false,
+};
 const isObject = (v: unknown): v is Record<string, any> =>
   Boolean(v) && typeof v === "object" && !Array.isArray(v);
 const clean = (v: unknown, max = 2000) => typeof v === "string" ? v.trim().slice(0, max) : "";
@@ -528,18 +608,31 @@ async function runIndependentReview(candidate: any, canonical: any, contentHash:
     "Return one strict JSON object for this input:", stableStringify(input),
   ].join("\n\n");
   const controller = new AbortController();
+  const providerStartedAt = performance.now();
   const timeout = setTimeout(() => controller.abort(), 90_000);
+  console.info("[practice-reviewer] " + JSON.stringify({
+    event: "provider_request_started", model: config.model, reasoningEffort: "low",
+    maxTokens: 8192, responseFormat: "json_schema", systemChars: system.length, userChars: user.length,
+  }));
   try {
     const response = await fetch(config.baseUrl + "/chat/completions", {
       method: "POST", signal: controller.signal,
       headers: { Authorization: "Bearer " + config.apiKey, "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        model: config.model, temperature: 0.1, reasoning_effort: "low", max_tokens: 4096,
+        model: config.model, temperature: 0.1, reasoning_effort: "low", max_tokens: 8192,
         messages: [{ role: "system", content: system }, { role: "user", content: user }],
-        response_format: { type: "json_object" },
+        response_format: { type: "json_schema", json_schema: {
+          name: "practice_quality_review", strict: true, schema: REVIEWER_RESPONSE_SCHEMA,
+        } },
       }),
     });
     if (!response.ok) {
+      console.warn("[practice-reviewer] " + JSON.stringify({
+        event: "provider_http_error", status: response.status,
+        elapsedMs: Math.round(performance.now() - providerStartedAt),
+        retryAfter: response.headers.get("retry-after"),
+        requestId: response.headers.get("x-request-id") || response.headers.get("request-id"),
+      }));
       // Provider bodies are intentionally not forwarded or persisted: they may
       // contain internal diagnostics. Keep the outcome fail-closed and bounded.
       await response.body?.cancel().catch(() => null);
@@ -551,17 +644,24 @@ async function runIndependentReview(candidate: any, canonical: any, contentHash:
     if (typeof raw !== "string" || raw.length > 24_000) {
       throw fail("reviewer_invalid_response", "Reviewer 没有返回符合大小限制的 JSON 文本。", 502);
     }
+    const usage = isObject(payload?.usage) ? payload.usage : {};
+    const completionTokens = Number.isFinite(Number(usage.completion_tokens)) ? Number(usage.completion_tokens) : null;
+    const reasoningTokens = Number.isFinite(Number(usage.completion_tokens_details?.reasoning_tokens))
+      ? Number(usage.completion_tokens_details.reasoning_tokens) : null;
+    const finishReason = clean(payload?.choices?.[0]?.finish_reason, 40) || "unknown";
+    console.info("[practice-reviewer] " + JSON.stringify({
+      event: "provider_response_received", status: response.status,
+      elapsedMs: Math.round(performance.now() - providerStartedAt), finishReason,
+      contentLength: raw.length, promptTokens: Number.isFinite(Number(usage.prompt_tokens)) ? Number(usage.prompt_tokens) : null,
+      completionTokens, reasoningTokens,
+      requestId: response.headers.get("x-request-id") || response.headers.get("request-id"),
+    }));
     let decoded: unknown;
     const trimmed = raw.trim();
     const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
     const jsonText = fenced ? fenced[1] : trimmed;
     try { decoded = JSON.parse(jsonText); }
     catch {
-      const finishReason = clean(payload?.choices?.[0]?.finish_reason, 40) || "unknown";
-      const usage = isObject(payload?.usage) ? payload.usage : {};
-      const completionTokens = Number.isFinite(Number(usage.completion_tokens)) ? Number(usage.completion_tokens) : null;
-      const reasoningTokens = Number.isFinite(Number(usage.completion_tokens_details?.reasoning_tokens))
-        ? Number(usage.completion_tokens_details.reasoning_tokens) : null;
       throw fail("reviewer_invalid_json",
         "Reviewer 返回内容不是有效 JSON（finish_reason=" + finishReason +
         ", content_length=" + raw.length + ", completion_tokens=" + completionTokens +
@@ -581,7 +681,12 @@ async function runIndependentReview(candidate: any, canonical: any, contentHash:
     ]).slice(0, 10);
     return result;
   } catch (error) {
-    if (controller.signal.aborted) throw fail("reviewer_timeout", "独立 AI Reviewer 超时；候选状态已恢复，可重新发起审查。", 504);
+    if (controller.signal.aborted) {
+      console.warn("[practice-reviewer] " + JSON.stringify({
+        event: "provider_timeout", elapsedMs: Math.round(performance.now() - providerStartedAt),
+      }));
+      throw fail("reviewer_timeout", "独立 AI Reviewer 超时；候选状态已恢复，可重新发起审查。", 504);
+    }
     throw error;
   } finally { clearTimeout(timeout); }
 }
