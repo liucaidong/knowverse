@@ -2,18 +2,19 @@
 
 - Repository: `liucaidong/knowverse`
 - Branch: `develop`
-- Recorded HEAD at report creation: updated after the final commit in this remediation batch.
+- Recorded HEAD at report creation: `1c8f516cc85869a1bb5c21cc18ca943c843ef683`.
 - Local checkout: `/Users/geeker/ai-projects/knowverse`
 - Scope: read-only audit, deterministic local tests, isolated PostgreSQL replay, isolated KNOWVERSE N2 staging acceptance, and CI reliability fixes. No production business data was written.
 
 ## 1. Repository and release state
 
-- Local `develop` tracks `origin/develop`; working tree was clean after the two committed remediation changes.
+- Local `develop` tracks `origin/develop`; code and content changes are committed and pushed. The audit report itself is being updated in a follow-up documentation commit.
 - Latest changes in this work session:
   - `8ccf98c`: make the H1 pilot E2E distinguish optional Mermaid CDN failure from first-party resource failure; exclude ignored third-party dependency HTML from public-site link validation; regenerate stale search and Monorepo graph artifacts.
   - `ed4bcea`: isolate the Tutor E2E from the optional Mermaid CDN.
   - `c476607`: stub Supabase project requests in the synthetic Tutor consent E2E so a fake session cannot make DNS-dependent or production requests.
-- Pages deployment for `8ccf98c` and `ed4bcea` completed successfully. The `c476607` Validate and Pages runs were still in progress at the time of this report; do not infer success until GitHub Actions reports completion.
+  - `1c8f516`: add the AI Agent formal learning graph, two evidence-backed lessons, six targeted review variants, three Concept pages, updated provenance/search/routes, deterministic provenance regeneration, and dedicated unit/browser regression tests.
+- Pages deployments for `8ccf98c`, `ed4bcea` and `5e02429` completed successfully; the Validate run for `5e02429` also passed. At report time, Validate for `1c8f516` was in progress and Pages deployment was queued; release is not marked green until both finish successfully.
 
 ## 2. Current product inventory
 
@@ -51,9 +52,9 @@ The current start page is a guided learning entry: one next action, a four-step 
 Two failures were traced to external dependencies, not to the tested learning business flow:
 
 1. H1 pilot test failed when Mermaid's optional ESM chunk requests failed from jsDelivr. The application already has a source-preserving fallback. The test now excludes only the exact optional Mermaid CDN origin from its no-failed-request assertion; first-party local requests remain strict.
-2. Tutor consent E2E failed in GitHub Actions when the synthetic session caused Supabase requests to depend on external DNS. The test now stubs the optional Mermaid module and all Supabase project requests. The Learning Agent request remains separately intercepted and its payload, authorization header, one-turn consent, and non-mastery behavior are still asserted.
+2. Tutor consent E2E failed in GitHub Actions when the synthetic session caused Supabase requests to depend on external DNS. The test now stubs the optional Mermaid module and all Supabase project requests. The Learning Agent request remains separately intercepted and its payload, authorization header, one-turn consent, and non-mastery behavior are still asserted. A shared `scripts/helpers/mock-supabase-project.mjs` fixture now keeps the other local synthetic-session suites (Phase K/L/M) off real Supabase hosts while preserving explicit RPC fixtures.
 
-The local H1 and Tutor suites passed after these changes. The subsequent local regression run also passed all 31 verifier scripts and all 54 browser cases. The last completed GitHub Validate run for the preceding test-only commit passed; the expanded AI Agent content commit still requires its own GitHub Validate and Pages completion before release is called green.
+The local H1 and Tutor suites passed after these changes. The subsequent local regression run also passed all 31 verifier scripts and all 54 browser cases. The last completed GitHub Validate run for the preceding commit passed; the expanded AI Agent content commit `1c8f516` still requires its own GitHub Validate and Pages completion before release is called green.
 
 The V2 validator also previously traversed a locally installed nested `node_modules` tree and reported third-party React Native DevTools / Expo HTML references as broken public-site links. It now excludes generated dependency/build directories from the public-site HTML scan. The real public site link scan remains enabled and passed.
 
@@ -102,7 +103,7 @@ The previously documented Mac Chromium hosted staging browser acceptance from 20
 
 ## 8. Next execution order
 
-1. Confirm the `c476607` GitHub Validate and Pages runs; repair any remaining CI failures without weakening first-party assertions.
+1. Confirm the `1c8f516` GitHub Validate and Pages runs; repair any remaining CI failures without weakening first-party assertions.
 2. Re-run hosted browser staging acceptance with the established preview fixture; then verify the second physical device and iPhone Safari.
 3. Configure and test real staging AI Provider execution for Tutor, Agent and independent Reviewer; verify failure-safe behavior.
 4. Prove the complete protected practice publication chain with a synthetic staging candidate and explicit human approval; never auto-merge.
