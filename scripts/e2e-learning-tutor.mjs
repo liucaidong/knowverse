@@ -46,6 +46,15 @@ test.after(() => new Promise(resolveServer => server.close(resolveServer)));
 async function openPage(browser, path, viewport) {
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
+  // The Mermaid renderer is an optional third-party enhancement. Keep this
+  // behavior-focused suite deterministic and offline by supplying the tiny
+  // interface the site consumes; diagram semantics are covered by validators
+  // and the checked-in SVG/source assets, not by this Tutor consent suite.
+  await page.route("https://cdn.jsdelivr.net/npm/mermaid@12/**", route => route.fulfill({
+    status: 200,
+    contentType: "text/javascript",
+    body: "export default { initialize() {}, run() { return Promise.resolve(); } };",
+  }));
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => {
@@ -189,6 +198,13 @@ test("Chromium desktop: one-turn consent sends only the explicitly selected exce
       }));
     });
     const page = await context.newPage();
+    // Match openPage(): never make a Tutor privacy/consent assertion depend on
+    // resolving the optional Mermaid CDN or its transitive module chunks.
+    await page.route("https://cdn.jsdelivr.net/npm/mermaid@12/**", route => route.fulfill({
+      status: 200,
+      contentType: "text/javascript",
+      body: "export default { initialize() {}, run() { return Promise.resolve(); } };",
+    }));
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => {
