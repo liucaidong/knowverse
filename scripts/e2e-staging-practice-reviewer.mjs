@@ -82,7 +82,7 @@ console.log("PASS  Staging identity, private candidate archive and prior validat
 }));
 
 const started = Date.now();
-const review = check(await edge(tokenA, "review", 110_000), "Independent AI Reviewer execution");
+const review = check(await edge(tokenA, "review", 145_000), "Independent AI Reviewer execution");
 const elapsedMs = Date.now() - started;
 assert.equal(review.ok, true);
 assert.equal(review.candidateId, CANDIDATE_ID);

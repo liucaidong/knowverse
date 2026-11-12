@@ -609,17 +609,17 @@ async function runIndependentReview(candidate: any, canonical: any, contentHash:
   ].join("\n\n");
   const controller = new AbortController();
   const providerStartedAt = performance.now();
-  const timeout = setTimeout(() => controller.abort(), 90_000);
+  const timeout = setTimeout(() => controller.abort(), 135_000);
   console.info("[practice-reviewer] " + JSON.stringify({
     event: "provider_request_started", model: config.model, reasoningEffort: "low",
-    maxTokens: 8192, responseFormat: "json_schema", systemChars: system.length, userChars: user.length,
+    maxTokens: 16384, responseFormat: "json_schema", systemChars: system.length, userChars: user.length,
   }));
   try {
     const response = await fetch(config.baseUrl + "/chat/completions", {
       method: "POST", signal: controller.signal,
       headers: { Authorization: "Bearer " + config.apiKey, "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        model: config.model, temperature: 0.1, reasoning_effort: "low", max_tokens: 8192,
+        model: config.model, temperature: 0.1, reasoning_effort: "low", max_tokens: 16384,
         messages: [{ role: "system", content: system }, { role: "user", content: user }],
         response_format: { type: "json_schema", json_schema: {
           name: "practice_quality_review", strict: true, schema: REVIEWER_RESPONSE_SCHEMA,
