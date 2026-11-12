@@ -370,79 +370,6 @@ function deterministicValidation(candidate: any, canonical: any, existing: any[]
   };
 }
 
-const dimension = {
-  type: "object", additionalProperties: false,
-  properties: {
-    status: { type: "string", enum: ["pass", "concern", "unverified"] },
-    assessment: { type: "string" },
-    evidence: { type: "array", minItems: 1, maxItems: 8, items: { type: "string" } },
-  },
-  required: ["status", "assessment", "evidence"],
-};
-const reviewerSchema = {
-  type: "object", additionalProperties: false,
-  properties: {
-    verdict: { type: "string", enum: ["pass", "needs_revision", "reject"] },
-    riskLevel: { type: "string", enum: ["low", "medium", "high", "critical"] },
-    overallAssessment: { type: "string" },
-    findings: {
-      type: "array", maxItems: 20,
-      items: {
-        type: "object", additionalProperties: false,
-        properties: {
-          category: { type: "string", enum: [
-            "source_alignment", "solvability", "answer_quality", "pedagogical_quality",
-            "code_semantics", "safety", "duplication", "registration_compatibility", "other",
-          ] },
-          severity: { type: "string", enum: ["info", "low", "medium", "high", "critical"] },
-          description: { type: "string" }, evidence: { type: "string" }, suggestedFix: { type: "string" },
-        },
-        required: ["category", "severity", "description", "evidence", "suggestedFix"],
-      },
-    },
-    sourceAlignment: dimension,
-    solvability: dimension,
-    answerConsistency: dimension,
-    pedagogicalQuality: dimension,
-    suggestedRevisions: {
-      type: "array", maxItems: 12,
-      items: {
-        type: "object", additionalProperties: false,
-        properties: { field: { type: "string" }, reason: { type: "string" }, proposal: { type: "string" } },
-        required: ["field", "reason", "proposal"],
-      },
-    },
-    reviewerLimitations: { type: "array", minItems: 1, maxItems: 10, items: { type: "string" } },
-    registrationAssessment: {
-      anyOf: [
-        { type: "null" },
-        {
-          type: "object", additionalProperties: false,
-          properties: {
-            title: { type: "string" }, prompt: { type: "string" }, code: { type: "string" },
-            options: {
-              type: "array", minItems: 2, maxItems: 4,
-              items: {
-                type: "object", additionalProperties: false,
-                properties: { id: { type: "string" }, label: { type: "string" } },
-                required: ["id", "label"],
-              },
-            },
-            answer: { type: "string" }, explanation: { type: "string" },
-            hints: { type: "array", minItems: 2, maxItems: 2, items: { type: "string" } },
-          },
-          required: ["title", "prompt", "code", "options", "answer", "explanation", "hints"],
-        },
-      ],
-    },
-  },
-  required: [
-    "verdict", "riskLevel", "overallAssessment", "findings", "sourceAlignment",
-    "solvability", "answerConsistency", "pedagogicalQuality", "suggestedRevisions",
-    "reviewerLimitations", "registrationAssessment",
-  ],
-};
-
 function exactKeys(value: unknown, expected: string[]) {
   if (!isObject(value)) return false;
   const actual = Object.keys(value).sort();
@@ -591,6 +518,7 @@ async function runIndependentReview(candidate: any, canonical: any, contentHash:
     "No generated code was executed in a sandbox during this review. Never claim execution, actual output verification or runtime testing.",
     "The current formal assessment engine accepts single-answer multiple-choice variants only. Preserve the original open-ended candidate and provide a separate, narrower companion registrationAssessment with one defensible answer and plausible distractors. Do not pretend an intrinsically open-ended exercise has a unique answer. If no fair companion MCQ can be derived, return needs_revision, set registrationAssessment to null, and explain why.",
     "Return JSON matching the strict schema exactly. No additional properties.",
+    "Be concise: each dimension assessment and evidence item should be one short sentence; return at most 3 findings and 3 suggested revisions.",
   ].join("\n");
   const user = [
     "审查候选练习与官方来源，不要给学习者生成反馈，不要评价掌握度。",
@@ -600,18 +528,15 @@ async function runIndependentReview(candidate: any, canonical: any, contentHash:
     "Return one strict JSON object for this input:", stableStringify(input),
   ].join("\n\n");
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 35_000);
+  const timeout = setTimeout(() => controller.abort(), 90_000);
   try {
     const response = await fetch(config.baseUrl + "/chat/completions", {
       method: "POST", signal: controller.signal,
       headers: { Authorization: "Bearer " + config.apiKey, "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({
-        model: config.model, temperature: 0.1,
+        model: config.model, temperature: 0.1, reasoning_effort: "low", max_tokens: 4096,
         messages: [{ role: "system", content: system }, { role: "user", content: user }],
-        response_format: {
-          type: "json_schema",
-          json_schema: { name: "practice_candidate_review", strict: true, schema: reviewerSchema },
-        },
+        response_format: { type: "json_object" },
       }),
     });
     if (!response.ok) {
@@ -627,8 +552,21 @@ async function runIndependentReview(candidate: any, canonical: any, contentHash:
       throw fail("reviewer_invalid_response", "Reviewer 没有返回符合大小限制的 JSON 文本。", 502);
     }
     let decoded: unknown;
-    try { decoded = JSON.parse(raw); }
-    catch { throw fail("reviewer_invalid_json", "Reviewer 返回内容不是有效 JSON。", 502); }
+    const trimmed = raw.trim();
+    const fenced = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+    const jsonText = fenced ? fenced[1] : trimmed;
+    try { decoded = JSON.parse(jsonText); }
+    catch {
+      const finishReason = clean(payload?.choices?.[0]?.finish_reason, 40) || "unknown";
+      const usage = isObject(payload?.usage) ? payload.usage : {};
+      const completionTokens = Number.isFinite(Number(usage.completion_tokens)) ? Number(usage.completion_tokens) : null;
+      const reasoningTokens = Number.isFinite(Number(usage.completion_tokens_details?.reasoning_tokens))
+        ? Number(usage.completion_tokens_details.reasoning_tokens) : null;
+      throw fail("reviewer_invalid_json",
+        "Reviewer 返回内容不是有效 JSON（finish_reason=" + finishReason +
+        ", content_length=" + raw.length + ", completion_tokens=" + completionTokens +
+        ", reasoning_tokens=" + reasoningTokens + "）。", 502);
+    }
     const result = validateReviewerOutput(decoded);
     if (result.riskLevel === "critical" || result.findings.some(item => item.severity === "critical")) {
       result.verdict = "reject";
