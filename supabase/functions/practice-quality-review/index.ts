@@ -102,10 +102,16 @@ function parseCandidate(value: unknown) {
   return candidate;
 }
 
-let canonicalCache: { expiresAt: number; learningMap: any; registry: any } | null = null;
+let canonicalCache: { expiresAt: number; contentRef: string; sourceUrl: string; learningMap: any; registry: any } | null = null;
 async function loadCanonical() {
-  if (canonicalCache && canonicalCache.expiresAt > Date.now()) return canonicalCache;
-  const base = "https://raw.githubusercontent.com/liucaidong/knowverse/main/content/";
+  const contentRef = (Deno.env.get("KNOWVERSE_CONTENT_REF") || "main").trim();
+  if (!/^[A-Za-z0-9._-]{1,80}$/.test(contentRef)) {
+    throw fail("canonical_content_ref_invalid", "KNOWVERSE_CONTENT_REF 必须是安全的 Git 分支或标签名称。", 503);
+  }
+  if (canonicalCache && canonicalCache.contentRef === contentRef && canonicalCache.expiresAt > Date.now()) {
+    return canonicalCache;
+  }
+  const base = `https://raw.githubusercontent.com/liucaidong/knowverse/${contentRef}/content/`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 10_000);
   try {
@@ -121,7 +127,13 @@ async function loadCanonical() {
       !Array.isArray(registry.assessments)) {
       throw fail("canonical_registry_invalid", "官方学习图谱或正式题库结构无效。", 503);
     }
-    canonicalCache = { expiresAt: Date.now() + 120_000, learningMap, registry };
+    canonicalCache = {
+      expiresAt: Date.now() + 120_000,
+      contentRef,
+      sourceUrl: base + "review-assessments.json",
+      learningMap,
+      registry,
+    };
     return canonicalCache;
   } finally { clearTimeout(timeout); }
 }
@@ -787,7 +799,7 @@ async function handleAction(ctx: any, userId: string, body: Record<string, any>)
       const review = {
         reviewId, candidateId: id, reviewerVersion: REVIEWER_VERSION,
         reviewerModel: reviewer.model, candidateHash: contentHash, inputVersion: candidate.schemaVersion,
-        canonicalRegistrySource: "https://raw.githubusercontent.com/liucaidong/knowverse/main/content/review-assessments.json",
+        canonicalRegistrySource: canonical.sourceUrl,
         sourceSnapshotHash: validation.payload.sourceSnapshotHash || null,
         validationRecordId: validation.record_id,
         reviewedAt: nowIso(), ...result,

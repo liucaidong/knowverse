@@ -90,11 +90,53 @@ The script reports that the two synthetic Auth users should be deleted from the 
 
 A fresh Mac Chromium hosted staging browser re-run passed on 2026-11-12. The local preview was pinned to the approved staging URL and used the application `SupabaseAuthClient.saveSession()` path. Result: 28/28 hosted RPC responses were HTTP 200; initial status `已同步`; conflicts, pending events and pending documents were all zero; manual sync passed; pull-only restore invoked zero `sync_commit_learning_batch` calls; page reload restored the same state; browser errors were zero. The temporary preview and public config were removed after the test. This is real Mac Chromium + hosted staging evidence, not a second physical device or iPhone Safari test.
 
+#### Staging Edge Functions and real-provider gate
+
+The Supabase management connector initially reported zero deployed Edge Functions. I deployed the current `develop` sources to the staging project only, with platform JWT verification enabled:
+
+| Function | Deployment | Auth check | Provider status |
+|---|---|---|---|
+| `learning-agent` | Active | Unauthenticated request returns HTTP 401 | Authenticated Account A request returns `503 AI_PROVIDER_NOT_CONFIGURED` |
+| `practice-quality-review` | Active | Unauthenticated request returns HTTP 401 | Authenticated history read returns HTTP 200 with no candidate records; no Reviewer model call was made |
+
+This confirms both cloud endpoints, their runtime imports, and the authentication boundary are live, but it does **not** prove real AI generation or independent review. The authenticated Learning Agent test fails closed before any provider request because the required `AI_PROVIDER_API_KEY` / `AI_PROVIDER_MODEL` configuration is incomplete. No billable model request was made. The local ignored `.env.n2.local` contains only staging connection / test-account settings, not provider credentials.
+
+The staging function secrets that must be set in Supabase Dashboard → Project Settings → Edge Functions → Secrets are:
+
+- `AI_PROVIDER_API_KEY` and `AI_PROVIDER_MODEL`; `AI_PROVIDER_BASE_URL` is optional (default OpenAI-compatible API base).
+- `PRACTICE_REVIEWER_API_KEY` and `PRACTICE_REVIEWER_MODEL`; `PRACTICE_REVIEWER_API_BASE_URL` is optional. The Reviewer model must differ from `AI_PROVIDER_MODEL`; use an independent credential/model where possible.
+- `KNOWVERSE_CONTENT_REF=develop` so the staging Reviewer validates against the current develop learning map and assessment registry. The function safely defaults to `main` when this setting is absent; production should retain that default unless explicitly changed.
+
+Do not paste API key values into chat or commit them. After the secrets are configured, rerun `node scripts/e2e-hosted-learning-agent.mjs`, then create one synthetic staging candidate and run the independent Reviewer acceptance path. The current connected Supabase management actions can inspect projects, migrations, tables, functions and advisors, but do not expose Edge Function secret mutation; the Dashboard action is required.
+
+The Supabase Security Advisor also reports leaked-password protection disabled. Enable it under Authentication → Settings → Password Security. The private-schema RLS-without-policies findings are informational and consistent with server-only access; do not add broad client policies. Three unused indexes are informational on this small staging dataset and should not be dropped without production query evidence.
+
+#### Staging Edge Functions and real-provider gate
+
+The Supabase management connector initially reported zero deployed Edge Functions. I deployed the current `develop` sources to the staging project only, with platform JWT verification enabled:
+
+| Function | Deployment | Auth check | Provider status |
+|---|---|---|---|
+| `learning-agent` | Active | Unauthenticated request returns HTTP 401 | Authenticated Account A request returns `503 AI_PROVIDER_NOT_CONFIGURED` |
+| `practice-quality-review` | Active | Unauthenticated request returns HTTP 401 | Reviewer provider call not yet attempted; no candidate review was submitted |
+
+This confirms the cloud endpoints and authentication boundary are live, but it does **not** prove real AI generation or independent review. The authenticated Learning Agent test fails closed before any provider request because `AI_PROVIDER_API_KEY` / `AI_PROVIDER_MODEL` are not configured for the staging function. No billable model request was made. The local ignored `.env.n2.local` contains only staging connection / test-account settings, not provider credentials.
+
+The staging function secrets that must be set in Supabase Dashboard → Project Settings → Edge Functions → Secrets are:
+
+- `AI_PROVIDER_API_KEY` and `AI_PROVIDER_MODEL`; `AI_PROVIDER_BASE_URL` is optional (default OpenAI-compatible API base).
+- `PRACTICE_REVIEWER_API_KEY` and `PRACTICE_REVIEWER_MODEL`; `PRACTICE_REVIEWER_API_BASE_URL` is optional. The Reviewer model must differ from `AI_PROVIDER_MODEL`; use an independent credential/model where possible.
+- `KNOWVERSE_CONTENT_REF=develop` so the staging Reviewer validates against the current develop learning map and assessment registry. The function safely defaults to `main` when this setting is absent; production should retain that default unless explicitly changed.
+
+Do not paste API key values into chat or commit them. After the secrets are configured, rerun `node scripts/e2e-hosted-learning-agent.mjs`, then create one synthetic staging candidate and run the independent Reviewer acceptance path. The current connected Supabase management actions can inspect projects, migrations, tables, functions and advisors, but do not expose Edge Function secret mutation; the Dashboard action is required.
+
+The Supabase Security Advisor also reports leaked-password protection disabled. Enable it under Authentication → Settings → Password Security. The private-schema RLS-without-policies findings are informational and consistent with server-only access; do not add broad client policies. Three unused indexes are informational on this small staging dataset and should not be dropped without production query evidence.
+
 ## 7. Remaining acceptance gaps
 
 | Area | Current status | Required evidence |
 |---|---|---|
-| Real Tutor / Agent / independent Reviewer model Provider calls | NOT VERIFIED | Staging calls using least-privilege provider credentials; independent Reviewer credential; timeout/429/5xx/invalid-output fail-closed tests |
+| Real Tutor / Agent / independent Reviewer model Provider calls | BLOCKED: both Edge Functions are deployed and JWT-gated; Learning Agent returns `AI_PROVIDER_NOT_CONFIGURED` | Configure provider secrets, then verify real staging calls, independent Reviewer credential, timeout/429/5xx/invalid-output fail-closed tests |
 | AI candidate-to-publication chain | NOT VERIFIED end-to-end | Real staging candidate → deterministic validator → independent Reviewer → explicit human approval → PR → exact Pages comparison → registration |
 | Cross-device sync | PostgreSQL isolated tests PASS; hosted Supabase HTTP PASS; Mac Chromium staging browser PASS | Second physical device, offline Outbox, session refresh, weak network/background recovery, account revocation |
 | Physical iPhone Safari | NOT VERIFIED | Real device acceptance evidence |
@@ -104,13 +146,13 @@ A fresh Mac Chromium hosted staging browser re-run passed on 2026-11-12. The loc
 
 ## 8. Next execution order
 
-1. Confirm the `1c8f516` GitHub Validate and Pages runs; repair any remaining CI failures without weakening first-party assertions.
+1. Confirm the latest GitHub Validate and Pages runs for the current staging-function code; repair any remaining CI failures without weakening first-party assertions.
 2. Verify the second physical device, offline Outbox / weak-network recovery, session refresh and iPhone Safari; the Mac Chromium staging browser path now passes.
-3. Configure and test real staging AI Provider execution for Tutor, Agent and independent Reviewer; verify failure-safe behavior.
+3. Set staging Edge Function secrets (`AI_PROVIDER_*`, `PRACTICE_REVIEWER_*`, `KNOWVERSE_CONTENT_REF=develop`) and enable leaked-password protection; then test real Tutor / Agent / independent Reviewer calls.
 4. Prove the complete protected practice publication chain with a synthetic staging candidate and explicit human approval; never auto-merge.
 5. Extend formal learning maps selectively to the remaining eight topics, beginning with high-value engineering topics, and review each assessment against official sources.
 6. Complete a current feature/content inventory and backup/restore drill before declaring KNOWVERSE 4.0 production-ready.
 
 ## 9. Safety boundary
 
-This session did not write production learning events, modify production Supabase data, change production permissions, merge a PR, or use production credentials. All hosted writes were confined to the pinned N2 staging project and synthetic accounts.
+This session did not write production learning events, modify production Supabase data, change production permissions, merge a PR, or use production credentials. Both Edge Functions were deployed only to the pinned N2 staging project; all hosted data writes remained confined to synthetic staging accounts.

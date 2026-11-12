@@ -92,6 +92,15 @@ test("database audit RPCs fail closed for browser roles and retain content_admin
   assert.match(migration, /revoke insert on table public\.practice_candidate_quality_records from service_role/);
 });
 
+test("the independent Reviewer loads canonical content from an explicit safe ref and records the exact source", async () => {
+  const edge = await read("supabase/functions/practice-quality-review/index.ts");
+  assert.match(edge, /Deno\.env\.get\("KNOWVERSE_CONTENT_REF"\) \|\| "main"/);
+  assert.match(edge, /canonical_content_ref_invalid/);
+  assert.match(edge, /const base = `https:\/\/raw\.githubusercontent\.com\/liucaidong\/knowverse\/\$\{contentRef\}\/content\/`/);
+  assert.match(edge, /canonicalRegistrySource: canonical\.sourceUrl/);
+  assert.doesNotMatch(edge, /canonicalRegistrySource:\s*"https:\/\/raw\.githubusercontent\.com\/liucaidong\/knowverse\/main\//);
+});
+
 test("the audit history and duplicate scan have no fixed top-N cutoff", async () => {
   const edge = await read("supabase/functions/practice-quality-review/index.ts");
   assert.match(edge, /collectAllPracticePages/);

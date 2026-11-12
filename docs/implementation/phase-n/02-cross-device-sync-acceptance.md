@@ -35,7 +35,7 @@ N2 已补齐两层隔离验证：
 | Playwright WebKit iPhone profile | WebKit 模拟设备视口 | IndexedDB 测试数据 | 浏览器引擎验证，不是真机 |
 | 本机 Docker PostgreSQL 17 | 重放仓库全部 12 条 SQL migration，并调用数据库 RPC | 合成 Auth 用户 / 设备 / 事件 / 文档 | 数据库 SQL / RLS / RPC 集成验证 |
 | Supabase 生产项目 | 只读查询 migrations、table grants、RLS policies、行数元数据 | 生产现有数据，只读 | 生产权限和结构观测，不是同步验收 |
-| Supabase staging | `knowverse-staging` (`ypthoicwrfsblaidllyy`)，12/12 migrations PASS | 2 个合成 Auth 用户、3 个设备、2 个学习事件、1 个档案文档 | 真实 Auth / JWT / PostgREST / RPC HTTP 验收 PASS；真实浏览器客户端和实体 iPhone 尚待验收 |
+| Supabase staging | `knowverse-staging` (`ypthoicwrfsblaidllyy`)，12/12 migrations PASS | 2 个合成 Auth 用户、20 个设备、4 个学习事件、4 个档案文档、0 个候选审核记录 | 真实 Auth / JWT / PostgREST / RPC HTTP 与 Mac Chromium 页面验收 PASS；第二台实体设备和 iPhone 尚待验收 |
 
 ## 4. 测试清单与结果
 
@@ -408,3 +408,35 @@ DevTools 根因：
 观察到的 RPC 名称：`get_learning_sync_profile`、`register_device`、`sync_pull_learning_events_for_account`、`sync_pull_learning_documents_for_account`。自动同步、手动同步、pull-only 恢复和刷新均已验证。
 
 **证据边界：** 这是 Mac Chromium 真实浏览器 + 托管 staging Auth / RPC 的通过记录；它不等于第二台实体设备、iPhone Safari 或离线 Outbox 的验收。浏览器测试没有提交新的学习事件或档案文档；可能为当前浏览器注册一个 staging 设备。两个合成 Auth 用户及此前 HTTP 测试数据仍保留在 staging，需在最终证据归档后按第 8.6 节删除，不得清理 production。
+
+
+## 8.10 Staging Edge Function deployment and provider configuration gate（2026-11-12）
+
+当前 staging 项目 `ypthoicwrfsblaidllyy` 已部署两个 Edge Functions，均启用平台 JWT 验证：
+
+- `learning-agent`：Active；无 JWT 请求 HTTP 401；Account A 的真实 Auth 请求进入函数后返回 `503 AI_PROVIDER_NOT_CONFIGURED`。
+- `practice-quality-review`：Active；无 JWT 请求 HTTP 401；尚未提交候选审核，因此没有触发 Reviewer 模型调用。
+
+这证明云端入口和认证边界已生效，但尚未证明 AI Provider 真正调用成功。Learning Agent 在缺少 `AI_PROVIDER_API_KEY` / `AI_PROVIDER_MODEL` 时 fail-closed；本次没有发出任何付费模型请求。
+
+在 Supabase Dashboard → Project Settings → Edge Functions → Secrets 配置 staging-only secrets：`AI_PROVIDER_API_KEY`、`AI_PROVIDER_MODEL`、可选 `AI_PROVIDER_BASE_URL`；独立 Reviewer 需要 `PRACTICE_REVIEWER_API_KEY`、`PRACTICE_REVIEWER_MODEL`、可选 `PRACTICE_REVIEWER_API_BASE_URL`。Reviewer 模型必须与生成模型不同。另设置 `KNOWVERSE_CONTENT_REF=develop`，让 staging Reviewer 使用 develop 的 canonical learning map / assessment registry；函数默认值仍是 `main`，适合生产默认基线。不要把 key 粘贴到聊天或提交进仓库。
+
+本地 `scripts/e2e-hosted-learning-agent.mjs` 会验证两个函数拒绝未认证请求，并在 secrets 配置后执行一条最小 Tutor 调用。当前因 provider secret 缺失而以退出码 2 报告 BLOCKED；配置后重新运行即可。
+
+Supabase Security Advisor 另报告 Auth leaked-password protection disabled，需在 Authentication → Settings → Password Security 开启。私有 schema 无客户端 RLS policy 的 INFO 项保持不变，不增加宽泛客户端策略。
+
+
+## 8.11 Staging Edge Function deployment and provider configuration gate（2026-11-12）
+
+当前 staging 项目 `ypthoicwrfsblaidllyy` 已部署两个 Edge Functions，均启用平台 JWT 验证：
+
+- `learning-agent`：Active；无 JWT 请求 HTTP 401；Account A 的真实 Auth 请求进入函数后返回 `503 AI_PROVIDER_NOT_CONFIGURED`。
+- `practice-quality-review`：Active；无 JWT 请求 HTTP 401；Account A 的 authenticated history read 返回 HTTP 200 且记录为空，没有创建候选记录，也没有触发 Reviewer 模型调用。
+
+这证明云端入口、共享模块导入和认证边界已生效，但尚未证明 AI Provider 真正调用成功。Learning Agent 在 provider 配置不完整时 fail-closed；本次没有发出任何付费模型请求。
+
+在 Supabase Dashboard → Project Settings → Edge Functions → Secrets 配置 staging-only secrets：`AI_PROVIDER_API_KEY`、`AI_PROVIDER_MODEL`、可选 `AI_PROVIDER_BASE_URL`；独立 Reviewer 需要 `PRACTICE_REVIEWER_API_KEY`、`PRACTICE_REVIEWER_MODEL`、可选 `PRACTICE_REVIEWER_API_BASE_URL`。Reviewer 模型必须与生成模型不同。另设置 `KNOWVERSE_CONTENT_REF=develop`，让 staging Reviewer 使用 develop 的 canonical learning map / assessment registry；函数默认值仍是 `main`，适合生产默认基线。不要把 key 粘贴到聊天或提交进仓库。
+
+本地 `scripts/e2e-hosted-learning-agent.mjs` 会验证两个函数拒绝未认证请求，并验证 Reviewer history 只读路径；在 provider secrets 配置后，它会执行一条最小 Tutor 调用。当前因 provider secret 缺失而以退出码 2 报告 BLOCKED；配置后重新运行即可。
+
+Supabase Security Advisor 另报告 Auth leaked-password protection disabled，需在 Authentication → Settings → Password Security 开启。私有 schema 无客户端 RLS policy 的 INFO 项保持不变，不增加宽泛客户端策略。
