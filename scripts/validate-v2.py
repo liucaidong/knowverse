@@ -24,6 +24,12 @@ class Links(HTMLParser):
 missing = []
 checked = 0
 for file in root.rglob("*.html"):
+    # A local workspace install may contain third-party HTML fixtures with
+    # intentionally unresolved relative assets (for example React Native
+    # DevTools embedder pages). They are not part of the public KNOWVERSE site
+    # and must never enter the site's local-link validation surface.
+    if any(part in {"node_modules", ".git", "_site", "dist", ".expo"} for part in file.parts):
+        continue
     parser = Links()
     parser.feed(file.read_text(encoding="utf-8"))
     for kind, href in parser.refs:

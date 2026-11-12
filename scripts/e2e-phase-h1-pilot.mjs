@@ -426,7 +426,15 @@ test("Chromium desktop: synthetic learner completes goal → plan → lesson →
     page.on("console", message => {
       if (message.type() === "error" && !message.text().includes("favicon.ico")) errors.push(message.text());
     });
-    page.on("requestfailed", request => failedRequests.push(request.method() + " " + request.url()));
+    page.on("requestfailed", request => {
+      const url = request.url();
+      // Mermaid is an optional enhancement for static diagrams. Its loader has an
+      // explicit source-preserving fallback, so a third-party CDN outage must not
+      // fail an otherwise local-first learning-pilot test. Keep every first-party
+      // asset/API request under the strict no-failure assertion below.
+      if (url.startsWith("https://cdn.jsdelivr.net/npm/mermaid@12/")) return;
+      failedRequests.push(request.method() + " " + url);
+    });
 
     // Each run uses a clean, isolated browser profile, local IndexedDB and no Supabase credentials.
     await page.addInitScript(() => {
