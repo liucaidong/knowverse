@@ -1,8 +1,8 @@
 # N2 — Supabase 跨设备学习同步验收记录
 
-**状态：** IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / MAC CHROMIUM STAGING E2E PASS / SECOND REAL DEVICE PENDING
-**更新日期：** 2026-11-04
-**代码基线：** `main` @ `b3c70374f147a651227675777934eac4adffea21`
+**状态：** IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / MAC CHROMIUM STAGING BROWSER PASS / SECOND REAL DEVICE PENDING
+**更新日期：** 2026-11-12
+**代码基线：** `develop` @ `1c8f516cc85869a1bb5c21cc18ca943c843ef683`
 **生产 Supabase：** `sxcpareycpokcyroufww`（仅用于只读权限核验）
 
 ## 1. 验收结论
@@ -12,7 +12,7 @@ N2 已补齐两层隔离验证：
 1. 浏览器 / IndexedDB 层：桌面与移动视口的 Mock RPC E2E 通过。
 2. 数据库层：临时 PostgreSQL 17 执行仓库全部 12 条 migrations，并以 authenticated 角色调用真实 SQL RPC，原子提交、幂等、CAS 整批回滚、分页和 RLS 跨账号隔离通过。
 
-**N2 真实托管认证态 HTTP 与 Mac Chromium 真实应用页面验收已通过，但 N2 尚未完成。** 在 staging 上，两个合成账号真实登录并通过 JWT / allowlist 验证；A 两设备、B 一设备、原子提交、pull、幂等、CAS rollback / recovery、账号隔离全部 PASS。随后真实 KNOWVERSE 页面在 Mac Chromium 中登录 Account A，完成 IndexedDB 初次恢复、先同步再计算策略 / 投影、自动 / 手动同步、pull-only 云端恢复和页面刷新；冲突 0、RPC HTTP 200、浏览器错误 0。仍未完成第二台真实设备的同步 / 离线补传、session refresh、弱网恢复及实体 iPhone Safari 验收。
+**N2 真实托管认证态 HTTP 与 Mac Chromium 真实应用页面验收已通过，但 N2 尚未完成。** 在 staging 上，两个合成账号真实登录并通过 JWT / allowlist 验证；A 两设备、B 一设备、原子提交、pull、幂等、CAS rollback / recovery、账号隔离全部 PASS。随后真实 KNOWVERSE 页面在 Mac Chromium 中登录 Account A，完成 IndexedDB 初次恢复、先同步再计算策略 / 投影、自动 / 手动同步、pull-only 云端恢复和页面刷新；2026-11-12 再次复验通过：28 个托管 RPC 响应全部 HTTP 200、冲突 0、待上传事件 / 文档 0、浏览器错误 0，pull-only 恢复没有调用批量写入 RPC。仍未完成第二台真实设备的同步 / 离线补传、session refresh、弱网恢复及实体 iPhone Safari 验收。
 
 ## 2. N2 验收边界
 
@@ -384,3 +384,27 @@ DevTools 根因：
 - Mac Chromium 本次只覆盖一个浏览器客户端。第二台物理设备 / iPhone Safari、离线 Outbox、session refresh、弱网、后台恢复仍未完成。
 
 最新状态：IN_PROGRESS / HOSTED AUTHENTICATED HTTP PASS / MAC CHROMIUM STAGING E2E PASS / SECOND REAL DEVICE PENDING。
+
+
+## 8.9 最新复验：Mac Chromium 真实页面与 staging 再次通过（2026-11-12）
+
+目标仍严格固定为 `knowverse-staging`：`https://ypthoicwrfsblaidllyy.supabase.co`。本次在本机临时预览副本中注入 staging public config，通过 staging Auth password grant 登录 Account A，并使用应用自己的 `SupabaseAuthClient.saveSession()` 规范化保存会话。临时预览副本和 public config 位于 `/tmp`，测试结束后已删除；没有修改仓库 public config，也没有触碰 production。
+
+**结果：`RESULT: PASS`。**
+
+| 验收项 | 实际结果 |
+|---|---|
+| 真实 staging Auth 登录 | PASS，进入 `/progress/#cloud-account` |
+| 首次 IndexedDB / 云端状态 | `已同步`，IndexedDB 可用 |
+| 待处理冲突 | 0 |
+| 待上传事件 / 待同步档案 | 均为 0 |
+| 手动“立即同步” | PASS，状态保持 `已同步` |
+| “从云端恢复” | PASS，状态变为 `云端恢复完成` |
+| Pull-only 写入保护 | 恢复前后 `sync_commit_learning_batch` 调用增量为 0 |
+| 页面刷新 | PASS，账户、状态和操作按钮恢复 |
+| Staging RPC | 28 个响应全部 HTTP 200 |
+| 浏览器错误 | 0 个 pageerror、console error 或 requestfailed |
+
+观察到的 RPC 名称：`get_learning_sync_profile`、`register_device`、`sync_pull_learning_events_for_account`、`sync_pull_learning_documents_for_account`。自动同步、手动同步、pull-only 恢复和刷新均已验证。
+
+**证据边界：** 这是 Mac Chromium 真实浏览器 + 托管 staging Auth / RPC 的通过记录；它不等于第二台实体设备、iPhone Safari 或离线 Outbox 的验收。浏览器测试没有提交新的学习事件或档案文档；可能为当前浏览器注册一个 staging 设备。两个合成 Auth 用户及此前 HTTP 测试数据仍保留在 staging，需在最终证据归档后按第 8.6 节删除，不得清理 production。

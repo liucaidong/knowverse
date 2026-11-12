@@ -1,20 +1,10 @@
-import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { createLearningProgressStore, deriveLearningInsights } from "../assets/js/learning-progress.mjs";
+import { deriveLearningInsights } from "../assets/js/learning-progress.mjs";
 import { createReviewSessionEngine } from "../assets/js/review-engine.mjs";
 
 const readJSON = async path => JSON.parse(await readFile(new URL(path, import.meta.url), "utf8"));
-function memoryStorage() {
-  const values = new Map();
-  return {
-    getItem: key => values.get(key) ?? null,
-    setItem: (key, value) => values.set(key, value),
-    removeItem: key => values.delete(key),
-  };
-}
-
 test("AI Agent formal graph is evidence-backed and has an explicit prerequisite chain", async () => {
   const [map, concepts, sources, reviews] = await Promise.all([
     readJSON("../content/learning-map.json"),
@@ -58,7 +48,37 @@ test("an AI Agent Learning Gap requires a distinct, independent no-hint review v
   ]);
   const gapId = "agent-prompt-injection-authorization";
   const competencyId = "agent-safety-governance";
-  const store = createLearningProgressStore({ storage: memoryStorage() });
+  const events = [];
+  const documents = new Map();
+  const repository = {
+    documents: {
+      async get(type, key) {
+        const value = documents.get(`${type}:${key}`);
+        return value ? structuredClone(value) : null;
+      },
+      async list() { return [...documents.values()].map(value => structuredClone(value)); },
+    },
+    async commit(batch) {
+      for (const event of batch.events || []) events.push(structuredClone(event));
+      for (const document of batch.documents || []) {
+        const id = `${document.type}:${document.key}`;
+        const prior = documents.get(id);
+        const revision = prior?.localRevision || 0;
+        if (revision !== document.expectedLocalRevision) throw new Error("test repository CAS mismatch");
+        documents.set(id, {
+          type: document.type,
+          key: document.key,
+          payload: structuredClone(document.payload),
+          localRevision: revision + 1,
+        });
+      }
+      return true;
+    },
+  };
+  const store = {
+    async load() { return { schemaVersion: 3, events: events.map(event => structuredClone(event)) }; },
+    async appendMany(newEvents) { events.push(...newEvents.map(event => structuredClone(event))); return true; },
+  };
   await store.appendMany([{
     id: "ai-agent-gap-seed",
     eventSchemaVersion: 3,
@@ -81,7 +101,7 @@ test("an AI Agent Learning Gap requires a distinct, independent no-hint review v
     causationEventIds: [],
     targetGapEventIds: [],
   }]);
-  const engine = createReviewSessionEngine({ progressStore: store, registry });
+  const engine = createReviewSessionEngine({ repository, progressStore: store, registry });
   const first = await engine.start({ competencyId, gapId });
   const wrong = first.options.find(option => option.gapId === gapId);
   assert.ok(wrong, "first variant must contain a targeted distractor");

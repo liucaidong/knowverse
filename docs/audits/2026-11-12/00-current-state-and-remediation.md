@@ -14,6 +14,7 @@
   - `ed4bcea`: isolate the Tutor E2E from the optional Mermaid CDN.
   - `c476607`: stub Supabase project requests in the synthetic Tutor consent E2E so a fake session cannot make DNS-dependent or production requests.
   - `1c8f516`: add the AI Agent formal learning graph, two evidence-backed lessons, six targeted review variants, three Concept pages, updated provenance/search/routes, deterministic provenance regeneration, and dedicated unit/browser regression tests.
+  - `5ac5aa5`: update this audit baseline and record the current evidence boundary.
 - Pages deployments for `8ccf98c`, `ed4bcea` and `5e02429` completed successfully; the Validate run for `5e02429` also passed. At report time, Validate for `1c8f516` was in progress and Pages deployment was queued; release is not marked green until both finish successfully.
 
 ## 2. Current product inventory
@@ -87,7 +88,7 @@ The hosted Supabase acceptance completed successfully during this session:
 
 The script reports that the two synthetic Auth users should be deleted from the staging Supabase Dashboard after acceptance; dependent test rows cascade. This cleanup has not been performed by this session.
 
-The previously documented Mac Chromium hosted staging browser acceptance from 2026-11-04 remains historical evidence. A re-run in this session using a reconstructed temporary preview fixture timed out waiting for the post-login UI status; this does not establish an application regression, but this session does not claim a fresh hosted-browser PASS. The temporary preview was isolated under `/tmp` and pinned to staging; production config and production Supabase were not modified.
+A fresh Mac Chromium hosted staging browser re-run passed on 2026-11-12. The local preview was pinned to the approved staging URL and used the application `SupabaseAuthClient.saveSession()` path. Result: 28/28 hosted RPC responses were HTTP 200; initial status `已同步`; conflicts, pending events and pending documents were all zero; manual sync passed; pull-only restore invoked zero `sync_commit_learning_batch` calls; page reload restored the same state; browser errors were zero. The temporary preview and public config were removed after the test. This is real Mac Chromium + hosted staging evidence, not a second physical device or iPhone Safari test.
 
 ## 7. Remaining acceptance gaps
 
@@ -95,7 +96,7 @@ The previously documented Mac Chromium hosted staging browser acceptance from 20
 |---|---|---|
 | Real Tutor / Agent / independent Reviewer model Provider calls | NOT VERIFIED | Staging calls using least-privilege provider credentials; independent Reviewer credential; timeout/429/5xx/invalid-output fail-closed tests |
 | AI candidate-to-publication chain | NOT VERIFIED end-to-end | Real staging candidate → deterministic validator → independent Reviewer → explicit human approval → PR → exact Pages comparison → registration |
-| Cross-device sync | PostgreSQL isolated tests PASS; hosted Supabase HTTP PASS | Fresh hosted browser test, second physical device, offline Outbox, session refresh, weak network/background recovery, account revocation |
+| Cross-device sync | PostgreSQL isolated tests PASS; hosted Supabase HTTP PASS; Mac Chromium staging browser PASS | Second physical device, offline Outbox, session refresh, weak network/background recovery, account revocation |
 | Physical iPhone Safari | NOT VERIFIED | Real device acceptance evidence |
 | Formal learning graph coverage | 4/12 topics mapped | Build evidence-backed Concept/Competency/prerequisite/Gap/Assessment/Checkpoint maps for remaining 8 topics; do not manufacture mastery for unmapped topics |
 | Content correctness | PARTIAL | Technical/answer-level source review, calibrated difficulty and reviewed explanations for each formal assessment |
@@ -104,7 +105,7 @@ The previously documented Mac Chromium hosted staging browser acceptance from 20
 ## 8. Next execution order
 
 1. Confirm the `1c8f516` GitHub Validate and Pages runs; repair any remaining CI failures without weakening first-party assertions.
-2. Re-run hosted browser staging acceptance with the established preview fixture; then verify the second physical device and iPhone Safari.
+2. Verify the second physical device, offline Outbox / weak-network recovery, session refresh and iPhone Safari; the Mac Chromium staging browser path now passes.
 3. Configure and test real staging AI Provider execution for Tutor, Agent and independent Reviewer; verify failure-safe behavior.
 4. Prove the complete protected practice publication chain with a synthetic staging candidate and explicit human approval; never auto-merge.
 5. Extend formal learning maps selectively to the remaining eight topics, beginning with high-value engineering topics, and review each assessment against official sources.

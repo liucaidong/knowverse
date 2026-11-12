@@ -41,12 +41,24 @@ try {
   await page.locator("#password").fill(env.N2_SYNC_A_PASSWORD);
   await page.locator("#submit").click();
   await page.waitForURL("**/progress/#cloud-account", { timeout: 20000 });
-  await page.waitForFunction(() => {
-    const host = document.querySelector("#backend-account-panel");
-    return host?.innerText.includes("当前账户：n2-sync-a@knowverse-test.invalid") &&
-      host?.innerText.includes("冲突待处理\n0") &&
-      host?.querySelector(".kv-backend-status")?.innerText === "已同步";
-  }, null, { timeout: 30000 });
+  try {
+    await page.waitForFunction(() => {
+      const host = document.querySelector("#backend-account-panel");
+      return host?.innerText.includes("当前账户：n2-sync-a@knowverse-test.invalid") &&
+        host?.innerText.includes("冲突待处理\n0") &&
+        host?.querySelector(".kv-backend-status")?.innerText === "已同步";
+    }, null, { timeout: 30000 });
+  } catch (error) {
+    const debug = await page.evaluate(() => {
+      const session = JSON.parse(localStorage.getItem("knowverse:supabase-session") || "null");
+      return {
+        panel: document.querySelector("#backend-account-panel")?.innerText || null,
+        session: { present: Boolean(session), accessToken: Boolean(session?.access_token), refreshToken: Boolean(session?.refresh_token), expiresAt: session?.expires_at || null, email: session?.user?.email || null },
+      };
+    });
+    console.error("N2 browser diagnostic:", JSON.stringify({ debug, rpcResponses, browserErrors }, null, 2));
+    throw error;
+  }
 
   const initial = await page.evaluate(() => {
     const host = document.querySelector("#backend-account-panel");
