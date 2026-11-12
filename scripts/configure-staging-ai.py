@@ -53,8 +53,12 @@ def ensure_cli_v3(binary):
     match = re.search(r"\b(\d+)\.\d+\.\d+\b", version_text)
     if not match:
         fail(f"无法识别 Supabase CLI 版本：{version_text or 'unknown'}")
-    if int(match.group(1)) < 3:
-        fail("当前是 Supabase CLI v2。脚本使用 v3 的 --remote 与 --yes 显式目标保护。请先执行 brew upgrade supabase，再重新运行。")
+    major = int(match.group(1))
+    if major != 3:
+        fail(
+            f"当前检测到 Supabase CLI v{major}；本脚本已按 CLI v3 参数验证。"
+            "请先安装并确认 Supabase CLI v3，再重新运行，避免未来不兼容版本改变目标参数语义。"
+        )
 
 def ensure_project_access(binary):
     result = run([binary, "projects", "list"])
@@ -74,6 +78,7 @@ def read_inputs():
     values = {}
     print("\n请在本机输入 Staging Provider 配置。")
     print("API Key 使用隐藏输入；不会写入仓库、项目目录或 shell 历史。")
+    print("此处配置的是 OpenAI Chat Completions 兼容接口；自定义 Base URL 请填写 API 根地址（通常以 /v1 结尾），不要填写 /chat/completions。")
     print("两个模型 ID 必须不同；Reviewer 应使用独立模型，最好也使用独立凭证。\n")
     for name, label, secret in REQUIRED:
         while True:
@@ -101,12 +106,20 @@ def read_inputs():
             value = input(f"{label} [{name}]: ").strip()
             if not value:
                 break
-            parsed = urlparse(value)
-            if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
-                print("必须是有效的 HTTPS Base URL，且不能包含用户名或密码。")
-                continue
-            if any(ch in value for ch in "\r\n\x00"):
-                print("URL 不能包含换行或空字符。")
+            try:
+                parsed = urlparse(value)
+                valid_port = parsed.port is None or 1 <= parsed.port <= 65535
+                valid_url = (
+                    parsed.scheme == "https" and bool(parsed.hostname) and bool(parsed.netloc)
+                    and not parsed.username and not parsed.password
+                    and not parsed.query and not parsed.fragment and valid_port
+                    and not any(ch.isspace() for ch in value)
+                    and not any(ch in value for ch in "\r\n\x00")
+                )
+            except ValueError:
+                valid_url = False
+            if not valid_url:
+                print("必须是有效的 HTTPS Base URL；不能包含凭据、查询参数或片段。请填写 API 根地址（例如 https://api.example.com/v1）。")
                 continue
             values[name] = value.rstrip("/")
             break
