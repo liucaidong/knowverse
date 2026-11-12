@@ -1,0 +1,53 @@
+{
+  "candidateId": "e2e-review-promise-job-timing-20261112",
+  "schemaVersion": 1,
+  "purpose": "learning_practice_candidate",
+  "context": {
+    "competencyId": "thenable-adoption",
+    "topicId": "promise",
+    "gapId": "thenable-job-timing",
+    "competencyTitle": "thenable 解析与 Promise 采用",
+    "topicTitle": "JavaScript Promise",
+    "gapLabel": "ThenableJob 的执行边界混淆",
+    "allowedSourceVariantIds": [
+      "review-thenable-job-timing-a",
+      "review-thenable-job-timing-b"
+    ]
+  },
+  "exercise": {
+    "schemaVersion": 1,
+    "title": "两个 ThenableJob 与普通微任务的交错顺序",
+    "taskType": "trace",
+    "prompt": "预测下面代码的日志顺序，并解释两个 ThenableJob 与显式微任务为何按该顺序执行。",
+    "stimulus": "const createThenable = label => ({ then(resolve) { console.log(label); resolve(label); } }); Promise.resolve(createThenable('first')); queueMicrotask(() => console.log('marker')); Promise.resolve(createThenable('second')); console.log('sync');",
+    "expectedReasoning": "同步阶段依次安排 first 对应的 ThenableJob、marker 微任务和 second 对应的 ThenableJob，最后输出 sync。微任务检查点按入队顺序执行三个任务，因此依次输出 first、marker、second。",
+    "exemplarAnswer": "输出顺序为 sync → first → marker → second。两个 Promise.resolve 分别安排 ThenableJob；显式 queueMicrotask 在两次调用之间注册，因此它排在 first 的 Job 后、second 的 Job 前。",
+    "commonTrap": "误以为所有 Promise 内部任务都优先于 queueMicrotask，或把微任务队列按任务类型分组而不是按实际入队顺序处理。",
+    "hints": [
+      "先按同步代码的执行顺序记录两个 Promise.resolve 与 queueMicrotask 的调用位置。",
+      "把 first 的 ThenableJob、marker 回调、second 的 ThenableJob 按入队先后写成一个队列。"
+    ],
+    "rubric": [
+      {
+        "id": "enqueue-order",
+        "criterion": "正确识别三个任务的入队顺序",
+        "expectedSignal": "first 的 ThenableJob 先入队，marker 次之，second 的 ThenableJob 最后入队"
+      },
+      {
+        "id": "sync-boundary",
+        "criterion": "区分同步日志与微任务输出",
+        "expectedSignal": "sync 在微任务检查点开始前输出"
+      },
+      {
+        "id": "fifo-result",
+        "criterion": "正确推导 FIFO 执行结果",
+        "expectedSignal": "输出顺序为 sync、first、marker、second"
+      }
+    ],
+    "difficulty": "intermediate",
+    "sourceVariantIds": [
+      "review-thenable-job-timing-a",
+      "review-thenable-job-timing-b"
+    ]
+  }
+}

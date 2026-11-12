@@ -4,7 +4,10 @@ import { readFile } from "node:fs/promises";
 
 const ROOT = "/Users/geeker/ai-projects/knowverse";
 const PROJECT_URL = "https://ypthoicwrfsblaidllyy.supabase.co";
-const CANDIDATE_ID = "e2e-review-785ad611e6bf48c7962434b741f30457";
+const candidateSnapshot = JSON.parse(await readFile(
+  ROOT + "/scripts/fixtures/staging-practice-reviewer-candidate.json", "utf8",
+));
+const CANDIDATE_ID = candidateSnapshot.candidateId;
 
 function parseEnv(raw) {
   return Object.fromEntries(raw.split(/\r?\n/)
@@ -30,7 +33,7 @@ async function request(path, { token, method = "GET", body, timeoutMs = 15_000 }
       ...(body === undefined ? {} : { "Content-Type": "application/json" }),
     },
     body: body === undefined ? undefined : JSON.stringify(body),
-    // A fresh deadline per request. The Reviewer receives its own 110s budget;
+    // A fresh deadline per request. The Reviewer receives its own 145s budget;
     // earlier login/profile/archive requests cannot consume that deadline.
     signal: AbortSignal.timeout(timeoutMs),
   });
@@ -63,23 +66,49 @@ const profile = check(await request("/rest/v1/rpc/get_learning_sync_profile", {
 }), "Staging learning profile");
 assert.equal(profile.authorized, true);
 
-const archive = check(await request(
-  "/rest/v1/learning_archive_documents?select=document_payload&document_key=eq.practice-candidate%3A" + CANDIDATE_ID,
-  { token: tokenA },
-), "Load existing synthetic candidate");
+const archivePath = "/rest/v1/learning_archive_documents?select=document_payload,revision&document_key=eq.practice-candidate%3A" + CANDIDATE_ID;
+let archive = check(await request(archivePath, { token: tokenA }), "Check synthetic candidate archive");
+if (archive.length === 0) {
+  const deviceId = crypto.randomUUID();
+  const registered = check(await request("/rest/v1/rpc/register_device", {
+    token: tokenA, method: "POST",
+    body: { p_device_id: deviceId, p_label: "KNOWVERSE Staging Reviewer E2E", p_platform: "desktop-web" },
+  }), "Register isolated Staging E2E device");
+  assert.equal(registered.registered, true);
+  const committed = check(await request("/rest/v1/rpc/sync_commit_learning_batch", {
+    token: tokenA, method: "POST",
+    body: {
+      p_device_id: deviceId,
+      p_expected_user_id: profile.user_id,
+      p_events: [],
+      p_documents: [{
+        document_id: crypto.randomUUID(),
+        document_type: "learner_profile",
+        document_key: "practice-candidate:" + CANDIDATE_ID,
+        base_revision: 0,
+        local_revision: 1,
+        document_payload: candidateSnapshot,
+      }],
+    },
+  }), "Persist corrected synthetic candidate to Staging archive");
+  assert.equal(committed.status, "committed");
+  archive = check(await request(archivePath, { token: tokenA }), "Verify synthetic candidate archive");
+}
 assert.equal(archive.length, 1);
-const candidateSnapshot = archive[0].document_payload;
-assert.equal(candidateSnapshot.candidateId, CANDIDATE_ID);
+assert.deepEqual(archive[0].document_payload, candidateSnapshot,
+  "The Staging archive must contain this exact immutable candidate snapshot.");
 
 const reuseExistingReview = process.argv.includes("--reuse-existing-review");
 let prior = check(await edge(tokenA, "history"), "Read existing candidate history");
-if (!reuseExistingReview && prior.status === "needs_revision") {
-  const revalidated = check(await edge(tokenA, "validate"), "Revalidate previously reviewed synthetic candidate");
+if (!reuseExistingReview && ["draft", "needs_revision"].includes(prior.status)) {
+  const revalidated = check(await edge(tokenA, "validate"), "Validate corrected synthetic candidate");
   assert.equal(revalidated.report?.validationStatus, "passed");
-  prior = check(await edge(tokenA, "history"), "Read revalidated candidate history");
+  prior = check(await edge(tokenA, "history"), "Read validated candidate history");
 }
-assert.equal(prior.status, reuseExistingReview ? "needs_revision" : "validation",
-  "The candidate must be validated before a new review, or already have a persisted review when reuse mode is selected.");
+assert.ok(reuseExistingReview
+  ? ["machine_reviewed", "needs_revision"].includes(prior.status)
+  : ["validation", "machine_reviewed"].includes(prior.status),
+  "The candidate must have passed deterministic validation before an independent review.");
 assert.ok(prior.records.some(record => record.recordType === "validation" &&
   record.payload?.validationStatus === "passed"), "A matching passed deterministic validation is required.");
 assert.equal(prior.canApprove, false, "Synthetic account must not have human reviewer privileges.");
@@ -125,12 +154,31 @@ for (const finding of review.review.findings) {
   if (dimension) assert.notEqual(review.review[dimension].status, "pass",
     "High-severity finding " + finding.category + " must not coexist with a passing dimension status.");
 }
+const registration = review.review.registrationAssessment;
+assert.ok(registration, "A passing review must provide a separate formal assessment companion.");
+assert.ok(Array.isArray(registration.options) && registration.options.length >= 2 && registration.options.length <= 4);
+const optionIds = registration.options.map(option => option.id);
+assert.equal(new Set(optionIds).size, optionIds.length, "Companion option IDs must be unique.");
+assert.ok(optionIds.includes(registration.answer), "Companion answer must identify exactly one supplied option.");
+assert.equal(registration.hints?.length, 2, "Companion must contain two hints.");
+assert.ok(registration.title && registration.prompt && registration.code !== undefined && registration.explanation);
 console.log("PASS  live Step 5 independent review", JSON.stringify({
   model: review.review.reviewerModel,
   verdict: review.review.verdict,
   status: review.status,
   riskLevel: review.review.riskLevel,
   findings: review.review.findings.length,
+  dimensions: Object.fromEntries(["sourceAlignment", "solvability", "answerConsistency", "pedagogicalQuality"]
+    .map(key => [key, review.review[key].status])),
+  companion: {
+    title: registration.title,
+    prompt: registration.prompt,
+    code: registration.code,
+    options: registration.options,
+    answer: registration.answer,
+    explanation: registration.explanation,
+    hints: registration.hints,
+  },
   elapsedMs,
 }));
 
