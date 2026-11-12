@@ -65,7 +65,8 @@ export function createLearningAgentProvider(options = {}) {
         throw new RangeError("发送给 AI 的学习摘要过大，请缩小上下文范围。");
       }
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(new Error("AI 请求超时")), 30_000);
+      const timeoutMs = mode === "tutor" && tutorMode === "practice" ? 135_000 : 70_000;
+      const timeout = setTimeout(() => controller.abort(new Error("AI 请求超时")), timeoutMs);
       const onAbort = () => controller.abort(signal.reason);
       if (signal?.aborted) controller.abort(signal.reason);
       else signal?.addEventListener("abort", onAbort, { once: true });

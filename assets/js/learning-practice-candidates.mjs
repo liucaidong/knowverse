@@ -102,14 +102,14 @@ export function validateLearningPracticeCandidate(value, context = {}) {
       throw new TypeError("第 " + (index + 1) + " 个推理检查点格式无效。");
     }
     const id = clean(item.id, 32);
-    if (!/^[a-z0-9_-]{2,32}$/i.test(id) || rubricIds.has(id)) {
+    if (!/^[a-z0-9_-]{1,32}$/i.test(id) || rubricIds.has(id)) {
       throw new TypeError("推理检查点标识无效或重复。");
     }
     rubricIds.add(id);
     return {
       id,
-      criterion: requiredText(item.criterion, 180, "推理检查点"),
-      expectedSignal: requiredText(item.expectedSignal, 280, "预期推理信号"),
+      criterion: requiredText(item.criterion, 180, "推理检查点", 4),
+      expectedSignal: requiredText(item.expectedSignal, 280, "预期推理信号", 4),
     };
   });
 
