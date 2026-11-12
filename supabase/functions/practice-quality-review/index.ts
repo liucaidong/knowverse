@@ -5,6 +5,7 @@ import {
   currentPracticeStatus,
   latestPracticeRecord,
 } from "../_shared/practice-audit.mjs";
+import { normalizeReviewerDimensionStatuses } from "../_shared/practice-reviewer-normalize.mjs";
 
 const allowedOrigins = new Set([
   "https://liucaidong.github.io", "http://localhost:4173", "http://127.0.0.1:4173",
@@ -667,10 +668,10 @@ async function runIndependentReview(candidate: any, canonical: any, contentHash:
         ", content_length=" + raw.length + ", completion_tokens=" + completionTokens +
         ", reasoning_tokens=" + reasoningTokens + "）。", 502);
     }
-    const result = validateReviewerOutput(decoded);
-    if (result.riskLevel === "critical" || result.findings.some(item => item.severity === "critical")) {
+    const result = normalizeReviewerDimensionStatuses(validateReviewerOutput(decoded));
+    if (result.riskLevel === "critical" || result.findings.some((item: { severity: string }) => item.severity === "critical")) {
       result.verdict = "reject";
-    } else if (result.riskLevel === "high" || result.findings.some(item => item.severity === "high")) {
+    } else if (result.riskLevel === "high" || result.findings.some((item: { severity: string }) => item.severity === "high")) {
       if (result.verdict === "pass") result.verdict = "needs_revision";
     }
     result.reviewerLimitations = unique([

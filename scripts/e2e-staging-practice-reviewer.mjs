@@ -53,7 +53,7 @@ async function login(email, password) {
 async function edge(token, action, timeoutMs = 15_000) {
   return request("/functions/v1/practice-quality-review", {
     token, method: "POST", timeoutMs, body: { version: 1, action, candidateId: CANDIDATE_ID,
-      ...(action === "review" ? { candidate: candidateSnapshot } : {}) },
+      ...(["validate", "review"].includes(action) ? { candidate: candidateSnapshot } : {}) },
   });
 }
 
@@ -71,8 +71,13 @@ assert.equal(archive.length, 1);
 const candidateSnapshot = archive[0].document_payload;
 assert.equal(candidateSnapshot.candidateId, CANDIDATE_ID);
 
-const prior = check(await edge(tokenA, "history"), "Read existing candidate history");
-assert.equal(prior.status, "validation", "Only the previously validated synthetic candidate may be reviewed.");
+let prior = check(await edge(tokenA, "history"), "Read existing candidate history");
+if (prior.status === "needs_revision") {
+  const revalidated = check(await edge(tokenA, "validate"), "Revalidate previously reviewed synthetic candidate");
+  assert.equal(revalidated.report?.validationStatus, "passed");
+  prior = check(await edge(tokenA, "history"), "Read revalidated candidate history");
+}
+assert.equal(prior.status, "validation", "Only a deterministically validated synthetic candidate may be reviewed.");
 assert.ok(prior.records.some(record => record.recordType === "validation" &&
   record.payload?.validationStatus === "passed"), "A matching passed deterministic validation is required.");
 assert.equal(prior.canApprove, false, "Synthetic account must not have human reviewer privileges.");
@@ -95,6 +100,9 @@ assert.equal(review.canApprove, false);
 for (const key of ["sourceAlignment", "solvability", "answerConsistency", "pedagogicalQuality"]) {
   assert.ok(["pass", "concern", "unverified"].includes(review.review?.[key]?.status), "Invalid " + key);
   assert.ok(review.review?.[key]?.evidence?.length >= 1, "Missing " + key + " evidence");
+}
+if (review.review.findings.some(item => item.category === "pedagogical_quality" && ["high", "critical"].includes(item.severity))) {
+  assert.equal(review.review.pedagogicalQuality.status, "concern", "High pedagogical findings must not coexist with a passing dimension status.");
 }
 console.log("PASS  live Step 5 independent review", JSON.stringify({
   model: review.review.reviewerModel,
