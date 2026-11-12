@@ -205,6 +205,15 @@ test("Chromium desktop: one-turn consent sends only the explicitly selected exce
       contentType: "text/javascript",
       body: "export default { initialize() {}, run() { return Promise.resolve(); } };",
     }));
+    // The injected test session is synthetic. Never let archive bootstrap or
+    // account UI attempt to reach the production Supabase project (or depend on
+    // GitHub Actions DNS). Return an inert response for any Supabase project;
+    // the Learning Agent endpoint below remains independently asserted.
+    await page.route(/^https:\/\/[a-z0-9-]+\.supabase\.co\//, route => route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: "{}",
+    }));
     const errors = [];
     page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => {
