@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="将模型推理与系统授权分离：把用户输入、检索内容和工具返回视为不可信数据，在应用边界执行最小权限、输出校验、明确同意、人工确认与审计。"><title>Agent 权限、同意与安全治理 · AI Agent · 系统工程 · KNOWVERSE</title><link rel="stylesheet" href="../../assets/css/v2.css"><link rel="stylesheet" href="../../assets/css/concepts.css">  <link rel="stylesheet" href="../../assets/css/site-architecture.css">
+</head>
+<body data-root="../../" class="kv-concept-page"><div class="topline"></div><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+    <a class="mark" href="../../">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
+    <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区"><div class="kv-nav-group" data-group-id="start"
+      data-active-routes="learning.start learning.start learning.agent"
+      data-active-paths="../../start/|../../start/|../../agent/">
+    <a class="kv-nav-link" data-route-id="learning.start"
+       href="../../start/">开始学习</a>
+  </div><div class="kv-nav-group" data-group-id="knowledge"
+      data-active-routes="knowledge.overview knowledge.overview"
+      data-active-paths="../../knowledge/|../../knowledge/">
+    <a class="kv-nav-link" data-route-id="knowledge.overview"
+       href="../../knowledge/">知识库</a>
+  </div><div class="kv-nav-group" data-group-id="experience"
+      data-active-routes="experience.overview experience.overview experience.lab experience.gallery experience.puzzles"
+      data-active-paths="../../works/|../../works/|../../lab/|../../gallery/|../../puzzles/">
+    <a class="kv-nav-link" data-route-id="experience.overview"
+       href="../../works/">实践中心</a>
+  </div><div class="kv-nav-group" data-group-id="progress"
+      data-active-routes="learning.overview learning.overview learning.mastery learning.gaps learning.review learning.history"
+      data-active-paths="../../progress/|../../progress/|../../progress/#knowledge-map|../../progress/#weak-points|../../review/|../../progress/#challenge-history">
+    <a class="kv-nav-link" data-route-id="learning.overview"
+       href="../../progress/">我的进度</a>
+  </div></div>
+    <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
+    <button class="search-trigger" id="search-open" type="button" aria-label="全站搜索知识与作品">搜索 <span>⌘ K</span></button>
+    <details class="kv-global-account" id="kv-global-account" data-status="anonymous">
+    <summary class="kv-account-trigger" aria-label="打开全站账户与同步状态">
+      <span class="kv-account-dot" data-status="neutral" aria-hidden="true"></span>
+      <span class="kv-account-label"><small>ACCOUNT / SYNC</small><strong class="kv-account-state" data-kv-account-state>GitHub 登录</strong></span>
+      <span class="kv-account-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="kv-account-panel" aria-label="账户面板">
+      <strong class="kv-account-panel-title">一个账户，贯穿整个 KNOWVERSE</strong>
+      <p class="kv-account-scope">公开知识、实验、展厅和挑战无需登录。身份认证与云端学习档案授权是两个独立状态。</p>
+      <p class="kv-account-message" data-kv-account-message>当前设备可以直接学习；登录后可在获授权时同步个人学习档案。</p>
+      <p class="kv-account-identity" data-kv-account-identity hidden></p>
+      <button class="kv-account-action primary" type="button" data-kv-sign-in disabled>使用 GitHub 登录</button>
+      <noscript><p class="kv-account-scope">账户操作需要启用 JavaScript；本页导航与知识内容仍可直接访问。</p></noscript>
+      <button class="kv-account-action" type="button" data-kv-sign-out hidden>退出登录</button>
+      <a class="kv-account-manage" href="../../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
+    </div>
+  </details>
+  </nav></header>
+<main class="cp-container"><nav class="cp-breadcrumb" aria-label="面包屑"><a href="../../">首页</a><span>/</span><a href="../../knowledge/">知识体系</a><span>/</span><a href="../../knowledge/ai-agents/">AI Agent · 系统工程</a><span>/</span><strong>Agent 权限、同意与安全治理</strong></nav>
+<section class="cp-hero"><div><span class="cp-kicker">CONCEPT REGISTRY / AI-AGENTS</span><h1>Agent 权限、同意与安全治理</h1><p>将模型推理与系统授权分离：把用户输入、检索内容和工具返回视为不可信数据，在应用边界执行最小权限、输出校验、明确同意、人工确认与审计。</p><div class="cp-meta"><span>AI 工程</span><span>advanced 难度</span><span>稳定 ID：ai-agents.agent-safety-governance</span></div></div><aside><small>KNOWLEDGE OBJECT</small><strong>Concept</strong><p>概念用于定义、关联和解释知识；Competency 用于定义可验证能力。两者分开维护。</p><p class="cp-competency">对应能力点：agent-safety-governance</p><a href="../../progress/#knowledge-map">查看个人掌握证据 ↗</a></aside></section>
+<section class="cp-section"><div class="cp-section-head"><span>LEARNING OBJECTIVES</span><h2>学完后应该能够</h2></div><ol class="cp-objectives"><li>识别直接与间接 Prompt Injection，以及过度代理权带来的风险。</li><li>区分模型建议、工具调用请求、业务授权和最终副作用。</li><li>为高影响操作设计服务端权限校验、用户同意、人工确认、幂等和审计。</li><li>建立覆盖任务正确性、工具选择、参数、权限、安全、成本和时延的回归评估。</li></ol></section>
+<section class="cp-grid"><article class="cp-panel"><div class="cp-section-head"><span>KNOWLEDGE GRAPH</span><h2>前置与关联概念</h2></div><div class="cp-relation-group"><strong>明确前置知识</strong><a href="../../concept/ai-agents.agent-tool-execution-contract/">工具调用与 MCP 执行契约 ↗</a></div><div class="cp-relation-group"><strong>相关概念</strong><a href="../../concept/ai-agents.agent-architecture-selection/">Agent 与 Workflow 的架构选择 ↗</a><a href="../../concept/ai-agents.agent-tool-execution-contract/">工具调用与 MCP 执行契约 ↗</a></div></article><article class="cp-panel"><div class="cp-section-head"><span>ASSESSMENT & EVIDENCE</span><h2>如何验证理解</h2></div><ul class="cp-assessments"><li><a href="../../review/"><span>复习题变体</span><strong>Prompt Injection：不可信上下文处理</strong><b>打开验证入口 ↗</b></a></li><li><a href="../../review/"><span>复习题变体</span><strong>高影响工具：授权与人工确认</strong><b>打开验证入口 ↗</b></a></li></ul><p class="cp-note">AI 教学建议、作品探索行为和正式掌握证据严格分离。只有评估引擎接受的独立验证事件才能更新学习状态。</p></article></section>
+<section class="cp-section"><div class="cp-section-head"><span>CANONICAL CONTENT</span><h2>解释与学习材料</h2></div><div class="cp-link-grid"><a class="cp-link" href="../../knowledge/ai-agents/chapter-01/"><span>ARTICLE</span><strong>RAG / MCP / Agent 三层职责</strong><b>阅读内容 ↗</b></a><a class="cp-link" href="../../knowledge/ai-agents/chapter-02/"><span>ARTICLE</span><strong>AI 教育操作系统与多 Agent</strong><b>阅读内容 ↗</b></a></div></section>
+<section class="cp-section"><div class="cp-section-head"><span>LEARN BY DOING</span><h2>进入对应体验</h2></div><div class="cp-work-grid"><p>本概念尚无登记的互动作品。</p></div></section>
+<section class="cp-section"><div class="cp-section-head"><span>SOURCES & REFERENCES</span><h2>来源与参考</h2></div><div class="cp-source-grid"><a href="https://genai.owasp.org/initiatives/top-10-for-llm-and-genai/" target="_blank" rel="noopener noreferrer"><strong>OWASP Top 10 for LLM Applications</strong><span>OWASP GenAI Security Project · security-standard</span> ↗</a><a href="https://modelcontextprotocol.io/specification/2026-07-28" target="_blank" rel="noopener noreferrer"><strong>Model Context Protocol Specification · 2026-07-28</strong><span>Model Context Protocol · specification</span> ↗</a></div><p class="cp-note">来源记录来自内容注册表。整理、示例和教学流程如有重构，会在对应教材中明确标注；外部链接不等同于对来源内容的逐字复现。</p></section>
+<div class="cp-return"><a href="../../knowledge/ai-agents/">← 返回 AI Agent · 系统工程 专题</a><a href="../../progress/#adaptive-plan">查看下一步学习计划 ↗</a></div></main>
+<footer class="sitefooter kv-shared-footer"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>Knowledge → Experience → Evidence → Growth</p></div><div class="footerlinks"><a href="../../knowledge/">知识体系</a><a href="../../works/">实践体验</a><a href="../../progress/">学习成长</a></div></div><div class="kv-footer-links" aria-label="全站快捷入口"><a href="../../knowledge/">知识体系</a><a href="../../works/">实践体验</a><a href="../../progress/">学习成长</a><a href="https://github.com/liucaidong/knowverse" target="_blank" rel="noopener">GitHub ↗</a></div></footer><script defer src="../../assets/js/v2.js"></script><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="全站搜索">
+    <div class="searchbox"><div class="searchheading"><strong>搜索 KNOWVERSE 知识宇宙</strong><button id="search-close" type="button">关闭 ✕</button></div>
+    <input id="search-input" type="search" placeholder="搜索 Promise、Monorepo、React Native、AI…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div>
+</body></html>

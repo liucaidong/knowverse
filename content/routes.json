@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-03",
+  "updated": "2026-11-12",
   "description": "全站 canonical route 注册表。页面链接只由稳定 route ID 或专题/概念注册表构建；所有内部页面路径均相对仓库根目录。",
   "routes": [
     {
@@ -265,6 +265,24 @@
       "id": "concept.react-native.rn-integrated-architecture",
       "label": "新架构综合运行模型",
       "path": "./concept/react-native.rn-integrated-architecture/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.ai-agents.agent-architecture-selection",
+      "label": "Agent 与 Workflow 的架构选择",
+      "path": "./concept/ai-agents.agent-architecture-selection/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.ai-agents.agent-tool-execution-contract",
+      "label": "工具调用与 MCP 执行契约",
+      "path": "./concept/ai-agents.agent-tool-execution-contract/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.ai-agents.agent-safety-governance",
+      "label": "Agent 权限、同意与安全治理",
+      "path": "./concept/ai-agents.agent-safety-governance/",
       "pageType": "concept"
     }
   ]

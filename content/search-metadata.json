@@ -680,6 +680,20 @@
       "summary": "以 React Native 0.88 为基线，梳理 0.82 New Architecture only、0.84 Hermes V1 默认、0.87 Strict TypeScript API 与 0.88 新变化。",
       "tags": "React Native 0.88 Hermes V1 0.87 Strict TypeScript New Architecture",
       "href": "knowledge/react-native/chapter-07/"
+    },
+    {
+      "title": "工具调用闭环与 MCP 协议边界",
+      "topic": "AI Agent · 系统工程",
+      "summary": "从模型 function_call 到应用侧校验、授权、执行与结果回传；理解 MCP Host / Client / Server 及 2026-07-28 无状态协议。",
+      "tags": "Agent Function Calling MCP JSON Schema Tools Resources Prompts",
+      "href": "knowledge/ai-agents/chapter-03/"
+    },
+    {
+      "title": "Agent 安全：Prompt Injection、最小权限与人工确认",
+      "topic": "AI Agent · 系统工程",
+      "summary": "识别直接与间接 Prompt Injection，区分模型建议与业务授权，建立工具权限、用户同意、人工确认和审计边界。",
+      "tags": "Agent Security Prompt Injection OWASP Least Privilege Human in the Loop",
+      "href": "knowledge/ai-agents/chapter-04/"
     }
   ]
 }

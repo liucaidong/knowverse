@@ -69,8 +69,8 @@ test.after(() => new Promise(resolveServer => server.close(resolveServer)));
 test("all canonical routes load in Chromium without uncaught errors or failed local resources", {
   timeout: 180_000,
 }, async () => {
-  assert.equal(routeRows.length, 44, "the route smoke must track every registered canonical route");
-  assert.equal(canonicalTargets.length, 44, "hash destinations are distinct canonical routes even on the same page");
+  assert.equal(routeRows.length, 47, "the route smoke must track every registered canonical route");
+  assert.equal(canonicalTargets.length, 47, "hash destinations are distinct canonical routes even on the same page");
   const browser = await chromium.launch({ headless: true });
   const results = [];
   try {
@@ -136,7 +136,7 @@ test("all canonical routes load in Chromium without uncaught errors or failed lo
 
     assert.deepEqual(errors, [], "canonical route runtime errors:\n" +
       errors.map(item => JSON.stringify(item)).join("\n"));
-    assert.equal(results.length, 44);
+    assert.equal(results.length, 47);
     await context.close();
   } finally {
     await browser.close();

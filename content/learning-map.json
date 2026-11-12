@@ -1,6 +1,6 @@
 {
   "version": "3.0.0",
-  "updated": "2026-11-01",
+  "updated": "2026-11-12",
   "description": "KNOWVERSE 掌握图谱 V2：每个 gap 显式映射至真实 competency，用于精确诊断、定向复习和下游影响分析。",
   "topics": [
     {
@@ -268,6 +268,55 @@
           "exhibitionHref": "./gallery/exhibits/rn-new-architecture/"
         }
       ]
+    },
+    {
+      "id": "ai-agents",
+      "title": "AI Agent · 系统工程",
+      "accent": "#b78ce7",
+      "href": "./knowledge/ai-agents/",
+      "graph": {
+        "width": 940,
+        "height": 340
+      },
+      "competencies": [
+        {
+          "id": "agent-architecture-selection",
+          "title": "Agent / Workflow 架构选择",
+          "description": "根据任务确定性、动态决策需求、时延和成本，选择单次增强 LLM、固定 Workflow 或动态 Agent。",
+          "prerequisites": [],
+          "position": {
+            "x": 32,
+            "y": 150
+          },
+          "lessonHref": "./knowledge/ai-agents/chapter-01/"
+        },
+        {
+          "id": "agent-tool-execution-contract",
+          "title": "工具调用与 MCP 执行契约",
+          "description": "追踪模型工具调用意图、Schema 校验、应用侧授权执行、结果回传，以及 MCP Host / Client / Server 的协议边界。",
+          "prerequisites": [
+            "agent-architecture-selection"
+          ],
+          "position": {
+            "x": 355,
+            "y": 150
+          },
+          "lessonHref": "./knowledge/ai-agents/chapter-03/"
+        },
+        {
+          "id": "agent-safety-governance",
+          "title": "Agent 权限与安全治理",
+          "description": "对不可信上下文和工具输出建立最小权限、明确同意、服务端授权、人工确认、审计与安全评估。",
+          "prerequisites": [
+            "agent-tool-execution-contract"
+          ],
+          "position": {
+            "x": 680,
+            "y": 150
+          },
+          "lessonHref": "./knowledge/ai-agents/chapter-04/"
+        }
+      ]
     }
   ],
   "gaps": [
@@ -522,6 +571,30 @@
       "competencyIds": [
         "rn-integrated-architecture",
         "rn-build-artifacts"
+      ]
+    },
+    {
+      "id": "agent-workflow-vs-agent",
+      "label": "把固定 Workflow 与动态 Agent 混为一谈",
+      "description": "Workflow 由应用代码预先编排步骤；Agent 将部分步骤与工具选择控制权交给模型。两者的选择应由任务不确定性和收益决定。",
+      "competencyIds": [
+        "agent-architecture-selection"
+      ]
+    },
+    {
+      "id": "agent-tool-execution-boundary",
+      "label": "把模型工具调用意图误认为工具已经执行",
+      "description": "模型只产生调用请求；应用必须解析参数、校验 Schema、检查身份和权限、执行工具，再按 call_id 回传结果。",
+      "competencyIds": [
+        "agent-tool-execution-contract"
+      ]
+    },
+    {
+      "id": "agent-prompt-injection-authorization",
+      "label": "把不可信上下文当作授权指令",
+      "description": "用户输入、检索文档和工具返回都可能包含恶意指令；授权必须由应用策略和用户同意决定，而不是由模型文本决定。",
+      "competencyIds": [
+        "agent-safety-governance"
       ]
     }
   ]

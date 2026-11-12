@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="从模型提出调用请求到应用侧校验、授权、执行与回传，理解 MCP Host、Client、Server 和协议边界。"><title>工具调用闭环与 MCP 协议边界 · AI Agent · KNOWVERSE</title><link rel="stylesheet" href="../../../assets/css/v2.css"><link rel="stylesheet" href="../../../assets/css/knowledge-graph.css"><link rel="stylesheet" href="../../../assets/css/site-architecture.css"></head>
+<body data-root="../../../"><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+    <a class="mark" href="../../../">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
+    <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区"><div class="kv-nav-group" data-group-id="start"
+      data-active-routes="learning.start learning.start learning.agent"
+      data-active-paths="../../../start/|../../../start/|../../../agent/">
+    <a class="kv-nav-link" data-route-id="learning.start"
+       href="../../../start/">开始学习</a>
+  </div><div class="kv-nav-group" data-group-id="knowledge"
+      data-active-routes="knowledge.overview knowledge.overview"
+      data-active-paths="../../../knowledge/|../../../knowledge/">
+    <a class="kv-nav-link" data-route-id="knowledge.overview"
+       href="../../../knowledge/">知识库</a>
+  </div><div class="kv-nav-group" data-group-id="experience"
+      data-active-routes="experience.overview experience.overview experience.lab experience.gallery experience.puzzles"
+      data-active-paths="../../../works/|../../../works/|../../../lab/|../../../gallery/|../../../puzzles/">
+    <a class="kv-nav-link" data-route-id="experience.overview"
+       href="../../../works/">实践中心</a>
+  </div><div class="kv-nav-group" data-group-id="progress"
+      data-active-routes="learning.overview learning.overview learning.mastery learning.gaps learning.review learning.history"
+      data-active-paths="../../../progress/|../../../progress/|../../../progress/#knowledge-map|../../../progress/#weak-points|../../../review/|../../../progress/#challenge-history">
+    <a class="kv-nav-link" data-route-id="learning.overview"
+       href="../../../progress/">我的进度</a>
+  </div></div>
+    <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
+    <button class="search-trigger" id="search-open" type="button" aria-label="全站搜索知识与作品">搜索 <span>⌘ K</span></button>
+    <details class="kv-global-account" id="kv-global-account" data-status="anonymous">
+    <summary class="kv-account-trigger" aria-label="打开全站账户与同步状态">
+      <span class="kv-account-dot" data-status="neutral" aria-hidden="true"></span>
+      <span class="kv-account-label"><small>ACCOUNT / SYNC</small><strong class="kv-account-state" data-kv-account-state>GitHub 登录</strong></span>
+      <span class="kv-account-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="kv-account-panel" aria-label="账户面板">
+      <strong class="kv-account-panel-title">一个账户，贯穿整个 KNOWVERSE</strong>
+      <p class="kv-account-scope">公开知识、实验、展厅和挑战无需登录。身份认证与云端学习档案授权是两个独立状态。</p>
+      <p class="kv-account-message" data-kv-account-message>当前设备可以直接学习；登录后可在获授权时同步个人学习档案。</p>
+      <p class="kv-account-identity" data-kv-account-identity hidden></p>
+      <button class="kv-account-action primary" type="button" data-kv-sign-in disabled>使用 GitHub 登录</button>
+      <noscript><p class="kv-account-scope">账户操作需要启用 JavaScript；本页导航与知识内容仍可直接访问。</p></noscript>
+      <button class="kv-account-action" type="button" data-kv-sign-out hidden>退出登录</button>
+      <a class="kv-account-manage" href="../../../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
+    </div>
+  </details>
+  </nav></header><div class="topline"></div><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../../knowledge/">知识库</a> / <a href="../">AI Agent · 系统工程</a> / 第 03 单元</div><div class="eyebrow">AI AGENT / SYSTEM ENGINEERING</div><h1>工具调用闭环与 MCP 协议边界</h1><p class="lead">从模型提出调用请求到应用侧校验、授权、执行与回传，理解 MCP Host、Client、Server 和协议边界。</p></div>
+<article class="reader" style="max-width:900px;margin:0 auto;padding:20px 0 64px">
+<h2>1. 模型提出请求，应用负责执行</h2><p>典型工具调用至少有五个阶段：</p><ol><li>应用把可用工具及其 JSON Schema 交给模型。</li><li>模型返回工具调用请求，包含名称、参数和调用关联标识。</li><li>应用解析参数，执行 Schema 校验、身份验证、资源授权和业务策略检查。</li><li>检查通过后，应用才调用真实工具，并把结果与原调用标识关联。</li><li>应用把工具结果交回模型；模型可以继续请求工具，也可以形成最终回答。</li></ol>
+<pre><code>应用 → 模型：Prompt + Tool Schema
+模型 → 应用：function_call(name, arguments, call_id)
+应用 → 策略层：Schema + 身份 + 资源权限
+策略层 → 应用：allow / deny
+应用 → 工具：执行已授权操作
+工具 → 应用：result
+应用 → 模型：function_call_output(call_id, result)</code></pre>
+<p><strong>关键边界：</strong>模型只能提出请求。它不能通过参数声称“我是管理员”，也不能通过自然语言证明某个账户归当前用户所有。授权必须在可信的应用服务端完成。</p>
+<h2>2. Schema 约束不等于业务授权</h2><p>Function Calling 使用 JSON Schema 描述工具参数。严格模式可以提高结构遵循性，但它只回答“参数是否符合约定的形状”，不回答“当前用户是否有权执行这项操作”。服务端仍然必须从已验证的会话中取得用户身份，再检查目标资源是否属于该用户。写操作还应增加幂等键、额度或次数限制、审计记录和必要的二次确认。</p>
+<pre><code>const tool = {
+  type: "function",
+  name: "get_account_balance",
+  strict: true,
+  parameters: {
+    type: "object",
+    properties: { account_id: { type: "string" } },
+    required: ["account_id"],
+    additionalProperties: false
+  }
+};</code></pre>
+<h2>3. MCP 的 Host、Client 与 Server</h2><ul><li><strong>Host：</strong>发起连接并承载用户体验的 LLM 应用。</li><li><strong>Client：</strong>Host 内负责与 MCP Server 通信的协议连接器。</li><li><strong>Server：</strong>向 Client 提供上下文和能力的服务。</li></ul>
+<table><thead><tr><th>能力</th><th>作用</th><th>不应误解为</th></tr></thead><tbody><tr><td>Resources</td><td>提供可读取的上下文或数据</td><td>已授权的写操作</td></tr><tr><td>Prompts</td><td>提供可复用的提示模板或工作流</td><td>系统级可信指令</td></tr><tr><td>Tools</td><td>提供模型可请求执行的函数能力</td><td>模型可以绕过 Host 直接执行</td></tr></tbody></table>
+<p>MCP 是连接协议，不是权限系统的替代品。Host 仍需要向用户说明数据访问和工具操作，并在应用边界执行授权。</p>
+<h2>4. 2026-07-28 规范的状态模型</h2><p>MCP 2026-07-28 规范采用无状态、自包含请求和逐请求能力声明。不要把旧版 <code>initialize</code> 握手、长生命周期 Session ID 或连接级能力协商当作所有实现都必须具备的永久机制。实现时应明确客户端和服务端所支持的协议版本，并按对应规范处理发现、能力和请求元数据。</p>
+<h2>5. RAG、MCP 与 Agent 不互相替代</h2><ul><li>RAG 解决“哪些证据进入上下文”。</li><li>MCP 解决“应用如何标准化连接外部上下文与工具”。</li><li>Agent 解决“在目标约束下，如何选择步骤、工具并根据结果继续”。</li></ul><p>三者可以组合，但任何组合都不能省略应用侧的权限、数据校验和副作用控制。</p>
+<h2>自测</h2><p>模型返回 <code>function_call</code> 后，应用是否可以直接把它当作工具结果展示？不能。应用必须先验证参数、验证当前身份与资源权限，再执行真实工具，并把结果绑定到原始 <code>call_id</code>。</p>
+<h2>参考来源</h2><ul><li><a href="https://developers.openai.com/api/docs/guides/function-calling" target="_blank" rel="noopener noreferrer">OpenAI Function Calling</a></li><li><a href="https://modelcontextprotocol.io/specification/2026-07-28" target="_blank" rel="noopener noreferrer">Model Context Protocol Specification · 2026-07-28</a></li><li><a href="https://www.anthropic.com/research/building-effective-agents" target="_blank" rel="noopener noreferrer">Anthropic · Building effective agents</a></li></ul><p><a href="../">← 返回 AI Agent 专题</a></p></article></main><script defer src="../../../assets/js/v2.js"></script><footer class="kv-minimal-footer kv-shared-footer"><div class="kv-footer-links" aria-label="全站快捷入口"><a href="../../../knowledge/">知识体系</a><a href="../../../works/">实践体验</a><a href="../../../progress/">学习成长</a><a href="https://github.com/liucaidong/knowverse" target="_blank" rel="noopener">GitHub ↗</a></div></footer>
+<div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="全站搜索">
+    <div class="searchbox"><div class="searchheading"><strong>搜索 KNOWVERSE 知识宇宙</strong><button id="search-close" type="button">关闭 ✕</button></div>
+    <input id="search-input" type="search" placeholder="搜索 Promise、Monorepo、React Native、AI…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div>
+</body></html>

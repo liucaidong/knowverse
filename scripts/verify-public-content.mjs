@@ -35,7 +35,7 @@ test("public builder renders canonical topic catalogues, home portal, provenance
     assert.equal((atlas.match(/class="topic-card"/g)||[]).length,12);
     assert.ok(atlas.includes("<strong>12</strong>"));
     assert.ok(provenance.includes('data-kv-provenance-registry="true"'));
-    assert.ok(provenance.includes("SOURCE REGISTRY / 13 RECORDS"));
+    assert.ok(provenance.includes("SOURCE REGISTRY / 17 RECORDS"));
     assert.ok(provenance.includes("CONTENT ONLY"));
     for (const concept of manifest.concepts) {
       const page = await readFile(path.join(fixture,"concept",concept.id,"index.html"),"utf8");
@@ -43,7 +43,7 @@ test("public builder renders canonical topic catalogues, home portal, provenance
       assert.ok(page.includes("KNOWLEDGE GRAPH"));
       assert.ok(page.includes("SOURCES & REFERENCES"));
     }
-    assert.equal(manifest.concepts.length,16);
+    assert.equal(manifest.concepts.length,19);
   } finally { await rm(fixture,{recursive:true,force:true}); }
 });
 

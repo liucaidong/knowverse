@@ -133,7 +133,7 @@ test("Chromium desktop: the daily plan respects prerequisites and advances from 
     });
     assert.equal(snapshot.events.filter(event => event.type === "plan_action_completed").length, 1);
     assert.equal(snapshot.events.some(event => event.type === "completed" || event.type === "assessment_passed"), false);
-    assert.equal(await page.locator("#hero-tested").textContent(), "0 / 15");
+    assert.equal(await page.locator("#hero-tested").textContent(), "0 / 18");
     await page.waitForFunction(() =>
       document.querySelector("#plan-actions .lp-plan-card .lp-tag")?.textContent?.trim() === "实验练习"
     );

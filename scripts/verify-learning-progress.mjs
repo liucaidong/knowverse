@@ -136,12 +136,20 @@ test("published map has valid challenge links, unique competency ids and acyclic
   const { readFile } = await import("node:fs/promises");
   const map = JSON.parse(await readFile(new URL("../content/learning-map.json", import.meta.url), "utf8"));
   const registry = JSON.parse(await readFile(new URL("../content/challenges.json", import.meta.url), "utf8"));
+  const checkpointRegistry = JSON.parse(await readFile(new URL("../content/learning-checkpoints.json", import.meta.url), "utf8"));
+  const reviewRegistry = JSON.parse(await readFile(new URL("../content/review-assessments.json", import.meta.url), "utf8"));
+  const checkpointCompetencies = new Set(checkpointRegistry.checkpoints.map(item => item.competencyId));
+  const reviewCompetencies = new Set(reviewRegistry.assessments.map(item => item.competencyId));
   const ids = new Set();
   for (const topic of map.topics) {
     for (const item of topic.competencies) {
       assert.ok(!ids.has(item.id), "duplicate competency id: " + item.id);
       ids.add(item.id);
-      assert.ok(registry.challenges.some(challengeItem => challengeItem.id === topic.challengeId));
+      if (topic.challengeId) {
+        assert.ok(registry.challenges.some(challengeItem => challengeItem.id === topic.challengeId));
+      } else {
+        assert.ok(topic.competencies.length > 0, "a challenge-free mapped topic must still declare competencies");
+      }
       assert.ok(Array.isArray(item.prerequisites));
       for (const prerequisite of item.prerequisites) {
         assert.ok(topic.competencies.some(node => node.id === prerequisite), "unknown prerequisite " + prerequisite);
@@ -168,13 +176,13 @@ test("published map has valid challenge links, unique competency ids and acyclic
     };
     for (const id of byId.keys()) visit(id);
 
-    const checkpointRegistry = JSON.parse(await readFile(new URL("../content/learning-checkpoints.json", import.meta.url), "utf8"));
-    const checkpointCompetencies = new Set(checkpointRegistry.checkpoints.map(item => item.competencyId));
-    const challengeItem = registry.challenges.find(item => item.id === topic.challengeId);
-    const mapped = new Set(challengeItem.steps.flatMap(step => step.competencyIds || []));
+    const challengeItem = topic.challengeId
+      ? registry.challenges.find(item => item.id === topic.challengeId)
+      : null;
+    const mapped = new Set(challengeItem?.steps.flatMap(step => step.competencyIds || []) || []);
     for (const competency of topic.competencies) {
-      assert.ok(mapped.has(competency.id) || checkpointCompetencies.has(competency.id),
-        "competency has no challenge or checkpoint evidence source: " + competency.id);
+      assert.ok(mapped.has(competency.id) || checkpointCompetencies.has(competency.id) || reviewCompetencies.has(competency.id),
+        "competency has no challenge, checkpoint or Review evidence source: " + competency.id);
     }
   }
 });

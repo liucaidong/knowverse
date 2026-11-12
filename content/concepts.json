@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-02",
+  "updated": "2026-11-12",
   "description": "稳定 Concept 注册表。Concept 表示可解释和关联的知识对象；Competency 表示可验证能力，两者不可混为同一对象。只有 learning-map 中明确登记的 prerequisites 才复制为 concept prerequisites。",
   "coverage": [
     {
@@ -26,9 +26,8 @@
     },
     {
       "topicId": "ai-agents",
-      "status": "content-only",
-      "conceptCount": 0,
-      "note": "已有专题内容；尚未建立正式 Concept / Competency 与先修关系，不推断学习门控。"
+      "status": "mapped",
+      "conceptCount": 3
     },
     {
       "topicId": "model-infra",
@@ -1258,6 +1257,151 @@
         }
       ],
       "sources": [],
+      "difficulty": "advanced",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "ai-agents.agent-architecture-selection",
+      "topicId": "ai-agents",
+      "title": "Agent 与 Workflow 的架构选择",
+      "summary": "区分固定代码路径的工作流与由模型动态决定步骤、工具和迭代过程的 Agent；先以最简单可验证的方案满足任务，再按不确定性和收益增加自治。",
+      "learningObjectives": [
+        "区分单次增强 LLM、确定性 Workflow 与动态 Agent 的控制权边界。",
+        "根据任务可分解性、不确定性、时延、成本和错误影响选择最小充分架构。",
+        "解释检索、工具和记忆如何增强 LLM，但不自动赋予它执行权限。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [
+        "ai-agents.agent-tool-execution-contract",
+        "ai-agents.agent-safety-governance"
+      ],
+      "articles": [
+        {
+          "title": "RAG / MCP / Agent 三层职责",
+          "href": "./knowledge/ai-agents/chapter-01/"
+        },
+        {
+          "title": "AI 教育操作系统与多 Agent",
+          "href": "./knowledge/ai-agents/chapter-02/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "agent-architecture-selection"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-agent-architecture-a",
+          "title": "Workflow 与 Agent：固定路径识别"
+        },
+        {
+          "type": "review",
+          "id": "review-agent-architecture-b",
+          "title": "Workflow 与 Agent：动态控制权识别"
+        }
+      ],
+      "sources": [
+        "anthropic-building-effective-agents"
+      ],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "ai-agents.agent-tool-execution-contract",
+      "topicId": "ai-agents",
+      "title": "工具调用与 MCP 执行契约",
+      "summary": "模型输出工具调用意图和结构化参数，应用侧负责验证、授权、执行并回传结果；MCP 以标准协议连接 Host、Client 与 Server 的上下文和能力。",
+      "learningObjectives": [
+        "完整描述模型工具调用、应用执行、工具结果回传和模型继续响应的闭环。",
+        "说明 JSON Schema 与 strict mode 的作用，并区分结构合法性和业务授权。",
+        "区分 MCP Host、Client、Server，以及 Resources、Prompts、Tools 三类服务端能力。",
+        "解释 2026-07-28 MCP 规范的无状态、自包含请求与逐请求能力声明。"
+      ],
+      "prerequisites": [
+        "ai-agents.agent-architecture-selection"
+      ],
+      "relatedConcepts": [
+        "ai-agents.agent-architecture-selection",
+        "ai-agents.agent-safety-governance"
+      ],
+      "articles": [
+        {
+          "title": "RAG / MCP / Agent 三层职责",
+          "href": "./knowledge/ai-agents/chapter-01/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "agent-tool-execution-contract"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-agent-tool-call-a",
+          "title": "工具调用：应用侧执行边界"
+        },
+        {
+          "type": "review",
+          "id": "review-agent-tool-call-b",
+          "title": "MCP：角色与能力边界"
+        }
+      ],
+      "sources": [
+        "openai-function-calling",
+        "mcp-spec-2026-07-28"
+      ],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "ai-agents.agent-safety-governance",
+      "topicId": "ai-agents",
+      "title": "Agent 权限、同意与安全治理",
+      "summary": "将模型推理与系统授权分离：把用户输入、检索内容和工具返回视为不可信数据，在应用边界执行最小权限、输出校验、明确同意、人工确认与审计。",
+      "learningObjectives": [
+        "识别直接与间接 Prompt Injection，以及过度代理权带来的风险。",
+        "区分模型建议、工具调用请求、业务授权和最终副作用。",
+        "为高影响操作设计服务端权限校验、用户同意、人工确认、幂等和审计。",
+        "建立覆盖任务正确性、工具选择、参数、权限、安全、成本和时延的回归评估。"
+      ],
+      "prerequisites": [
+        "ai-agents.agent-tool-execution-contract"
+      ],
+      "relatedConcepts": [
+        "ai-agents.agent-architecture-selection",
+        "ai-agents.agent-tool-execution-contract"
+      ],
+      "articles": [
+        {
+          "title": "RAG / MCP / Agent 三层职责",
+          "href": "./knowledge/ai-agents/chapter-01/"
+        },
+        {
+          "title": "AI 教育操作系统与多 Agent",
+          "href": "./knowledge/ai-agents/chapter-02/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "agent-safety-governance"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-agent-security-a",
+          "title": "Prompt Injection：不可信上下文处理"
+        },
+        {
+          "type": "review",
+          "id": "review-agent-security-b",
+          "title": "高影响工具：授权与人工确认"
+        }
+      ],
+      "sources": [
+        "owasp-llm-top10",
+        "mcp-spec-2026-07-28"
+      ],
       "difficulty": "advanced",
       "coverage": "mapped-content"
     }

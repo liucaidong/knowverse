@@ -183,10 +183,10 @@ async function exerciseReview(browser, label, viewport) {
   );
   await page.waitForFunction(() =>
     document.querySelector("#gap-list")?.innerText.includes("没有尚未纠正的概念误区") &&
-    document.querySelector("#hero-tested")?.innerText.replaceAll(" ", "").includes("1/15")
+    document.querySelector("#hero-tested")?.innerText.replaceAll(" ", "").includes("1/18")
   );
   assert.match(await page.locator("#gap-list").innerText(), /没有尚未纠正的概念误区/);
-  assert.match(await page.locator("#hero-tested").innerText(), /1\s*\/\s*15/);
+  assert.match(await page.locator("#hero-tested").innerText(), /1\s*\/\s*18/);
   assert.deepEqual(pageErrors, [], label + ": uncaught browser exceptions or failed requests");
   await context.close();
 }

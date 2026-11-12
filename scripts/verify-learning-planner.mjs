@@ -56,7 +56,8 @@ test("an empty profile starts with prerequisite roots, not advanced topics", asy
   assert.ok(result.plannedMinutes <= 25);
   const rootCompetencies = new Set(f.learningMap.topics.flatMap(topic =>
     topic.competencies.filter(item => !item.prerequisites?.length).map(item => item.id)));
-  assert.equal(rootCompetencies.size, 3);
+  assert.equal(rootCompetencies.size, 4);
+  assert.ok(rootCompetencies.has("agent-architecture-selection"));
   assert.ok(result.actions.every(item => rootCompetencies.has(item.competencyId)),
     "An empty profile must only schedule prerequisite roots");
   assert.ok(result.actions.every(item => item.type === "learn"));

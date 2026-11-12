@@ -110,8 +110,20 @@ for (const { file, rel } of htmlFiles) {
     html = html.replace(/查看全部\s*\d+\s*个专题/g, `查看全部 ${knowledge.topics.length} 个专题`);
     html = html.replace(/<strong>\d+<\/strong>\s*个领域/g, `<strong>${knowledge.topics.length}</strong> 个领域`);
   }
-  if (rel === "provenance/index.html" && !html.includes('data-kv-provenance-registry="true"')) {
-    html = html.replace(/<div class="layout-narrow reader">/i, `<div data-kv-provenance-registry="true">${renderProvenance(prefix)}</div><div class="layout-narrow reader">`);
+  if (rel === "provenance/index.html") {
+    const marker = '<div data-kv-provenance-registry="true">';
+    const start = html.indexOf(marker);
+    const readerStart = start >= 0
+      ? html.indexOf('<div class="layout-narrow reader">', start)
+      : -1;
+    const freshRegistry = `<div data-kv-provenance-registry="true">${renderProvenance(prefix)}</div>`;
+    if (start >= 0 && readerStart > start) {
+      // Refresh the whole generated registry on every build. A presence-only
+      // guard leaves stale coverage counts and source records in the public page.
+      html = html.slice(0, start) + freshRegistry + html.slice(readerStart);
+    } else {
+      html = html.replace(/<div class="layout-narrow reader">/i, `${freshRegistry}<div class="layout-narrow reader">`);
+    }
   }
   await writeFile(file, html);
 }

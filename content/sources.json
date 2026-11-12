@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-02",
+  "updated": "2026-11-12",
   "description": "可追溯的官方规范、文档与参考来源注册表。概念仅引用已登记来源；未建立来源关系的专题不会被自动补齐。",
   "sources": [
     {
@@ -145,6 +145,50 @@
         "react-native"
       ],
       "accessed": "2026-11-02"
+    },
+    {
+      "id": "anthropic-building-effective-agents",
+      "title": "Building effective agents",
+      "publisher": "Anthropic Engineering",
+      "url": "https://www.anthropic.com/research/building-effective-agents",
+      "kind": "engineering-research",
+      "topics": [
+        "ai-agents"
+      ],
+      "accessed": "2026-11-12"
+    },
+    {
+      "id": "openai-function-calling",
+      "title": "Function calling",
+      "publisher": "OpenAI API Documentation",
+      "url": "https://developers.openai.com/api/docs/guides/function-calling",
+      "kind": "documentation",
+      "topics": [
+        "ai-agents"
+      ],
+      "accessed": "2026-11-12"
+    },
+    {
+      "id": "mcp-spec-2026-07-28",
+      "title": "Model Context Protocol Specification · 2026-07-28",
+      "publisher": "Model Context Protocol",
+      "url": "https://modelcontextprotocol.io/specification/2026-07-28",
+      "kind": "specification",
+      "topics": [
+        "ai-agents"
+      ],
+      "accessed": "2026-11-12"
+    },
+    {
+      "id": "owasp-llm-top10",
+      "title": "OWASP Top 10 for LLM Applications",
+      "publisher": "OWASP GenAI Security Project",
+      "url": "https://genai.owasp.org/initiatives/top-10-for-llm-and-genai/",
+      "kind": "security-standard",
+      "topics": [
+        "ai-agents"
+      ],
+      "accessed": "2026-11-12"
     }
   ]
 }

@@ -174,11 +174,15 @@ jobs:
         run: |
           npm install --no-save playwright
           npx playwright install --with-deps chromium webkit
+      - name: Verify AI Agent concept, competency, source and gap-review contracts
+        run: node --test scripts/verify-ai-agent-learning.mjs
       - name: Browser E2E · Chromium desktop and WebKit mobile viewport
         run: node --test scripts/e2e-learning-intelligence.mjs
+      - name: Browser E2E · AI Agent lessons, Concept pages and mobile layout
+        run: node --test scripts/e2e-ai-agent-learning.mjs
       - name: Browser E2E · Global navigation, mobile drawer and no-JavaScript fallback
         run: node --test scripts/e2e-site-navigation.mjs
-      - name: Browser E2E · All 44 canonical routes and hash destinations runtime smoke
+      - name: Browser E2E · All 47 canonical routes and hash destinations runtime smoke
         run: node --test scripts/e2e-system-route-smoke.mjs
       - name: Browser E2E · Work checkpoint and learning telemetry
         run: node --test scripts/e2e-learning-integration.mjs

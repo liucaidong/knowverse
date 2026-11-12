@@ -2,7 +2,7 @@
 
 - Repository: `liucaidong/knowverse`
 - Branch: `develop`
-- Recorded HEAD at report creation: `c4766079faa192b36d1843568563ecdcf6b8a544`
+- Recorded HEAD at report creation: updated after the final commit in this remediation batch.
 - Local checkout: `/Users/geeker/ai-projects/knowverse`
 - Scope: read-only audit, deterministic local tests, isolated PostgreSQL replay, isolated KNOWVERSE N2 staging acceptance, and CI reliability fixes. No production business data was written.
 
@@ -21,26 +21,27 @@ The architecture validator reports:
 
 - 4 direct navigation groups: Start, Knowledge, Experience, Progress.
 - 12 registered knowledge topics.
-- 16 Concepts and 15 Competencies.
+- 19 Concepts and 18 Competencies, with 34 mapped learning gaps and 78 targeted review variants.
+- 4 of 12 knowledge topics now have formal Concept / Competency maps: Promise, TypeScript Monorepo, React Native, and AI Agent. The other 8 remain content-only and are not falsely treated as mastery-mapped.
 - 3 experience pillars and 17 registered works.
-- 13 official source records.
-- 44 canonical routes and 113 search records.
-- 136 static-shell pages and 3 immersive pages with explicit exit affordances.
+- 17 official source records.
+- 47 canonical routes and 118 search records.
+- 141 static-shell pages and 3 immersive pages with explicit exit affordances.
 
 The current start page is a guided learning entry: one next action, a four-step learning path, and secondary links for browsing knowledge, practice, and progress. Browser coverage confirms four direct navigation destinations, no nested global menu, mobile menu behavior, no-JavaScript navigation, one learning CTA, and no horizontal overflow in tested narrow viewports.
 
 ## 3. Verification performed locally
 
-- All 30 `scripts/verify-*.mjs` scripts completed successfully in the local pass.
-- All 16 non-hosted `scripts/e2e-*.mjs` suites completed successfully: 52 browser test cases across Chromium and WebKit. Hosted scripts are listed separately below.
+- All 31 `scripts/verify-*.mjs` scripts completed successfully: 31/31, zero failures.
+- All 17 non-hosted `scripts/e2e-*.mjs` suites completed successfully: 54 browser test cases across Chromium and WebKit. Hosted scripts are listed separately below.
 - Static validation passed after deterministic rebuild:
   - V1 content registry: 12 topics, 17 works, 17 unique live routes.
-  - V2 link validation: 3,503 local links, 22 Mermaid panoramas, 113 search records.
+  - V2 link validation: 3,624 local links, 22 Mermaid panoramas, 118 search records.
   - Promise course: 20 lessons and workbench/challenge checks.
   - Monorepo course: 10 chapters, 739 local links, 11 diagrams, 5-package graph.
   - Fullstack tutorial, native metadata, source ZIP and device-smoke metadata checks.
   - Search index and Monorepo graph reproducibility checks.
-  - KNOWVERSE 4.0 architecture validation.
+  - KNOWVERSE 4.0 architecture validation: 4 navigation groups, 12 topics, 19 Concepts, 18 Competencies, 3 experience pillars, 17 works, 17 sources, 47 canonical routes, 118 search records, 141 static-shell pages.
 - Deno type-check passed for `supabase/functions/practice-quality-review/index.ts`.
 - PostgreSQL 17 isolated migration replay passed for all 12 migrations against both empty Auth and seeded Auth databases. It also verified that migration replay does not overwrite an existing reviewer row.
 - PostgreSQL 17 isolated sync/RLS test passed: atomic event/document commit, immutable event retry, CAS rollback, pagination, cross-account RLS isolation, identity spoof rejection and device spoof rejection.
@@ -52,11 +53,23 @@ Two failures were traced to external dependencies, not to the tested learning bu
 1. H1 pilot test failed when Mermaid's optional ESM chunk requests failed from jsDelivr. The application already has a source-preserving fallback. The test now excludes only the exact optional Mermaid CDN origin from its no-failed-request assertion; first-party local requests remain strict.
 2. Tutor consent E2E failed in GitHub Actions when the synthetic session caused Supabase requests to depend on external DNS. The test now stubs the optional Mermaid module and all Supabase project requests. The Learning Agent request remains separately intercepted and its payload, authorization header, one-turn consent, and non-mastery behavior are still asserted.
 
-The local H1 and Tutor suites passed after these changes. The CI result for HEAD `c476607` must still be checked before marking CI green.
+The local H1 and Tutor suites passed after these changes. The subsequent local regression run also passed all 31 verifier scripts and all 54 browser cases. The last completed GitHub Validate run for the preceding test-only commit passed; the expanded AI Agent content commit still requires its own GitHub Validate and Pages completion before release is called green.
 
 The V2 validator also previously traversed a locally installed nested `node_modules` tree and reported third-party React Native DevTools / Expo HTML references as broken public-site links. It now excludes generated dependency/build directories from the public-site HTML scan. The real public site link scan remains enabled and passed.
 
-## 5. N2 staging acceptance
+## 5. AI Agent formal learning-map expansion
+
+This remediation batch expanded AI Agent from two lesson pages to four and added a formal learning graph rather than treating reading as mastery:
+
+- 3 Concept nodes and 3 Competencies in a prerequisite chain: architecture selection → tool execution / MCP contract → security governance.
+- 3 explicit Gap definitions and 6 independent review variants (two per gap).
+- 4 official source records covering Anthropic agent architecture guidance, OpenAI Function Calling, the MCP 2026-07-28 specification, and OWASP LLM / GenAI security guidance.
+- New lesson pages cover tool-calling execution boundaries, MCP Host / Client / Server and stateless request semantics, prompt injection, least privilege, explicit consent, human confirmation, audit and evaluation.
+- A dedicated verifier proves a failed targeted review can be resolved only by a different no-hint review variant. The daily planner now includes the new root competency, and the public provenance registry refreshes source and coverage counts on every build.
+
+The topic is one of four formally mapped topics; the remaining eight are still content-only.
+
+## 6. N2 staging acceptance
 
 The target was explicitly pinned by the test harness to `https://ypthoicwrfsblaidllyy.supabase.co` (`knowverse-staging`), not the production project.
 
@@ -75,7 +88,7 @@ The script reports that the two synthetic Auth users should be deleted from the 
 
 The previously documented Mac Chromium hosted staging browser acceptance from 2026-11-04 remains historical evidence. A re-run in this session using a reconstructed temporary preview fixture timed out waiting for the post-login UI status; this does not establish an application regression, but this session does not claim a fresh hosted-browser PASS. The temporary preview was isolated under `/tmp` and pinned to staging; production config and production Supabase were not modified.
 
-## 6. Remaining acceptance gaps
+## 7. Remaining acceptance gaps
 
 | Area | Current status | Required evidence |
 |---|---|---|
@@ -83,19 +96,19 @@ The previously documented Mac Chromium hosted staging browser acceptance from 20
 | AI candidate-to-publication chain | NOT VERIFIED end-to-end | Real staging candidate → deterministic validator → independent Reviewer → explicit human approval → PR → exact Pages comparison → registration |
 | Cross-device sync | PostgreSQL isolated tests PASS; hosted Supabase HTTP PASS | Fresh hosted browser test, second physical device, offline Outbox, session refresh, weak network/background recovery, account revocation |
 | Physical iPhone Safari | NOT VERIFIED | Real device acceptance evidence |
-| Formal learning graph coverage | 3/12 topics mapped | Build evidence-backed Concept/Competency/prerequisite/Gap/Assessment/Checkpoint maps for remaining 9 topics; do not manufacture mastery for unmapped topics |
+| Formal learning graph coverage | 4/12 topics mapped | Build evidence-backed Concept/Competency/prerequisite/Gap/Assessment/Checkpoint maps for remaining 8 topics; do not manufacture mastery for unmapped topics |
 | Content correctness | PARTIAL | Technical/answer-level source review, calibrated difficulty and reviewed explanations for each formal assessment |
 | Backup / restore | NOT VERIFIED | Documented backup and restore drill with evidence |
 
-## 7. Next execution order
+## 8. Next execution order
 
 1. Confirm the `c476607` GitHub Validate and Pages runs; repair any remaining CI failures without weakening first-party assertions.
 2. Re-run hosted browser staging acceptance with the established preview fixture; then verify the second physical device and iPhone Safari.
 3. Configure and test real staging AI Provider execution for Tutor, Agent and independent Reviewer; verify failure-safe behavior.
 4. Prove the complete protected practice publication chain with a synthetic staging candidate and explicit human approval; never auto-merge.
-5. Extend formal learning maps selectively, beginning with high-value engineering topics, and review each assessment against official sources.
+5. Extend formal learning maps selectively to the remaining eight topics, beginning with high-value engineering topics, and review each assessment against official sources.
 6. Complete a current feature/content inventory and backup/restore drill before declaring KNOWVERSE 4.0 production-ready.
 
-## 8. Safety boundary
+## 9. Safety boundary
 
 This session did not write production learning events, modify production Supabase data, change production permissions, merge a PR, or use production credentials. All hosted writes were confined to the pinned N2 staging project and synthetic accounts.
