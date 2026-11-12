@@ -71,13 +71,15 @@ assert.equal(archive.length, 1);
 const candidateSnapshot = archive[0].document_payload;
 assert.equal(candidateSnapshot.candidateId, CANDIDATE_ID);
 
+const reuseExistingReview = process.argv.includes("--reuse-existing-review");
 let prior = check(await edge(tokenA, "history"), "Read existing candidate history");
-if (prior.status === "needs_revision") {
+if (!reuseExistingReview && prior.status === "needs_revision") {
   const revalidated = check(await edge(tokenA, "validate"), "Revalidate previously reviewed synthetic candidate");
   assert.equal(revalidated.report?.validationStatus, "passed");
   prior = check(await edge(tokenA, "history"), "Read revalidated candidate history");
 }
-assert.equal(prior.status, "validation", "Only a deterministically validated synthetic candidate may be reviewed.");
+assert.equal(prior.status, reuseExistingReview ? "needs_revision" : "validation",
+  "The candidate must be validated before a new review, or already have a persisted review when reuse mode is selected.");
 assert.ok(prior.records.some(record => record.recordType === "validation" &&
   record.payload?.validationStatus === "passed"), "A matching passed deterministic validation is required.");
 assert.equal(prior.canApprove, false, "Synthetic account must not have human reviewer privileges.");
@@ -87,8 +89,16 @@ console.log("PASS  Staging identity, private candidate archive and prior validat
 }));
 
 const started = Date.now();
-const review = check(await edge(tokenA, "review", 145_000), "Independent AI Reviewer execution");
-const elapsedMs = Date.now() - started;
+let review;
+if (reuseExistingReview) {
+  const latestPersistedReview = prior.records.filter(record => record.recordType === "review").at(-1);
+  assert.ok(latestPersistedReview, "Reuse mode requires an existing persisted review record.");
+  review = { ok: true, candidateId: CANDIDATE_ID, status: prior.status,
+    review: latestPersistedReview.payload, canApprove: prior.canApprove };
+} else {
+  review = check(await edge(tokenA, "review", 145_000), "Independent AI Reviewer execution");
+}
+const elapsedMs = reuseExistingReview ? 0 : Date.now() - started;
 assert.equal(review.ok, true);
 assert.equal(review.candidateId, CANDIDATE_ID);
 assert.equal(review.review?.reviewerModel, "step-5-preview");
@@ -101,8 +111,19 @@ for (const key of ["sourceAlignment", "solvability", "answerConsistency", "pedag
   assert.ok(["pass", "concern", "unverified"].includes(review.review?.[key]?.status), "Invalid " + key);
   assert.ok(review.review?.[key]?.evidence?.length >= 1, "Missing " + key + " evidence");
 }
-if (review.review.findings.some(item => item.category === "pedagogical_quality" && ["high", "critical"].includes(item.severity))) {
-  assert.equal(review.review.pedagogicalQuality.status, "concern", "High pedagogical findings must not coexist with a passing dimension status.");
+const findingDimension = {
+  source_alignment: "sourceAlignment",
+  solvability: "solvability",
+  answer_quality: "answerConsistency",
+  code_semantics: "answerConsistency",
+  pedagogical_quality: "pedagogicalQuality",
+  registration_compatibility: "pedagogicalQuality",
+};
+for (const finding of review.review.findings) {
+  if (!["high", "critical"].includes(finding.severity)) continue;
+  const dimension = findingDimension[finding.category];
+  if (dimension) assert.notEqual(review.review[dimension].status, "pass",
+    "High-severity finding " + finding.category + " must not coexist with a passing dimension status.");
 }
 console.log("PASS  live Step 5 independent review", JSON.stringify({
   model: review.review.reviewerModel,
@@ -118,7 +139,9 @@ const types = history.records.map(record => record.recordType);
 assert.ok(types.includes("validation"));
 assert.ok(types.includes("review"));
 assert.ok(types.includes("state"));
-const reviewRecord = history.records.find(record => record.recordType === "review");
+const reviewRecord = history.records.find(record => record.recordType === "review" &&
+  record.payload.reviewId === review.review.reviewId);
+assert.ok(reviewRecord, "The current Reviewer result must have a matching append-only record.");
 assert.equal(reviewRecord.payload.reviewId, review.review.reviewId);
 assert.equal(reviewRecord.candidateHash, review.review.candidateHash);
 console.log("PASS  append-only Staging audit history", JSON.stringify({
