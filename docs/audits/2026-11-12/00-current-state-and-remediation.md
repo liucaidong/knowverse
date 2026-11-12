@@ -15,7 +15,8 @@
   - `c476607`: stub Supabase project requests in the synthetic Tutor consent E2E so a fake session cannot make DNS-dependent or production requests.
   - `1c8f516`: add the AI Agent formal learning graph, two evidence-backed lessons, six targeted review variants, three Concept pages, updated provenance/search/routes, deterministic provenance regeneration, and dedicated unit/browser regression tests.
   - `5ac5aa5`: update this audit baseline and record the current evidence boundary.
-- Pages deployments for `8ccf98c`, `ed4bcea` and `5e02429` completed successfully; the Validate run for `5e02429` also passed. At report time, Validate for `1c8f516` was in progress and Pages deployment was queued; release is not marked green until both finish successfully.
+- Pages deployments for `8ccf98c`, `ed4bcea`, `5e02429`, `1c8f516`, `4f4f5ce` and `d841f32` completed successfully; Validate runs for `5e02429`, `4f4f5ce` and `d841f32` also passed.
+- Current acceptance commit: `d841f32` (`deploy(staging): activate learning agent and practice reviewer`). GitHub Validate run `43173754146` completed successfully; Pages run `43173754132` completed successfully. Both runs target the same commit `d841f32f42ab102435ae09015405e7bc79b93d91`.
 
 ## 2. Current product inventory
 
@@ -55,7 +56,7 @@ Two failures were traced to external dependencies, not to the tested learning bu
 1. H1 pilot test failed when Mermaid's optional ESM chunk requests failed from jsDelivr. The application already has a source-preserving fallback. The test now excludes only the exact optional Mermaid CDN origin from its no-failed-request assertion; first-party local requests remain strict.
 2. Tutor consent E2E failed in GitHub Actions when the synthetic session caused Supabase requests to depend on external DNS. The test now stubs the optional Mermaid module and all Supabase project requests. The Learning Agent request remains separately intercepted and its payload, authorization header, one-turn consent, and non-mastery behavior are still asserted. A shared `scripts/helpers/mock-supabase-project.mjs` fixture now keeps the other local synthetic-session suites (Phase K/L/M) off real Supabase hosts while preserving explicit RPC fixtures.
 
-The local H1 and Tutor suites passed after these changes. The subsequent local regression run also passed all 31 verifier scripts and all 54 browser cases. The last completed GitHub Validate run for the preceding commit passed; the expanded AI Agent content commit `1c8f516` still requires its own GitHub Validate and Pages completion before release is called green.
+The local H1 and Tutor suites passed after these changes. The subsequent local regression run also passed all 31 verifier scripts and all 54 browser cases. The expanded AI Agent content commit and the later staging Edge Function deployment commit `d841f32` both passed GitHub Validate and Pages deployment. The current source baseline is green; the remaining blockers are external staging provider secrets and physical-device acceptance, not CI.
 
 The V2 validator also previously traversed a locally installed nested `node_modules` tree and reported third-party React Native DevTools / Expo HTML references as broken public-site links. It now excludes generated dependency/build directories from the public-site HTML scan. The real public site link scan remains enabled and passed.
 
@@ -146,12 +147,11 @@ The Supabase Security Advisor also reports leaked-password protection disabled. 
 
 ## 8. Next execution order
 
-1. Confirm the latest GitHub Validate and Pages runs for the current staging-function code; repair any remaining CI failures without weakening first-party assertions.
-2. Verify the second physical device, offline Outbox / weak-network recovery, session refresh and iPhone Safari; the Mac Chromium staging browser path now passes.
-3. Set staging Edge Function secrets (`AI_PROVIDER_*`, `PRACTICE_REVIEWER_*`, `KNOWVERSE_CONTENT_REF=develop`) and enable leaked-password protection; then test real Tutor / Agent / independent Reviewer calls.
-4. Prove the complete protected practice publication chain with a synthetic staging candidate and explicit human approval; never auto-merge.
-5. Extend formal learning maps selectively to the remaining eight topics, beginning with high-value engineering topics, and review each assessment against official sources.
-6. Complete a current feature/content inventory and backup/restore drill before declaring KNOWVERSE 4.0 production-ready.
+1. Verify the second physical device, offline Outbox / weak-network recovery, session refresh and iPhone Safari; the Mac Chromium staging browser path and current GitHub CI now pass.
+2. Set staging Edge Function secrets (`AI_PROVIDER_*`, `PRACTICE_REVIEWER_*`, `KNOWVERSE_CONTENT_REF=develop`) and enable leaked-password protection; then test real Tutor / Agent / independent Reviewer calls.
+3. Prove the complete protected practice publication chain with a synthetic staging candidate and explicit human approval; never auto-merge.
+4. Extend formal learning maps selectively to the remaining eight topics, beginning with high-value engineering topics, and review each assessment against official sources.
+5. Complete a current feature/content inventory and backup/restore drill before declaring KNOWVERSE 4.0 production-ready.
 
 ## 9. Safety boundary
 
