@@ -34,10 +34,24 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
   let retryAttempt = 0;
   let retryTimer = null;
   let serial = Promise.resolve();
+  let queuedOperations = 0;
+  let activeOperation = null;
 
-  function enqueue(operation) {
-    const task = serial.then(operation, operation);
-    serial = task.catch(() => {});
+  function enqueue(operation, operationName) {
+    const alreadyWaiting = activeOperation !== null || queuedOperations > 0;
+    queuedOperations += 1;
+    if (alreadyWaiting) {
+      dispatchStatus({ status: "queued", operation: operationName, waitingFor: activeOperation });
+    }
+    const run = () => {
+      queuedOperations = Math.max(0, queuedOperations - 1);
+      activeOperation = operationName;
+      return operation();
+    };
+    const task = serial.then(run, run);
+    serial = task.catch(() => {}).finally(() => {
+      if (activeOperation === operationName) activeOperation = null;
+    });
     return task;
   }
 
@@ -244,24 +258,24 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
   }
 
   async function restoreOperation() {
-    if (!config.enabled) return { status: "local-only", reason: "backend-not-configured" };
+    if (!config.enabled) return { status: "local-only", operation: "restore", reason: "backend-not-configured" };
     if (!isOnline()) {
-      const result = { status: "offline", reason: "network-unavailable" };
+      const result = { status: "offline", operation: "restore", reason: "network-unavailable" };
       dispatchStatus(result);
       return result;
     }
     return withLease("restore", async () => {
-      dispatchStatus({ status: "restoring" });
+      dispatchStatus({ status: "restoring", operation: "restore" });
       try {
         const session = await auth.getSession();
         if (!session) {
-          const result = { status: "signed-out" };
+          const result = { status: "signed-out", operation: "restore" };
           dispatchStatus(result);
           return result;
         }
         const account = await profile();
         if (!account?.authorized) {
-          const result = { status: "pending-authorization", user: session.user || null };
+          const result = { status: "pending-authorization", operation: "restore", user: session.user || null };
           dispatchStatus(result);
           return result;
         }
@@ -277,6 +291,7 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
         const localDocuments = await listArchiveDocuments(1000);
         const result = {
           status: "restored",
+          operation: "restore",
           restoredEvents: pulledEvents.pulled,
           receivedEvents: pulledEvents.received,
           restoredDocuments: pulledDocuments.pulled,
@@ -301,24 +316,24 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
   }
 
   async function syncOperation() {
-    if (!config.enabled) return { status: "local-only", reason: "backend-not-configured" };
+    if (!config.enabled) return { status: "local-only", operation: "sync", reason: "backend-not-configured" };
     if (!isOnline()) {
-      const result = { status: "offline", reason: "network-unavailable" };
+      const result = { status: "offline", operation: "sync", reason: "network-unavailable" };
       dispatchStatus(result);
       return result;
     }
     return withLease("sync", async () => {
-      dispatchStatus({ status: "syncing" });
+      dispatchStatus({ status: "syncing", operation: "sync" });
       try {
         const session = await auth.getSession();
         if (!session) {
-          const result = { status: "signed-out" };
+          const result = { status: "signed-out", operation: "sync" };
           dispatchStatus(result);
           return result;
         }
         const account = await profile();
         if (!account?.authorized) {
-          const result = { status: "pending-authorization", user: session.user || null };
+          const result = { status: "pending-authorization", operation: "sync", user: session.user || null };
           dispatchStatus(result);
           return result;
         }
@@ -329,8 +344,10 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
           pullDocuments(userId),
           countOutbox(),
         ]);
+        const pendingDocuments = await listPendingArchiveDocuments(1000);
         const result = {
-          status: pushed.blocked ? "blocked" : "synced",
+          status: pushed.blocked ? "blocked" : (pendingEvents > 0 || pendingDocuments.length > 0 ? "partial" : "synced"),
+          operation: "sync",
           blocked: Boolean(pushed.blocked),
           pushed: pushed.pushedEvents,
           pulled: pulledEvents.pulled,
@@ -338,11 +355,12 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
           pulledDocuments: pulledDocuments.pulled,
           conflicts: new Set([...pushed.conflictIds, ...pulledDocuments.conflictIds]).size,
           pending: pendingEvents,
+          pendingDocuments: pendingDocuments.length,
           cursor: pulledEvents.cursor,
           documentCursor: pulledDocuments.cursor,
           deviceId: device.id,
         };
-        if (!pushed.blocked) {
+        if (result.status === "synced") {
           await setArchiveMeta("last-successful-sync", new Date().toISOString());
           await setArchiveMeta("last-sync-error", null);
           retryAttempt = 0;
@@ -350,7 +368,7 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
         dispatchStatus(result);
         return result;
       } catch (error) {
-        const result = { status: "error", message: error.message || "同步失败" };
+        const result = { status: "error", operation: "sync", message: error.message || "同步失败" };
         await setArchiveMeta("last-sync-error", result.message);
         dispatchStatus(result);
         retryAttempt = Math.min(8, retryAttempt + 1);
@@ -370,10 +388,10 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
   }
 
   function sync() {
-    return enqueue(syncOperation);
+    return enqueue(syncOperation, "sync");
   }
   function restoreFromCloud() {
-    return enqueue(restoreOperation);
+    return enqueue(restoreOperation, "restore");
   }
 
   function scheduleSync(delay) {

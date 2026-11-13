@@ -90,6 +90,52 @@ function createAuth() {
   };
 }
 
+test("sync and restore queue states are emitted in operation order", async () => {
+  let releasePull;
+  let markPullStarted;
+  const pullStarted = new Promise(resolve => { markPullStarted = resolve; });
+  const pullGate = new Promise(resolve => { releasePull = resolve; });
+  const originalWindow = globalThis.window;
+  const statusEvents = [];
+  globalThis.window = new EventTarget();
+  globalThis.window.addEventListener("knowverse:sync-state", event => statusEvents.push(event.detail));
+  const auth = {
+    async getSession() { return { user: { id: userId, email: "test@example.invalid" } }; },
+    async request(path) {
+      if (path.endsWith("/get_learning_sync_profile")) return { authorized: true, user_id: userId };
+      if (path.endsWith("/register_device")) return { registered: true };
+      if (path.endsWith("/sync_pull_learning_events_for_account")) {
+        markPullStarted();
+        await pullGate;
+        return { events: [], next_cursor: 0, has_more: false };
+      }
+      if (path.endsWith("/sync_pull_learning_documents_for_account")) {
+        return { documents: [], next_cursor: 0, has_more: false };
+      }
+      throw new Error("Unexpected RPC: " + path);
+    },
+  };
+  try {
+    const service = createLearningSyncService(auth, null, { enabled: true });
+    const syncPromise = service.sync();
+    await pullStarted;
+    const restorePromise = service.restoreFromCloud();
+    assert.ok(statusEvents.some(event => event.status === "queued" && event.operation === "restore"),
+      "manual restore must report that it is queued behind the active sync");
+    releasePull();
+    const [syncResult, restoreResult] = await Promise.all([syncPromise, restorePromise]);
+    assert.equal(syncResult.status, "synced");
+    assert.equal(restoreResult.status, "restored");
+    const terminalSync = statusEvents.findIndex(event => event.status === "synced" && event.operation === "sync");
+    const startedRestore = statusEvents.findIndex(event => event.status === "restoring" && event.operation === "restore");
+    assert.ok(terminalSync >= 0 && startedRestore > terminalSync,
+      "restore must not appear active until the preceding sync has completed");
+  } finally {
+    if (originalWindow === undefined) delete globalThis.window;
+    else globalThis.window = originalWindow;
+  }
+});
+
 test("manual restore replays cloud history even when the saved cursor is already ahead", async () => {
   const service = createLearningSyncService(createAuth(), null, { enabled: true });
   // Simulate a cursor surviving while the corresponding local archive rows are missing.

@@ -162,6 +162,10 @@ test("archive bootstrap and account panel use the same repository and sync runti
   assert.match(bootstrap, /syncService\.start\(\)/);
   assert.match(bootstrap, /syncService\.initialize\(\)/);
   assert.match(panel, /getArchiveRuntime/);
+  assert.match(panel, /runtime\.initialSyncPromise/);
+  assert.doesNotMatch(panel, /renderSession\(\{\s*syncNow:\s*true/);
+  assert.match(panel, /部分同步 · 仍有待上传数据/);
+  assert.match(panel, /等待当前同步结束，再开始恢复/);
   assert.match(panel, /立即同步/);
   assert.match(panel, /从云端恢复/);
   assert.match(panel, /保留本机版本/);

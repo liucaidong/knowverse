@@ -54,7 +54,10 @@ export async function mountBackendAccountPanel(host, options = {}) {
   const auth = runtime.auth;
   const syncService = runtime.syncService;
   let busy = false;
+  let activeOperation = null;
   let lastSyncLabel = null;
+  let accountIdentity = "";
+  let accountUserId = null;
   let destroyed = false;
 
   const shell = node("section", "kv-backend-card");
@@ -110,12 +113,50 @@ export async function mountBackendAccountPanel(host, options = {}) {
     setError("本地归档数据库初始化失败。请检查浏览器 IndexedDB 权限与存储空间后刷新页面。");
   }
 
-  function setBusy(value, action = "sync") {
+  function setBusy(value, action = null) {
     busy = value;
+    activeOperation = value ? action : null;
     sync.disabled = value;
     restore.disabled = value;
     sync.textContent = value && action === "sync" ? "正在同步…" : "立即同步";
     restore.textContent = value && action === "restore" ? "正在恢复…" : "从云端恢复";
+    shell.dataset.operation = activeOperation || "idle";
+  }
+
+  function setAccountSummary(summary = lastSyncLabel) {
+    account.textContent = accountIdentity + (summary ? " · " + summary : "");
+  }
+
+  function applySyncResult(result = {}) {
+    if (["synced", "partial", "blocked"].includes(result.status)) {
+      lastSyncLabel = "本次上传事件 " + (result.pushed ?? 0) + " 条、下载 " +
+      (result.pulled ?? 0) + " 条；档案上传 " + (result.pushedDocuments ?? 0) +
+      " 份、恢复 " + (result.pulledDocuments ?? 0) + " 份；待上传事件 " +
+      (result.pending ?? 0) + " 条、待同步档案 " + (result.pendingDocuments ?? 0) + " 份";
+    }
+    if (result.status === "synced") setStatus(result.conflicts ? "已同步 · 有冲突待处理" : "已同步", result.conflicts ? "warning" : "success");
+    else if (result.status === "partial") setStatus("部分同步 · 仍有待上传数据", "warning");
+    else if (result.status === "blocked") setStatus("同步受阻 · 档案冲突待处理", "warning");
+    else if (result.status === "busy") setStatus("另一标签页正在同步，请稍后重试", "warning");
+    else if (result.status === "offline") setStatus("离线待同步", "warning");
+    else if (result.status === "pending-authorization") setStatus("等待账户授权", "warning");
+    else if (result.status === "signed-out") setStatus("未登录", "warning");
+    else if (result.status === "error") setStatus("同步失败", "warning");
+    else setStatus("同步状态：" + (result.status || "未知"), "neutral");
+    setAccountSummary();
+  }
+
+  function applyRestoreResult(result = {}) {
+    if (result.status === "restored") {
+      lastSyncLabel = restoreSummary(result);
+      setStatus(result.conflicts ? "恢复完成 · 有冲突待选择" : "云端恢复完成", result.conflicts ? "warning" : "success");
+    } else if (result.status === "pending-authorization") setStatus("等待账户授权", "warning");
+    else if (result.status === "offline") setStatus("离线，暂不能恢复", "warning");
+    else if (result.status === "signed-out") setStatus("请先登录", "warning");
+    else if (result.status === "busy") setStatus("另一标签页正在同步，本次恢复未执行", "warning");
+    else if (result.status === "error") setStatus("云端恢复失败", "warning");
+    else setStatus("恢复状态：" + (result.status || "未知"), "warning");
+    setAccountSummary();
   }
 
   function addMetric(label, value, note = "") {
@@ -214,10 +255,13 @@ export async function mountBackendAccountPanel(host, options = {}) {
     }
   }
 
-  async function renderSession({ syncNow = false } = {}) {
+  async function renderSession() {
     if (!BACKEND_CONFIG.enabled) {
+      accountUserId = null;
+      lastSyncLabel = null;
+      accountIdentity = "云端尚未配置。无需登录即可继续学习；当前设备上的学习事件、挑战进度与复习现场会保存在本机。";
+      setAccountSummary("");
       setStatus("本地模式");
-      account.textContent = "云端尚未配置。无需登录即可继续学习；当前设备上的学习事件、挑战进度与复习现场会保存在本机。";
       sync.hidden = true;
       restore.hidden = true;
       await renderArchive();
@@ -227,8 +271,11 @@ export async function mountBackendAccountPanel(host, options = {}) {
 
     const session = await auth.getSession();
     if (!session) {
+      accountUserId = null;
+      lastSyncLabel = null;
+      accountIdentity = "当前没有云端账户会话。你可以继续离线学习；登录后才会建立跨设备同步。";
+      setAccountSummary("");
       setStatus("未登录");
-      account.textContent = "当前没有云端账户会话。你可以继续离线学习；登录后才会建立跨设备同步。";
       sync.hidden = true;
       restore.hidden = true;
       await renderArchive();
@@ -237,66 +284,54 @@ export async function mountBackendAccountPanel(host, options = {}) {
     }
 
     const user = session.user || {};
-    account.textContent = "当前账户：" + (user.email || user.user_metadata?.user_name || user.id || "已认证");
+    if (accountUserId && accountUserId !== user.id) lastSyncLabel = null;
+    accountUserId = user.id || null;
+    accountIdentity = "当前账户：" + (user.email || user.user_metadata?.user_name || user.id || "已认证");
+    setAccountSummary();
     sync.hidden = false;
     restore.hidden = false;
-
-    if (syncNow) {
-      setBusy(true, "sync");
-      try {
-        const result = await syncService.sync();
-        if (result.status === "pending-authorization") {
-          setStatus("等待授权", "warning");
-          account.textContent += " · OAuth 成功，但账户尚未加入管理员白名单。";
-        } else if (result.status === "synced") {
-          setStatus(result.conflicts ? "有冲突待处理" : "已同步", result.conflicts ? "warning" : "success");
-          lastSyncLabel = "本次上传事件 " + result.pushed + " 条、下载 " + result.pulled +
-            " 条；档案上传 " + result.pushedDocuments + " 份、恢复 " + result.pulledDocuments + " 份。";
-        } else if (result.status === "blocked") {
-          setStatus("同步受阻 · 档案冲突待处理", "warning");
-          account.textContent += " · 本批提交未完成，待上传事件仍保留在本机。";
-        } else if (result.status === "busy") {
-          setStatus("另一标签页正在同步，请稍后重试", "warning");
-        } else if (result.status === "offline") {
-          setStatus("离线待同步", "warning");
-        } else {
-          setStatus("同步状态：" + result.status);
-        }
-        setError("");
-      } catch (error) {
-        setStatus("同步失败", "warning");
-        setError(error.message || "同步失败；本地待同步数据已保留。");
-      } finally {
-        setBusy(false);
-      }
-    } else {
-      setStatus("已登录");
-    }
-    if (lastSyncLabel) account.textContent += " · " + lastSyncLabel;
+    if (!busy && status.textContent === "正在检查") setStatus("已登录");
     await renderArchive();
     await renderConflicts();
   }
 
+  async function runSync() {
+    if (busy || !syncService?.sync) return;
+    lastSyncLabel = null;
+    setAccountSummary("");
+    setBusy(true, "sync");
+    setStatus("同步中");
+    setError("");
+    try {
+      const result = await syncService.sync();
+      applySyncResult(result);
+      if (result.status === "busy") {
+        setError("另一标签页仍持有同步锁；本次没有执行上传或下载。");
+      } else if (result.status === "blocked" || result.status === "partial") {
+        setError("仍有数据未完成同步。请检查待上传数量与档案冲突，数据仍保留在本机。");
+      }
+    } catch (error) {
+      setStatus("同步失败", "warning");
+      setError(error.message || "同步失败；本地待同步数据已保留。");
+    } finally {
+      setBusy(false);
+      await renderArchive();
+      await renderConflicts();
+    }
+  }
+
   async function restoreCloud() {
     if (busy || !syncService?.restoreFromCloud) return;
+    lastSyncLabel = null;
+    setAccountSummary("");
     setBusy(true, "restore");
+    setStatus("正在从云端恢复");
+    setError("");
     try {
       const result = await syncService.restoreFromCloud();
-      if (result.status === "restored") {
-        setStatus(result.conflicts ? "恢复完成 · 有冲突待选择" : "云端恢复完成", result.conflicts ? "warning" : "success");
-        lastSyncLabel = restoreSummary(result);
-        setError("");
-      } else if (result.status === "pending-authorization") {
-        setStatus("等待账户授权", "warning");
-      } else if (result.status === "offline") {
-        setStatus("离线，暂不能恢复", "warning");
-      } else if (result.status === "signed-out") {
-        setStatus("请先登录", "warning");
-      } else if (result.status === "busy") {
-        setStatus("另一标签页正在同步，本次恢复未执行", "warning");
-        setError("当前设备的另一个标签页仍持有同步锁。请等待同步结束后再恢复；本次没有把 0 条误报为恢复成功。");
-      } else {
-        setStatus("恢复状态：" + result.status, "warning");
+      applyRestoreResult(result);
+      if (result.status === "busy") {
+        setError("当前设备的另一个标签页仍持有同步锁。本次恢复没有执行，原有本机学习数据已保留。");
       }
     } catch (error) {
       setStatus("云端恢复失败", "warning");
@@ -305,58 +340,111 @@ export async function mountBackendAccountPanel(host, options = {}) {
       setBusy(false);
       await renderArchive();
       await renderConflicts();
-      if (lastSyncLabel) account.textContent = account.textContent.split(" · 云端事件读取 ")[0] + " · " + lastSyncLabel;
     }
   }
 
-  sync.addEventListener("click", () => renderSession({ syncNow: true }));
+  sync.addEventListener("click", runSync);
   restore.addEventListener("click", restoreCloud);
   const onSyncState = async event => {
     if (destroyed) return;
     const detail = event.detail || {};
-    if (detail.status === "syncing") setStatus("同步中");
-    if (detail.status === "waiting-for-sync-lease") setStatus("等待另一个标签页完成同步…");
-    if (detail.status === "busy") setStatus("另一标签页正在同步，请稍后重试", "warning");
-    if (detail.status === "blocked") setStatus("同步受阻 · 档案冲突待处理", "warning");
-    if (detail.status === "restore-queued") setStatus("等待当前同步结束，再从云端恢复");
-    if (detail.status === "restoring") setStatus("正在从云端恢复");
+    const operation = detail.operation || activeOperation || "sync";
+    if (detail.status === "queued") {
+      setBusy(true, operation);
+      setStatus(operation === "restore" ? "等待当前同步结束，再开始恢复…" : "等待当前恢复结束，再开始同步…");
+      return;
+    }
+    if (busy && activeOperation && detail.operation && detail.operation !== activeOperation) return;
+    if (detail.status === "syncing" || detail.status === "restoring") {
+      lastSyncLabel = null;
+      setAccountSummary("");
+      setBusy(true, operation);
+      setStatus(operation === "restore" ? "正在从云端恢复" : "同步中");
+      return;
+    }
+    if (detail.status === "waiting-for-sync-lease" || detail.status === "restore-queued") {
+      setBusy(true, operation);
+      setStatus(operation === "restore" ? "等待同步结束，再开始恢复…" : "等待另一个标签页完成同步…");
+      return;
+    }
+    if (detail.status === "synced" || detail.status === "partial" || detail.status === "blocked") {
+      setBusy(false);
+      applySyncResult(detail);
+      if (detail.status === "partial" || detail.status === "blocked") {
+        setError("仍有数据未完成同步；本机数据没有被清除。");
+      } else setError("");
+      await renderArchive();
+      await renderConflicts();
+      return;
+    }
     if (detail.status === "restored") {
-      setStatus(detail.conflicts ? "恢复完成 · 有冲突待选择" : "云端恢复完成", detail.conflicts ? "warning" : "success");
-      lastSyncLabel = restoreSummary(detail);
+      setBusy(false);
+      applyRestoreResult(detail);
+      setError("");
       await renderArchive();
       await renderConflicts();
-    } else if (detail.status === "synced") {
-      setStatus(detail.conflicts ? "有冲突待处理" : "已同步", detail.conflicts ? "warning" : "success");
-      lastSyncLabel = "上传 " + detail.pushed + " 条事件 · 下载 " + detail.pulled + " 条事件";
+      return;
+    }
+    if (detail.status === "busy") {
+      setBusy(false);
+      if (operation === "restore") applyRestoreResult(detail);
+      else setStatus("另一标签页正在同步，请稍后重试", "warning");
+      return;
+    }
+    if (detail.status === "offline") {
+      setBusy(false);
+      if (operation === "restore") applyRestoreResult(detail);
+      else setStatus("离线待同步", "warning");
+      return;
+    }
+    if (detail.status === "error") {
+      setBusy(false);
+      setStatus(operation === "restore" ? "云端恢复失败" : "同步失败", "warning");
+      setError(detail.message || "操作失败；本地学习数据已保留。");
       await renderArchive();
-      await renderConflicts();
-    } else if (detail.status === "offline") {
-      setStatus("离线待同步", "warning");
-    } else if (detail.status === "error") {
-      setStatus("同步异常", "warning");
-      setError(detail.message || "同步失败；待同步数据已保留。");
-      await renderArchive();
-    } else if (detail.status === "pending-authorization") {
-      setStatus("等待授权", "warning");
+      return;
+    }
+    if (detail.status === "pending-authorization") {
+      setBusy(false);
+      setStatus("等待账户授权", "warning");
+    } else if (detail.status === "signed-out") {
+      setBusy(false);
+      setStatus("未登录", "warning");
     }
   };
   const onNetwork = () => {
     renderArchive().catch(() => {});
-    if (!navigator.onLine) setStatus("离线学习", "warning");
+    if (!navigator.onLine) {
+      setBusy(false);
+      setStatus("离线学习", "warning");
+    }
   };
   const onAuthState = () => renderSession();
-  window.addEventListener("knowverse:auth-state", onAuthState);
-  window.addEventListener("storage", event => {
+  const onStorage = event => {
     if (event.key === BACKEND_CONFIG.authStorageKey) renderSession();
-  });
+  };
+  const onArchiveState = () => renderArchive();
+  window.addEventListener("knowverse:auth-state", onAuthState);
+  window.addEventListener("storage", onStorage);
   window.addEventListener("knowverse:sync-state", onSyncState);
   window.addEventListener("online", onNetwork);
   window.addEventListener("offline", onNetwork);
-  window.addEventListener("knowverse:archive-state", () => renderArchive());
+  window.addEventListener("knowverse:archive-state", onArchiveState);
 
   try {
-    await renderSession({ syncNow: true });
+    await renderSession();
+    if (runtime.initialSyncPromise) {
+      setBusy(true, "sync");
+      setStatus("同步中");
+      const initialResult = await runtime.initialSyncPromise;
+      if (initialResult) {
+        applySyncResult(initialResult);
+        setBusy(false);
+        if (initialResult.status === "error") setError(initialResult.message || "初始同步失败；本地数据已保留。");
+      }
+    }
   } catch (error) {
+    setBusy(false);
     setStatus("服务不可用", "warning");
     setError(error.message || "云端服务暂时不可用；本地学习仍可继续。");
     await renderArchive();
@@ -365,9 +453,12 @@ export async function mountBackendAccountPanel(host, options = {}) {
   return () => {
     destroyed = true;
     window.removeEventListener("knowverse:auth-state", onAuthState);
+    window.removeEventListener("storage", onStorage);
     window.removeEventListener("knowverse:sync-state", onSyncState);
+    sync.removeEventListener("click", runSync);
     restore.removeEventListener("click", restoreCloud);
     window.removeEventListener("online", onNetwork);
     window.removeEventListener("offline", onNetwork);
+    window.removeEventListener("knowverse:archive-state", onArchiveState);
   };
 }
