@@ -416,6 +416,14 @@ export function createProactiveLearningEngine(options = {}) {
 
 
     if (!safeProjection(payload)) throw new Error("Proactive projection failed schema validation.");
+    const payloadBytes = new TextEncoder().encode(JSON.stringify(payload)).byteLength;
+    // This projection is a disposable, local-only cache. Large learner histories
+    // can legitimately exceed the 64 KiB archive-document budget; the derived
+    // view must remain usable even when its cache is too large to persist.
+    if (payloadBytes > 65536) {
+      return { ...payload, cacheHit: false, cachePersisted: false, cacheSkipReason: "local-cache-payload-limit",
+        payloadBytes, taskCreation };
+    }
     const previous = await repository.documents.get(PROACTIVE_PROJECTION_TYPE, PROACTIVE_PROJECTION_KEY);
     if (previous?.payload?.sourceFingerprint === fingerprint && safeProjection(previous.payload)) {
       return { ...previous.payload, localRevision: previous.localRevision, cacheHit: true, taskCreation };
