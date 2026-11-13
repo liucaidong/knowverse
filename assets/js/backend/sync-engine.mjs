@@ -131,10 +131,15 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
         if (!rejectedDocuments.length) {
           return { pushedEvents, pushedDocuments, conflictIds: [...conflictIds], blocked: true };
         }
+        let unreconciledConflict = false;
         for (const remote of rejectedDocuments) {
-          await applyRemoteLearningArchiveDocument(remote, userId);
+          const applied = await applyRemoteLearningArchiveDocument(remote, userId);
+          if (applied.status === "conflict") conflictIds.add(remote.document_id);
+          else if (applied.status === "ignored") unreconciledConflict = true;
         }
-        for (const remote of rejectedDocuments) conflictIds.add(remote.document_id);
+        if (unreconciledConflict) {
+          return { pushedEvents, pushedDocuments, conflictIds: [...conflictIds], blocked: true };
+        }
         // The atomic RPC rolled back both documents and events. Conflicted
         // documents are now marked conflict=true and excluded from the next
         // pending-document batch; retry once in this loop so independent
