@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 import { chromium } from "playwright";
 import { waitForAsyncPageCondition } from "./helpers/wait-for-async-page-condition.mjs";
+import { validateAgentProviderResponse } from "../assets/js/learning-agent/agent-provider.mjs";
 
 const root = resolve(fileURLToPath(new URL("..", import.meta.url)));
 const RUN_ID = randomUUID();
@@ -656,6 +657,137 @@ test("Chromium desktop: Staging learner completes goal → plan → lesson → c
     assert.ok(restored.mastery.score >= 80 && restored.mastery.evidenceCount >= 1,
       "the second device must rebuild the updated mastery score from restored evidence: " +
       JSON.stringify(restored.mastery));
+    // Exercise the real Agent -> read-only tool -> Agent response loop against the restored learner.
+    const agentMessage = "请先调用只读工具 get_learner_profile 获取我的当前目标、掌握度和薄弱点，然后基于真实资料建议下一步。不要调用任何写工具。";
+    const agentCall = async context => {
+      const response = await fetch(STAGING_ORIGIN + "/functions/v1/learning-agent", {
+        method: "POST",
+        headers: { apikey: env.N2_SUPABASE_PUBLISHABLE_KEY, Authorization: "Bearer " + stagingSession.access_token,
+          "Content-Type": "application/json" },
+        signal: AbortSignal.timeout(70_000),
+        body: JSON.stringify({ version: 1, mode: "agent", message: agentMessage, context }),
+      });
+      const data = await response.json().catch(() => ({}));
+      assert.equal(response.status, 200, "contextual Agent call must succeed: " + JSON.stringify(data.error || {}));
+      return validateAgentProviderResponse(data);
+    };
+    const emptyAgentContext = {
+      goals: [], mastery: [], weakPoints: [], competencyStates: [], activePlan: null,
+      recentConversation: [], requestedToolResults: [],
+    };
+    const firstAgentPass = await agentCall(emptyAgentContext);
+    assert.ok(firstAgentPass.dataRequests.length > 0,
+      "the contextual Agent must request the learner profile before recommending");
+    const safeToolNames = new Set([
+      "get_learner_profile", "get_learning_goals", "get_mastery_snapshot",
+      "get_active_gaps", "get_learning_history", "get_learning_graph", "explain_plan",
+      "get_next_learning_action", "get_review_recommendations",
+    ]);
+    const safeToolRequests = firstAgentPass.dataRequests.map(request => {
+      assert.ok(safeToolNames.has(request.toolName), "Agent requested an unsupported read-only tool: " + request.toolName);
+      return request;
+    });
+    const agentToolResults = await secondPage.evaluate(async requests => {
+      const [
+        { executeAgentTool, AGENT_TOOL_SCHEMAS },
+        { getLearningRepository },
+        { createLearnerProfileStore },
+        { createLearningGoalManager },
+        { createLearningTaskOrchestrator },
+        { createLearningPlanManager },
+      ] = await Promise.all([
+        import("/assets/js/learning-agent/agent-tools.mjs"),
+        import("/assets/js/backend/learning-repository.mjs"),
+        import("/assets/js/learning-agent/learner-profile.mjs"),
+        import("/assets/js/learning-agent/goal-manager.mjs"),
+        import("/assets/js/learning-agent/task-orchestrator.mjs"),
+        import("/assets/js/learning-agent/plan-manager.mjs"),
+      ]);
+      const [learningMap, challengeRegistry, repository] = await Promise.all([
+        fetch("/content/learning-map.json").then(response => response.json()),
+        fetch("/content/challenges.json").then(response => response.json()),
+        getLearningRepository(),
+      ]);
+      const profileStore = createLearnerProfileStore({ repository });
+      const goalManager = createLearningGoalManager({ repository, learningMap });
+      const taskOrchestrator = createLearningTaskOrchestrator({ repository });
+      const planManager = createLearningPlanManager({ repository, taskOrchestrator });
+      const projectionRow = await repository.documents.get("proactive_learning_projection", "current");
+      const context = { repository, profileStore, goalManager, taskOrchestrator, planManager,
+        learningMap, challengeRegistry, proactiveProjection: projectionRow?.payload || null, now: new Date() };
+      const before = await Promise.all([repository.events.list(), repository.documents.list(2000)]);
+      const results = [];
+      for (const request of requests) {
+        const definition = AGENT_TOOL_SCHEMAS[request.toolName];
+        if (!definition || definition.mutating) throw new Error("model requested a non-read-only Agent tool");
+        if (request.toolName === "get_next_learning_action" && !context.proactiveProjection?.nextBestActions?.length) {
+          throw new Error("read-only next-action snapshot is unavailable; refusing a fallback that could refresh task state");
+        }
+        const result = await executeAgentTool(request.toolName, request.input, context,
+          { origin: "model", confirmed: false });
+        let compact;
+        if (request.toolName === "get_learner_profile") {
+          compact = {
+            generatedAt: result.generatedAt, goals: (result.goals || []).slice(0, 10),
+            mastery: { summary: result.mastery?.summary,
+              weakCompetencies: (result.mastery?.weakCompetencies || []).slice(0, 12),
+              unverifiedCompetencies: (result.mastery?.unverifiedCompetencies || []).slice(0, 12),
+              activeGaps: (result.mastery?.activeGaps || []).slice(0, 12) },
+            behavior: { learningDaysLast7: result.behavior?.learningDaysLast7,
+              taskCompletionRate: result.behavior?.taskCompletionRate,
+              hintDependencyRate: result.behavior?.hintDependencyRate },
+            growth: { evidenceLast7Days: result.growth?.evidenceLast7Days,
+              recentActivityAt: result.growth?.recentActivityAt },
+          };
+        } else if (request.toolName === "get_learning_goals") {
+          compact = result.slice(0, 20).map(goal => ({ goalId: goal.goalId, title: goal.title,
+            status: goal.status, topicIds: goal.topicIds, competencyIds: goal.competencyIds,
+            targetAt: goal.targetAt, priority: goal.priority, dailyMinutes: goal.dailyMinutes }));
+        } else if (request.toolName === "get_mastery_snapshot") compact = result.slice(0, 20);
+        else if (request.toolName === "get_active_gaps") compact = result.slice(0, 12);
+        else if (request.toolName === "get_learning_history") compact = result.slice(0, 30);
+        else if (request.toolName === "get_learning_graph") compact = result;
+        else compact = result;
+        results.push({ toolName: request.toolName, input: request.input, result: compact });
+      }
+      const after = await Promise.all([repository.events.list(), repository.documents.list(2000)]);
+      if (before[0].length !== after[0].length || before[1].length !== after[1].length) {
+        throw new Error("read-only Agent tools changed local learning records");
+      }
+      return { results, eventCount: after[0].length, documentCount: after[1].length };
+    }, safeToolRequests);
+    assert.ok(JSON.stringify(agentToolResults.results).includes(localSnapshot.goalTitle),
+      "the read-only learner-profile tool must return the actual Staging goal");
+    const secondAgentPass = await agentCall({ ...emptyAgentContext,
+      requestedToolResults: agentToolResults.results });
+    assert.ok(secondAgentPass.reply.trim().length > 0);
+    assert.ok(secondAgentPass.suggestions.length <= 4);
+    assert.ok(secondAgentPass.dataRequests.length <= 3);
+    const { AGENT_TOOL_SCHEMAS, executeAgentTool, validateAgentToolInput } =
+      await import("../assets/js/learning-agent/agent-tools.mjs");
+    const deniedMutationSuggestions = [];
+    for (const suggestion of secondAgentPass.suggestions) {
+      const definition = AGENT_TOOL_SCHEMAS[suggestion.toolName];
+      if (!definition?.mutating) continue;
+      validateAgentToolInput(suggestion.toolName, suggestion.input);
+      await assert.rejects(
+        () => executeAgentTool(suggestion.toolName, suggestion.input, {}, { origin: "model", confirmed: false }),
+        /只能提出建议/,
+        "a model-generated mutation proposal must not execute without learner confirmation",
+      );
+      deniedMutationSuggestions.push(suggestion.toolName);
+    }
+    const afterAgentCounts = await secondPage.evaluate(async () => {
+      const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
+      const repository = await getLearningRepository();
+      const [events, documents] = await Promise.all([repository.events.list(), repository.documents.list(2000)]);
+      return { events: events.length, documents: documents.length };
+    });
+    assert.equal(afterAgentCounts.events, agentToolResults.eventCount,
+      "the Agent read/recommendation loop must not append learning events");
+    assert.equal(afterAgentCounts.documents, agentToolResults.documentCount,
+      "the Agent read/recommendation loop must not mutate learning documents");
+
     console.log("STAGING CLOUD LOOP:", JSON.stringify({
       project: "knowverse-staging", userId: stagingSession.user.id,
       runId: RUN_ID, goalKey: localSnapshot.goalKey,
@@ -663,6 +795,11 @@ test("Chromium desktop: Staging learner completes goal → plan → lesson → c
       cloudEventsVerified: localSnapshot.eventIds.length,
       secondDeviceEventsPulled: restored.initialSync.pulled,
       secondDeviceMastery: restored.mastery,
+      agentReadTools: safeToolRequests.map(item => item.toolName),
+      agentFollowUpReplyChars: secondAgentPass.reply.length,
+      agentSuggestionsProposed: secondAgentPass.suggestions.map(item => item.toolName),
+      mutationSuggestionsDenied: deniedMutationSuggestions,
+      agentLocalEventCount: agentToolResults.eventCount,
       syncStatus: cloudPush.status, pending: cloudPush.pending, conflicts: cloudPush.conflicts,
     }));
     await secondContext.close();
