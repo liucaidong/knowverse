@@ -24,6 +24,15 @@ const dateLabel = value => {
   }).format(date);
 };
 const shortId = value => value ? String(value).slice(0, 8) + "…" : "尚未初始化";
+const restoreSummary = result =>
+  "云端事件读取 " + (result.receivedEvents ?? result.restoredEvents ?? 0) +
+  " 条（新增 " + (result.restoredEvents ?? 0) + " 条） · 云端档案读取 " +
+  (result.receivedDocuments ?? result.restoredDocuments ?? 0) + " 份（新增 " +
+  (result.restoredDocuments ?? 0) + " 份、本地已有 " + (result.unchangedDocuments ?? 0) +
+  " 份、跳过本地派生缓存 " + (result.skippedDocuments ?? 0) + " 份）" +
+  (Number.isFinite(result.localDocuments) ? " · 本机档案共 " + result.localDocuments + " 份" : "") +
+  (result.conflicts ? " · 冲突 " + result.conflicts + " 项" : "") +
+  " · 刷新页面后继续未完成学习";
 
 const archiveDocumentLabels = Object.freeze({
   challenge_progress: "挑战进度",
@@ -123,7 +132,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
 
   async function renderArchive() {
     try {
-      const [archive, device] = await Promise.all([getArchiveStatus(options.store?.load?.()?.events?.length || 0), getLocalDevice()]);
+      const [archive, device] = await Promise.all([getArchiveStatus(), getLocalDevice()]);
       metrics.replaceChildren();
       addMetric("本地学习事件", archive.eventRecords ?? "—", "当前设备学习记录");
       addMetric("待上传事件", archive.pendingEvents, "服务端确认后才会清除");
@@ -270,8 +279,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
       const result = await syncService.restoreFromCloud();
       if (result.status === "restored") {
         setStatus(result.conflicts ? "恢复完成 · 有冲突待选择" : "云端恢复完成", result.conflicts ? "warning" : "success");
-        lastSyncLabel = "恢复事件 " + result.restoredEvents + " 条 · 恢复现场 " + result.restoredDocuments +
-          " 份" + (result.conflicts ? " · 冲突 " + result.conflicts + " 项" : "") + " · 刷新页面后继续未完成学习";
+        lastSyncLabel = restoreSummary(result);
         setError("");
       } else if (result.status === "pending-authorization") {
         setStatus("等待账户授权", "warning");
@@ -289,7 +297,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
       setBusy(false);
       await renderArchive();
       await renderConflicts();
-      if (lastSyncLabel) account.textContent = account.textContent.split(" · 恢复事件 ")[0] + " · " + lastSyncLabel;
+      if (lastSyncLabel) account.textContent = account.textContent.split(" · 云端事件读取 ")[0] + " · " + lastSyncLabel;
     }
   }
 
@@ -303,7 +311,7 @@ export async function mountBackendAccountPanel(host, options = {}) {
     if (detail.status === "restoring") setStatus("正在从云端恢复");
     if (detail.status === "restored") {
       setStatus(detail.conflicts ? "恢复完成 · 有冲突待选择" : "云端恢复完成", detail.conflicts ? "warning" : "success");
-      lastSyncLabel = "恢复事件 " + detail.restoredEvents + " 条 · 恢复现场 " + detail.restoredDocuments + " 份";
+      lastSyncLabel = restoreSummary(detail);
       await renderArchive();
       await renderConflicts();
     } else if (detail.status === "synced") {

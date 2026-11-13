@@ -50,13 +50,52 @@ function requireActive(progress, stepId) {
   return step;
 }
 
+function migrateLegacyChallengeProgress(challenge, saved) {
+  if (!saved || saved.schemaVersion !== 1 || saved.challengeId !== challenge.id ||
+      !Array.isArray(saved.done) || saved.done.length !== challenge.steps.length ||
+      !saved.done.every(value => typeof value === "boolean") ||
+      !Number.isSafeInteger(saved.stage) || saved.stage < 0 || saved.stage >= challenge.steps.length ||
+      !Array.isArray(saved.solutions) || saved.solutions.length !== challenge.steps.length ||
+      !saved.solutions.every(list => Array.isArray(list) &&
+        list.every(value => typeof value === "string" && value.length <= 120))) return null;
+
+  let previousCompleted = true;
+  const steps = challenge.steps.map((definition, index) => {
+    const canBeActive = previousCompleted;
+    const completed = canBeActive && saved.done[index] === true;
+    previousCompleted = completed;
+    const legacySolutions = saved.solutions[index].slice();
+    return {
+      id: definition.id,
+      status: completed ? "completed" : canBeActive ? "active" : "locked",
+      attempts: 0,
+      hintsUsed: 0,
+      data: legacySolutions.length ? { legacySolutions } : {},
+      completedAt: null,
+    };
+  });
+  const completed = steps.every(step => step.status === "completed");
+  return {
+    engineVersion: ENGINE_VERSION,
+    challengeId: challenge.id,
+    runId: createRunId(),
+    status: completed ? "completed" :
+      steps.some(step => step.status === "completed" || Object.keys(step.data).length) ? "in-progress" : "not-started",
+    createdAt: timestamp(),
+    updatedAt: timestamp(),
+    steps,
+  };
+}
+
 export function createChallengeProgress(challenge, saved = null) {
   validateChallenge(challenge);
   const savedIsCompatible = saved &&
     saved.engineVersion === ENGINE_VERSION &&
     saved.challengeId === challenge.id &&
     Array.isArray(saved.steps);
-  const savedById = new Map(savedIsCompatible ? saved.steps.map(step => [step.id, step]) : []);
+  const migratedLegacy = savedIsCompatible ? null : migrateLegacyChallengeProgress(challenge, saved);
+  const compatibleSaved = savedIsCompatible ? saved : migratedLegacy;
+  const savedById = new Map(compatibleSaved ? compatibleSaved.steps.map(step => [step.id, step]) : []);
   let previousCompleted = true;
 
   const steps = challenge.steps.map((definition, index) => {
@@ -78,10 +117,12 @@ export function createChallengeProgress(challenge, saved = null) {
   return {
     engineVersion: ENGINE_VERSION,
     challengeId: challenge.id,
-    runId: savedIsCompatible && typeof saved.runId === "string" ? saved.runId : createRunId(),
-    status: isComplete ? "completed" : steps.some(step => step.status === "completed" || step.attempts || step.hintsUsed) ? "in-progress" : "not-started",
-    createdAt: savedIsCompatible && typeof saved.createdAt === "string" ? saved.createdAt : timestamp(),
-    updatedAt: savedIsCompatible && typeof saved.updatedAt === "string" ? saved.updatedAt : timestamp(),
+    runId: compatibleSaved && typeof compatibleSaved.runId === "string" ? compatibleSaved.runId : createRunId(),
+    status: isComplete ? "completed" : steps.some(step =>
+      step.status === "completed" || step.attempts || step.hintsUsed || Object.keys(step.data).length
+    ) ? "in-progress" : "not-started",
+    createdAt: compatibleSaved && typeof compatibleSaved.createdAt === "string" ? compatibleSaved.createdAt : timestamp(),
+    updatedAt: compatibleSaved && typeof compatibleSaved.updatedAt === "string" ? compatibleSaved.updatedAt : timestamp(),
     steps,
   };
 }
@@ -200,6 +241,21 @@ export function createChallengeProgressStore(options = {}) {
       const repository = await repositoryPromise;
       const stored = await repository.documents.get("challenge_progress", challenge.id);
       const saved = stored?.payload?._deleted === true ? null : stored?.payload || null;
+      const migratedLegacy = migrateLegacyChallengeProgress(challenge, saved);
+      if (migratedLegacy) {
+        // Persist the structural migration without synthesizing historical
+        // learning events. Legacy completion flags are progress, not verified
+        // assessment evidence.
+        await repository.commit({
+          documents: [{
+            type: "challenge_progress",
+            key: challenge.id,
+            payload: migratedLegacy,
+            expectedLocalRevision: Number(stored?.localRevision) || 0,
+          }],
+        });
+        return migratedLegacy;
+      }
       return createChallengeProgress(challenge, saved);
     },
 

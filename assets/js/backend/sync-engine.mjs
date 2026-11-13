@@ -10,6 +10,7 @@ import {
   getLocalDevice,
   getSyncCursor,
   listOutbox,
+  listArchiveDocuments,
   listPendingArchiveDocuments,
   mergeRemoteLearningEvents,
   releaseSyncLease,
@@ -152,9 +153,11 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
     return { pushedEvents, pushedDocuments, conflictIds: [...conflictIds] };
   }
 
-  async function pullEvents(userId) {
-    let cursor = await getSyncCursor(userId);
+  async function pullEvents(userId, { fromBeginning = false } = {}) {
+    const storedCursor = await getSyncCursor(userId);
+    let cursor = fromBeginning ? 0 : storedCursor;
     let pulled = 0;
+    let received = 0;
     for (let page = 0; page < 100; page += 1) {
       const previousCursor = cursor;
       const result = await auth.request("/rest/v1/rpc/sync_pull_learning_events_for_account", {
@@ -163,26 +166,32 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
       });
       const rows = Array.isArray(result?.events) ? result.events : [];
       if (rows.some(row => !row?.event_payload || row.event_id !== row.event_payload.id ||
-          !Number.isSafeInteger(Number(row.user_seq)))) {
-        throw new Error("云端事件页包含无效记录；同步游标未推进。");
+          !Number.isSafeInteger(Number(row.user_seq)) || Number(row.user_seq) <= cursor)) {
+        throw new Error("云端事件页包含无效或重复游标记录；本地游标未推进。");
       }
+      received += rows.length;
       if (rows.length) pulled += await mergeRemoteLearningEvents(rows, userId);
       const nextCursor = Number(result?.next_cursor ?? cursor);
-      if (!Number.isSafeInteger(nextCursor) || nextCursor < cursor) {
-        throw new Error("云端事件游标无效或倒退；本地游标未改变。");
+      if (!Number.isSafeInteger(nextCursor) || nextCursor < cursor ||
+          (rows.length && nextCursor < Math.max(...rows.map(row => Number(row.user_seq))))) {
+        throw new Error("云端事件游标无效、倒退或未覆盖返回记录；本地游标未改变。");
       }
       if (nextCursor > cursor) {
         cursor = nextCursor;
-        await setSyncCursor(userId, cursor);
+        if (cursor > storedCursor) await setSyncCursor(userId, cursor);
       }
       if (!result?.has_more || !rows.length || nextCursor <= previousCursor) break;
     }
-    return { pulled, cursor };
+    return { pulled, received, cursor: Math.max(cursor, storedCursor) };
   }
 
-  async function pullDocuments(userId) {
-    let cursor = await getDocumentSyncCursor(userId);
+  async function pullDocuments(userId, { fromBeginning = false } = {}) {
+    const storedCursor = await getDocumentSyncCursor(userId);
+    let cursor = fromBeginning ? 0 : storedCursor;
     let pulled = 0;
+    let received = 0;
+    let unchanged = 0;
+    let skipped = 0;
     const conflictIds = new Set();
     for (let page = 0; page < 100; page += 1) {
       const previousCursor = cursor;
@@ -191,22 +200,26 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
         body: { p_expected_user_id: userId, p_after_document_seq: cursor, p_page_size: 100 },
       });
       const rows = Array.isArray(result?.documents) ? result.documents : [];
+      received += rows.length;
       for (const remote of rows) {
         const applied = await applyRemoteLearningArchiveDocument(remote, userId);
         if (applied.status === "conflict") conflictIds.add(remote.document_id);
-        if (applied.status === "applied") pulled += 1;
+        else if (applied.status === "applied") pulled += 1;
+        else if (applied.reason === "derived-cache-local-only") skipped += 1;
+        else unchanged += 1;
       }
       const nextCursor = Number(result?.next_cursor ?? cursor);
-      if (!Number.isSafeInteger(nextCursor) || nextCursor < cursor) {
-        throw new Error("云端学习文档游标无效或倒退；本地游标未改变。");
+      if (!Number.isSafeInteger(nextCursor) || nextCursor < cursor ||
+          (rows.length && nextCursor < Math.max(...rows.map(row => Number(row.document_seq))))) {
+        throw new Error("云端学习文档游标无效、倒退或未覆盖返回记录；本地游标未改变。");
       }
       if (nextCursor > cursor) {
         cursor = nextCursor;
-        await setDocumentSyncCursor(userId, cursor);
+        if (cursor > storedCursor) await setDocumentSyncCursor(userId, cursor);
       }
       if (!result?.has_more || !rows.length || nextCursor <= previousCursor) break;
     }
-    return { pulled, cursor, conflictIds: [...conflictIds] };
+    return { pulled, received, unchanged, skipped, cursor: Math.max(cursor, storedCursor), conflictIds: [...conflictIds] };
   }
 
   async function restoreOperation() {
@@ -232,15 +245,24 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
           return result;
         }
         const { userId, device } = await ensureAccountAndDevice(session, account);
-        // Restore is pull-only. No local Outbox or dirty document is pushed here.
+        // Manual restore is a full, idempotent reconciliation, not merely an
+        // incremental cursor pull. This also repairs a stale cursor whose local
+        // records were lost independently. Remote events are append-only and
+        // archive documents are revision/CAS protected, so replay is safe.
         const [pulledEvents, pulledDocuments] = await Promise.all([
-          pullEvents(userId),
-          pullDocuments(userId),
+          pullEvents(userId, { fromBeginning: true }),
+          pullDocuments(userId, { fromBeginning: true }),
         ]);
+        const localDocuments = await listArchiveDocuments(1000);
         const result = {
           status: "restored",
           restoredEvents: pulledEvents.pulled,
+          receivedEvents: pulledEvents.received,
           restoredDocuments: pulledDocuments.pulled,
+          receivedDocuments: pulledDocuments.received,
+          unchangedDocuments: pulledDocuments.unchanged,
+          skippedDocuments: pulledDocuments.skipped,
+          localDocuments: localDocuments.length,
           conflicts: new Set(pulledDocuments.conflictIds).size,
           cursor: pulledEvents.cursor,
           documentCursor: pulledDocuments.cursor,

@@ -129,8 +129,10 @@ test("sync pushes a single atomic batch and advances pull cursors only after loc
   assert.match(sync, /setDocumentSyncCursor\(userId, cursor\)/);
   assert.match(sync, /async function restoreOperation/);
   const restore = sync.slice(sync.indexOf("async function restoreOperation"), sync.indexOf("async function syncOperation"));
-  assert.match(restore, /pullEvents\(userId\)/);
-  assert.match(restore, /pullDocuments\(userId\)/);
+  assert.match(restore, /pullEvents\(userId, \{ fromBeginning: true \}\)/);
+  assert.match(restore, /pullDocuments\(userId, \{ fromBeginning: true \}\)/);
+  assert.match(restore, /receivedDocuments: pulledDocuments\.received/);
+  assert.match(restore, /unchangedDocuments: pulledDocuments\.unchanged/);
   assert.doesNotMatch(restore, /pushChanges/);
   assert.match(sync, /acquireSyncLease/);
   assert.match(sync, /releaseSyncLease/);

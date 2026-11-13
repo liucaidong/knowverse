@@ -2,7 +2,11 @@ import "fake-indexeddb/auto";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test, { beforeEach } from "node:test";
-import { deleteLocalDatabaseForTests } from "../assets/js/backend/local-event-store.mjs";
+import {
+  countLearningEvents,
+  deleteLocalDatabaseForTests,
+  getLearningDocument,
+} from "../assets/js/backend/local-event-store.mjs";
 import { resetLearningRepositoryForTests } from "../assets/js/backend/learning-repository.mjs";
 
 beforeEach(async () => {
@@ -91,6 +95,47 @@ test("stores challenge-specific activity data and preserves it after reload", as
   assert.equal(getStepProgress(restored, "first").status, "active");
   assert.equal(await store.clear(challenge.id), true);
   assert.equal((await store.load(challenge)).steps[0].data.completedNodeIds, undefined);
+});
+
+test("migrates legacy Promise Realm progress without inventing mastery evidence", async () => {
+  const legacy = {
+    schemaVersion: 1,
+    challengeId: challenge.id,
+    done: [true, true, false],
+    stage: 2,
+    solutions: [["answer-one"], ["answer-two"], []],
+  };
+  let storedPayload = legacy;
+  const repository = {
+    documents: {
+      async get() {
+        return { localRevision: 1, payload: storedPayload };
+      },
+    },
+    async commit(change) {
+      storedPayload = change.documents[0].payload;
+      this.migrated = storedPayload;
+      return { addedEvents: [], changedDocuments: change.documents };
+    },
+  };
+  const store = createChallengeProgressStore({ repository });
+  const restored = await store.load(challenge);
+  assert.deepEqual(restored.steps.map(step => step.status), ["completed", "completed", "active"]);
+  assert.deepEqual(restored.steps[0].data.legacySolutions, ["answer-one"]);
+  assert.equal(restored.steps[0].attempts, 0, "legacy answer strings are preserved but not misclassified as verified attempts");
+  assert.equal(repository.migrated.engineVersion, 1);
+  assert.deepEqual(repository.migrated.steps.map(step => step.status), ["completed", "completed", "active"]);
+  const productionShape = createChallengeProgress(challenge, {
+    schemaVersion: 1,
+    challengeId: challenge.id,
+    done: [false, false, false],
+    stage: 0,
+    solutions: [[], [], []],
+  });
+  assert.deepEqual(productionShape.steps.map(step => step.status), ["active", "locked", "locked"]);
+  assert.equal(await countLearningEvents(), 0, "structural migration must not synthesize historical evidence");
+  await store.save(restored);
+  assert.equal(await countLearningEvents(), 0, "saving the migrated snapshot must not create false completion events");
 });
 
 test("prevents skipping locked steps and sanitizes incompatible saved progress", () => {
