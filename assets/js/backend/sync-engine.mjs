@@ -43,9 +43,17 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
 
   async function withLease(operation, action) {
     if (running) throw new Error("同步服务内部锁状态异常：同一标签页并发操作未被串行化。");
-    const acquired = await acquireSyncLease("learning-sync", operationOwner, 900000);
+    const waitMs = Math.max(0, Number(config.syncLeaseWaitMs ?? 30000) || 0);
+    const pollMs = Math.max(50, Number(config.syncLeasePollMs ?? 250) || 250);
+    const deadline = Date.now() + waitMs;
+    let acquired = await acquireSyncLease("learning-sync", operationOwner, 900000);
+    while (!acquired && Date.now() < deadline) {
+      dispatchStatus({ status: "waiting-for-sync-lease", operation, reason: "another-tab-holds-the-sync-lease" });
+      await new Promise(resolve => setTimeout(resolve, Math.min(pollMs, Math.max(1, deadline - Date.now()))));
+      acquired = await acquireSyncLease("learning-sync", operationOwner, 900000);
+    }
     if (!acquired) {
-      const result = { status: "syncing", reason: "another-tab-holds-the-sync-lease" };
+      const result = { status: "busy", operation, reason: "another-tab-holds-the-sync-lease" };
       dispatchStatus(result);
       return result;
     }
@@ -120,11 +128,19 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
       const confirmedDocuments = Array.isArray(documentResult.confirmed) ? documentResult.confirmed : [];
       const rejectedDocuments = Array.isArray(documentResult.conflicts) ? documentResult.conflicts : [];
       if (result?.status === "conflict") {
+        if (!rejectedDocuments.length) {
+          return { pushedEvents, pushedDocuments, conflictIds: [...conflictIds], blocked: true };
+        }
         for (const remote of rejectedDocuments) {
           await applyRemoteLearningArchiveDocument(remote, userId);
         }
         for (const remote of rejectedDocuments) conflictIds.add(remote.document_id);
-        return { pushedEvents, pushedDocuments, conflictIds: [...conflictIds], blocked: true };
+        // The atomic RPC rolled back both documents and events. Conflicted
+        // documents are now marked conflict=true and excluded from the next
+        // pending-document batch; retry once in this loop so independent
+        // append-only learning events can still commit without overwriting
+        // either side of the unresolved document conflict.
+        continue;
       }
       if (result?.status !== "committed") {
         throw new Error("服务端没有返回可确认的原子批次提交状态；本地 Outbox 和文档均未确认。");
@@ -309,7 +325,8 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
           countOutbox(),
         ]);
         const result = {
-          status: "synced",
+          status: pushed.blocked ? "blocked" : "synced",
+          blocked: Boolean(pushed.blocked),
           pushed: pushed.pushedEvents,
           pulled: pulledEvents.pulled,
           pushedDocuments: pushed.pushedDocuments,
@@ -320,9 +337,11 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
           documentCursor: pulledDocuments.cursor,
           deviceId: device.id,
         };
-        await setArchiveMeta("last-successful-sync", new Date().toISOString());
-        await setArchiveMeta("last-sync-error", null);
-        retryAttempt = 0;
+        if (!pushed.blocked) {
+          await setArchiveMeta("last-successful-sync", new Date().toISOString());
+          await setArchiveMeta("last-sync-error", null);
+          retryAttempt = 0;
+        }
         dispatchStatus(result);
         return result;
       } catch (error) {

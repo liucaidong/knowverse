@@ -252,6 +252,11 @@ export async function mountBackendAccountPanel(host, options = {}) {
           setStatus(result.conflicts ? "有冲突待处理" : "已同步", result.conflicts ? "warning" : "success");
           lastSyncLabel = "本次上传事件 " + result.pushed + " 条、下载 " + result.pulled +
             " 条；档案上传 " + result.pushedDocuments + " 份、恢复 " + result.pulledDocuments + " 份。";
+        } else if (result.status === "blocked") {
+          setStatus("同步受阻 · 档案冲突待处理", "warning");
+          account.textContent += " · 本批提交未完成，待上传事件仍保留在本机。";
+        } else if (result.status === "busy") {
+          setStatus("另一标签页正在同步，请稍后重试", "warning");
         } else if (result.status === "offline") {
           setStatus("离线待同步", "warning");
         } else {
@@ -287,6 +292,9 @@ export async function mountBackendAccountPanel(host, options = {}) {
         setStatus("离线，暂不能恢复", "warning");
       } else if (result.status === "signed-out") {
         setStatus("请先登录", "warning");
+      } else if (result.status === "busy") {
+        setStatus("另一标签页正在同步，本次恢复未执行", "warning");
+        setError("当前设备的另一个标签页仍持有同步锁。请等待同步结束后再恢复；本次没有把 0 条误报为恢复成功。");
       } else {
         setStatus("恢复状态：" + result.status, "warning");
       }
@@ -307,6 +315,9 @@ export async function mountBackendAccountPanel(host, options = {}) {
     if (destroyed) return;
     const detail = event.detail || {};
     if (detail.status === "syncing") setStatus("同步中");
+    if (detail.status === "waiting-for-sync-lease") setStatus("等待另一个标签页完成同步…");
+    if (detail.status === "busy") setStatus("另一标签页正在同步，请稍后重试", "warning");
+    if (detail.status === "blocked") setStatus("同步受阻 · 档案冲突待处理", "warning");
     if (detail.status === "restore-queued") setStatus("等待当前同步结束，再从云端恢复");
     if (detail.status === "restoring") setStatus("正在从云端恢复");
     if (detail.status === "restored") {

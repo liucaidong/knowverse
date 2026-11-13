@@ -3,8 +3,14 @@ import assert from "node:assert/strict";
 import test, { beforeEach } from "node:test";
 import { createLearningSyncService } from "../assets/js/backend/sync-engine.mjs";
 import {
+  acquireSyncLease,
+  commitLearningBatch,
   countLearningEvents,
+  countOutbox,
   deleteLocalDatabaseForTests,
+  getArchiveStatus,
+  persistLearningEvents,
+  releaseSyncLease,
   setDocumentSyncCursor,
   setSyncCursor,
 } from "../assets/js/backend/local-event-store.mjs";
@@ -111,4 +117,133 @@ test("manual restore replays cloud history even when the saved cursor is already
   assert.equal(second.skippedDocuments, 1);
   assert.equal(second.localDocuments, 2);
   assert.equal(second.documentCursor, 6);
+});
+
+test("manual restore waits for a sibling tab to release the shared IndexedDB sync lease", async () => {
+  await acquireSyncLease("learning-sync", "sibling-tab", 900000);
+  setTimeout(() => releaseSyncLease("learning-sync", "sibling-tab"), 80);
+  const service = createLearningSyncService(createAuth(), null, {
+    enabled: true, syncLeaseWaitMs: 1000, syncLeasePollMs: 20,
+  });
+  const result = await service.restoreFromCloud();
+  assert.equal(result.status, "restored");
+  assert.equal(result.receivedDocuments, 3);
+  assert.equal(result.restoredDocuments, 2);
+  assert.equal(result.skippedDocuments, 1);
+});
+
+test("restore reports busy instead of pretending that a blocked restore completed", async () => {
+  await acquireSyncLease("learning-sync", "stalled-tab", 900000);
+  const service = createLearningSyncService(createAuth(), null, {
+    enabled: true, syncLeaseWaitMs: 0,
+  });
+  const result = await service.restoreFromCloud();
+  assert.equal(result.status, "busy");
+  assert.equal(result.reason, "another-tab-holds-the-sync-lease");
+  assert.equal(await countLearningEvents(), 0);
+});
+
+test("atomic batch conflict is surfaced as blocked and never reported as synced", async () => {
+  await persistLearningEvents([{
+    id: "local-pending-event-001",
+    type: "activity",
+    at: "2026-11-14T00:00:00.000Z",
+    topicId: "promise",
+    competencyIds: [],
+    eventSchemaVersion: 3,
+  }], { queue: true });
+  const auth = {
+    async getSession() { return { user: { id: userId, email: "test@example.invalid" } }; },
+    async request(path) {
+      if (path.endsWith("/get_learning_sync_profile")) return { authorized: true, user_id: userId };
+      if (path.endsWith("/register_device")) return { registered: true };
+      if (path.endsWith("/sync_commit_learning_batch")) {
+        return { status: "conflict", events: { confirmed: [] }, documents: { conflicts: [] } };
+      }
+      if (path.endsWith("/sync_pull_learning_events_for_account")) {
+        return { events: [], next_cursor: 0, has_more: false };
+      }
+      if (path.endsWith("/sync_pull_learning_documents_for_account")) {
+        return { documents: [], next_cursor: 0, has_more: false };
+      }
+      throw new Error("Unexpected RPC: " + path);
+    },
+  };
+  const service = createLearningSyncService(auth, null, { enabled: true });
+  const result = await service.sync();
+  assert.equal(result.status, "blocked");
+  assert.equal(result.blocked, true);
+  assert.equal(result.pending, 1);
+  assert.equal(await countOutbox(), 1, "unconfirmed local event must remain queued");
+  assert.equal((await getArchiveStatus()).lastSyncAt, null,
+    "a blocked batch must not advance the last-successful-sync timestamp");
+});
+
+test("document CAS conflict is preserved while the same atomic batch retries and uploads independent events", async () => {
+  const event = {
+    id: "local-event-with-document-conflict",
+    type: "activity",
+    at: "2026-11-14T00:10:00.000Z",
+    topicId: "promise",
+    competencyIds: [],
+    eventSchemaVersion: 3,
+  };
+  await commitLearningBatch({
+    accountId: userId,
+    events: [event],
+    documents: [{
+      type: "challenge_progress",
+      key: "promise-realm",
+      payload: { engineVersion: 1, challengeId: "promise-realm", status: "in-progress", steps: [{ id: "thenable", status: "active", attempts: 2, hintsUsed: 0, data: {} }] },
+    }],
+  });
+  let commitCalls = 0;
+  const auth = {
+    async getSession() { return { user: { id: userId, email: "test@example.invalid" } }; },
+    async request(path) {
+      if (path.endsWith("/get_learning_sync_profile")) return { authorized: true, user_id: userId };
+      if (path.endsWith("/register_device")) return { registered: true };
+      if (path.endsWith("/sync_commit_learning_batch")) {
+        commitCalls += 1;
+        if (commitCalls === 1) {
+          return {
+            status: "conflict",
+            events: { confirmed: [] },
+            documents: { confirmed: [], conflicts: [{
+              document_id: "challenge_progress:promise-realm",
+              document_type: "challenge_progress",
+              document_key: "promise-realm",
+              revision: 1,
+              document_seq: 1,
+              device_id: "00000000-0000-4000-8000-000000000001",
+              updated_at: "2026-11-14T00:00:00.000Z",
+              document_payload: { engineVersion: 1, challengeId: "promise-realm", status: "in-progress", steps: [{ id: "thenable", status: "active", attempts: 1, hintsUsed: 0, data: {} }] },
+            }] },
+          };
+        }
+        return {
+          status: "committed",
+          events: { confirmed: [{ event_id: event.id, user_seq: 1 }] },
+          documents: { confirmed: [] },
+        };
+      }
+      if (path.endsWith("/sync_pull_learning_events_for_account")) {
+        return { events: [], next_cursor: 0, has_more: false };
+      }
+      if (path.endsWith("/sync_pull_learning_documents_for_account")) {
+        return { documents: [], next_cursor: 0, has_more: false };
+      }
+      throw new Error("Unexpected RPC: " + path);
+    },
+  };
+  const service = createLearningSyncService(auth, null, { enabled: true });
+  const result = await service.sync();
+  assert.equal(commitCalls, 2, "sync should retry after quarantining the conflicted document");
+  assert.equal(result.status, "synced");
+  assert.equal(result.pushed, 1, "the independent learning event should be uploaded");
+  assert.equal(result.pending, 0, "the confirmed event must leave Outbox");
+  assert.equal(result.conflicts, 1, "the unresolved archive conflict must remain visible");
+  assert.equal(await countOutbox(), 0);
+  assert.equal((await getArchiveStatus()).conflicts, 1,
+    "the divergent local document must remain explicitly unresolved, not overwritten");
 });
