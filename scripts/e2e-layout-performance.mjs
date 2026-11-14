@@ -54,10 +54,13 @@ test("home and knowledge directory avoid late layout injection and redundant reg
         manifestRequests: performance.getEntriesByType("resource").filter(item => /content\/(knowledge|works|learning-map|search-metadata)\.json/.test(item.name)).map(item => new URL(item.name).pathname),
         overflow: document.documentElement.scrollWidth > innerWidth,
         designSystem: Boolean(document.querySelector('link[href*="site-design-system.css"]')),
+        knowledgeGraphCss: performance.getEntriesByType("resource").filter(item => item.name.includes("knowledge-graph.css")).map(item => new URL(item.name).pathname),
       }));
       assert.ok(metrics.cls < 0.1, path + " CLS " + JSON.stringify(metrics));
       assert.equal(metrics.overflow, false, path + " must not overflow horizontally");
       assert.equal(metrics.designSystem, true);
+      if (path === "/") assert.deepEqual(metrics.knowledgeGraphCss, [], "homepage must not download relationship-card CSS when it does not render a knowledge graph");
+      if (path === "/knowledge/") assert.equal(metrics.knowledgeGraphCss.length, 1, "knowledge directory retains its relationship surfaces");
       assert.deepEqual(metrics.manifestRequests, [], path + " must not refetch build-time registry content");
       assert.deepEqual(errors, []);
       await context.close();
