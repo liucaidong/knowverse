@@ -288,3 +288,17 @@
 .kv-home-secondary a:hover{text-decoration:underline}
 @media(max-width:900px){.kv-home-portal{grid-template-columns:1fr;gap:19px;padding:28px}.kv-home-actions{grid-template-columns:1fr}}
 @media(max-width:650px){.kv-home-portal{margin:14px 0 32px;padding:21px}.kv-home-copy h2{font-size:31px}.kv-home-action.primary{min-height:132px;padding:20px}.kv-home-secondary{gap:13px}}
+
+/* Compact shared navigation on narrow knowledge-topic headers. */
+@media(max-width:650px){
+  .kv-static-shell .navbar.kv-navbar{width:100%;min-width:0;padding:0 10px;gap:6px;justify-content:space-between}
+  .kv-static-shell .kv-navbar .mark{min-width:0;flex:0 1 auto;font-size:18px}
+  .kv-static-shell .kv-navbar .mark small{display:none}
+  .kv-static-shell .kv-navbar .mobilemenu{flex:0 0 auto;padding:7px 8px}
+  .kv-static-shell .kv-navbar .search-trigger{flex:0 0 auto;margin:0;padding:8px 9px;font-size:0}
+  .kv-static-shell .kv-navbar .search-trigger span{display:none}
+  .kv-static-shell .kv-global-account{flex:0 0 auto;margin-left:0}
+  .kv-static-shell .kv-account-trigger{max-width:112px;min-width:0;gap:6px;padding:8px 7px}
+  .kv-static-shell .kv-account-state{max-width:72px}
+  .kv-static-shell .kv-account-panel{right:0}
+}

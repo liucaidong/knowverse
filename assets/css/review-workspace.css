@@ -65,3 +65,18 @@
   .rw-quality-editor textarea{min-height:210px}
   .rw-quality .rw-primary,.rw-quality .rw-secondary{max-width:100%}
 }
+
+/* Review flow: orient learners before they enter the long-form quality workflow. */
+.rw-workspace-nav{position:sticky;top:82px;z-index:12;display:flex;flex-wrap:wrap;gap:8px;padding:10px;margin:14px 0 4px;border:1px solid #dce8e5;border-radius:13px;background:rgb(250 252 251 / 94%);backdrop-filter:blur(12px)}
+.rw-workspace-nav a{display:inline-flex;align-items:center;gap:7px;padding:8px 11px;border-radius:9px;color:#4d6c6d;font-size:10px;font-weight:800;text-decoration:none}
+.rw-workspace-nav a:hover{background:#eaf5f1;color:#087b72}
+.rw-workspace-nav a span{color:#16877d;font-size:9px;font-variant-numeric:tabular-nums}
+.rw-topic-group{min-width:0;padding:17px;margin-top:12px;border:1px solid #dce7e5;border-radius:15px;background:#f9fcfb}
+.rw-topic-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:11px}
+.rw-topic-heading h3{margin:0;color:#2c5157;font-size:14px;letter-spacing:-.02em}
+.rw-topic-heading span{color:#839398;font-size:10px}
+.rw-topic-targets{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.rw-topic-group .rw-target{min-width:0}
+.rw-topic-group .rw-target small{overflow-wrap:anywhere}
+#review-picker,#review-session,#practice-candidate-workbench,#review-history{scroll-margin-top:150px}
+@media(max-width:700px){.rw-workspace-nav{top:70px;gap:4px;padding:7px}.rw-workspace-nav a{flex:1 1 calc(50% - 4px);justify-content:center;padding:8px 5px;font-size:9px}.rw-topic-group{padding:12px}.rw-topic-heading{align-items:flex-start;flex-direction:column;gap:4px}.rw-topic-targets{grid-template-columns:1fr}}

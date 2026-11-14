@@ -47,6 +47,12 @@ function competencyFor(id) {
 async function insightsNow() {
   return deriveLearningInsights(map, registry, await progressStore.load());
 }
+function updateWorkspaceNav() {
+  document.querySelectorAll(".rw-workspace-nav a[data-target]").forEach(link => {
+    const target = $(link.dataset.target);
+    link.hidden = !target || target.hidden;
+  });
+}
 async function renderHistory() {
   const host = $("history-list");
   host.replaceChildren();
@@ -88,6 +94,18 @@ async function renderPicker() {
   host.replaceChildren();
   const insight = await insightsNow();
   map.topics.forEach(topic => {
+    const group = el("section", "rw-topic-group");
+    group.setAttribute("aria-label", topic.title + "复习目标");
+    const heading = el("div", "rw-topic-heading");
+    const activeGapCount = topic.competencies.reduce((count, competency) => {
+      const state = insight.competencyInsights.find(row => row.id === competency.id);
+      return count + (state?.activeGaps?.length || 0);
+    }, 0);
+    heading.append(
+      el("h3", "", topic.title),
+      el("span", "", topic.competencies.length + " 个知识能力点 · " + activeGapCount + " 个待纠正薄弱点"),
+    );
+    const grid = el("div", "rw-topic-targets");
     topic.competencies.forEach(competency => {
       const state = insight.competencyInsights.find(row=>row.id===competency.id);
       const button = el("button","rw-target");
@@ -95,11 +113,13 @@ async function renderPicker() {
       const copy = el("span");
       copy.append(el("strong","",competency.title));
       const gapCount = state?.activeGaps?.length || 0;
-      copy.append(el("small","",topic.title+" · "+(statusName[state?.status]||"待验证")+" · "+(gapCount?gapCount+" 个待纠正薄弱点":"无未解决薄弱点")));
+      copy.append(el("small","",(statusName[state?.status]||"待验证")+" · "+(gapCount?gapCount+" 个待纠正薄弱点":"无未解决薄弱点")));
       button.append(copy,el("em","",state?.masteryScore===null||state?.masteryScore===undefined?"开始验证":state.masteryScore+"% →"));
       button.addEventListener("click",()=>startSession({competencyId:competency.id}).catch(error=>setFeedback(error.message,"bad")));
-      host.append(button);
+      grid.append(button);
     });
+    group.append(heading, grid);
+    host.append(group);
   });
 }
 function updateSideState() {
@@ -112,6 +132,7 @@ function renderSession() {
   const competency = competencyFor(session.competencyId);
   $("review-picker").hidden = true;
   $("review-session").hidden = false;
+  updateWorkspaceNav();
   $("session-title").textContent = competency?.title || session.title;
   $("session-context").textContent = session.targetGapId
     ? "目标薄弱点："+(map.gaps.find(item=>item.id===session.targetGapId)?.label || session.targetGapId)+" · 本次复习与原挑战完全隔离"
@@ -938,6 +959,7 @@ async function boot() {
   }
   await renderPicker();
   await renderHistory();
+  updateWorkspaceNav();
   if(competencyId) {
     if (activeTaskId) {
       const active = await engine.getActiveSessions();
