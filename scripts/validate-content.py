@@ -2,8 +2,10 @@
 """Validate KNOWVERSE knowledge, work, pillar and local route relationships."""
 import json
 import os
+import sys
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+sys.dont_write_bytecode = True
 from knowledge_context_data import build_knowledge_context
 
 root = Path(__file__).resolve().parents[1]
