@@ -290,3 +290,61 @@ test("Chromium: Monorepo and React Native Review sessions link to their canonica
     await browser.close();
   }
 });
+
+test("Promise curriculum hub: progressive phases preserve all lesson routes without mobile overflow", {
+  timeout: 60000,
+}, async () => {
+  for (const [engine, viewport] of [
+    [chromium, { width: 1440, height: 960 }],
+    [webkit, { width: 390, height: 844 }],
+  ]) {
+    const browser = await engine.launch({
+      headless: true,
+      ...(engine === chromium && process.env.KNOWVERSE_CHROMIUM_EXECUTABLE
+        ? { executablePath: process.env.KNOWVERSE_CHROMIUM_EXECUTABLE }
+        : {}),
+      ...(engine === webkit && process.env.KNOWVERSE_WEBKIT_EXECUTABLE
+        ? { executablePath: process.env.KNOWVERSE_WEBKIT_EXECUTABLE }
+        : {}),
+    });
+    try {
+      const page = await browser.newPage({ viewport });
+      const errors = [];
+      page.on("pageerror", error => errors.push(error.message));
+      await page.goto(baseURL + "/knowledge/promise/", { waitUntil: "domcontentloaded" });
+
+      const curriculum = await page.evaluate(() => {
+        const phases = [...document.querySelectorAll(".course-phase")];
+        const lessonLinks = [...document.querySelectorAll(".course-phase .course-chapter")];
+        const toc = [...document.querySelectorAll(".course-phase-toc a")];
+        const image = document.querySelector(".promise-atlas img");
+        return {
+          phaseIds: phases.map(phase => phase.id),
+          phaseCounts: phases.map(phase => phase.querySelectorAll(".course-chapter").length),
+          lessonHrefs: lessonLinks.map(link => link.getAttribute("href")),
+          tocTargets: toc.map(link => link.getAttribute("href").slice(1)),
+          imageLoading: image?.getAttribute("loading"),
+          scrollWidth: document.documentElement.scrollWidth,
+          viewportWidth: window.innerWidth,
+        };
+      });
+      assert.deepEqual(curriculum.phaseIds, [
+        "phase-foundation",
+        "phase-scheduling",
+        "phase-composition",
+        "phase-engineering",
+      ]);
+      assert.deepEqual(curriculum.phaseCounts, [4, 4, 6, 6]);
+      assert.equal(curriculum.lessonHrefs.length, 20);
+      assert.equal(new Set(curriculum.lessonHrefs).size, 20);
+      assert.deepEqual(curriculum.tocTargets, curriculum.phaseIds);
+      assert.equal(curriculum.imageLoading, "lazy");
+      assert.ok(curriculum.scrollWidth <= curriculum.viewportWidth,
+        "curriculum must not create horizontal overflow");
+      assert.deepEqual(errors, []);
+      await browser.close();
+    } finally {
+      if (browser.isConnected()) await browser.close();
+    }
+  }
+});
