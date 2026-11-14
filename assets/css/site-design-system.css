@@ -183,3 +183,31 @@ body.kv-reading-layout .kv-footer-links { justify-content: flex-start; }
   body.kv-reading-layout main { width: 100vw !important; max-width: 100vw !important; min-width: 0 !important; margin: 0 !important; overflow-x: clip; }
   body.kv-reading-layout { overflow-x: clip; }
 }
+
+/* The same quiet shell extends to primary workspaces; immersive exhibits remain canvas-first. */
+body.kv-workspace-layout { --kv-content-width: 1160px; overflow-x: clip; }
+body.kv-workspace-layout .kv-navbar { justify-content: flex-start; }
+body.kv-workspace-layout .kv-navlinks, body.kv-workspace-layout .kv-mobile-toggle { display: none !important; }
+body.kv-workspace-layout .kv-navbar .search-trigger { margin-left: auto; }
+body.kv-workspace-layout main { width: calc(50vw + 296px) !important; max-width: 1160px; margin-left: max(280px, calc((100vw - 1160px) / 2 + 252px)); margin-right: auto; padding-inline: 28px; }
+body.kv-workspace-layout .pagehead { padding-top: 30px; }
+body.kv-workspace-layout .section { padding-top: 28px; padding-bottom: 36px; }
+body.kv-workspace-layout .kv-home-hero { margin-top: 18px; margin-bottom: 26px; padding: 30px; box-shadow: 0 12px 32px rgb(16 44 56 / 8%); }
+body.kv-workspace-layout .kv-home-hero h1 { font-size: clamp(32px, 4vw, 48px); }
+body.kv-workspace-layout .kv-home-section { margin-bottom: 30px; }
+.kv-workspace-sidebar .kv-reading-primary { display: grid; gap: 3px; }
+.kv-reading-primary-link { display: block; padding: 8px 10px; border-radius: 6px; color: #63746f; font-size: 12px; }
+.kv-reading-primary-link:hover, .kv-reading-primary-link.is-active { background: #eaf4ef; color: #087e76; font-weight: 750; }
+@media (max-width: 1050px) {
+  .kv-workspace-sidebar { width: 220px; padding-left: 13px; }
+  body.kv-workspace-layout main { width: calc(100vw - 240px) !important; margin-left: 220px; padding-inline: 22px; }
+}
+@media (max-width: 760px) {
+  .kv-workspace-sidebar { position: static; display: grid; width: 100%; height: auto; max-height: none; padding: 8px 12px; overflow: hidden; border-right: 0; border-bottom: 1px solid #e7ece9; gap: 7px; }
+  .kv-workspace-sidebar .kv-reading-sidebar-head, .kv-workspace-sidebar .kv-reading-divider, .kv-workspace-sidebar .kv-reading-section-title, .kv-workspace-sidebar .kv-reading-sidebar-foot { display: none; }
+  .kv-workspace-sidebar .kv-reading-primary, .kv-workspace-sidebar .kv-reading-topics { display: flex; gap: 5px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+  .kv-workspace-sidebar .kv-reading-primary-link, .kv-workspace-sidebar .kv-reading-topic { flex: 0 0 auto; white-space: nowrap; padding: 7px 9px; font-size: 11px; }
+  body.kv-workspace-layout main { width: 100vw !important; max-width: 100vw !important; min-width: 0 !important; margin: 0 !important; overflow-x: clip; padding-inline: 18px; }
+  body.kv-workspace-layout .pagehead { padding-top: 25px; }
+  body.kv-workspace-layout .kv-home-hero { padding: 22px 18px; }
+}

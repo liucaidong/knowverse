@@ -35,7 +35,7 @@ test("desktop navigation exposes four workspaces with contextual second-level ro
   try{
     const page=await browser.newPage({viewport:{width:1440,height:900}});
     const errors=[];page.on("pageerror",e=>errors.push(e.message));
-    await page.goto(url+"/",{waitUntil:"networkidle"});
+    await page.goto(url+"/provenance/",{waitUntil:"networkidle"});
     assert.equal(await page.locator("#kv-global-account").count(),1);
     assert.equal(await page.locator(".kv-nav-group").count(),4);
     assert.equal(await page.locator(".kv-nav-toggle").count(),4);
@@ -70,7 +70,7 @@ test("mobile navigation keeps four main groups and reveals their contextual link
   try{
     const page=await browser.newPage({viewport:{width:390,height:844}});
     const errors=[];page.on("pageerror",e=>errors.push(e.message));
-    await page.goto(url+"/",{waitUntil:"networkidle"});
+    await page.goto(url+"/provenance/",{waitUntil:"networkidle"});
     await page.locator("#mobile-menu").click();
     assert.equal(await page.locator("#kv-site-navigation").isVisible(),true);
     assert.equal(await page.locator("#kv-site-navigation .kv-nav-link").count(),4);
@@ -90,7 +90,7 @@ test("all four destinations remain visible with JavaScript disabled", {timeout:6
   try{
     const context=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}});
     const page=await context.newPage();
-    await page.goto(url+"/",{waitUntil:"domcontentloaded"});
+    await page.goto(url+"/provenance/",{waitUntil:"domcontentloaded"});
     assert.equal(await page.locator(".kv-static-shell").count(),1);
     assert.equal(await page.locator(".kv-nav-group").count(),4);
     for(const label of ["开始学习","知识库","实践中心","我的进度"]){
@@ -101,6 +101,38 @@ test("all four destinations remain visible with JavaScript disabled", {timeout:6
   }finally{await browser.close();}
 });
 
+
+
+test("primary workspaces share a GitBook-style global sidebar without duplicating top navigation", {timeout:60000}, async()=>{
+  const browser=await chromium.launch({headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:1440,height:900}});
+    const paths=["/","/start/","/agent/","/progress/","/review/","/works/","/lab/","/gallery/","/puzzles/"];
+    for(const path of paths){
+      await page.goto(url+path,{waitUntil:"domcontentloaded"});
+      assert.equal(await page.locator("body").evaluate(e=>e.classList.contains("kv-workspace-layout")),true,path);
+      assert.equal(await page.locator(".kv-workspace-sidebar").count(),1,path);
+      assert.equal(await page.locator(".kv-reading-primary-link").count(),9,path);
+      assert.equal(await page.locator(".kv-reading-topic").count(),12,path);
+      assert.equal(await page.locator(".kv-navlinks").isVisible(),false,path);
+      const geometry=await page.evaluate(()=>({left:document.querySelector("main").getBoundingClientRect().left,width:document.querySelector("main").getBoundingClientRect().width,sidebar:document.querySelector(".kv-workspace-sidebar").getBoundingClientRect().width}));
+      assert.ok(geometry.left>=geometry.sidebar && geometry.width>650,`${path} ${JSON.stringify(geometry)}`);
+    }
+    await page.setViewportSize({width:390,height:844});
+    for(const path of ["/","/start/","/agent/","/progress/","/review/"]){
+      await page.goto(url+path,{waitUntil:"domcontentloaded"});
+      const result=await page.evaluate(()=>({
+        viewport:document.documentElement.clientWidth,
+        scroll:document.documentElement.scrollWidth,
+        sidebar:document.querySelector(".kv-workspace-sidebar").getBoundingClientRect().width,
+        workspaceLinks:document.querySelector(".kv-workspace-sidebar .kv-reading-primary").getBoundingClientRect().height,
+        topicLinks:document.querySelector(".kv-workspace-sidebar .kv-reading-topics").getBoundingClientRect().height,
+      }));
+      assert.ok(result.scroll<=result.viewport+1,`${path} ${JSON.stringify(result)}`);
+      assert.ok(result.workspaceLinks>0 && result.topicLinks>0,`${path} ${JSON.stringify(result)}`);
+    }
+  }finally{await browser.close();}
+});
 
 test("GitBook-style reading workspace keeps topic navigation beside the article", {timeout:60000}, async()=>{
   const browser=await chromium.launch({headless:true});
