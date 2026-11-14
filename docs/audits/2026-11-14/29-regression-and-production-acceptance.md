@@ -37,9 +37,9 @@
 - 47 条 canonical route：47/47 HTTP 200。
 - 本阶段关键资源：`learning-progress.mjs`、`learning-planner.mjs`、`learning-agent/plan-manager.mjs`、`learning-agent/task-orchestrator.mjs`、`gallery/exhibits/promise-universe/exhibit.js` 均 HTTP 200。
 - 五个关键资源的本地与 Production SHA-256 完全一致。
-- GitHub Pages deployment API 返回最新 SHA：`e3de364a546c6e503be5499dbb9fc178862a2eca`，ref `develop`，environment `github-pages`，deployment `2026-11-14T16:20:58Z`。
-- 对应 Pages workflow run `43615117032` 状态 `completed / success`。
-- 较早的同一并发组部署 run 被后续更新取消（`5e323fd`），最终 `2c08e84` 与 `e3de364` 两次部署均成功；最新部署 SHA 与仓库 HEAD 一致。
+- 功能代码首次完整部署 SHA：`e3de364a546c6e503be5499dbb9fc178862a2eca`，ref `develop`，environment `github-pages`。
+- 随后的最终审计文档提交也触发 Pages 部署并成功；最终验收时，Pages deployment API 的最新 SHA 与 `develop` HEAD 一致。
+- 对应功能代码部署 run `43615117032`、最终验收文档部署 run `43615500654` 均为 `completed / success`；较早的并发部署 run `5e323fd` 被后续更新取消。
 
 ## 4. 生产安全
 
@@ -60,7 +60,7 @@
 ## 6. Git 交付状态
 
 - Branch：`develop`
-- HEAD：`e3de364a546c6e503be5499dbb9fc178862a2eca`
+- HEAD：最终验收文档所在的最新 `develop` 提交（以 Git 当前 HEAD 为准）
 - `origin/develop`：与 HEAD 相同，ahead/behind `0/0`
 - 工作区：干净
 - Pages Production deployment SHA：与 HEAD 相同

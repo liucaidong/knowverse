@@ -3,7 +3,7 @@
 - 验收日期：2026-11-14
 - 仓库：`liucaidong/knowverse`
 - 分支：`develop`
-- 最终 HEAD：`e3de364a546c6e503be5499dbb9fc178862a2eca`
+- 功能修复代码已在 `e3de364a546c6e503be5499dbb9fc178862a2eca` 完整部署；最终验收文档随后单独提交到 `develop`。
 - Production Pages：`https://liucaidong.github.io/knowverse/`
 - Supabase Production：`sxcpareycpokcyroufww`
 
@@ -53,8 +53,7 @@ KNOWVERSE 4.1 已完成可信基线、全站盘点、四大核心模块审计、
 
 ## 4. 生产与 Git 交付
 
-- Production Pages 最新部署 SHA：`e3de364a546c6e503be5499dbb9fc178862a2eca`。
-- Pages workflow run：`43615117032`，`completed / success`。
+- 最终验收时 Production Pages 最新部署 SHA 与 `develop` HEAD 一致；最终验收文档提交对应 Pages workflow run `43615500654`，`completed / success`。功能代码部署 run `43615117032` 同样成功。
 - 47 条生产路由全部 HTTP 200；5 个关键 JS 资源哈希与本地一致。
 - `develop` 与 `origin/develop` ahead/behind 为 `0/0`；工作区干净。
 - 生产 Supabase 数据未被测试写入或清理。
