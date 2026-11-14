@@ -32,8 +32,11 @@ for topic in topics:
     assert target.is_file(), f"Missing knowledge topic page: {topic['id']}"
     landing = page / "index.html"
     html = landing.read_text(encoding="utf-8")
-    assert "knowledge-graph.js" in html, f"Topic page is not connected to the knowledge graph: {topic['id']}"
-    assert "knowledge-graph.css" in html, f"Missing relationship styles: {topic['id']}"
+    assert "assets/js/v2.js" in html, f"Topic page is missing the shared context bootstrap: {topic['id']}"
+    assert "site-architecture.css" in html, f"Missing knowledge relationship styles: {topic['id']}"
+    assert "knowledge-graph.js" not in html and "knowledge-graph.css" not in html, (
+        f"Topic page must not load retired duplicate graph assets: {topic['id']}"
+    )
 
 live_routes = []
 reverse_links = {topic_id: [] for topic_id in topic_map}
@@ -90,7 +93,8 @@ assert 'kv-home-welcome' not in home and 'kv-home-flow' not in home, "Homepage m
 knowledge_home = (root / "knowledge/index.html").read_text(encoding="utf-8")
 assert 'data-knowledge-catalog="all"' in knowledge_home, "Knowledge directory must use the shared knowledge registry"
 assert 'data-kv-architecture-overview="true"' in knowledge_home, "Knowledge architecture overview must be statically present to avoid layout shift"
-assert "knowledge-graph.js" in knowledge_home
+assert "assets/js/v2.js" in knowledge_home
+assert "knowledge-graph.js" not in knowledge_home and "knowledge-graph.css" not in knowledge_home
 
 
 # A single learning contract connects every work to activity, competency and evidence.

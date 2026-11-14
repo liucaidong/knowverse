@@ -234,9 +234,10 @@ export async function mountKnowledgeContext(base = document.body.dataset.root ||
     const topic = knowledge.topics.find(item => item.id === topicId);
     if (!topic) return;
     if (document.querySelector("[data-kv-topic-context], [data-kv-article-context]")) return;
+    const topicPath = new URL("knowledge/" + topic.id + "/", root).pathname;
     const records = (searchManifest.records || []).filter(record => {
       const href = safeHref(record.href, root);
-      return href && href.pathname.startsWith(new URL("knowledge/" + topic.id + "/", root).pathname);
+      return href && new URL(href).pathname.startsWith(topicPath);
     });
     const relatedWorks = (worksManifest.works || []).filter(work =>
       (work.status === "live" || work.status === "planned") &&

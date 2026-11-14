@@ -42,7 +42,7 @@ async function openPage(browser, path, viewport) {
   return { context, page, errors };
 }
 
-test("home and knowledge directory avoid late layout injection and redundant registry downloads", { timeout:60000 }, async () => {
+test("home and knowledge directory avoid late layout injection, legacy graph assets and redundant registry downloads", { timeout:60000 }, async () => {
   const browser = await chromium.launch({ headless:true });
   try {
     for (const path of ["/", "/knowledge/"]) {
@@ -60,7 +60,7 @@ test("home and knowledge directory avoid late layout injection and redundant reg
       assert.equal(metrics.overflow, false, path + " must not overflow horizontally");
       assert.equal(metrics.designSystem, true);
       if (path === "/") assert.deepEqual(metrics.knowledgeGraphCss, [], "homepage must not download relationship-card CSS when it does not render a knowledge graph");
-      if (path === "/knowledge/") assert.equal(metrics.knowledgeGraphCss.length, 1, "knowledge directory retains its relationship surfaces");
+      assert.deepEqual(metrics.knowledgeGraphCss, [], path + " must not download retired relationship-card CSS");
       assert.deepEqual(metrics.manifestRequests, [], path + " must not refetch build-time registry content");
       assert.deepEqual(errors, []);
       await context.close();

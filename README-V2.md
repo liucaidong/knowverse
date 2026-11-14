@@ -15,7 +15,7 @@
 - `content/search-metadata.json`：搜索标题、摘要、标签等人工策划字段。
 - `data/search.json`：从 Markdown 正文或 HTML 正文构建的全文搜索索引。
 - `scripts/build-search-index.py`：确定性搜索索引生成器；内容验证与 Pages 部署都会执行。
-- `assets/js/knowledge-graph.js`：从注册表生成首页专题/主线卡片，并在专题页显示相关互动体验。
+- `assets/js/knowledge-context.mjs`：按知识注册表、作品关联和能力图谱生成专题与文章上下文；目录卡片由构建产物静态生成。
 - `data/monorepo-graph.json`：从真实五包全栈参考工程的 package.json 自动生成依赖图与构建层。
 - `assets/js/monorepo-world.js`：同一套 WebGL 3D 场景渲染器，为 Monorepo 展厅与解谜世界复用。
 - `assets/js/monorepo-graph-model.mjs`：统一计算反向依赖闭包、可构建节点和构建约束。
