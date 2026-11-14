@@ -48,7 +48,7 @@
       <a class="kv-account-manage" href="../../../../../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
     </div>
   </details>
-  </nav></header><header><nav><a href="../../../../../">KNOWVERSE 知域</a><a href="../../">← 返回真实多端工程</a></nav></header><main><div class="eyebrow">CHAPTER 09 / CROSS-PLATFORM E2E</div><h1>让网络故障<br>成为可重复的实验。</h1><p class="lead">真实点击、请求、错误响应、离线回退与恢复。Android 用 UIAutomator，iOS 用 Maestro；只有 UI 状态和服务端事件同时吻合，才能判定一次端到端测试通过。</p><section class="diagram"><h2>跨端 E2E 全景图</h2><img src="../../fault-injection.svg" alt="测试机器人点击、故障注入、离线回退与恢复的流程图"><details><summary>展开 Mermaid 源码</summary><pre>flowchart LR
+  </nav></header><header><nav><a href="../../../../../">KNOWVERSE 知域</a><a href="../../">← 返回真实多端工程</a></nav></header><main><div class="eyebrow">CHAPTER 09 / CROSS-PLATFORM E2E</div><h1>让网络故障<br>成为可重复的实验。</h1><p class="lead">真实点击、请求、错误响应、离线回退与恢复。Android 用 UIAutomator，iOS 用 Maestro；只有 UI 状态和服务端事件同时吻合，才能判定一次端到端测试通过。</p><section class="diagram"><h2>跨端 E2E 全景图</h2><img loading="lazy" decoding="async" src="../../fault-injection.svg" alt="测试机器人点击、故障注入、离线回退与恢复的流程图"><details><summary>展开 Mermaid 源码</summary><pre>flowchart LR
   Tap["测试机器人点击刷新"] --> Loading["正在重新验证 API"]
   Loading --> Proxy["CI loopback proxy"]
   Proxy --> Normal["合法 NestJS JSON"]
