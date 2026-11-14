@@ -69,6 +69,7 @@ test("local IndexedDB is the complete canonical learning database", async () => 
   assert.match(store, /expectedLocalRevision/);
   assert.match(store, /QuotaExceededError/);
   assert.match(store, /acquireSyncLease/);
+  assert.match(store, /renewSyncLease/);
 });
 
 test("local learning writes persist state, evidence and Outbox in one transaction", async () => {
@@ -136,6 +137,11 @@ test("sync pushes a single atomic batch and advances pull cursors only after loc
   assert.doesNotMatch(restore, /pushChanges/);
   assert.match(sync, /acquireSyncLease/);
   assert.match(sync, /releaseSyncLease/);
+  assert.match(sync, /renewSyncLease/);
+  assert.match(sync, /setInterval\(async \(\) =>/);
+  assert.match(sync, /autoSyncMinIntervalMs/);
+  assert.match(sync, /automaticSyncPromise/);
+  assert.match(sync, /syncPromise/);
   assert.match(sync, /retryAttempt/);
   assert.match(sync, /addEventListener\("online"/);
   assert.match(sync, /visibilitychange/);

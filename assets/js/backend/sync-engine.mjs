@@ -14,6 +14,7 @@ import {
   listPendingArchiveDocuments,
   mergeRemoteLearningEvents,
   releaseSyncLease,
+  renewSyncLease,
   setArchiveMeta,
   setDocumentSyncCursor,
   setSyncCursor,
@@ -33,6 +34,9 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
   let scheduled = false;
   let retryAttempt = 0;
   let retryTimer = null;
+  let lastAutomaticSyncAt = 0;
+  let automaticSyncPromise = null;
+  let syncPromise = null;
   let serial = Promise.resolve();
   let queuedOperations = 0;
   let activeOperation = null;
@@ -58,13 +62,19 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
   async function withLease(operation, action) {
     if (running) throw new Error("同步服务内部锁状态异常：同一标签页并发操作未被串行化。");
     const waitMs = Math.max(0, Number(config.syncLeaseWaitMs ?? 30000) || 0);
-    const pollMs = Math.max(50, Number(config.syncLeasePollMs ?? 250) || 250);
+    const pollMs = Math.max(250, Number(config.syncLeasePollMs ?? 1000) || 1000);
+    const leaseMs = Math.max(60000, Number(config.syncLeaseMs ?? 90000) || 90000);
+    const heartbeatMs = Math.max(15000, Math.min(30000, Math.floor(leaseMs / 3)));
     const deadline = Date.now() + waitMs;
-    let acquired = await acquireSyncLease("learning-sync", operationOwner, 900000);
+    let acquired = await acquireSyncLease("learning-sync", operationOwner, leaseMs);
+    let announcedWaiting = false;
     while (!acquired && Date.now() < deadline) {
-      dispatchStatus({ status: "waiting-for-sync-lease", operation, reason: "another-tab-holds-the-sync-lease" });
+      if (!announcedWaiting) {
+        dispatchStatus({ status: "waiting-for-sync-lease", operation, reason: "another-tab-holds-the-sync-lease" });
+        announcedWaiting = true;
+      }
       await new Promise(resolve => setTimeout(resolve, Math.min(pollMs, Math.max(1, deadline - Date.now()))));
-      acquired = await acquireSyncLease("learning-sync", operationOwner, 900000);
+      acquired = await acquireSyncLease("learning-sync", operationOwner, leaseMs);
     }
     if (!acquired) {
       const result = { status: "busy", operation, reason: "another-tab-holds-the-sync-lease" };
@@ -72,8 +82,20 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
       return result;
     }
     running = true;
+    let renewing = false;
+    const heartbeat = setInterval(async () => {
+      if (renewing) return;
+      renewing = true;
+      try {
+        const renewed = await renewSyncLease("learning-sync", operationOwner, leaseMs);
+        if (!renewed) dispatchStatus({ status: "lease-lost", operation, reason: "sync-lease-owner-changed" });
+      } catch (error) {
+        dispatchStatus({ status: "lease-warning", operation, message: error.message || "同步锁续租失败" });
+      } finally { renewing = false; }
+    }, heartbeatMs);
     try { return await action(); }
     finally {
+      clearInterval(heartbeat);
       running = false;
       await releaseSyncLease("learning-sync", operationOwner);
     }
@@ -388,31 +410,48 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
   }
 
   function sync() {
-    return enqueue(syncOperation, "sync");
+    if (syncPromise) return syncPromise;
+    // Manual, initial and automatic syncs all count toward the same cooldown;
+    // local events emitted during bootstrap must not trigger a second run.
+    lastAutomaticSyncAt = Date.now();
+    syncPromise = enqueue(syncOperation, "sync").finally(() => { syncPromise = null; });
+    return syncPromise;
   }
   function restoreFromCloud() {
     return enqueue(restoreOperation, "restore");
   }
 
-  function scheduleSync(delay) {
-    if (scheduled || !config.enabled || !isOnline()) return;
+  function scheduleSync(delay, { debounce = false } = {}) {
+    if (!config.enabled || !isOnline()) return;
+    const wait = Number.isFinite(delay) ? Math.max(0, delay) : Math.min(300000, 5000 * (2 ** retryAttempt));
+    if (retryTimer) {
+      if (!debounce) return;
+      clearTimeout(retryTimer);
+    }
     scheduled = true;
-    const wait = Number.isFinite(delay) ? delay : Math.min(300000, 1200 * (2 ** retryAttempt));
     retryTimer = setTimeout(() => {
       scheduled = false;
       retryTimer = null;
-      sync().catch(error => {
-        dispatchStatus({ status: "error", message: error.message || "同步重试失败" });
-      });
+      const minimumGap = Math.max(30000, Number(config.autoSyncMinIntervalMs ?? 60000) || 60000);
+      const remaining = minimumGap - (Date.now() - lastAutomaticSyncAt);
+      if (remaining > 0) {
+        scheduleSync(remaining);
+        return;
+      }
+      if (automaticSyncPromise) return;
+      lastAutomaticSyncAt = Date.now();
+      automaticSyncPromise = sync().catch(error => {
+        dispatchStatus({ status: "error", operation: "sync", message: error.message || "自动同步失败" });
+      }).finally(() => { automaticSyncPromise = null; });
     }, wait);
   }
 
   function start() {
     if (typeof window === "undefined") return () => {};
     const onEvents = event => {
-      if (!event.detail?.remote) scheduleSync(1200);
+      if (!event.detail?.remote) scheduleSync(2500, { debounce: true });
     };
-    const onArchive = () => scheduleSync(1200);
+    const onArchive = () => scheduleSync(2500, { debounce: true });
     const onOnline = () => scheduleSync(0);
     const onVisibility = () => {
       if (document.visibilityState === "visible") scheduleSync(0);
@@ -435,6 +474,8 @@ export function createLearningSyncService(auth, progressStore, config = BACKEND_
       window.removeEventListener("knowverse:database-upgrade-blocked", onStorageUpgrade);
       document.removeEventListener("visibilitychange", onVisibility);
       if (retryTimer) clearTimeout(retryTimer);
+      retryTimer = null;
+      scheduled = false;
     };
   }
 

@@ -931,6 +931,13 @@ async function updatePlanPreference(patch) {
   await refresh();
 }
 
+function yieldToBrowserPaint() {
+  return new Promise(resolve => {
+    if (typeof requestAnimationFrame === "function") requestAnimationFrame(() => resolve());
+    else setTimeout(resolve, 0);
+  });
+}
+
 async function refresh() {
   if (pageRefreshPromise) {
     pageRefreshAgain = true;
@@ -939,22 +946,29 @@ async function refresh() {
   pageRefreshPromise = (async () => {
     do {
       pageRefreshAgain = false;
-      if (proactiveEngine) {
-        proactiveProjection = await proactiveEngine.refresh();
-        proactiveTasks = taskOrchestrator ? await taskOrchestrator.list() : [];
-      }
+      // Render the local learning snapshot first. Cloud reconciliation and the
+      // heavier proactive projection must never hold the first useful paint.
       const snapshot = await store.load();
       insights = deriveLearningInsights(learningMap, challengeRegistry, snapshot);
-      renderAdaptivePlan(snapshot);
-      renderWeeklyLearningReview(snapshot);
       renderMetrics();
       renderTopicOverview();
       renderTopicChoices();
       renderGraph();
+      await yieldToBrowserPaint();
+
+      if (proactiveEngine) {
+        proactiveProjection = await proactiveEngine.refresh();
+        proactiveTasks = taskOrchestrator ? await taskOrchestrator.list() : [];
+      }
+      renderAdaptivePlan(snapshot);
+      renderWeeklyLearningReview(snapshot);
+      await yieldToBrowserPaint();
       renderGapList();
       renderWeakSkills();
+      await yieldToBrowserPaint();
       renderReviewPlan();
       renderProactiveDashboard();
+      await yieldToBrowserPaint();
       renderEvents();
       scheduleProactiveRefresh();
     } while (pageRefreshAgain);
@@ -1100,11 +1114,9 @@ async function boot() {
   // has completed; do not expose editable controls before this await.
   const repository = await getLearningRepository();
 
-  // Restore and merge the authenticated cloud journal / user-owned documents
-  // before deriving strategy and proactive state. Otherwise a cold device can
-  // persist an empty-history profile while the cloud already has real evidence.
+  // Start cloud reconciliation in the background. The local IndexedDB snapshot
+  // is immediately usable and should render while the network catches up.
   const archiveRuntime = await getArchiveRuntime();
-  await archiveRuntime.initialSyncPromise?.catch(() => null);
 
   const backendPanel = document.getElementById("backend-account-panel");
   if (backendPanel) {
@@ -1144,6 +1156,17 @@ async function boot() {
   wireDataActions();
   await refresh();
   document.documentElement.dataset.learningProgressReady = "true";
+
+  // Once remote events/documents have merged, recalculate the derived learning
+  // plan without delaying the initial local-first page render.
+  archiveRuntime.initialSyncPromise?.then(result => {
+    if (["synced", "partial", "restored"].includes(result?.status)) {
+      return refresh().then(() => {
+        document.documentElement.dataset.learningProgressCloudReady = "true";
+      });
+    }
+    return null;
+  }).catch(error => console.warn("[KNOWVERSE] background cloud reconciliation failed:", error));
 }
 
 boot().catch(error => {

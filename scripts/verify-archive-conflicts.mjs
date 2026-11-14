@@ -295,16 +295,19 @@ test("remote event merge announces new source events so derived projections can 
 });
 
 
-test("learning progress waits for initial authenticated sync before deriving strategy projections", async () => {
+test("learning progress renders local state before applying background authenticated sync", async () => {
   const source = await (await import("node:fs/promises")).readFile(
     new URL("../assets/js/learning-progress-page.mjs", import.meta.url), "utf8",
   );
-  const waitIndex = source.indexOf("await archiveRuntime.initialSyncPromise");
-  const profileIndex = source.indexOf("profileStore = createLearnerProfileStore");
-  const engineIndex = source.indexOf("proactiveEngine = createProactiveLearningEngine");
-  assert.ok(waitIndex >= 0, "The progress page must await the bootstrap sync promise.");
-  assert.ok(profileIndex > waitIndex, "Profile derivation must start after cloud state restoration.");
-  assert.ok(engineIndex > waitIndex, "Projection derivation must start after cloud state restoration.");
+  const boot = source.slice(source.indexOf("async function boot()"));
+  const profileIndex = boot.indexOf("profileStore = createLearnerProfileStore");
+  const refreshIndex = boot.indexOf("await refresh()");
+  const cloudReconcileIndex = boot.indexOf("archiveRuntime.initialSyncPromise?.then");
+  assert.ok(profileIndex >= 0, "Local learner profile must initialize from IndexedDB.");
+  assert.ok(refreshIndex > profileIndex, "Local page state must render after profile initialization.");
+  assert.ok(cloudReconcileIndex > refreshIndex, "Cloud reconciliation must refresh derived state after the first render.");
+  assert.doesNotMatch(boot, /await archiveRuntime\.initialSyncPromise/,
+    "The page must not block its first render on cloud network latency.");
 });
 
 

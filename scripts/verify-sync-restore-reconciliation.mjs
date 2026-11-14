@@ -11,6 +11,7 @@ import {
   getArchiveStatus,
   persistLearningEvents,
   releaseSyncLease,
+  renewSyncLease,
   setDocumentSyncCursor,
   setSyncCursor,
 } from "../assets/js/backend/local-event-store.mjs";
@@ -176,6 +177,66 @@ test("manual restore waits for a sibling tab to release the shared IndexedDB syn
   assert.equal(result.receivedDocuments, 3);
   assert.equal(result.restoredDocuments, 2);
   assert.equal(result.skippedDocuments, 1);
+});
+
+
+test("sync requests in the same tab coalesce into one operation", async () => {
+  let releaseProfile;
+  let profileCalls = 0;
+  const profileGate = new Promise(resolve => { releaseProfile = resolve; });
+  const auth = {
+    async getSession() { return { user: { id: userId, email: "test@example.invalid" } }; },
+    async request(path) {
+      if (path.endsWith("/get_learning_sync_profile")) {
+        profileCalls += 1;
+        await profileGate;
+        return { authorized: true, user_id: userId };
+      }
+      if (path.endsWith("/register_device")) return { registered: true };
+      if (path.endsWith("/sync_pull_learning_events_for_account")) return { events: [], next_cursor: 0, has_more: false };
+      if (path.endsWith("/sync_pull_learning_documents_for_account")) return { documents: [], next_cursor: 0, has_more: false };
+      throw new Error("Unexpected RPC: " + path);
+    },
+  };
+  const service = createLearningSyncService(auth, null, { enabled: true });
+  const first = service.sync();
+  const second = service.sync();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  releaseProfile();
+  const [firstResult, secondResult] = await Promise.all([first, second]);
+  assert.equal(profileCalls, 1, "duplicate callers must share one backend sync operation");
+  assert.equal(firstResult.status, "synced");
+  assert.equal(secondResult.status, "synced");
+});
+
+test("sync lease heartbeats extend only the current owner's lease", async () => {
+  await acquireSyncLease("learning-sync", "heartbeat-owner", 60000);
+  const renewed = await renewSyncLease("learning-sync", "heartbeat-owner", 90000);
+  assert.equal(renewed, true);
+  const rejected = await renewSyncLease("learning-sync", "different-owner", 90000);
+  assert.equal(rejected, false, "a different tab must never extend another owner's lease");
+});
+
+test("legacy fifteen-minute leases are capped after an old tab stops heartbeating", async () => {
+  await acquireSyncLease("learning-sync", "seed-owner", 90000);
+  const request = indexedDB.open("knowverse-learning-archive", 4);
+  const db = await new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  const now = Date.now();
+  await new Promise((resolve, reject) => {
+    const tx = db.transaction(["syncMetadata"], "readwrite");
+    tx.objectStore("syncMetadata").put({
+      key: "lease:learning-sync", owner: "old-tab", expiresAt: now + 900000,
+      updatedAt: new Date(now - 180000).toISOString(),
+    });
+    tx.oncomplete = resolve;
+    tx.onerror = () => reject(tx.error);
+  });
+  db.close();
+  assert.equal(await acquireSyncLease("learning-sync", "new-tab", 90000), true,
+    "a legacy lock without heartbeat must not block a new tab for fifteen minutes");
 });
 
 test("restore reports busy instead of pretending that a blocked restore completed", async () => {

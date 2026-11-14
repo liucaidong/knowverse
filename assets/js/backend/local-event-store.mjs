@@ -772,8 +772,24 @@ export async function acquireSyncLease(name, owner, leaseMs = 300000) {
     const key = "lease:" + name;
     const current = await requestValue(store.get(key));
     const now = Date.now();
-    if (current?.owner && current.owner !== owner && Number(current.expiresAt) > now) return false;
-    store.put({ key, owner, expiresAt: now + Math.max(30000, leaseMs), updatedAt: nowIso() });
+    const legacyUpdatedAt = Date.parse(current?.updatedAt || "");
+    const effectiveExpiry = current?.leaseVersion === 2
+      ? Number(current.expiresAt)
+      : Math.min(Number(current?.expiresAt) || 0,
+        Number.isFinite(legacyUpdatedAt) ? legacyUpdatedAt + 120000 : Number(current?.expiresAt) || 0);
+    if (current?.owner && current.owner !== owner && effectiveExpiry > now) return false;
+    store.put({ key, owner, leaseVersion: 2, expiresAt: now + Math.max(30000, leaseMs), updatedAt: nowIso() });
+    return true;
+  });
+}
+export async function renewSyncLease(name, owner, leaseMs = 90000) {
+  return withTransaction([STORE_SYNC], async tx => {
+    const store = tx.objectStore(STORE_SYNC);
+    const key = "lease:" + name;
+    const current = await requestValue(store.get(key));
+    if (current?.owner !== owner) return false;
+    const now = Date.now();
+    store.put({ ...current, leaseVersion: 2, expiresAt: now + Math.max(30000, leaseMs), updatedAt: nowIso() });
     return true;
   });
 }
