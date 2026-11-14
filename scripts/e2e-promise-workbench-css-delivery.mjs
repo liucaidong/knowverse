@@ -42,6 +42,7 @@ for (const [name, engine, viewport] of [
         return {
           legacyCssRequested:resources.some(item => item.name.includes("debugger.css")),
           workspaceCssRequested:resources.some(item => item.name.includes("workspace-layout.css")),
+          workspaceCssLinks:document.querySelectorAll('link[rel="stylesheet"][href*="workspace-layout.css"]').length,
           injectedBundleStyles:[...document.querySelectorAll("style")].some(style => style.textContent.includes("--bg:#080d16")),
           scenarioCount:document.querySelectorAll("#scenario-list button").length,
           layoutWidth:layout.width,
@@ -51,6 +52,7 @@ for (const [name, engine, viewport] of [
       });
       assert.equal(metrics.legacyCssRequested, false, "obsolete 10 KB stylesheet must not block the initial render");
       assert.equal(metrics.workspaceCssRequested, true);
+      assert.equal(metrics.workspaceCssLinks, 1, "workspace layout stylesheet must be linked exactly once in the document head");
       assert.equal(metrics.injectedBundleStyles, true, "runtime bundle CSS must provide the base workbench theme");
       assert.ok(metrics.scenarioCount >= 10);
       assert.ok(metrics.layoutWidth > 0 && metrics.layoutWidth <= metrics.viewportWidth + 1, JSON.stringify(metrics));

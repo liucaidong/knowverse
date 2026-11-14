@@ -17,15 +17,6 @@ async function bootPromiseWorkbench() {
     style.textContent = bundle.css;
     document.head.append(style);
 
-    await new Promise(resolve => {
-      const layout = document.createElement("link");
-      layout.rel = "stylesheet";
-      layout.href = new URL("./workspace-layout.css", import.meta.url).href;
-      layout.onload = resolve;
-      layout.onerror = resolve;
-      document.head.append(layout);
-    });
-
     const runtimeUrl = URL.createObjectURL(new Blob([bundle.runtime], { type: "text/javascript" }));
     const scenariosUrl = URL.createObjectURL(new Blob([bundle.scenarios], { type: "text/javascript" }));
     const workerSource = bundle.worker.replace('from "./runtime.mjs"', 'from "' + runtimeUrl + '"');

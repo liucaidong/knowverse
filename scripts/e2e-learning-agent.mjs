@@ -48,9 +48,12 @@ async function openWorkspace(browser, viewport) {
   const context = await browser.newContext({ viewport });
   const page = await context.newPage();
   const errors = [];
+  let expectedOfflineWindow = false;
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => {
-    if (message.type() === "error" && !message.text().includes("favicon.ico")) errors.push(message.text());
+    const text = message.text();
+    const expectedNetworkFailure = expectedOfflineWindow && text.includes("net::ERR_INTERNET_DISCONNECTED");
+    if (message.type() === "error" && !text.includes("favicon.ico") && !expectedNetworkFailure) errors.push(text);
   });
   await page.goto(baseURL + "/agent/", { waitUntil: "domcontentloaded" });
   await page.locator("#la-workspace").waitFor({ state: "visible" });
@@ -59,7 +62,7 @@ async function openWorkspace(browser, viewport) {
   await page.locator("#la-metrics .la-metric").first().waitFor({ state: "visible" });
   await page.locator("#la-proactive-summary").waitFor({ state: "visible" });
   await page.waitForFunction(() => document.querySelector("#la-proactive-summary")?.children.length > 0);
-  return { context, page, errors };
+  return { context, page, errors, setExpectedOfflineWindow(value) { expectedOfflineWindow = Boolean(value); } };
 }
 
 async function createGoalAndPlan(page) {
@@ -124,7 +127,7 @@ test("Chromium desktop: goal -> adaptive plan -> task pause/restore -> offline c
 }, async () => {
   const browser = await chromium.launch({ headless: true });
   try {
-    const { context, page, errors } = await openWorkspace(browser, { width: 1440, height: 1100 });
+    const { context, page, errors, setExpectedOfflineWindow } = await openWorkspace(browser, { width: 1440, height: 1100 });
     const eagerAgentModules = await page.evaluate(() => performance.getEntriesByType("resource")
       .map(item => item.name)
       .filter(url => /\/(?:agent-provider|agent-tools|local-agent)\.mjs(?:[?#]|$)/.test(url)));
@@ -143,6 +146,7 @@ test("Chromium desktop: goal -> adaptive plan -> task pause/restore -> offline c
     await page.locator("#la-workspace").waitFor({ state: "visible" });
     const restored = page.locator("#la-active-tasks .la-task-card").first();
     assert.match(await restored.innerText(), /已暂停/);
+    setExpectedOfflineWindow(true);
     await context.setOffline(true);
     await restored.getByRole("button", { name: "继续执行" }).click();
     await page.locator("#la-active-tasks .la-task-card").first()
@@ -151,6 +155,7 @@ test("Chromium desktop: goal -> adaptive plan -> task pause/restore -> offline c
       document.querySelector("#la-active-tasks .la-task-card .la-state")?.textContent === "已完成"
     );
     await context.setOffline(false);
+    setExpectedOfflineWindow(false);
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.locator("#la-workspace").waitFor({ state: "visible" });
     assert.match(await page.locator("#la-active-tasks .la-task-card").first().innerText(), /已完成/);
