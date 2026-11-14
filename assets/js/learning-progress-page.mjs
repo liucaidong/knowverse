@@ -1052,8 +1052,8 @@ async function refresh() {
         renderReviewPlan();
         renderedSections.add("review-plan");
       }
-      if (proactiveEngine && $("proactive-learning")?.open) {
-        if (!proactiveProjection) proactiveProjection = await proactiveEngine.refresh();
+      if (proactiveEngine && $("proactive-learning")?.open && !proactiveProjection) {
+        proactiveProjection = await proactiveEngine.refresh();
         proactiveTasks = taskOrchestrator ? await taskOrchestrator.list() : [];
         renderProactiveDashboard();
       }
@@ -1163,6 +1163,12 @@ function wireDataActions() {
         ? "已启用个性化策略；证据不足的参数仍使用默认值。"
         : "已切换为默认策略；历史学习证据与策略记录会保留。");
       await refresh();
+      // A page refresh can overlap the lazy review projection's first boot.
+      // Reconcile the strategy once more from the committed learner preference
+      // so an older in-flight projection cannot leave the controls on stale mode.
+      proactiveProjection = await proactiveEngine.refresh({ force: true });
+      proactiveTasks = taskOrchestrator ? await taskOrchestrator.list() : [];
+      renderProactiveDashboard();
     } catch (error) {
       setText("strategy-control-status", "策略设置保存失败：" + error.message);
     }

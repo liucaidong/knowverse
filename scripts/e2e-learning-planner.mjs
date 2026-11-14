@@ -342,6 +342,10 @@ test("Chromium desktop: strategy mode is user-controlled and persists through re
     }
     await page.reload({ waitUntil:"domcontentloaded" });
     await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
+    // Strategy controls are intentionally lazy: reopen advanced analysis after
+    // reload before asserting the persisted mode in its rendered projection.
+    await page.locator("#proactive-learning > summary").click();
+    await page.locator("#learning-strategy-content").waitFor({ state:"visible" });
     await waitForStrategyMode(page, "adaptive");
     assert.ok(documentTrace.clicks.includes("strategy-mode-adaptive"),
       "adaptive-mode click must reach the document; trace=" + JSON.stringify(documentTrace));
