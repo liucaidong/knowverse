@@ -41,6 +41,8 @@ for (const [name, engine, viewport] of [
         nav: [...document.querySelectorAll(".rw-workspace-nav a")].map(a=>({text:a.textContent.trim(),hidden:a.hidden})),
         width: document.documentElement.scrollWidth,
         viewport: innerWidth,
+        optionalModules: performance.getEntriesByType("resource").map(item => new URL(item.name).pathname)
+          .filter(path => /\/(task-orchestrator|agent-provider|agent-tools|learning-practice-candidates|learning-practice-quality-review)\.mjs$/.test(path)),
       }));
       assert.ok(initial.groups >= 1);
       assert.ok(initial.targets >= 1);
@@ -48,10 +50,14 @@ for (const [name, engine, viewport] of [
       assert.ok(initial.nav.some(item=>item.text.includes("复习记录")&&!item.hidden));
       assert.ok(initial.nav.find(item=>item.text.includes("独立验证")).hidden);
       assert.ok(initial.width <= initial.viewport,"review workspace must not overflow horizontally");
+      assert.deepEqual(initial.optionalModules, [], "task orchestration and AI practice modules must stay unloaded until their workflows are needed");
       await page.locator(".rw-topic-group .rw-target").first().click();
       await page.waitForFunction(() => !document.querySelector("#review-session").hidden);
       assert.equal(await page.locator("#question-title").textContent().then(value=>value.trim().length>0),true);
       assert.equal(await page.locator('.rw-workspace-nav a[data-target="review-session"]').isVisible(),true);
+      const afterOrdinaryReview = await page.evaluate(() => performance.getEntriesByType("resource").map(item => new URL(item.name).pathname)
+        .filter(path => /\/(task-orchestrator|agent-provider|agent-tools|learning-practice-candidates|learning-practice-quality-review)\.mjs$/.test(path)));
+      assert.deepEqual(afterOrdinaryReview, [], "an ordinary competency review must not load AI practice or task orchestration modules");
       assert.deepEqual(errors,[]);
       await context.close();
     } finally { await browser.close(); }

@@ -1,12 +1,5 @@
 import { createLearningProgressStore, deriveLearningInsights } from "./learning-progress.mjs";
 import { createReviewSessionEngine } from "./review-engine.mjs";
-import { createLearningTaskOrchestrator } from "./learning-agent/task-orchestrator.mjs";
-import { createLearningAgentProvider } from "./learning-agent/agent-provider.mjs";
-import {
-  createLearningPracticeCandidateStore,
-  parseLearningPracticeCandidateReply,
-} from "./learning-practice-candidates.mjs";
-import { createLearningPracticeQualityReviewClient } from "./learning-practice-quality-review.mjs";
 
 const root = new URL("../../", import.meta.url);
 const $ = id => document.getElementById(id);
@@ -20,8 +13,11 @@ let targetCompetencyId = null;
 let targetGapId = null;
 let activeTaskId = null;
 let taskOrchestrator = null;
+let taskOrchestratorPromise = null;
+let practiceRuntimePromise = null;
 let practiceProvider = null;
 let practiceCandidateStore = null;
+let parseLearningPracticeCandidateReply = null;
 let activePracticeCandidate = null;
 let practiceQualityClient = null;
 let activePracticeQualityHistory = null;
@@ -52,6 +48,41 @@ function updateWorkspaceNav() {
     const target = $(link.dataset.target);
     link.hidden = !target || target.hidden;
   });
+}
+async function ensureTaskOrchestrator() {
+  if (taskOrchestrator) return taskOrchestrator;
+  if (!taskOrchestratorPromise) {
+    taskOrchestratorPromise = import("./learning-agent/task-orchestrator.mjs")
+      .then(module => {
+        taskOrchestrator = module.createLearningTaskOrchestrator();
+        return taskOrchestrator;
+      })
+      .catch(error => {
+        taskOrchestratorPromise = null;
+        throw error;
+      });
+  }
+  return taskOrchestratorPromise;
+}
+
+async function ensurePracticeRuntime() {
+  if (practiceCandidateStore && practiceProvider && practiceQualityClient) return;
+  if (!practiceRuntimePromise) {
+    practiceRuntimePromise = Promise.all([
+      import("./learning-agent/agent-provider.mjs"),
+      import("./learning-practice-candidates.mjs"),
+      import("./learning-practice-quality-review.mjs"),
+    ]).then(([providerModule, candidateModule, qualityModule]) => {
+      practiceProvider = providerModule.createLearningAgentProvider();
+      practiceCandidateStore = candidateModule.createLearningPracticeCandidateStore({ registry: assessments });
+      parseLearningPracticeCandidateReply = candidateModule.parseLearningPracticeCandidateReply;
+      practiceQualityClient = qualityModule.createLearningPracticeQualityReviewClient();
+    }).catch(error => {
+      practiceRuntimePromise = null;
+      throw error;
+    });
+  }
+  await practiceRuntimePromise;
 }
 async function renderHistory() {
   const host = $("history-list");
@@ -740,10 +771,11 @@ async function renderPracticeCandidateList() {
 async function renderPracticeWorkbench() {
   const panel = $("practice-candidate-workbench");
   if (!panel) return;
-  if (!targetGapId || !targetCompetencyId || !practiceCandidateStore) {
+  if (!targetGapId || !targetCompetencyId) {
     panel.hidden = true;
     return;
   }
+  await ensurePracticeRuntime();
   panel.hidden = false;
   const target = await currentPracticeTarget();
   const generationButton = $("generate-practice-candidate");
@@ -940,15 +972,12 @@ async function boot() {
   if(!mapResponse.ok||!challengeResponse.ok||!assessmentResponse.ok) throw new Error("复习注册表载入失败。");
   [map,registry,assessments]=await Promise.all([mapResponse.json(),challengeResponse.json(),assessmentResponse.json()]);
   engine=createReviewSessionEngine({registry:assessments});
-  taskOrchestrator=createLearningTaskOrchestrator();
-  practiceProvider=createLearningAgentProvider();
-  practiceCandidateStore=createLearningPracticeCandidateStore({ registry: assessments });
-  practiceQualityClient=createLearningPracticeQualityReviewClient();
   wire();
   const competencyId=params.get("competencyId");
   const gapId=params.get("gapId");
   activeTaskId=params.get("taskId") || null;
   if (activeTaskId) {
+    await ensureTaskOrchestrator();
     const task = await taskOrchestrator.get(activeTaskId);
     if (!task || task.taskType !== "review" && task.taskType !== "assessment") {
       throw new Error("复习入口关联的任务无效。");
