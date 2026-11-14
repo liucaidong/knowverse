@@ -35,7 +35,7 @@ test("desktop navigation exposes four workspaces with contextual second-level ro
   try{
     const page=await browser.newPage({viewport:{width:1440,height:900}});
     const errors=[];page.on("pageerror",e=>errors.push(e.message));
-    await page.goto(url+"/knowledge/promise/",{waitUntil:"networkidle"});
+    await page.goto(url+"/",{waitUntil:"networkidle"});
     assert.equal(await page.locator("#kv-global-account").count(),1);
     assert.equal(await page.locator(".kv-nav-group").count(),4);
     assert.equal(await page.locator(".kv-nav-toggle").count(),4);
@@ -90,7 +90,7 @@ test("all four destinations remain visible with JavaScript disabled", {timeout:6
   try{
     const context=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:844}});
     const page=await context.newPage();
-    await page.goto(url+"/knowledge/",{waitUntil:"domcontentloaded"});
+    await page.goto(url+"/",{waitUntil:"domcontentloaded"});
     assert.equal(await page.locator(".kv-static-shell").count(),1);
     assert.equal(await page.locator(".kv-nav-group").count(),4);
     for(const label of ["开始学习","知识库","实践中心","我的进度"]){
@@ -98,6 +98,39 @@ test("all four destinations remain visible with JavaScript disabled", {timeout:6
     }
     assert.equal(await page.locator("#kv-global-account").count(),1);
     await context.close();
+  }finally{await browser.close();}
+});
+
+
+test("GitBook-style reading workspace keeps topic navigation beside the article", {timeout:60000}, async()=>{
+  const browser=await chromium.launch({headless:true});
+  try{
+    const page=await browser.newPage({viewport:{width:1440,height:900}});
+    const errors=[];page.on("pageerror",e=>errors.push(e.message));
+    await page.goto(url+"/knowledge/promise/lesson-03/",{waitUntil:"networkidle"});
+    assert.equal(await page.locator(".kv-reading-sidebar").count(),1);
+    assert.equal(await page.locator(".kv-reading-topic").count(),12);
+    assert.equal(await page.locator(".kv-reading-topic.is-active").innerText(),"JavaScript · Promise");
+    assert.equal(await page.locator(".kv-navlinks").isVisible(),false);
+    const geometry=await page.evaluate(()=>({
+      sidebar:document.querySelector(".kv-reading-sidebar").getBoundingClientRect().width,
+      mainLeft:document.querySelector("main").getBoundingClientRect().left,
+      mainWidth:document.querySelector("main").getBoundingClientRect().width,
+      viewport:document.documentElement.clientWidth,
+    }));
+    assert.ok(geometry.sidebar>=210 && geometry.sidebar<=260,JSON.stringify(geometry));
+    assert.ok(geometry.mainLeft>=geometry.sidebar,JSON.stringify(geometry));
+    assert.ok(geometry.mainWidth>650,JSON.stringify(geometry));
+    await page.setViewportSize({width:390,height:844});
+    const mobile=await page.evaluate(()=>({
+      sidebar:document.querySelector(".kv-reading-sidebar").getBoundingClientRect(),
+      main:document.querySelector("main").getBoundingClientRect(),
+      scrollWidth:document.documentElement.scrollWidth,
+      clientWidth:document.documentElement.clientWidth,
+    }));
+    assert.ok(mobile.sidebar.height>0 && mobile.sidebar.width===mobile.clientWidth,JSON.stringify(mobile));
+    assert.ok(mobile.scrollWidth<=mobile.clientWidth+1,JSON.stringify(mobile));
+    assert.deepEqual(errors,[]);
   }finally{await browser.close();}
 });
 

@@ -36,6 +36,10 @@ test("build-time shell creates four direct navigation destinations and one accou
     assert.ok(home.includes('href="./assets/css/site-architecture.css"'));
     assert.ok(home.includes('href="./assets/css/site-design-system.css"'));
     assert.equal((topic.match(/id="kv-global-account"/g)||[]).length,1);
+    assert.ok(topic.includes('class="kv-reading-sidebar"'));
+    assert.ok(topic.includes('class="kv-reading-layout"'));
+    assert.ok(topic.includes('href="../../knowledge/promise/"'));
+    assert.equal((topic.match(/class="kv-reading-sidebar"/g)||[]).length,1);
     assert.ok(topic.includes('href="../../start/"'));
     assert.ok(custom.includes("workbench-toolbar"));
     assert.ok(custom.includes('data-kv-shell-version="4.1"'));

@@ -72,6 +72,24 @@ function renderHeader(prefix, navigation, routes, topics) {
   </nav></header>`;
 }
 
+function renderReadingSidebar(prefix, routes, topics, rel) {
+  const routeById = new Map(routes.routes.map(route => [route.id, route]));
+  const topicLinks = topics.topics.map(topic => {
+    const route = routeById.get(`topic.${topic.id}`);
+    if (!route) return "";
+    const href = routeHref(route, prefix);
+    const active = rel.startsWith(`knowledge/${topic.id}/`) || rel.startsWith(`concept/${topic.id}.`);
+    return `<a class="kv-reading-topic${active ? " is-active" : ""}" href="${escapeHtml(href)}"${active ? ' aria-current="page"' : ""}>${escapeHtml(topic.title)}</a>`;
+  }).join("");
+  return `<aside class="kv-reading-sidebar" aria-label="知识库导航">
+    <div class="kv-reading-sidebar-head"><span>KNOWLEDGE BASE</span><a href="${prefix}knowledge/">知识总览 ↗</a></div>
+    <nav class="kv-reading-primary" aria-label="学习入口"><a href="${prefix}start/">开始学习</a><a href="${prefix}agent/">学习 Agent</a><a href="${prefix}works/">实践中心</a><a href="${prefix}progress/">学习进度</a></nav>
+    <div class="kv-reading-divider"></div><div class="kv-reading-section-title">专题与知识领域</div>
+    <nav class="kv-reading-topics" aria-label="知识专题">${topicLinks}</nav>
+    <div class="kv-reading-sidebar-foot"><a href="${prefix}provenance/">来源与参考</a><span>12 个知识领域 · 持续扩展</span></div>
+  </aside>`;
+}
+
 function renderSearchOverlay() {
   return `<div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="全站搜索">
     <div class="searchbox"><div class="searchheading"><strong>搜索 KNOWVERSE 知识宇宙</strong><button id="search-close" type="button">关闭 ✕</button></div>
@@ -133,6 +151,20 @@ for (const { file, rel } of htmlFiles) {
     const label = rel.includes("promise-cosmos") ? "返回 KNOWVERSE" : "退出沉浸体验";
     const exit = `<a class="kv-immersive-exit" href="${prefix}" aria-label="返回 KNOWVERSE 首页">← ${label}</a>`;
     html = html.replace(/<body\b[^>]*>/i, match => match + exit);
+  }
+
+  const isReadingPage = rel.startsWith("knowledge/") || rel.startsWith("concept/");
+  if (isReadingPage) {
+    html = html.replace(/<body\b([^>]*)>/i, (match, attrs) => {
+      const classMatch = attrs.match(/\sclass=["']([^"']*)["']/i);
+      const classes = [...new Set([...(classMatch?.[1] || "").split(/\s+/).filter(Boolean), "kv-reading-layout"])].join(" ");
+      const cleanAttrs = attrs.replace(/\sclass=["'][^"']*["']/gi, "");
+      return `<body${cleanAttrs} class="${classes}">`;
+    });
+    if (!html.includes('class="kv-reading-sidebar"')) {
+      const sidebar = renderReadingSidebar(prefix, routes, knowledge, rel);
+      html = html.replace(/(<header\b[^>]*>[\s\S]*?<\/header>)/i, `$1${sidebar}`);
+    }
   }
 
   const bodyMatch = html.match(/<body\b([^>]*)>/i);
