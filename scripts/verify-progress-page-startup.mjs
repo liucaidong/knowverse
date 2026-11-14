@@ -40,3 +40,14 @@ test("advanced analysis honors a details section opened before async boot wiring
   assert.match(setup, /if \(advanced\?\.open\)/);
   assert.match(setup, /ensureProactiveAnalysis\(\)\.catch/);
 });
+
+test("cloud account panel code is deferred until its section approaches the viewport", async () => {
+  const page = await read("assets/js/learning-progress-page.mjs");
+  const staticImports = page.slice(0, page.indexOf("const siteRoot"));
+  const initializer = page.slice(page.indexOf("function ensureAccountPanel()"), page.indexOf("function setupLazySections()"));
+  const setup = page.slice(page.indexOf("function setupLazySections()"), page.indexOf("async function updatePlanPreference"));
+  assert.doesNotMatch(staticImports, /backend\/account-panel\.mjs/);
+  assert.match(initializer, /import\("\.\/backend\/account-panel\.mjs"\)/);
+  assert.match(setup, /"cloud-account"/);
+  assert.match(setup, /if \(id === "cloud-account"\)/);
+});

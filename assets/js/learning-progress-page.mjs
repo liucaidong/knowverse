@@ -1,6 +1,5 @@
 import { createLearningProgressStore, deriveLearningInsights } from "./learning-progress.mjs";
 import { buildAdaptiveLearningPlan, createLearningPlanPreferencesStore, recordLearningPlanAction } from "./learning-planner.mjs";
-import { mountBackendAccountPanel } from "./backend/account-panel.mjs";
 import { getArchiveRuntime } from "./backend/archive-bootstrap.mjs";
 import { getLearningRepository } from "./backend/learning-repository.mjs";
 import { buildWeeklyLearningReview } from "./learning-weekly-review.mjs";
@@ -31,6 +30,7 @@ let goalManager = null;
 let latestSnapshot = null;
 let learningRepository = null;
 let sectionObserver = null;
+let accountPanelPromise = null;
 const renderedSections = new Set();
 
 const statusLabels = {
@@ -959,16 +959,35 @@ async function ensureProactiveAnalysis() {
   return proactiveInitPromise;
 }
 
+function ensureAccountPanel() {
+  const host = $("backend-account-panel");
+  if (!host || accountPanelPromise) return accountPanelPromise;
+  accountPanelPromise = import("./backend/account-panel.mjs")
+    .then(({ mountBackendAccountPanel }) => mountBackendAccountPanel(host, { store }))
+    .catch(error => {
+      accountPanelPromise = null;
+      host.textContent = "云端账户面板初始化失败：" + error.message;
+      throw error;
+    });
+  return accountPanelPromise;
+}
+
 function setupLazySections() {
-  if (sectionObserver || !("IntersectionObserver" in window)) return;
-  const targets = ["weekly-learning-review", "overview", "knowledge-map", "weak-points", "review-plan", "challenge-history"]
+  if (sectionObserver) return;
+  if (!("IntersectionObserver" in window)) {
+    ensureAccountPanel().catch(error => console.warn("[KNOWVERSE] account panel unavailable:", error));
+    return;
+  }
+  const targets = ["weekly-learning-review", "overview", "knowledge-map", "weak-points", "review-plan", "challenge-history", "cloud-account"]
     .map(id => $(id)).filter(Boolean);
   sectionObserver = new IntersectionObserver(entries => {
     for (const entry of entries) {
       if (!entry.isIntersecting) continue;
       const id = entry.target.id;
       sectionObserver.unobserve(entry.target);
-      if (id === "review-plan") {
+      if (id === "cloud-account") {
+        ensureAccountPanel().catch(error => console.warn("[KNOWVERSE] account panel unavailable:", error));
+      } else if (id === "review-plan") {
         ensureProactiveAnalysis().catch(error => console.warn("[KNOWVERSE] review projection unavailable:", error));
       } else {
         refresh().catch(error => console.warn("[KNOWVERSE] deferred section render failed:", error));
@@ -976,6 +995,16 @@ function setupLazySections() {
     }
   }, { rootMargin: "520px 0px", threshold: 0.01 });
   targets.forEach(target => sectionObserver.observe(target));
+  const mountAccountPanelForNavigation = () => {
+    if (location.hash === "#cloud-account" || sectionNearViewport("cloud-account")) {
+      ensureAccountPanel().catch(error => console.warn("[KNOWVERSE] account panel unavailable:", error));
+      if (location.hash === "#cloud-account") $("cloud-account")?.scrollIntoView({ block:"start" });
+    }
+  };
+  window.addEventListener("hashchange", mountAccountPanelForNavigation);
+  // Initial hash navigation can happen before IntersectionObserver is attached,
+  // especially on WebKit. Honor an explicit deep link after lazy wiring exists.
+  mountAccountPanelForNavigation();
   const advanced = $("proactive-learning");
   advanced?.addEventListener("toggle", () => {
     if (advanced.open) {
@@ -1222,12 +1251,6 @@ async function boot() {
   // is immediately usable and should render while the network catches up.
   const archiveRuntime = await getArchiveRuntime();
 
-  const backendPanel = document.getElementById("backend-account-panel");
-  if (backendPanel) {
-    mountBackendAccountPanel(backendPanel, { store }).catch(error => {
-      backendPanel.textContent = "云端账户面板初始化失败：" + error.message;
-    });
-  }
   if (!store.available) {
     setText("storage-status", "当前浏览器不支持 IndexedDB；学习事件无法持久保存。");
   }
