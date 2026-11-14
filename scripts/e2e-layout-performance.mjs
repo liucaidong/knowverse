@@ -142,3 +142,43 @@ test("review and agent workspaces keep below-fold layout stable during async ini
     }
   } finally { await browser.close(); }
 });
+
+test("Agent defers proactive analysis until advanced insights are opened", { timeout:60000 }, async () => {
+  const browser = await chromium.launch({ headless:true });
+  try {
+    const { context, page, errors } = await openPage(browser, "/agent/", { width:1440, height:960 });
+    await page.waitForFunction(() => document.querySelector("#la-workspace")?.hidden === false);
+    const initial = await page.evaluate(() => {
+      const resources = performance.getEntriesByType("resource");
+      return {
+        jsBytes:resources.filter(item => item.initiatorType === "script").reduce((sum, item) => sum + item.encodedBodySize, 0),
+        heavy:resources.filter(item => /proactive-learning-engine|learning-strategy-engine|learning-risk-engine|spaced-repetition-engine|next-best-action/.test(item.name)).map(item => new URL(item.name).pathname),
+      };
+    });
+    assert.ok(initial.jsBytes < 370000, "Agent first-load JavaScript budget: " + JSON.stringify(initial));
+    assert.deepEqual(initial.heavy, [], "proactive strategy and risk engines must remain unloaded while advanced insights are closed");
+    await page.locator(".la-advanced-details > summary").click();
+    await page.waitForFunction(() => performance.getEntriesByType("resource").some(item => item.name.includes("proactive-learning-engine.mjs")));
+    await page.waitForFunction(() => !document.querySelector("#la-proactive-summary")?.textContent.includes("尚未计算"));
+    const loaded = await page.evaluate(() => performance.getEntriesByType("resource").filter(item => /proactive-learning-engine|learning-strategy-engine|learning-risk-engine|spaced-repetition-engine|next-best-action/.test(item.name)).map(item => new URL(item.name).pathname));
+    assert.ok(loaded.some(path => path.endsWith("/proactive-learning-engine.mjs")), JSON.stringify(loaded));
+    assert.deepEqual(errors, []);
+    await context.close();
+  } finally { await browser.close(); }
+});
+
+test("manual plan regeneration loads proactive analysis on demand when advanced insights stay closed", { timeout:60000 }, async () => {
+  const browser = await chromium.launch({ headless:true });
+  try {
+    const { context, page, errors } = await openPage(browser, "/agent/", { width:1440, height:960 });
+    await page.waitForFunction(() => document.querySelector("#la-workspace")?.hidden === false);
+    const initialHeavy = await page.evaluate(() => performance.getEntriesByType("resource").filter(item => item.name.includes("proactive-learning-engine.mjs")).length);
+    assert.equal(initialHeavy, 0);
+    await page.locator("#la-regenerate-plan").click();
+    await page.waitForFunction(() => performance.getEntriesByType("resource").some(item => item.name.includes("proactive-learning-engine.mjs")));
+    await page.waitForFunction(() => document.querySelector("#la-chat-status")?.textContent.includes("已生成计划提案"), null, { timeout:20000 });
+    assert.equal(await page.locator(".la-advanced-details").evaluate(element => element.open), false, "plan generation must not force open the advanced workspace");
+    assert.deepEqual(errors, []);
+    await context.close();
+  } finally { await browser.close(); }
+});

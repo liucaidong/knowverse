@@ -5,7 +5,6 @@ import { createLearnerProfileStore, deriveLearnerProfile } from "./learner-profi
 import { createLearningGoalManager } from "./goal-manager.mjs";
 import { createLearningPlanManager } from "./plan-manager.mjs";
 import { createLearningTaskOrchestrator } from "./task-orchestrator.mjs";
-import { createProactiveLearningEngine } from "../proactive-learning-engine.mjs";
 import { createAgentSessionStore } from "./agent-session-store.mjs";
 
 const root = new URL("../../../", import.meta.url);
@@ -42,6 +41,7 @@ const STATUS = {
 const escapeLines = value => String(value || "").split("\n").join(" ");
 let services;
 let agentRuntimePromise = null;
+let proactiveEnginePromise = null;
 
 function loadAgentRuntime() {
   if (!agentRuntimePromise) {
@@ -59,6 +59,36 @@ function loadAgentRuntime() {
     });
   }
   return agentRuntimePromise;
+}
+
+async function ensureProactiveEngine() {
+  if (services?.proactiveEngine) return services.proactiveEngine;
+  if (!proactiveEnginePromise) {
+    proactiveEnginePromise = import("../proactive-learning-engine.mjs").then(module => {
+      services.proactiveEngine = module.createProactiveLearningEngine({
+        repository:services.repository,
+        learningMap:services.learningMap,
+        challengeRegistry:services.challengeRegistry,
+        goalManager:services.goalManager,
+        taskOrchestrator:services.taskOrchestrator,
+        profileStore:services.profileStore,
+      });
+      if (services.context) services.context.proactiveEngine = services.proactiveEngine;
+      return services.proactiveEngine;
+    }).catch(error => {
+      proactiveEnginePromise = null;
+      throw error;
+    });
+  }
+  return proactiveEnginePromise;
+}
+
+async function refreshProactiveState() {
+  const engine = await ensureProactiveEngine();
+  const projection = await engine.refresh();
+  state.proactive = projection;
+  if (services?.context) services.context.proactiveProjection = projection;
+  return projection;
 }
 let session;
 let messages = [];
@@ -88,7 +118,8 @@ function siteLink(label, href, className = "la-link") {
 async function refreshState() {
   const initialPlan = await services.planManager.current();
   if (initialPlan.active) await services.taskOrchestrator.refreshUnlocks(initialPlan.active.planId);
-  const proactive = await services.proactiveEngine.refresh();
+  const advancedOpen = document.querySelector(".la-advanced-details")?.open === true;
+  const proactive = advancedOpen ? await refreshProactiveState() : state.proactive;
   const [events, preferences, goals, current, tasks] = await Promise.all([
     services.repository.events.list(),
     services.profileStore.loadPreferences(),
@@ -147,6 +178,7 @@ async function maybeAutoReplan(incomingEvents = []) {
     lastAutoReplanCause = cause;
     const reason = "检测到新的学习事实（" + newer.map(event => event.type).join("、") +
       "），按当前目标、掌握证据与任务执行情况重新评估；原计划继续保留。";
+    await refreshProactiveState();
     const generated = await services.planManager.generate(services.context, reason, {
       horizonDays: current.active?.horizonDays || current.proposal?.horizonDays || 1,
     });
@@ -900,6 +932,7 @@ function bindPreferences() {
     replanButton.disabled = true;
     replanButton.textContent = "正在重新计算…";
     try {
+      await refreshProactiveState();
       const plan = await services.planManager.generate(services.context, "学习者在工作区点击重新规划");
       await refreshAll();
       $("la-chat-status").textContent = "已生成计划提案 V" + plan.version + "，尚未生效。";
@@ -944,14 +977,12 @@ async function initialize() {
   const goalManager = createLearningGoalManager({ repository, learningMap });
   const taskOrchestrator = createLearningTaskOrchestrator({ repository });
   const planManager = createLearningPlanManager({ repository, taskOrchestrator });
-  const proactiveEngine = createProactiveLearningEngine({
-    repository, learningMap, challengeRegistry, goalManager, taskOrchestrator, profileStore,
-  });
   const sessionStore = createAgentSessionStore({ repository });
   services = {
     repository, progressStore, profileStore, goalManager, taskOrchestrator,
-    planManager, proactiveEngine, sessionStore,
+    planManager, proactiveEngine:null, sessionStore,
     learningMap, worksManifest, challengeRegistry, checkpointRegistry,
+    proactiveProjection:null,
   };
   services.context = {
     ...services,
@@ -969,6 +1000,12 @@ async function initialize() {
   bindGoalForm();
   bindPreferences();
   bindChat();
+  const advancedDetails = document.querySelector(".la-advanced-details");
+  advancedDetails?.addEventListener("toggle", () => {
+    if (advancedDetails.open) refreshAll().catch(error => {
+      $("la-chat-status").textContent = "主动学习分析暂未载入：" + (error.message || "未知错误");
+    });
+  });
   renderMessages();
   window.addEventListener("knowverse:learning-events-appended", receiveLearningEvents);
   await maybeAutoReplan(state.events);
