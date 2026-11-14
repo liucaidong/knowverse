@@ -143,7 +143,6 @@ jobs:
           node --check assets/js/learning-agent/workspace.mjs
           node --input-type=module --check < assets/js/v2.js
           node --check assets/js/site-shell.mjs
-          node --check assets/js/knowledge-context.mjs
           node --check scripts/e2e-hosted-supabase-sync.mjs
           node --check scripts/e2e-hosted-browser-sync.mjs
           bash -n scripts/setup-n2-staging-env.sh

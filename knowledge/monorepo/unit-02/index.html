@@ -46,7 +46,15 @@
       <a class="kv-account-manage" href="../../../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
     </div>
   </details>
-  </nav></header><main id="main"><div class="wide"><div class="breadcrumbs"><a href="../../../knowledge/">知识库</a> / <a href="../">Monorepo 专题</a> / 单元 02</div><div class="reading"><div class="article-wrap"><div class="article-title"><div class="eyebrow">UNIT 02 / MONOREPO MECHANICS</div><h1>pnpm Workspace：严格依赖是怎么形成的</h1><p class="lead">workspace:、幽灵依赖、符号链接与安装布局</p><div class="stats"><span>案例驱动</span><span>原理 → 实验 → 诊断</span><span>官方资料校对</span></div></div><figure class="atlas"><div class="atlas-bar"><strong>本章 Mermaid 机制图</strong><a href="../../../assets/panoramas/monorepo-unit-02.mmd" download>下载 .mmd ↓</a></div><div class="atlas-figure"><img src="../../../assets/panoramas/monorepo-unit-02.svg" alt="本章机制图" loading="lazy" width="792" height="58" decoding="async"></div><details><summary>查看 Mermaid 源代码</summary><pre>flowchart LR
+  </nav></header><main id="main"><div class="wide"><div class="breadcrumbs"><a href="../../../knowledge/">知识库</a> / <a href="../">Monorepo 专题</a> / 单元 02</div>
+<!-- KNOWVERSE_CONTEXT_START -->
+<section class="kv-article-context" data-kv-article-context="monorepo"><div class="kv-article-context-top"><span class="kv-context-kicker">YOU ARE HERE</span><strong>TypeScript · Monorepo</strong><a class="kv-context-action" href="../../../knowledge/monorepo/">打开专题全景图 ↗</a></div><p class="kv-article-context-meta">本专题已定义 4 个能力点和 3 条先修关系／个人掌握证据在学习驾驶舱统一记录。</p><details class="kv-article-context-details"><summary>展开本专题相关内容与体验入口</summary><div class="kv-article-context-links"><div class="kv-article-context-column"><strong>同专题内容</strong><a href="../../../knowledge/monorepo/chapter-02/">React / React Native / NestJS 项目结构</a><a href="../../../knowledge/monorepo/">TypeScript · Monorepo · 全景图</a><a href="../../../knowledge/monorepo/historical-overview/">历史会话笔记 · 主题总览</a><a href="../../../knowledge/monorepo/chapter-01/">工具能力矩阵与选型</a><a href="../../../knowledge/monorepo/unit-01/">先有依赖图，才有 Monorepo</a></div><div class="kv-article-context-column"><strong>关联互动体验</strong><a href="../../../knowledge/monorepo/labs/graph/">Monorepo · 依赖图与 Affected 实验器</a><a href="../../../knowledge/monorepo/labs/cache/">Monorepo · 缓存键完整性实验</a><a href="../../../knowledge/monorepo/labs/build/">Monorepo · 工作区构建顺序观测器</a><a href="../../../gallery/exhibits/monorepo-architecture/">依赖星系 · Monorepo 3D 架构展厅</a><a href="../../../puzzles/worlds/monorepo-quest/">依赖星门 · Monorepo 3D 解谜世界</a></div></div></details></section>
+<!-- KNOWVERSE_CONTEXT_END -->
+
+
+
+
+<div class="reading"><div class="article-wrap"><div class="article-title"><div class="eyebrow">UNIT 02 / MONOREPO MECHANICS</div><h1>pnpm Workspace：严格依赖是怎么形成的</h1><p class="lead">workspace:、幽灵依赖、符号链接与安装布局</p><div class="stats"><span>案例驱动</span><span>原理 → 实验 → 诊断</span><span>官方资料校对</span></div></div><figure class="atlas"><div class="atlas-bar"><strong>本章 Mermaid 机制图</strong><a href="../../../assets/panoramas/monorepo-unit-02.mmd" download>下载 .mmd ↓</a></div><div class="atlas-figure"><img src="../../../assets/panoramas/monorepo-unit-02.svg" alt="本章机制图" loading="lazy" width="792" height="58" decoding="async"></div><details><summary>查看 Mermaid 源代码</summary><pre>flowchart LR
   N0[&quot;workspace 定义&quot;]
   N1[&quot;package.json 声明&quot;]
   N2[&quot;workspace: 强制本地&quot;]

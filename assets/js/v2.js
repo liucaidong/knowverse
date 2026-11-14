@@ -30,9 +30,6 @@
     import(new URL("assets/js/site-shell.mjs", root).href)
       .then(module => module.mountSiteShell(base))
       .catch(error => console.warn("[KNOWVERSE] site navigation unavailable:", error));
-    import(new URL("assets/js/knowledge-context.mjs", root).href)
-      .then(module => module.mountKnowledgeContext(base))
-      .catch(error => console.warn("[KNOWVERSE] knowledge context unavailable:", error));
   });
 
   function showSearch() {

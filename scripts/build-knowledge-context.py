@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-"""Compile the compact browser-facing knowledge context registry."""
+"""Build static topic/article context into the knowledge HTML pages."""
 from pathlib import Path
-import json
 import sys
 sys.dont_write_bytecode = True
-from knowledge_context_data import build_knowledge_context
+from knowledge_context_data import build_static_context_pages
 
 ROOT = Path(__file__).resolve().parents[1]
-TARGET = ROOT / "content/knowledge-context.json"
-payload = json.dumps(
-    build_knowledge_context(ROOT),
-    ensure_ascii=False,
-    separators=(",", ":"),
-) + "\n"
-TARGET.write_text(payload, encoding="utf-8")
-print(f"Built {TARGET.relative_to(ROOT)} ({len(payload.encode('utf-8')):,} bytes)")
+pages = build_static_context_pages(ROOT)
+for path, html in pages.items():
+    path.write_text(html, encoding="utf-8")
+print(f"Generated static knowledge context in {len(pages)} pages")

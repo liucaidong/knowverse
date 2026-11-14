@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
 sys.dont_write_bytecode = True
-from knowledge_context_data import build_knowledge_context
+from knowledge_context_data import build_static_context_pages
 
 root = Path(__file__).resolve().parents[1]
 work_manifest = json.loads((root / "content/works.json").read_text(encoding="utf-8"))
@@ -14,8 +14,11 @@ learning_map = json.loads((root / "content/learning-map.json").read_text(encodin
 challenge_registry = json.loads((root / "content/challenges.json").read_text(encoding="utf-8"))
 checkpoint_registry = json.loads((root / "content/learning-checkpoints.json").read_text(encoding="utf-8"))
 knowledge_manifest = json.loads((root / "content/knowledge.json").read_text(encoding="utf-8"))
-compiled_context = json.loads((root / "content/knowledge-context.json").read_text(encoding="utf-8"))
-assert compiled_context == build_knowledge_context(root), "knowledge-context.json is stale; run scripts/build-knowledge-context.py"
+for context_page, expected_html in build_static_context_pages(root).items():
+    assert context_page.read_text(encoding="utf-8") == expected_html, (
+        f"Static knowledge context is stale in {context_page.relative_to(root)}; "
+        "run scripts/build-knowledge-context.py"
+    )
 works = work_manifest["works"]
 pillars = {pillar["id"]: pillar for pillar in work_manifest["pillars"]}
 topics = knowledge_manifest["topics"]

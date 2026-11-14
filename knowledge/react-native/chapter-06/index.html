@@ -46,7 +46,15 @@
       <a class="kv-account-manage" href="../../../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
     </div>
   </details>
-  </nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">React Native · 新架构</a></div><div class="eyebrow">REACT NATIVE 0.88.1 / LEARNING PATH</div><h1>线程模型、事件优先级与可中断渲染</h1><p class="lead">理解 JavaScript Thread、UI Thread 和高优先级事件如何共同维护响应性。</p></div><div class="article-grid"><article class="reader"><p class="source-lead">React Native Renderer 不是“一条 JS 线程把所有事情做完”。关键是分清两条线程的职责，并理解事件优先级如何影响调度。</p>
+  </nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">React Native · 新架构</a></div><div class="eyebrow">REACT NATIVE 0.88.1 / LEARNING PATH</div><h1>线程模型、事件优先级与可中断渲染</h1><p class="lead">理解 JavaScript Thread、UI Thread 和高优先级事件如何共同维护响应性。</p></div>
+<!-- KNOWVERSE_CONTEXT_START -->
+<section class="kv-article-context" data-kv-article-context="react-native"><div class="kv-article-context-top"><span class="kv-context-kicker">YOU ARE HERE</span><strong>React Native · 新架构</strong><a class="kv-context-action" href="../../../knowledge/react-native/">打开专题全景图 ↗</a></div><p class="kv-article-context-meta">本专题已定义 6 个能力点和 6 条先修关系／个人掌握证据在学习驾驶舱统一记录。</p><details class="kv-article-context-details"><summary>展开本专题相关内容与体验入口</summary><div class="kv-article-context-links"><div class="kv-article-context-column"><strong>同专题内容</strong><a href="../../../knowledge/react-native/">React Native · 新架构 · 全景图</a><a href="../../../knowledge/react-native/historical-overview/">历史会话笔记 · 主题总览</a><a href="../../../knowledge/react-native/chapter-02/">四类核心流与旧架构对照</a><a href="../../../knowledge/react-native/chapter-01/">构建、启动、运行三阶段</a><a href="../../../knowledge/react-native/chapter-03/">React Native 新架构 · JSI 与 Bridgeless</a></div><div class="kv-article-context-column"><strong>关联互动体验</strong><a href="../../../lab/experiments/rn-render-pipeline/">Fabric 渲染管线观测器 · Render / Commit / Mount</a><a href="../../../gallery/exhibits/rn-new-architecture/">新架构空间全景 · Build / Startup / Runtime 3D 展厅</a><a href="../../../puzzles/worlds/rn-architecture-quest/">架构边界挑战 · React Native New Architecture Quest</a></div></div></details></section>
+<!-- KNOWVERSE_CONTEXT_END -->
+
+
+
+
+<div class="article-grid"><article class="reader"><p class="source-lead">React Native Renderer 不是“一条 JS 线程把所有事情做完”。关键是分清两条线程的职责，并理解事件优先级如何影响调度。</p>
 <div class="rn-two-column"><section><h3>JavaScript Thread</h3><p>执行常见 React render 阶段与布局相关工作。</p></section><section><h3>UI Thread / Main Thread</h3><p>唯一能够操作平台 Host Views 的线程。</p></section></div>
 <pre class="mermaid">sequenceDiagram
  participant JS as JavaScript Thread

@@ -46,7 +46,15 @@
       <a class="kv-account-manage" href="../../../../../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
     </div>
   </details>
-  </nav></header><header><div class="nav"><a class="brand" href="../../../../../">KNOW<b>VERSE</b></a><a href="../../">← 多端工程专题</a></div></header><main><div class="label">MONOREPO · NATIVE BUILD ENGINEERING</div><p class="lede">锁文件是供应链证据，缓存不是版本约束。</p><div class="reader"><article class="article"><h1>05 · 为什么必须提交 pnpm-lock.yaml（以及如何缓存）</h1>
+  </nav></header><header><div class="nav"><a class="brand" href="../../../../../">KNOW<b>VERSE</b></a><a href="../../">← 多端工程专题</a></div></header><main>
+<!-- KNOWVERSE_CONTEXT_START -->
+<section class="kv-article-context" data-kv-article-context="monorepo"><div class="kv-article-context-top"><span class="kv-context-kicker">YOU ARE HERE</span><strong>TypeScript · Monorepo</strong><a class="kv-context-action" href="../../../../../knowledge/monorepo/">打开专题全景图 ↗</a></div><p class="kv-article-context-meta">本专题已定义 4 个能力点和 3 条先修关系／个人掌握证据在学习驾驶舱统一记录。</p><details class="kv-article-context-details"><summary>展开本专题相关内容与体验入口</summary><div class="kv-article-context-links"><div class="kv-article-context-column"><strong>同专题内容</strong><a href="../../../../../knowledge/monorepo/chapter-02/">React / React Native / NestJS 项目结构</a><a href="../../../../../knowledge/monorepo/">TypeScript · Monorepo · 全景图</a><a href="../../../../../knowledge/monorepo/historical-overview/">历史会话笔记 · 主题总览</a><a href="../../../../../knowledge/monorepo/chapter-01/">工具能力矩阵与选型</a><a href="../../../../../knowledge/monorepo/unit-01/">先有依赖图，才有 Monorepo</a></div><div class="kv-article-context-column"><strong>关联互动体验</strong><a href="../../../../../knowledge/monorepo/labs/graph/">Monorepo · 依赖图与 Affected 实验器</a><a href="../../../../../knowledge/monorepo/labs/cache/">Monorepo · 缓存键完整性实验</a><a href="../../../../../knowledge/monorepo/labs/build/">Monorepo · 工作区构建顺序观测器</a><a href="../../../../../gallery/exhibits/monorepo-architecture/">依赖星系 · Monorepo 3D 架构展厅</a><a href="../../../../../puzzles/worlds/monorepo-quest/">依赖星门 · Monorepo 3D 解谜世界</a></div></div></details></section>
+<!-- KNOWVERSE_CONTEXT_END -->
+
+
+
+
+<div class="label">MONOREPO · NATIVE BUILD ENGINEERING</div><p class="lede">锁文件是供应链证据，缓存不是版本约束。</p><div class="reader"><article class="article"><h1>05 · 为什么必须提交 pnpm-lock.yaml（以及如何缓存）</h1>
 <h2>本章目标</h2>
 <p>同一份 <code>package.json</code> <strong>不意味着</strong>重装会得到完全相同的依赖图。<code>^</code>、<code>~</code> 和间接依赖的范围匹配可能在不同日期解析到不同包。将所有直接/间接依赖的具体解析结果与完整性校验放入 <code>pnpm-lock.yaml</code>，才能对可复现安装做出有意义的承诺。</p>
 <p>本专题的实际项目放在 <code>knowledge/monorepo/fullstack/project/</code>，锁文件位于其工作区根目录，而不是 GitHub 仓库根目录。所有 CI 任务必须在该目录执行 <code>pnpm install --frozen-lockfile</code>。</p>

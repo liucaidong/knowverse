@@ -46,7 +46,15 @@
       <a class="kv-account-manage" href="../../../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
     </div>
   </details>
-  </nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 01</div><span class="eyebrow">THE PROMISE HANDBOOK / 01</span><h1>Promise 状态机与解决权</h1><p class="lead">三种状态之外，理解 resolved、settled、adoption 与不可逆。</p><div class="course-reading-meta">专题进度：第 <strong>2</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div><div class="course-reader-layout"><article class="reader course-reader"><h1>Promise 状态机与“已经解决”</h1>
+  </nav></header><main class="container"><div class="pagehead"><div class="crumb"><a href="../../../">首页</a> / <a href="../../">知识库</a> / <a href="../">Promise</a> / 01</div><span class="eyebrow">THE PROMISE HANDBOOK / 01</span><h1>Promise 状态机与解决权</h1><p class="lead">三种状态之外，理解 resolved、settled、adoption 与不可逆。</p><div class="course-reading-meta">专题进度：第 <strong>2</strong> / 20 单元 · 可运行代码 · 规范依据 · 分层推理</div></div>
+<!-- KNOWVERSE_CONTEXT_START -->
+<section class="kv-article-context" data-kv-article-context="promise"><div class="kv-article-context-top"><span class="kv-context-kicker">YOU ARE HERE</span><strong>JavaScript · Promise</strong><a class="kv-context-action" href="../../../knowledge/promise/">打开专题全景图 ↗</a></div><p class="kv-article-context-meta">本专题已定义 5 个能力点和 5 条先修关系／个人掌握证据在学习驾驶舱统一记录。</p><details class="kv-article-context-details"><summary>展开本专题相关内容与体验入口</summary><div class="kv-article-context-links"><div class="kv-article-context-column"><strong>同专题内容</strong><a href="../../../knowledge/promise/historical-overview/">历史会话笔记 · 主题总览</a><a href="../../../knowledge/promise/chapter-01/">核心机制与状态机</a><a href="../../../knowledge/promise/chapter-03/">第 1—14 课课程轨迹与待巩固项</a><a href="../../../knowledge/promise/chapter-02/">组合 API 与边界矩阵</a><a href="../../../knowledge/promise/">Promise 从原理到工程实践 · 全景教材</a></div><div class="kv-article-context-column"><strong>关联互动体验</strong><a href="../../../lab/experiments/promise-debugger/">Promise 机制调试工作台 · 可观测运行时</a><a href="../../../lab/experiments/queue-observatory/">微任务队列观测站</a><a href="../../../lab/experiments/promise-identity/">Promise.resolve · 同一性与采用</a><a href="../../../lab/experiments/microtask-resolution/">微任务解析流程 · 校正动画</a><a href="../../../gallery/exhibits/promise-universe/">Promise 运行宇宙 · 叙事原型</a><a href="../../../gallery/exhibits/promise-cosmos/">Promise 宇宙 · WebGL 空间展览</a></div></div></details></section>
+<!-- KNOWVERSE_CONTEXT_END -->
+
+
+
+
+<div class="course-reader-layout"><article class="reader course-reader"><h1>Promise 状态机与“已经解决”</h1>
 <h2 id="part-1">三种状态；两个容易混淆的术语</h2>
 <p>一个 Promise 始终处于 <code>pending</code>、<code>fulfilled</code>、<code>rejected</code> 三者之一。<code>settled</code> 指 <strong>fulfilled 或 rejected</strong>；<code>resolved</code> 则是 <strong>解决权已锁定</strong>：它可能已经落定，也可能正在采用其他 Promise 的结果、自己仍处于 pending。</p>
 <pre class="mermaid">stateDiagram-v2

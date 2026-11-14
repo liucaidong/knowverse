@@ -15,7 +15,7 @@
 - `content/search-metadata.json`：搜索标题、摘要、标签等人工策划字段。
 - `data/search.json`：从 Markdown 正文或 HTML 正文构建的全文搜索索引。
 - `scripts/build-search-index.py`：确定性搜索索引生成器；内容验证与 Pages 部署都会执行。
-- `assets/js/knowledge-context.mjs`：按紧凑上下文注册表生成专题与文章关系；`scripts/build-knowledge-context.py` 从规范注册表编译该数据，目录卡片由构建产物静态生成。
+- `scripts/build-knowledge-context.py`：从知识、作品、能力和搜索注册表生成专题/文章上下文 HTML，构建时写入页面，避免运行时请求与布局偏移。
 - `data/monorepo-graph.json`：从真实五包全栈参考工程的 package.json 自动生成依赖图与构建层。
 - `assets/js/monorepo-world.js`：同一套 WebGL 3D 场景渲染器，为 Monorepo 展厅与解谜世界复用。
 - `assets/js/monorepo-graph-model.mjs`：统一计算反向依赖闭包、可构建节点和构建约束。
@@ -119,7 +119,7 @@ The third complete knowledge domain is connected to all three learning pillars.
 - `content/navigation.json` 是导航唯一来源；知识专题二级项按 `content/knowledge.json` 的分类动态生成，不再由每个页面手工维护。
 - 体验作品通过 `content/works.json` 中的 `knowledge_ids` 关联知识专题；专题页和文章页从注册表反向呈现关联入口，不复制文章正文。
 - `content/learning-map.json` 只对已经定义能力点与先修关系的专题展示依赖链；未建模专题明确标记为“尚未定义”，不会把文章顺序伪装成学习因果。
-- `assets/js/site-shell.mjs` 统一渲染导航和全站账户入口；`assets/js/knowledge-context.mjs` 负责首页架构说明、专题上下文和文章关联导航。
+- `assets/js/site-shell.mjs` 统一渲染导航和全站账户入口；知识专题与文章关系由 `scripts/build-knowledge-context.py` 在构建时写入静态 HTML。
 - GitHub 登录采用全站共享会话：同一站点来源下的页面共用认证状态，不存在页面级独立登录。公开内容无需登录；登录用于个人学习档案同步。GitHub OAuth 仅请求 `read:user`，云端档案仍受账户白名单、RLS 和受控 RPC 限制。
 - 登录回调会返回发起登录前的站内页面；退出登录会清除全站共享会话，但不会删除本地学习记录。
 - `scripts/validate-site-architecture.mjs` 检查导航分组、站内路由、注册表引用和能力先修图 DAG。
