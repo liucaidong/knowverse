@@ -211,3 +211,128 @@ body.kv-workspace-layout .kv-home-section { margin-bottom: 30px; }
   body.kv-workspace-layout .pagehead { padding-top: 25px; }
   body.kv-workspace-layout .kv-home-hero { padding: 22px 18px; }
 }
+
+/* KNOWVERSE 4.2.1 — content-first density pass. Keep all controls and evidence; reduce repeated chrome. */
+
+/* Home: one clear primary action; the learning loop remains supporting context. */
+.kv-home-portal {
+  grid-template-columns: minmax(0, .9fr) minmax(260px, .8fr);
+  gap: 24px;
+  margin: 14px auto 22px;
+  padding: 22px 26px;
+  border-radius: 14px;
+  box-shadow: none;
+}
+.kv-home-copy h2 { margin: 7px 0; font-size: clamp(24px, 2.8vw, 32px); }
+.kv-home-copy p { font-size: 12px; line-height: 1.65; }
+.kv-home-action.primary { min-height: 104px; padding: 15px 18px; box-shadow: none; }
+.kv-home-actions { gap: 9px; }
+.kv-home-secondary { gap: 14px; }
+.kv-home-hero { margin: 0 0 28px; padding: 25px 28px; border-radius: 14px; box-shadow: none; }
+.kv-home-hero h1 { margin: 8px 0; font-size: clamp(30px, 4vw, 46px); }
+.kv-home-hero-copy p { font-size: 12px; line-height: 1.7; }
+.kv-home-hero-actions { margin-top: 14px; }
+.kv-home-section { margin-bottom: 28px; }
+.kv-home-section-head { margin-bottom: 12px; }
+.kv-home-section-head h2 { font-size: clamp(21px, 2.5vw, 27px); }
+.kv-home-workspace { min-height: 142px; padding: 14px; gap: 7px; }
+.kv-home-pillar, .kv-home-topic { padding: 14px; gap: 6px; }
+@media (max-width: 760px) {
+  .kv-home-portal { grid-template-columns: 1fr; gap: 12px; margin: 10px 0 16px; padding: 17px; }
+  .kv-home-action.primary { min-height: 88px; }
+  .kv-home-hero { margin-bottom: 20px; padding: 19px 17px; }
+  .kv-home-hero-actions { margin-top: 11px; }
+  .kv-home-section { margin-bottom: 22px; }
+}
+
+/* Agent: move directly from the compact context header into goals and today's plan. */
+.la-hero { padding: 30px 0 20px; }
+.la-hero-grid { gap: 24px; align-items: center; }
+.la-hero h1 { margin: 8px 0 9px; font-size: clamp(30px, 3.7vw, 43px); }
+.la-hero p { max-width: 700px; font-size: 12px; line-height: 1.7; margin: 0; }
+.la-hero-status { padding: 12px 15px; gap: 5px; box-shadow: none; }
+.la-hero-status small { font-size: 10px; line-height: 1.5; }
+.la-main { padding-top: 18px; padding-bottom: 42px; }
+.la-section { margin-bottom: 26px; }
+.la-section-title { margin-bottom: 12px; }
+.la-section-title h2 { font-size: 22px; }
+.la-form-card, .la-plan-column { box-shadow: none; }
+@media (max-width: 760px) {
+  .la-hero { padding: 20px 0 16px; }
+  .la-hero-grid { gap: 12px; }
+  .la-hero h1 { font-size: 30px; }
+}
+
+/* Progress: today's plan is the primary surface; keep advanced diagnostics available below. */
+.lp-hero { padding: 20px 0 17px; }
+.lp-hero-inner { gap: 20px; }
+.lp-hero h1 { margin: 6px 0 7px; font-size: clamp(28px, 3.5vw, 40px); }
+.lp-hero p { font-size: 11px; line-height: 1.65; }
+.lp-hero-side { grid-template-columns: repeat(4, minmax(0, 1fr)); max-width: none; gap: 7px; }
+.lp-hero-stat { padding: 9px 10px; border-radius: 9px; }
+.lp-hero-stat strong { margin-top: 3px; font-size: 20px; }
+.lp-hero-stat small { display: none; }
+.lp-hero-stat:nth-child(n+5) { display: none; }
+.lp-toolbar { top: 62px; padding: 8px 0; gap: 8px; }
+.lp-guided-note { display: none; }
+.lp-section { padding: 18px 0; }
+.lp-section-head { margin-bottom: 12px; }
+.lp-section-head p { font-size: 11px; line-height: 1.65; }
+.lp-plan-shell { padding: 14px; }
+.lp-metric-grid { gap: 8px; }
+.lp-metric { padding: 12px; }
+@media (max-width: 760px) {
+  .lp-hero { padding: 17px 0 14px; }
+  .lp-hero-inner { gap: 12px; }
+  .lp-hero-side { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lp-toolbar { top: 58px; }
+  .lp-section { padding: 15px 0; }
+}
+
+/* Review: remove the oversized empty target-grid floor and compress repeated explanation. */
+.rw-container { width: min(1120px, calc(100% - 48px)); }
+.rw-breadcrumb { padding: 12px 0 6px; }
+.rw-hero { grid-template-columns: minmax(0, 1fr) 210px; gap: 20px; padding: 16px 0 18px; }
+.rw-hero h1 { margin: 7px 0; font-size: clamp(27px, 3.4vw, 39px); }
+.rw-hero p { max-width: 760px; font-size: 11px; line-height: 1.65; }
+.rw-hero-side { padding: 12px; box-shadow: none; }
+.rw-workspace-nav { margin: 9px 0 0; padding: 6px; gap: 4px; }
+.rw-workspace-nav a { padding: 6px 9px; }
+.rw-picker, .rw-session, .rw-history { padding: 20px 0; }
+.rw-section-title { margin-bottom: 11px; }
+.rw-section-title h2 { font-size: 21px; }
+.rw-target-grid { min-height: 0; gap: 8px; }
+.rw-target { padding: 12px 14px; border-radius: 11px; }
+.rw-session-grid { grid-template-columns: minmax(0, 1fr) 220px; gap: 10px; }
+.rw-question-card { padding: 20px; box-shadow: none; }
+@media (max-width: 800px) {
+  .rw-hero { grid-template-columns: 1fr; gap: 10px; }
+  .rw-hero-side { max-width: 260px; }
+}
+@media (max-width: 560px) {
+  .rw-container { width: calc(100% - 26px); }
+  .rw-hero { padding: 12px 0 14px; }
+  .rw-workspace-nav { position: static; }
+  .rw-picker, .rw-session, .rw-history { padding: 15px 0; }
+  .rw-session-grid { grid-template-columns: 1fr; }
+}
+
+/* Catalog landing pages: shorten the introduction so interactive collections enter the first viewport. */
+body.kv-workspace-layout .pagehead { padding-top: 18px; padding-bottom: 10px; }
+body.kv-workspace-layout .pagehead h1 { margin-bottom: 7px; font-size: clamp(28px, 3.3vw, 40px); }
+body.kv-workspace-layout .pagehead .lead { margin: 0 0 9px; font-size: 12px; line-height: 1.6; }
+body.kv-workspace-layout .work-catalog-section { padding-top: 12px; }
+body.kv-workspace-layout .catalog-intro { margin: 5px 0 12px; font-size: 11px; line-height: 1.6; }
+body.kv-workspace-layout .sectionhead { margin-bottom: 10px; }
+body.kv-workspace-layout .sectionhead h2 { font-size: 23px; }
+@media (max-width: 760px) {
+  body.kv-workspace-layout .pagehead { padding-top: 14px; padding-bottom: 8px; }
+  body.kv-workspace-layout .work-catalog-section { padding-top: 8px; }
+}
+
+/* Reserve the review target region during async data hydration to prevent layout shift. */
+.rw-target-grid { min-height: 690px; }
+@media (max-width: 560px) { .rw-target-grid { min-height: 0; } }
+
+/* Preserve the established mobile reservation too: the topic list hydrates asynchronously. */
+@media (max-width: 560px) { .rw-target-grid { min-height: 690px; } }
