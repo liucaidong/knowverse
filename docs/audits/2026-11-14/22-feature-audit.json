@@ -1,0 +1,536 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-11-14",
+  "repository": "liucaidong/knowverse",
+  "branch": "develop",
+  "featureCount": 22,
+  "features": [
+    {
+      "feature": "全局导航与首页",
+      "module": "全局 Shell",
+      "routeId": "home",
+      "routePath": "./",
+      "pageType": "home",
+      "implementationFiles": [
+        "index.html",
+        "assets/js/site-shell.mjs",
+        "scripts/build-site-shell.mjs"
+      ],
+      "dependencies": [
+        "content/navigation.json",
+        "content/routes.json"
+      ],
+      "dataSource": "content/navigation.json; content/routes.json",
+      "stateManagement": "静态注册表 + 页面 Shell",
+      "availabilityAssessment": "已实现；导航与路由静态回归覆盖",
+      "testCoverage": [
+        "scripts/e2e-site-navigation.mjs",
+        "scripts/verify-site-shell.mjs"
+      ],
+      "knownRisks": "二级入口来自规范路由；需全站断链检查"
+    },
+    {
+      "feature": "登录与账户状态",
+      "module": "身份与档案",
+      "routeId": "account.archive",
+      "routePath": "./progress/#cloud-account",
+      "pageType": "account-archive",
+      "implementationFiles": [
+        "assets/js/backend/auth.mjs",
+        "assets/js/backend/config.mjs",
+        "auth/callback/index.html"
+      ],
+      "dependencies": [
+        "Supabase Auth",
+        "public.profiles",
+        "private.authorized_users"
+      ],
+      "dataSource": "Supabase Auth; public.profiles; private.authorized_users",
+      "stateManagement": "Supabase session + 本地会话状态",
+      "availabilityAssessment": "部分可用；生产数据表已核实，真实登录/账户权限端到端待验",
+      "testCoverage": [
+        "scripts/verify-backend-contract.mjs",
+        "scripts/e2e-hosted-supabase-sync.mjs"
+      ],
+      "knownRisks": "Production allowlist 与 staging 测试隔离必须保持"
+    },
+    {
+      "feature": "知识专题目录与课程",
+      "module": "知识体系",
+      "routeId": "knowledge.overview",
+      "routePath": "./knowledge/",
+      "pageType": "knowledge-index",
+      "implementationFiles": [
+        "content/knowledge.json",
+        "content/learning-map.json",
+        "knowledge/**/index.html",
+        "scripts/build-public-content.mjs"
+      ],
+      "dependencies": [
+        "知识注册表、专题 Markdown/HTML、Concept / Competency 图"
+      ],
+      "dataSource": "知识注册表、专题 Markdown/HTML、Concept / Competency 图",
+      "stateManagement": "构建期注册表 + 静态页面",
+      "availabilityAssessment": "已实现；12 专题/47 路由/19 Concept/18 Competency 架构检查通过",
+      "testCoverage": [
+        "scripts/validate-content.py",
+        "scripts/validate-v2.py",
+        "scripts/validate-site-architecture.mjs"
+      ],
+      "knownRisks": "仅 4/12 专题具备正式 Competency/Gap 映射"
+    },
+    {
+      "feature": "原理实验室入口",
+      "module": "原理实验室",
+      "routeId": "experience.lab",
+      "routePath": "./lab/",
+      "pageType": "experience-index",
+      "implementationFiles": [
+        "lab/index.html",
+        "content/works.json"
+      ],
+      "dependencies": [
+        "作品注册表"
+      ],
+      "dataSource": "作品注册表",
+      "stateManagement": "静态页面 + 作品注册表",
+      "availabilityAssessment": "已实现；入口路由通过",
+      "testCoverage": [
+        "scripts/e2e-system-route-smoke.mjs"
+      ],
+      "knownRisks": "需要按实验逐一验证实际交互"
+    },
+    {
+      "feature": "Promise 调试工作台",
+      "module": "原理实验室",
+      "routeId": "topic.promise",
+      "routePath": "./knowledge/promise/",
+      "pageType": "topic",
+      "implementationFiles": [
+        "lab/experiments/promise-debugger/index.html",
+        "lab/experiments/promise-debugger/debugger.js",
+        "assets/js/promise-*.js",
+        "workbench bundle parts"
+      ],
+      "dependencies": [
+        "原生 JavaScript 执行结果 + 内置场景；原生 Promise 差分"
+      ],
+      "dataSource": "原生 JavaScript 执行结果 + 内置场景；原生 Promise 差分",
+      "stateManagement": "页面运行时模型 + 可视化事件状态",
+      "availabilityAssessment": "已实现；13 场景/原生差分/解析与 FIFO 单测通过",
+      "testCoverage": [
+        "scripts/verify-promise-debugger.mjs",
+        "scripts/verify-promise-model.mjs",
+        "scripts/e2e-promise-workbench-css-delivery.mjs"
+      ],
+      "knownRisks": "需进一步核实每个动画帧是否由真实执行状态驱动"
+    },
+    {
+      "feature": "Promise 课程与独立挑战",
+      "module": "课程/挑战",
+      "routeId": "topic.promise",
+      "routePath": "./knowledge/promise/",
+      "pageType": "topic",
+      "implementationFiles": [
+        "knowledge/promise/**",
+        "assets/js/promise-quest.mjs",
+        "content/challenges.json"
+      ],
+      "dependencies": [
+        "课程页、挑战注册表、learning map"
+      ],
+      "dataSource": "课程页、挑战注册表、learning map",
+      "stateManagement": "静态课程 + 挑战引擎 + 本地学习证据",
+      "availabilityAssessment": "已实现；20 课与 5 阶段挑战验证通过",
+      "testCoverage": [
+        "scripts/validate-promise.py",
+        "scripts/verify-promise-quest.mjs",
+        "scripts/e2e-promise-course-learning.mjs"
+      ],
+      "knownRisks": "必须区分阅读完成与正式掌握证据"
+    },
+    {
+      "feature": "沉浸式知识展厅",
+      "module": "沉浸体验",
+      "routeId": "experience.gallery",
+      "routePath": "./gallery/",
+      "pageType": "experience-index",
+      "implementationFiles": [
+        "gallery/index.html",
+        "gallery/exhibits/**",
+        "assets/js/monorepo-world.js",
+        "assets/js/promise-realm.js",
+        "assets/js/rn-architecture-gallery.mjs"
+      ],
+      "dependencies": [
+        "场景资源、专题与作品注册表"
+      ],
+      "dataSource": "场景资源、专题与作品注册表",
+      "stateManagement": "WebGL/DOM 场景运行时 + 页面可见性状态",
+      "availabilityAssessment": "已实现；场景可见性暂停/恢复回归通过",
+      "testCoverage": [
+        "scripts/e2e-world-render-lifecycle.mjs"
+      ],
+      "knownRisks": "移动设备性能降级、资源异常和切换清理需逐场景审计"
+    },
+    {
+      "feature": "知识解谜世界",
+      "module": "挑战与实践",
+      "routeId": "experience.puzzles",
+      "routePath": "./puzzles/",
+      "pageType": "experience-index",
+      "implementationFiles": [
+        "puzzles/index.html",
+        "puzzles/worlds/**",
+        "assets/js/challenge-engine.mjs"
+      ],
+      "dependencies": [
+        "content/challenges.json",
+        "content/learning-map.json"
+      ],
+      "dataSource": "content/challenges.json; content/learning-map.json",
+      "stateManagement": "挑战状态 + IndexedDB 证据",
+      "availabilityAssessment": "已实现；挑战引擎与多个专题挑战通过",
+      "testCoverage": [
+        "scripts/verify-challenge-engine.mjs",
+        "scripts/e2e-react-native-domain.mjs"
+      ],
+      "knownRisks": "需要验证每个挑战与正式 Competency / checkpoint 的映射"
+    },
+    {
+      "feature": "学习成长总览",
+      "module": "学习进度",
+      "routeId": "learning.overview",
+      "routePath": "./progress/",
+      "pageType": "progress",
+      "implementationFiles": [
+        "progress/index.html",
+        "assets/js/learning-progress*.mjs",
+        "assets/js/learning-event-schema.mjs"
+      ],
+      "dependencies": [
+        "IndexedDB Learning Events V3",
+        "learning map",
+        "learning reducer"
+      ],
+      "dataSource": "IndexedDB Learning Events V3; learning map; learning reducer",
+      "stateManagement": "本地事件日志 + 版本化 reducer + 派生视图",
+      "availabilityAssessment": "已实现；证据/掌握图谱/Gap 单测与浏览器用例覆盖",
+      "testCoverage": [
+        "scripts/verify-learning-progress.mjs",
+        "scripts/e2e-learning-integration.mjs"
+      ],
+      "knownRisks": "刷新恢复与真实云端档案仍需单独验收"
+    },
+    {
+      "feature": "知识掌握图谱",
+      "module": "学习进度",
+      "routeId": "learning.mastery",
+      "routePath": "./progress/#knowledge-map",
+      "pageType": "mastery-graph",
+      "implementationFiles": [
+        "assets/js/learning-progress.mjs",
+        "assets/js/learning-risk-engine.mjs",
+        "content/learning-map.json"
+      ],
+      "dependencies": [
+        "Learning Events V3 + Competency/Gap 注册表"
+      ],
+      "dataSource": "Learning Events V3 + Competency/Gap 注册表",
+      "stateManagement": "事件派生状态；非直接写入掌握分数",
+      "availabilityAssessment": "部分可用；仅正式映射的 4 个专题可进行能力级推断",
+      "testCoverage": [
+        "scripts/verify-learning-intelligence.mjs"
+      ],
+      "knownRisks": "其余 8 专题不能伪造能力掌握度"
+    },
+    {
+      "feature": "薄弱点识别",
+      "module": "学习进度",
+      "routeId": "learning.gaps",
+      "routePath": "./progress/#weak-points",
+      "pageType": "gap-diagnosis",
+      "implementationFiles": [
+        "assets/js/learning-progress.mjs",
+        "assets/js/learning-risk-engine.mjs",
+        "content/learning-map.json"
+      ],
+      "dependencies": [
+        "真实 attempt/checkpoint/review 事件与 Gap 定义"
+      ],
+      "dataSource": "真实 attempt/checkpoint/review 事件与 Gap 定义",
+      "stateManagement": "因果事件图 + reducer 派生",
+      "availabilityAssessment": "部分可用；已覆盖 Gap 创建/定向练习/解决流程",
+      "testCoverage": [
+        "scripts/verify-learning-intelligence.mjs",
+        "scripts/e2e-phase-k-learning-loop.mjs"
+      ],
+      "knownRisks": "需逐项验证错误分类准确性及证据因果链"
+    },
+    {
+      "feature": "复习工作台",
+      "module": "复习",
+      "routeId": "learning.review",
+      "routePath": "./review/",
+      "pageType": "review",
+      "implementationFiles": [
+        "review/index.html",
+        "assets/js/review-engine.mjs",
+        "assets/js/review-workspace.mjs",
+        "content/review-assessments.json"
+      ],
+      "dependencies": [
+        "78 道正式 Review assessment + Gap + 事件日志"
+      ],
+      "dataSource": "78 道正式 Review assessment + Gap + 事件日志",
+      "stateManagement": "复习 session + 独立变体 + 学习事件",
+      "availabilityAssessment": "已实现；独立变体、错题 Gap、解决状态与刷新恢复测试通过",
+      "testCoverage": [
+        "scripts/verify-learning-progress.mjs",
+        "scripts/e2e-phase-k-learning-loop.mjs",
+        "scripts/e2e-phase-l-practice-candidate.mjs"
+      ],
+      "knownRisks": "需要审计重复提交、失败重试、评分边界与数据持久化"
+    },
+    {
+      "feature": "延迟复习与每周回顾",
+      "module": "复习/计划",
+      "routeId": "learning.today",
+      "routePath": "./progress/#adaptive-plan",
+      "pageType": "learning-plan",
+      "implementationFiles": [
+        "assets/js/spaced-repetition-engine.mjs",
+        "assets/js/learning-weekly-review.mjs",
+        "assets/js/proactive-learning-engine.mjs"
+      ],
+      "dependencies": [
+        "真实学习事件、复习会话、学习计划"
+      ],
+      "dataSource": "真实学习事件、复习会话、学习计划",
+      "stateManagement": "事件派生排程 + 文档投影",
+      "availabilityAssessment": "部分可用；延迟排程和七日证据回顾有测试",
+      "testCoverage": [
+        "scripts/verify-learning-weekly-review.mjs",
+        "scripts/e2e-weekly-learning-review.mjs"
+      ],
+      "knownRisks": "生产端真实定时执行不是当前浏览器端能力；需核对 dueAt 触发路径"
+    },
+    {
+      "feature": "个性化学习计划",
+      "module": "学习 Agent",
+      "routeId": "learning.today",
+      "routePath": "./progress/#adaptive-plan",
+      "pageType": "learning-plan",
+      "implementationFiles": [
+        "assets/js/learning-planner.mjs",
+        "assets/js/learning-agent/plan-manager.mjs",
+        "assets/js/proactive-learning-engine.mjs"
+      ],
+      "dependencies": [
+        "Competency 先修图、Gap、偏好、目标、任务、事件"
+      ],
+      "dataSource": "Competency 先修图、Gap、偏好、目标、任务、事件",
+      "stateManagement": "本地 reducer + 版本化计划文档 + 事件",
+      "availabilityAssessment": "已实现；目标→计划→任务→刷新恢复有浏览器测试",
+      "testCoverage": [
+        "scripts/verify-learning-planner.mjs",
+        "scripts/e2e-learning-agent.mjs",
+        "scripts/e2e-learning-planner.mjs"
+      ],
+      "knownRisks": "AI Provider 是否配置与规则模式须明确区分"
+    },
+    {
+      "feature": "个人智能学习 Agent",
+      "module": "学习 Agent",
+      "routeId": "learning.agent",
+      "routePath": "./agent/",
+      "pageType": "learning-agent",
+      "implementationFiles": [
+        "agent/index.html",
+        "assets/js/learning-agent/**",
+        "supabase/functions/learning-agent/index.ts"
+      ],
+      "dependencies": [
+        "本地学习状态/工具；Supabase Edge Function；Provider secrets"
+      ],
+      "dataSource": "本地学习状态/工具；Supabase Edge Function；Provider secrets",
+      "stateManagement": "本地规则 Agent + 受限云端 Provider + 会话文档",
+      "availabilityAssessment": "部分可用；规则模式与同意边界通过测试，真实 Provider 生产调用未验证",
+      "testCoverage": [
+        "scripts/verify-learning-tutor.mjs",
+        "scripts/e2e-learning-agent.mjs",
+        "scripts/e2e-hosted-learning-agent.mjs"
+      ],
+      "knownRisks": "旧审计记录指出 staging Provider secrets 缺失；需重新验证"
+    },
+    {
+      "feature": "AI Tutor",
+      "module": "学习 Agent",
+      "routeId": "learning.agent",
+      "routePath": "./agent/",
+      "pageType": "learning-agent",
+      "implementationFiles": [
+        "assets/js/learning-tutor.mjs",
+        "assets/js/learning-agent/agent-provider.mjs",
+        "supabase/functions/learning-agent/index.ts"
+      ],
+      "dependencies": [
+        "当前页面上下文、选中摘录、Competency、用户明确同意"
+      ],
+      "dataSource": "当前页面上下文、选中摘录、Competency、用户明确同意",
+      "stateManagement": "单轮授权 Provider 请求；不直接写掌握证据",
+      "availabilityAssessment": "部分可用；本地同意与上下文隔离测试通过；真实模型调用未验",
+      "testCoverage": [
+        "scripts/verify-learning-tutor.mjs",
+        "scripts/e2e-learning-tutor.mjs"
+      ],
+      "knownRisks": "不得把 Tutor 对话当作正式答题证据"
+    },
+    {
+      "feature": "AI Reviewer / 练习候选质量审核",
+      "module": "内容治理",
+      "routeId": "learning.gaps",
+      "routePath": "./progress/#weak-points",
+      "pageType": "gap-diagnosis",
+      "implementationFiles": [
+        "assets/js/learning-practice-candidates.mjs",
+        "assets/js/learning-practice-quality-review.mjs",
+        "supabase/functions/practice-quality-review/index.ts",
+        "supabase/functions/_shared/**"
+      ],
+      "dependencies": [
+        "Gap/Competency/官方题目源；append-only quality audit"
+      ],
+      "dataSource": "Gap/Competency/官方题目源；append-only quality audit",
+      "stateManagement": "候选私有文档 + 服务端校验 + 独立 Reviewer + 人工审批",
+      "availabilityAssessment": "部分可用；确定性校验/权限边界测试通过，真实独立 Reviewer Provider 未验证",
+      "testCoverage": [
+        "scripts/verify-learning-practice-quality.mjs",
+        "scripts/e2e-phase-m-practice-quality.mjs",
+        "scripts/e2e-staging-practice-reviewer.mjs"
+      ],
+      "knownRisks": "AI 审核记录不构成学习掌握证据；发布需要人工审批"
+    },
+    {
+      "feature": "学习档案与云端事件同步",
+      "module": "账户/持久化",
+      "routeId": "account.archive",
+      "routePath": "./progress/#cloud-account",
+      "pageType": "account-archive",
+      "implementationFiles": [
+        "assets/js/backend/archive-bootstrap.mjs",
+        "assets/js/backend/learning-repository.mjs",
+        "assets/js/backend/local-archive.mjs",
+        "assets/js/backend/sync-engine.mjs"
+      ],
+      "dependencies": [
+        "IndexedDB + Supabase learning_events / learning_archive_documents + sync RPC"
+      ],
+      "dataSource": "IndexedDB + Supabase learning_events / learning_archive_documents + sync RPC",
+      "stateManagement": "本地优先 Outbox + 事件/文档同步 + CAS",
+      "availabilityAssessment": "部分可用；单元/隔离 PostgreSQL/过往 staging 测试通过；生产真实账户完整同步待验",
+      "testCoverage": [
+        "scripts/verify-learning-cloud-sync-contract.mjs",
+        "scripts/verify-sync-restore-reconciliation.mjs",
+        "scripts/e2e-hosted-supabase-sync.mjs"
+      ],
+      "knownRisks": "跨浏览器调度问题明确暂停；本阶段只检查学习证据数据正确性"
+    },
+    {
+      "feature": "搜索、来源与知识关系",
+      "module": "知识发现",
+      "routeId": "knowledge.sources",
+      "routePath": "./provenance/",
+      "pageType": "sources",
+      "implementationFiles": [
+        "assets/js/v2.js",
+        "assets/js/site-shell.mjs",
+        "content/search-metadata.json",
+        "content/sources.json",
+        "content/learning-map.json"
+      ],
+      "dependencies": [
+        "静态搜索索引、Concept/Competency 图、官方来源登记"
+      ],
+      "dataSource": "静态搜索索引、Concept/Competency 图、官方来源登记",
+      "stateManagement": "构建期搜索索引 + 静态关系注册表",
+      "availabilityAssessment": "已实现；118 搜索记录与 canonical Concept 跳转校验通过",
+      "testCoverage": [
+        "scripts/verify-public-content.mjs",
+        "scripts/e2e-guide-search-bootstrap.mjs",
+        "scripts/e2e-site-navigation.mjs"
+      ],
+      "knownRisks": "检索相关性、来源时效性和跨专题图关系需人工内容审查"
+    },
+    {
+      "feature": "学习反思与隐私笔记",
+      "module": "学习档案",
+      "routeId": "account.archive",
+      "routePath": "./progress/#cloud-account",
+      "pageType": "account-archive",
+      "implementationFiles": [
+        "assets/js/learning-reflections.mjs",
+        "assets/js/backend/learning-repository.mjs"
+      ],
+      "dependencies": [
+        "私有 learner reflection 文档"
+      ],
+      "dataSource": "私有 learner reflection 文档",
+      "stateManagement": "本地 IndexedDB + 云端版本化文档",
+      "availabilityAssessment": "已实现；反思不会被当成掌握证据的测试通过",
+      "testCoverage": [
+        "scripts/verify-learning-reflections.mjs",
+        "scripts/e2e-learning-tutor.mjs"
+      ],
+      "knownRisks": "需验证导出/删除请求与账号隔离"
+    },
+    {
+      "feature": "学习内容与来源溯源",
+      "module": "知识治理",
+      "routeId": "knowledge.sources",
+      "routePath": "./provenance/",
+      "pageType": "sources",
+      "implementationFiles": [
+        "content/sources.json",
+        "content/works.json",
+        "content/knowledge.json",
+        "provenance/index.html"
+      ],
+      "dependencies": [
+        "来源注册表与作品/专题关联"
+      ],
+      "dataSource": "来源注册表与作品/专题关联",
+      "stateManagement": "构建期 provenance 页面",
+      "availabilityAssessment": "已实现；17 来源记录与公开页面构建通过",
+      "testCoverage": [
+        "scripts/validate-content.py",
+        "scripts/verify-public-content.mjs"
+      ],
+      "knownRisks": "需逐条核对引用和内容正确性"
+    },
+    {
+      "feature": "构建与发布管线",
+      "module": "交付",
+      "routeId": "home",
+      "routePath": "./",
+      "pageType": "home",
+      "implementationFiles": [
+        ".github/workflows/pages.yml",
+        "scripts/build-public-content.mjs",
+        "scripts/build-knowledge-context.py",
+        "scripts/build-site-shell.mjs"
+      ],
+      "dependencies": [
+        "Git develop + 静态生成器 + GitHub Pages"
+      ],
+      "dataSource": "Git develop + 静态生成器 + GitHub Pages",
+      "stateManagement": "静态可复现构建与 Pages 部署",
+      "availabilityAssessment": "已实现；本地构建链可运行，生产部署 commit 仍需 WP5 验证",
+      "testCoverage": [
+        "scripts/verify-public-content.mjs",
+        "scripts/verify-site-shell.mjs"
+      ],
+      "knownRisks": "本阶段不依赖 CI；生产部署状态需 HTTP/资产检查"
+    }
+  ]
+}

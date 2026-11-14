@@ -83,6 +83,19 @@ test.after(() => new Promise(resolveServer => server.close(resolveServer)));
 async function openAgent(page) {
   await page.goto(baseURL + "/agent/", { waitUntil: "domcontentloaded" });
   await page.locator("#la-workspace").waitFor({ state: "visible" });
+  // This account is intentionally reused across isolated E2E runs. Restore its
+  // remote baseline before creating run-scoped documents, otherwise singleton
+  // documents (plan head / preferences) can race the first sync and report CAS
+  // conflicts unrelated to the learning-loop assertions below.
+  const initialSync = await page.evaluate(async () => {
+    const { getArchiveRuntime } = await import("/assets/js/backend/archive-bootstrap.mjs");
+    const runtime = await getArchiveRuntime();
+    return runtime.initialSyncPromise;
+  });
+  assert.equal(initialSync?.status, "synced",
+    "the staging learner's existing cloud baseline must restore before the test writes: " + JSON.stringify(initialSync));
+  assert.equal(initialSync.conflicts, 0,
+    "the staging learner's initial cloud baseline must restore without document conflicts");
 }
 
 async function createGoalAndAcceptPlan(page) {

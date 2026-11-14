@@ -1,0 +1,183 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-11-14",
+  "issues": [
+    {
+      "id": "KV41-001",
+      "severity": "P2",
+      "module": "复习工作台 / 学习 Agent",
+      "title": "计划与任务事件缺少 Gap 来源证据和生命周期元数据",
+      "evidence": [
+        "planEvent 忽略 extra 参数",
+        "active Gap 未携带失败 observation event ID",
+        "Plan Action / Task 未持久化 sourceEvidenceRefs"
+      ],
+      "status": "fixed",
+      "resolution": [
+        "Gap 输出 sourceEvidenceRefs",
+        "Plan / Task documents 与 lifecycle events 传播 sourceEvidenceRefs、topicIds、competencyIds、targetGapEventIds",
+        "恢复 actor / supersededByPlanId / reason 等 metadata"
+      ],
+      "verification": [
+        "scripts/verify-phase-e.mjs: 18/18",
+        "learning-core targeted: 92/92",
+        "learning-loop targeted browser: 13/13"
+      ],
+      "productionImpact": "只影响未来生成事件；不回写历史 Production 事件。"
+    },
+    {
+      "id": "KV41-002",
+      "severity": "P2",
+      "module": "沉浸式知识展厅",
+      "title": "Promise Universe 场景在离屏 / 页面隐藏时仍持续申请 RAF",
+      "evidence": [
+        "gallery/exhibits/promise-universe/exhibit.js 原实现无 RAF 取消与 IntersectionObserver",
+        "新增生命周期测试先失败，确认持续申请动画帧"
+      ],
+      "status": "fixed",
+      "resolution": [
+        "可见性状态和 IntersectionObserver 控制循环",
+        "统一 RAF 句柄，隐藏 / 离屏时 cancelAnimationFrame",
+        "reduced-motion 只按需渲染单帧，pagehide 停止 / pageshow 恢复"
+      ],
+      "verification": [
+        "scripts/e2e-world-render-lifecycle.mjs: 5/5"
+      ],
+      "productionImpact": "静态资源修复待 Pages 部署后验证。"
+    },
+    {
+      "id": "KV41-003",
+      "severity": "P2",
+      "module": "知识专题与课程",
+      "title": "正式 Competency / Gap 图谱仅覆盖 4/12 个专题",
+      "evidence": [
+        "content/learning-map.json 有正式 competency 的专题为 Promise、Monorepo、React Native、AI Agent",
+        "其余 8 个专题不能进行同粒度能力掌握推断"
+      ],
+      "status": "open",
+      "resolution": [],
+      "verification": [
+        "scripts/validate-site-architecture.mjs: 12 topics / 19 concepts / 18 competencies"
+      ],
+      "productionImpact": "当前能力级自适应范围受限；不允许用假掌握度补齐。"
+    },
+    {
+      "id": "KV41-004",
+      "severity": "P2",
+      "module": "AI Tutor / Learning Agent / AI Reviewer",
+      "title": "Production AI Provider 真实可用性尚未验证",
+      "evidence": [
+        "Production learning-agent ACTIVE version 10 / verify_jwt=true",
+        "Production function source 在缺少 AI_PROVIDER_API_KEY 或 AI_PROVIDER_MODEL 时返回 503",
+        "本次没有读取 secret 值，也没有用已授权用户执行真实模型调用"
+      ],
+      "status": "unverified",
+      "resolution": [],
+      "verification": [
+        "Edge Function 部署元数据已核实；真实 Provider 调用未执行"
+      ],
+      "productionImpact": "规则模式已验证；真实模型能力不可宣称已通过。"
+    },
+    {
+      "id": "KV41-005",
+      "severity": "P2",
+      "module": "Supabase migration / schema",
+      "title": "Production Phase N migration 时间戳与本地版本不同",
+      "evidence": [
+        "本地 20261113041514_phase_n_learning_agent_event_sync.sql",
+        "Production 登记 20261113153515 同名 migration",
+        "本地 CLI link 指向 staging，不能用当前 link 推断 Production 状态"
+      ],
+      "status": "unverified",
+      "resolution": [],
+      "verification": [
+        "Production migrations / RPC / tables 已只读盘点；逐函数 SQL 等价性仍待核对"
+      ],
+      "productionImpact": "未执行任何生产迁移；不得擅自修正历史 migration 版本。"
+    },
+    {
+      "id": "KV41-006",
+      "severity": "P2",
+      "module": "Production 学习事件历史",
+      "title": "历史 learning_plan_generated 事件缺少 topicIds / competencyIds",
+      "evidence": [
+        "生产 plan 文档含 2 个 action、2 个 topic、2 个 competency",
+        "对应历史事件主 topic 为 unclassified，且没有 topicIds / competencyIds",
+        "多专题计划使用 unclassified 主 topic 本身合理，缺少集合元数据影响可审计性"
+      ],
+      "status": "mitigated_forward_only",
+      "resolution": [
+        "新 plan lifecycle event 会记录 topicIds / competencyIds / source refs",
+        "历史事件保留原样，不进行生产数据回写"
+      ],
+      "verification": [
+        "scripts/verify-phase-e.mjs: evidence-linked plan assertions passed"
+      ],
+      "productionImpact": "历史事件不被篡改；可通过对应 plan document 追溯原始 action。"
+    },
+    {
+      "id": "KV41-007",
+      "severity": "P2",
+      "module": "Supabase Auth 安全配置",
+      "title": "Supabase Advisor 提示泄露密码保护未开启",
+      "evidence": [
+        "Production security advisor 返回该设置项未开启"
+      ],
+      "status": "open_requires_authorization",
+      "resolution": [],
+      "verification": [
+        "只读 Advisor 检查"
+      ],
+      "productionImpact": "不在本阶段擅自修改 Auth 配置；需单独确认后处理。"
+    },
+    {
+      "id": "KV41-008",
+      "severity": "P3",
+      "module": "Supabase 数据库性能",
+      "title": "Advisor 报告两个未使用索引",
+      "evidence": [
+        "Production performance advisor 返回 unused index 提示"
+      ],
+      "status": "deferred_observe",
+      "resolution": [],
+      "verification": [
+        "只读 Advisor 检查"
+      ],
+      "productionImpact": "不凭单次观察删除索引；需结合查询负载和索引定义分析。"
+    },
+    {
+      "id": "KV41-009",
+      "severity": "P1",
+      "module": "云端学习档案 / 初始同步",
+      "title": "Staging 学习账户初始同步产生 2 个文档冲突，阻断云端闭环与第二设备恢复验收",
+      "evidence": [
+        "第一次 Staging cloud-loop 实测在最终同步返回 conflicts=2，pendingDocuments 未清零",
+        "增加测试前置诊断后，initialSync 返回 status=partial、conflicts=2、pushedDocuments=2、pulledDocuments=35、pendingDocuments=1",
+        "本地合成学习闭环通过；云端冲突出现在 staging archive baseline reconciliation"
+      ],
+      "status": "blocked_scope_freeze",
+      "resolution": [
+        "Staging 测试增加 initialSync 无冲突前置门禁，避免在冲突账户上继续写入",
+        "未修改 sync engine、自动同步频率、多标签页等待或调度机制；该范围遵循用户明确暂停要求"
+      ],
+      "verification": [
+        "scripts/e2e-staging-cloud-learning-loop.mjs 第一次运行：完整本地学习流程到云端推送，但 conflicts=2",
+        "第二次运行：在创建新测试数据前因 initialSync conflicts=2 安全停止"
+      ],
+      "productionImpact": "仅 Staging 测试账户；Production 未写入。第一次 Staging 测试产生的合成 run 数据保留，不删除。"
+    }
+  ],
+  "counts": {
+    "P0": 0,
+    "P1": 1,
+    "P2": 7,
+    "P3": 1,
+    "fixed": 2,
+    "open": 1,
+    "unverified": 2,
+    "mitigated_forward_only": 1,
+    "open_requires_authorization": 1,
+    "deferred_observe": 1,
+    "blocked_scope_freeze": 1
+  }
+}
