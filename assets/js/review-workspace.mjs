@@ -269,7 +269,7 @@ async function submitAnswer(optionId) {
       if (task?.status === "in_progress") {
         if (!result.correct) {
           await taskOrchestrator.fail(activeTaskId, { reason: "本轮复习验证未通过" });
-        } else if (task.taskType === "review" && Number(session.hintsUsed) > 0) {
+        } else if ((task.taskType === "review" || task.resourceType === "review") && Number(session.hintsUsed) > 0) {
           await taskOrchestrator.fail(activeTaskId, { reason: "提示辅助通过，尚未满足无提示独立验证条件" });
         } else {
           await taskOrchestrator.complete(activeTaskId);

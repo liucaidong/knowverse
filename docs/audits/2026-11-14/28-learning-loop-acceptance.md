@@ -64,3 +64,20 @@
 | Production AI Provider / Reviewer | 未验证 |
 
 **WP4 结论：本地真实学习闭环通过隔离验收；云端闭环与生产闭环尚未通过。KNOWVERSE 4.1 总体验收不能宣告完成。**
+
+
+## 2026-11-15 补充
+
+- 全专题图谱：12/12 topics，35 Concept，34 Competency，51 Gap，115 Review Assessment 变体。
+- 八个此前 content-only 专题补充了 16 个可验证能力点、16 个薄弱点定义、32 个基础复习变体；AI 教育多模态能力增加第三个变体支持独立迁移验证。
+- 16 个现有章节页面已接入 `learning-integration.mjs`，学习计划可从课程阅读推进到独立 assessment。
+- Staging initialSync 在被动页面先完成 pull 后，观测到 `synced / 0 conflicts`；完整云端闭环与第二设备结果以最终 E2E 退出码为准。
+- Repair task 统一使用 `taskType=assessment` + `resourceType=review`，保留精确 gap 因果验证，修复 Review Workspace 的提示辅助与独立验证状态处理。
+
+
+## 2026-11-15 最终 Staging 结果
+- Staging cloud E2E：未通过；initialSync `synced / 0 conflicts`，云端文档与事件在第二设备已恢复，但 Review Workspace 的无提示通过后 task 状态仍为 `in_progress`，未满足闭环验收。
+
+
+## 2026-11-15 最终 Staging 结果
+- Staging cloud E2E：未通过；initialSync `synced / 0 conflicts`，第二设备归档恢复已验证，但 Review task 在无提示独立通过后仍未完成。

@@ -64,3 +64,28 @@
 - `origin/develop`：与 HEAD 相同，ahead/behind `0/0`
 - 工作区：干净
 - Pages Production deployment SHA：与 HEAD 相同
+
+
+## 2026-11-15 增量回归
+
+- 架构：12 topics / 35 concepts / 34 competencies / 51 gaps / 115 review assessments / 63 canonical routes。
+- 新专题课程阅读页全部加载 `learning-integration.mjs`。
+- Staging initialSync：先在被动页恢复云端档案，再挂载 Agent workspace，观测 `synced / 0 conflicts`。
+- Repair task 使用 `taskType=assessment` + `resourceType=review`；Review Workspace 与 Task Orchestrator 均按 targeted review 的 no-hint causal chain 验证。
+- Staging AI Tutor 简单解释请求通过；practice generation 返回 HTTP 546（上游超时）。Production 未配置 AI provider secrets。
+- Production migration 函数体 MD5 与本地一致：`0d59e787ca22f762127e18cc9ef0d2f1`，5185 bytes。
+- Production stats_reset 为 NULL；idx_scan=0 不作为删索引依据。
+
+
+## 最终执行状态（2026-11-15）
+- Full Node verify suite exit: not exported（详细测试日志：`/tmp/knowverse-41-final-node-tests.log`）。
+- Staging cloud E2E exit: 1。
+- Production AI Provider 未配置；Staging practice generation 曾返回 HTTP 546。Auth leak-password protection 未获修改授权。
+
+
+## 2026-11-15 最终执行状态
+- Full Node verify suite exit: 0；详细日志 `/tmp/knowverse-41-final-node-tests.log`。
+- Staging cloud E2E exit: 1。
+- Staging Tutor 简单请求通过；practice generation 曾返回 HTTP 546。Production AI Provider secrets 缺失。
+- Production migration 函数体 MD5 与本地一致：`0d59e787ca22f762127e18cc9ef0d2f1`，5185 bytes。
+- Production stats_reset 为 NULL；未删除索引。

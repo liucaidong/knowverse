@@ -1,7 +1,7 @@
 {
   "schemaVersion": 2,
-  "updated": "2026-11-12",
-  "description": "KNOWVERSE 精确薄弱点复习注册表。17 个 gap、18 个 gap-competency 映射，各提供两种不同验证变体；提示辅助通过仍需另一个无提示变体独立确认。",
+  "updated": "2026-11-15",
+  "description": "KNOWVERSE 精确薄弱点复习注册表。每个正式 gap / competency 组合至少提供两种不同验证变体；核心误区提供更多变体以支持重复、无提示的独立复核。",
   "assessments": [
     {
       "id": "review-thenable-get-vs-call-a",
@@ -2597,6 +2597,1157 @@
       "lessonId": "chapter-04",
       "sourceHref": "./knowledge/ai-agents/chapter-04/",
       "sourceLabel": "AI Agent · 第 04 单元：Agent 安全与治理"
+    },
+    {
+      "id": "review-multimodal-learning-architecture-a",
+      "competencyId": "multimodal-learning-architecture",
+      "topicId": "ai-education",
+      "gapIds": [
+        "multimodal-path-conflation"
+      ],
+      "title": "多模态学习台的双通路架构 · 场景判断",
+      "prompt": "学习者一边举着手机摄像头提问，一边上传一张需要逐行批改的高清试卷。更合理的系统边界是什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "把所有帧都送入同一个低延迟实时会话，并把模型口头反馈直接作为批改证据。",
+          "gapId": "multimodal-path-conflation"
+        },
+        {
+          "id": "b",
+          "label": "实时音视频负责连续低延迟交流；高清试卷进入独立的高保真审阅流程，输出可定位、可复查的证据。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先分别写出实时会话和作业审阅的质量目标。",
+        "共享用户/课程上下文，但不要把两种输入的 SLA 和证据要求混成一个指标。"
+      ],
+      "explanation": "实时会话优化时延与连续性；作业审阅优化分辨率、证据定位和可复查性。共享学习档案不意味着必须共享同一处理管线。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/ai-education/chapter-01/",
+      "sourceLabel": "课程来源 · Mac × iPhone 多模态学习台需求"
+    },
+    {
+      "id": "review-multimodal-learning-architecture-b",
+      "competencyId": "multimodal-learning-architecture",
+      "topicId": "ai-education",
+      "gapIds": [
+        "multimodal-path-conflation"
+      ],
+      "title": "多模态学习台的双通路架构 · 迁移验证",
+      "prompt": "实时讲解偶尔丢帧，但上传的作业图片必须能逐题定位和复核。哪项架构决策最合理？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "为了接口统一，取消异步审阅并降低所有输入分辨率。",
+          "gapId": "multimodal-path-conflation"
+        },
+        {
+          "id": "b",
+          "label": "把实时交互 SLA 与作业审阅质量目标分开设计，共享学习档案但保留不同的数据处理链。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先分别写出实时会话和作业审阅的质量目标。",
+        "共享用户/课程上下文，但不要把两种输入的 SLA 和证据要求混成一个指标。"
+      ],
+      "explanation": "实时会话优化时延与连续性；作业审阅优化分辨率、证据定位和可复查性。共享学习档案不意味着必须共享同一处理管线。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/ai-education/chapter-01/",
+      "sourceLabel": "课程来源 · Mac × iPhone 多模态学习台需求"
+    },
+    {
+      "id": "review-learning-feedback-evidence-a",
+      "competencyId": "learning-feedback-evidence",
+      "topicId": "ai-education",
+      "gapIds": [
+        "feedback-vs-mastery-evidence"
+      ],
+      "title": "学习反馈与可验证证据边界 · 场景判断",
+      "prompt": "AI Tutor 解释了一个概念，学习者点击“有帮助”。系统是否可以据此把 competency 标记为已掌握？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "可以，模型解释成功且用户表示有帮助，已经证明学习者掌握。",
+          "gapId": "feedback-vs-mastery-evidence"
+        },
+        {
+          "id": "b",
+          "label": "不可以；这只能说明反馈被展示/认可，掌握度仍需独立作答或符合策略的评估证据。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分“系统说了什么”和“学习者实际做到了什么”。",
+        "检查是否有 competency、variant、attempt、independent 和评分结果等可审计字段。"
+      ],
+      "explanation": "模型输出是系统提供的反馈，不是学习者能力本身。掌握度必须由可追溯的用户操作和评估事件派生。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/ai-education/chapter-02/",
+      "sourceLabel": "课程来源 · 平台与 Agent 候选研究"
+    },
+    {
+      "id": "review-learning-feedback-evidence-b",
+      "competencyId": "learning-feedback-evidence",
+      "topicId": "ai-education",
+      "gapIds": [
+        "feedback-vs-mastery-evidence"
+      ],
+      "title": "学习反馈与可验证证据边界 · 迁移验证",
+      "prompt": "AI Reviewer 对答案给出“正确”文字，但没有结构化评分依据，也没有学习者独立验证。掌握度应如何处理？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "直接提升掌握度，因为模型已经给出肯定反馈。",
+          "gapId": "feedback-vs-mastery-evidence"
+        },
+        {
+          "id": "b",
+          "label": "保留为辅助反馈，不计入掌握证据；等待可复现的结构化评分或独立挑战事件。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分“系统说了什么”和“学习者实际做到了什么”。",
+        "检查是否有 competency、variant、attempt、independent 和评分结果等可审计字段。"
+      ],
+      "explanation": "模型输出是系统提供的反馈，不是学习者能力本身。掌握度必须由可追溯的用户操作和评估事件派生。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/ai-education/chapter-02/",
+      "sourceLabel": "课程来源 · 平台与 Agent 候选研究"
+    },
+    {
+      "id": "review-experience-pillar-boundaries-a",
+      "competencyId": "experience-pillar-boundaries",
+      "topicId": "creative",
+      "gapIds": [
+        "experience-pillar-conflation"
+      ],
+      "title": "实验室、展厅与解谜体验的职责边界 · 场景判断",
+      "prompt": "学习者要观察 Promise 的状态变化和微任务入队顺序，最适合的主体验是什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "用电影式 3D 镜头代替执行状态和可重复的逐步观察。",
+          "gapId": "experience-pillar-conflation"
+        },
+        {
+          "id": "b",
+          "label": "原理实验室：以真实执行轨迹、状态观察和可重复实验为核心。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先问学习者要验证事实、建立整体认知，还是探索规则。",
+        "不要用视觉效果替代对应体验的核心学习证据。"
+      ],
+      "explanation": "实验室强调运行正确性和可重复性；展厅强调空间、时间和整体理解；解谜世界强调规则探索与推理。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/creative/chapter-01/",
+      "sourceLabel": "课程来源 · 三条产品主线的角色边界"
+    },
+    {
+      "id": "review-experience-pillar-boundaries-b",
+      "competencyId": "experience-pillar-boundaries",
+      "topicId": "creative",
+      "gapIds": [
+        "experience-pillar-conflation"
+      ],
+      "title": "实验室、展厅与解谜体验的职责边界 · 迁移验证",
+      "prompt": "一个专题需要让学习者先形成整体空间关系，再自由探索知识节点。最适合什么体验？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "把所有知识说明复制到一个长篇挑战题目中。",
+          "gapId": "experience-pillar-conflation"
+        },
+        {
+          "id": "b",
+          "label": "沉浸式知识展厅负责空间化整体认知；挑战世界再负责规则探索与推理。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先问学习者要验证事实、建立整体认知，还是探索规则。",
+        "不要用视觉效果替代对应体验的核心学习证据。"
+      ],
+      "explanation": "实验室强调运行正确性和可重复性；展厅强调空间、时间和整体理解；解谜世界强调规则探索与推理。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/creative/chapter-01/",
+      "sourceLabel": "课程来源 · 三条产品主线的角色边界"
+    },
+    {
+      "id": "review-webgl-scene-lifecycle-a",
+      "competencyId": "webgl-scene-lifecycle",
+      "topicId": "creative",
+      "gapIds": [
+        "webgl-render-lifecycle"
+      ],
+      "title": "WebGL 场景生命周期与降级 · 场景判断",
+      "prompt": "3D 展厅滚动到屏幕外且页面切到后台，渲染器仍每帧申请 requestAnimationFrame。正确处理是什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "保持循环，因为浏览器会自动替应用释放 GPU 和事件资源。",
+          "gapId": "webgl-render-lifecycle"
+        },
+        {
+          "id": "b",
+          "label": "离屏或隐藏时取消 RAF 并暂停昂贵更新；恢复可见后按需重启，同时清理监听器和 GPU 资源。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "分别考虑隐藏、离屏、reduced-motion、pagehide 和初始化失败。",
+        "把核心知识内容与 3D 增强层解耦。"
+      ],
+      "explanation": "渲染循环必须服从可见性和用户偏好；资源生命周期要显式管理，WebGL 失败不能让课程内容不可用。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/creative/chapter-02/",
+      "sourceLabel": "课程来源 · 电影级 WebGL 滚动叙事"
+    },
+    {
+      "id": "review-webgl-scene-lifecycle-b",
+      "competencyId": "webgl-scene-lifecycle",
+      "topicId": "creative",
+      "gapIds": [
+        "webgl-render-lifecycle"
+      ],
+      "title": "WebGL 场景生命周期与降级 · 迁移验证",
+      "prompt": "设备不支持 WebGL，页面必须仍可阅读。合理的降级方案是什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "一直显示黑屏加载动画，直到 WebGL 初始化成功。",
+          "gapId": "webgl-render-lifecycle"
+        },
+        {
+          "id": "b",
+          "label": "保留静态/DOM 内容和明确的降级说明；只有增强场景不可用，不能阻断核心知识内容。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "分别考虑隐藏、离屏、reduced-motion、pagehide 和初始化失败。",
+        "把核心知识内容与 3D 增强层解耦。"
+      ],
+      "explanation": "渲染循环必须服从可见性和用户偏好；资源生命周期要显式管理，WebGL 失败不能让课程内容不可用。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/creative/chapter-02/",
+      "sourceLabel": "课程来源 · 电影级 WebGL 滚动叙事"
+    },
+    {
+      "id": "review-database-query-execution-a",
+      "competencyId": "database-query-execution",
+      "topicId": "database",
+      "gapIds": [
+        "sql-pipeline-shortcut"
+      ],
+      "title": "SQL 查询执行管线 · 场景判断",
+      "prompt": "执行 SELECT 时，数据库通常如何从 SQL 文本到结果集？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "SQL 文本直接定位磁盘页并读取；Parser 和优化器只负责语法高亮。",
+          "gapId": "sql-pipeline-shortcut"
+        },
+        {
+          "id": "b",
+          "label": "先解析并绑定目录信息，再生成/优化执行计划，由 Executor 调用索引、页和缓冲池等存储结构。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把解析、规划、执行和存储分成不同阶段。",
+        "关注统计信息和访问路径由谁使用，而不是 SQL 关键字本身。"
+      ],
+      "explanation": "SQL 执行是多阶段管线；优化器选择物理计划，Executor 才按计划访问存储结构。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/database/chapter-02/",
+      "sourceLabel": "课程来源 · 从一条 SQL 追踪数据库内核"
+    },
+    {
+      "id": "review-database-query-execution-b",
+      "competencyId": "database-query-execution",
+      "topicId": "database",
+      "gapIds": [
+        "sql-pipeline-shortcut"
+      ],
+      "title": "SQL 查询执行管线 · 迁移验证",
+      "prompt": "两个等价 SQL 可能选择不同索引或连接顺序，主要由哪个环节决定？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "由 SQL 字符串长度决定，数据库不分析统计信息。",
+          "gapId": "sql-pipeline-shortcut"
+        },
+        {
+          "id": "b",
+          "label": "优化器结合逻辑计划、统计信息和可用访问路径选择物理执行计划。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把解析、规划、执行和存储分成不同阶段。",
+        "关注统计信息和访问路径由谁使用，而不是 SQL 关键字本身。"
+      ],
+      "explanation": "SQL 执行是多阶段管线；优化器选择物理计划，Executor 才按计划访问存储结构。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/database/chapter-02/",
+      "sourceLabel": "课程来源 · 从一条 SQL 追踪数据库内核"
+    },
+    {
+      "id": "review-agent-memory-consistency-a",
+      "competencyId": "agent-memory-consistency",
+      "topicId": "database",
+      "gapIds": [
+        "agent-memory-source-of-truth"
+      ],
+      "title": "Agent 记忆与数据库真相源 · 场景判断",
+      "prompt": "Agent 的向量检索返回一条旧的用户偏好，但事务数据库中已有更新版本。系统应以什么为准？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "以相似度最高的向量片段为准，因为向量距离代表数据最新。",
+          "gapId": "agent-memory-source-of-truth"
+        },
+        {
+          "id": "b",
+          "label": "以规范化事务状态为准；向量索引是派生召回结构，应按版本/来源校验并可重建。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先找出哪个存储承担唯一规范写入职责。",
+        "再判断索引是源数据还是由源数据派生的缓存。"
+      ],
+      "explanation": "检索相似度不是一致性协议。事务型数据源维护业务真相，向量/全文/图索引负责召回并应可重建。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/database/chapter-03/",
+      "sourceLabel": "课程来源 · Agent 记忆与数据库的关系"
+    },
+    {
+      "id": "review-agent-memory-consistency-b",
+      "competencyId": "agent-memory-consistency",
+      "topicId": "database",
+      "gapIds": [
+        "agent-memory-source-of-truth"
+      ],
+      "title": "Agent 记忆与数据库真相源 · 迁移验证",
+      "prompt": "要删除一条过期记忆，除了更新向量索引，还必须保证什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "只删除最相似的向量，不需要修改事件日志或规范数据。",
+          "gapId": "agent-memory-source-of-truth"
+        },
+        {
+          "id": "b",
+          "label": "先更新规范状态/事件来源，再使全文、向量和图索引失效或重建，保持可追溯一致性。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先找出哪个存储承担唯一规范写入职责。",
+        "再判断索引是源数据还是由源数据派生的缓存。"
+      ],
+      "explanation": "检索相似度不是一致性协议。事务型数据源维护业务真相，向量/全文/图索引负责召回并应可重建。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/database/chapter-03/",
+      "sourceLabel": "课程来源 · Agent 记忆与数据库的关系"
+    },
+    {
+      "id": "review-spec-traceability-a",
+      "competencyId": "spec-traceability",
+      "topicId": "engineering",
+      "gapIds": [
+        "spec-traceability-gap"
+      ],
+      "title": "Spec 到代码与测试的双向追踪 · 场景判断",
+      "prompt": "Spec 写明“失败后可重试”，但没有对应代码路径和测试。能否把该需求标记为完成？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "可以，只要 Spec 文档写得完整，就代表实现已经具备。",
+          "gapId": "spec-traceability-gap"
+        },
+        {
+          "id": "b",
+          "label": "不能；必须追踪到实现路径、失败/重试测试和发布版本，形成端到端证据。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "检查这项约束是否能从需求追到测试和发布。",
+        "再从代码反向检查是否存在未记录的行为变化。"
+      ],
+      "explanation": "需求、代码、测试、文档和发布记录需要双向可追踪；任何单一工件都不能独立证明交付完成。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/engineering/chapter-01/",
+      "sourceLabel": "课程来源 · 工程治理闭环与 Spec 漂移"
+    },
+    {
+      "id": "review-spec-traceability-b",
+      "competencyId": "spec-traceability",
+      "topicId": "engineering",
+      "gapIds": [
+        "spec-traceability-gap"
+      ],
+      "title": "Spec 到代码与测试的双向追踪 · 迁移验证",
+      "prompt": "代码行为已改变，但 Spec 仍描述旧行为。最正确的治理动作是什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "只更新测试快照，保留旧 Spec 作为历史，不需要说明差异。",
+          "gapId": "spec-traceability-gap"
+        },
+        {
+          "id": "b",
+          "label": "定位需求与实现差异，更新规范并补充回归测试，记录变更与发布证据。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "检查这项约束是否能从需求追到测试和发布。",
+        "再从代码反向检查是否存在未记录的行为变化。"
+      ],
+      "explanation": "需求、代码、测试、文档和发布记录需要双向可追踪；任何单一工件都不能独立证明交付完成。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/engineering/chapter-01/",
+      "sourceLabel": "课程来源 · 工程治理闭环与 Spec 漂移"
+    },
+    {
+      "id": "review-delivery-quality-gates-a",
+      "competencyId": "delivery-quality-gates",
+      "topicId": "engineering",
+      "gapIds": [
+        "build-vs-release-evidence"
+      ],
+      "title": "工程交付质量门禁 · 场景判断",
+      "prompt": "项目构建成功，但核心路由 404、复习数据刷新后丢失。是否可以验收发布？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "可以，构建成功说明代码语法正确，运行问题属于用户环境。",
+          "gapId": "build-vs-release-evidence"
+        },
+        {
+          "id": "b",
+          "label": "不可以；还需路由、数据持久化、浏览器行为和生产资源验证。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "从用户可观察的失败路径反推需要的验证。",
+        "将定向回归与全站验收组合，而不是用单个构建结果代替。"
+      ],
+      "explanation": "构建是必要条件，不是充分条件。验收要覆盖真实用户路径、持久化、兼容性和实际部署版本。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/engineering/chapter-02/",
+      "sourceLabel": "课程来源 · 开发工具与环境问题索引"
+    },
+    {
+      "id": "review-delivery-quality-gates-b",
+      "competencyId": "delivery-quality-gates",
+      "topicId": "engineering",
+      "gapIds": [
+        "build-vs-release-evidence"
+      ],
+      "title": "工程交付质量门禁 · 迁移验证",
+      "prompt": "一次修复只影响 Promise 工作台的任务调度，最合理的验证顺序是什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "跳过定向测试，直接执行全仓构建并以成功作为唯一结论。",
+          "gapId": "build-vs-release-evidence"
+        },
+        {
+          "id": "b",
+          "label": "先运行可复现的定向测试，再执行受影响模块回归和必要的全站/生产验收。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "从用户可观察的失败路径反推需要的验证。",
+        "将定向回归与全站验收组合，而不是用单个构建结果代替。"
+      ],
+      "explanation": "构建是必要条件，不是充分条件。验收要覆盖真实用户路径、持久化、兼容性和实际部署版本。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/engineering/chapter-02/",
+      "sourceLabel": "课程来源 · 开发工具与环境问题索引"
+    },
+    {
+      "id": "review-time-value-of-money-a",
+      "competencyId": "time-value-of-money",
+      "topicId": "finance",
+      "gapIds": [
+        "discounting-direction-error"
+      ],
+      "title": "货币时间价值与折现 · 场景判断",
+      "prompt": "年利率 5%，两年后收到 110.25 元，其现值是多少（忽略税费和风险）？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "115.76 元，因为把未来金额再乘一次复利因子。",
+          "gapId": "discounting-direction-error"
+        },
+        {
+          "id": "b",
+          "label": "100 元；现值 = 110.25 ÷ (1.05²)。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先判断现金流发生在今天还是未来。",
+        "未来值乘复利因子；现值除以折现因子。"
+      ],
+      "explanation": "终值把当前现金流向未来累积，现值把未来现金流折回当前；二者方向相反。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/finance/chapter-01/",
+      "sourceLabel": "课程来源 · 千例金融学教材项目"
+    },
+    {
+      "id": "review-time-value-of-money-b",
+      "competencyId": "time-value-of-money",
+      "topicId": "finance",
+      "gapIds": [
+        "discounting-direction-error"
+      ],
+      "title": "货币时间价值与折现 · 迁移验证",
+      "prompt": "今天投入 100 元，年复利 5%，两年后的终值是多少？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "90.70 元，因为未来金额要除以复利因子。",
+          "gapId": "discounting-direction-error"
+        },
+        {
+          "id": "b",
+          "label": "110.25 元；终值 = 100 × (1.05²)。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先判断现金流发生在今天还是未来。",
+        "未来值乘复利因子；现值除以折现因子。"
+      ],
+      "explanation": "终值把当前现金流向未来累积，现值把未来现金流折回当前；二者方向相反。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/finance/chapter-01/",
+      "sourceLabel": "课程来源 · 千例金融学教材项目"
+    },
+    {
+      "id": "review-leverage-margin-risk-a",
+      "competencyId": "leverage-margin-risk",
+      "topicId": "finance",
+      "gapIds": [
+        "leverage-risk-underestimation"
+      ],
+      "title": "杠杆、保证金与强平风险 · 场景判断",
+      "prompt": "在简化的 10 倍杠杆线性合约模型中，标的价格反向波动约 10%，会对初始保证金产生什么影响？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "账户只亏 10%，因为价格只变动 10%。",
+          "gapId": "leverage-risk-underestimation"
+        },
+        {
+          "id": "b",
+          "label": "名义敞口的损失约等于初始保证金的 100%，实际强平还受维持保证金、费用和滑点影响。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把价格变动作用在名义敞口，而不是直接作用在保证金比例。",
+        "再考虑维持保证金、手续费、滑点和流动性对实际强平的影响。"
+      ],
+      "explanation": "杠杆改变保证金相对于名义敞口的比例，不消除价格风险。强平阈值受维持保证金、费用、资金费率和流动性影响。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/finance/chapter-02/",
+      "sourceLabel": "课程来源 · 量化研究与杠杆风险"
+    },
+    {
+      "id": "review-leverage-margin-risk-b",
+      "competencyId": "leverage-margin-risk",
+      "topicId": "finance",
+      "gapIds": [
+        "leverage-risk-underestimation"
+      ],
+      "title": "杠杆、保证金与强平风险 · 迁移验证",
+      "prompt": "为什么 1 倍杠杆也不能保证账户不会发生重大损失？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "1 倍杠杆不会产生亏损，最多只是收益较低。",
+          "gapId": "leverage-risk-underestimation"
+        },
+        {
+          "id": "b",
+          "label": "价格下跌、集中持仓、流动性枯竭和跳空仍会造成损失；杠杆倍数不是风险上限。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "把价格变动作用在名义敞口，而不是直接作用在保证金比例。",
+        "再考虑维持保证金、手续费、滑点和流动性对实际强平的影响。"
+      ],
+      "explanation": "杠杆改变保证金相对于名义敞口的比例，不消除价格风险。强平阈值受维持保证金、费用、资金费率和流动性影响。",
+      "difficulty": "stretch",
+      "sourceHref": "./knowledge/finance/chapter-02/",
+      "sourceLabel": "课程来源 · 量化研究与杠杆风险"
+    },
+    {
+      "id": "review-semantic-role-analysis-a",
+      "competencyId": "semantic-role-analysis",
+      "topicId": "language",
+      "gapIds": [
+        "surface-order-vs-semantic-roles"
+      ],
+      "title": "语义角色与信息结构识别 · 场景判断",
+      "prompt": "句子“这本书，我昨天看完了”中，“这本书”在语篇中前置。翻译前首先应识别什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "把每个词按原顺序逐个替换成英文单词。",
+          "gapId": "surface-order-vs-semantic-roles"
+        },
+        {
+          "id": "b",
+          "label": "识别“我”是施事、“看完”是动作、“这本书”是受事，再组织符合英语习惯的句子。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先标记施事、动作、受事、时间和地点。",
+        "再判断哪些成分是话题前置或由语境省略。"
+      ],
+      "explanation": "语义角色决定谁做什么、作用于谁；信息结构和口语省略会改变表面词序，但不改变核心事件关系。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/language/chapter-01/",
+      "sourceLabel": "课程来源 · 东北话与英语语序对照"
+    },
+    {
+      "id": "review-semantic-role-analysis-b",
+      "competencyId": "semantic-role-analysis",
+      "topicId": "language",
+      "gapIds": [
+        "surface-order-vs-semantic-roles"
+      ],
+      "title": "语义角色与信息结构识别 · 迁移验证",
+      "prompt": "东北话口语省略了主语，但上下文明确说话者在描述自己完成动作。翻译时应该怎样处理？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "因为原句没有显式主语，英文也必须省略主语。",
+          "gapId": "surface-order-vs-semantic-roles"
+        },
+        {
+          "id": "b",
+          "label": "根据语境恢复语义角色，再按英文句法要求表达，不机械复制省略形式。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先标记施事、动作、受事、时间和地点。",
+        "再判断哪些成分是话题前置或由语境省略。"
+      ],
+      "explanation": "语义角色决定谁做什么、作用于谁；信息结构和口语省略会改变表面词序，但不改变核心事件关系。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/language/chapter-01/",
+      "sourceLabel": "课程来源 · 东北话与英语语序对照"
+    },
+    {
+      "id": "review-english-clause-structure-a",
+      "competencyId": "english-clause-structure",
+      "topicId": "language",
+      "gapIds": [
+        "english-clause-structure-transfer"
+      ],
+      "title": "英语从句结构与时体表达 · 场景判断",
+      "prompt": "表达“我昨天把书看完了”，哪种英文句子最自然且保留事件结构？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "Yesterday book I finished read.",
+          "gapId": "english-clause-structure-transfer"
+        },
+        {
+          "id": "b",
+          "label": "I finished reading the book yesterday."
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先确定英文主语和谓语，再补足时态/体。",
+        "最后安放宾语、介词短语和时间状语。"
+      ],
+      "explanation": "英语对谓语形式、时态/体、冠词和介词关系有更强的形式要求；先分析事件，再按目标语言句法重组。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/language/chapter-01/",
+      "sourceLabel": "课程来源 · 东北话与英语语序对照"
+    },
+    {
+      "id": "review-english-clause-structure-b",
+      "competencyId": "english-clause-structure",
+      "topicId": "language",
+      "gapIds": [
+        "english-clause-structure-transfer"
+      ],
+      "title": "英语从句结构与时体表达 · 迁移验证",
+      "prompt": "要表达“他已经把报告交给老师了”，英语中为什么不能只按中文词序排列名词和动词？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "英语和汉语词序完全一致，只需替换词汇。",
+          "gapId": "english-clause-structure-transfer"
+        },
+        {
+          "id": "b",
+          "label": "英语需要显式组织主语、谓语时态/体、宾语及介词短语，例如 He has submitted the report to the teacher."
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先确定英文主语和谓语，再补足时态/体。",
+        "最后安放宾语、介词短语和时间状语。"
+      ],
+      "explanation": "英语对谓语形式、时态/体、冠词和介词关系有更强的形式要求；先分析事件，再按目标语言句法重组。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/language/chapter-01/",
+      "sourceLabel": "课程来源 · 东北话与英语语序对照"
+    },
+    {
+      "id": "review-discrete-structure-modeling-a",
+      "competencyId": "discrete-structure-modeling",
+      "topicId": "math",
+      "gapIds": [
+        "graph-relation-modeling"
+      ],
+      "title": "离散结构与关系建模 · 场景判断",
+      "prompt": "用有向图表示课程先修关系时，节点和有向边分别表示什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "节点表示先修规则，边表示课程本身。",
+          "gapId": "graph-relation-modeling"
+        },
+        {
+          "id": "b",
+          "label": "节点表示课程/知识对象；有向边表示明确的先修依赖方向。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先确定集合中的元素是什么。",
+        "再检查关系是否满足自反、对称、传递等定义。"
+      ],
+      "explanation": "离散结构的核心是明确对象集合和关系规则；图的方向、关系的性质必须由定义判断。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/math/chapter-01/",
+      "sourceLabel": "课程来源 · 离散数学学习路线"
+    },
+    {
+      "id": "review-discrete-structure-modeling-b",
+      "competencyId": "discrete-structure-modeling",
+      "topicId": "math",
+      "gapIds": [
+        "graph-relation-modeling"
+      ],
+      "title": "离散结构与关系建模 · 迁移验证",
+      "prompt": "关系 R={(a,b),(b,c)}，不能仅凭这两个有序对就断言 R 是对称关系。原因是什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "只要关系中有两个有序对，它就自动对称。",
+          "gapId": "graph-relation-modeling"
+        },
+        {
+          "id": "b",
+          "label": "对称性要求每个 (x,y) 都有对应的 (y,x)；这里缺少 (b,a) 和 (c,b)。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先确定集合中的元素是什么。",
+        "再检查关系是否满足自反、对称、传递等定义。"
+      ],
+      "explanation": "离散结构的核心是明确对象集合和关系规则；图的方向、关系的性质必须由定义判断。",
+      "difficulty": "foundation",
+      "sourceHref": "./knowledge/math/chapter-01/",
+      "sourceLabel": "课程来源 · 离散数学学习路线"
+    },
+    {
+      "id": "review-linear-transformations-a",
+      "competencyId": "linear-transformations",
+      "topicId": "math",
+      "gapIds": [
+        "matrix-as-table-vs-transform"
+      ],
+      "title": "向量、矩阵与线性变换 · 场景判断",
+      "prompt": "矩阵 A 作用于向量 x 得到 Ax，最准确的理解是什么？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "矩阵只是把向量元素重新排成表格，不改变空间中的对象。",
+          "gapId": "matrix-as-table-vs-transform"
+        },
+        {
+          "id": "b",
+          "label": "A 表示一个线性变换，把输入向量映射到新的向量；矩阵列描述基向量的像。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "用一个具体向量 x 写出两步映射。",
+        "比较 B(Ax) 与矩阵乘法的括号结构。"
+      ],
+      "explanation": "矩阵乘法表示变换复合；列向量约定下，右侧矩阵先作用。矩阵的列是标准基向量经过变换后的结果。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/math/chapter-02/",
+      "sourceLabel": "课程来源 · 线性代数的直觉优先路线"
+    },
+    {
+      "id": "review-linear-transformations-b",
+      "competencyId": "linear-transformations",
+      "topicId": "math",
+      "gapIds": [
+        "matrix-as-table-vs-transform"
+      ],
+      "title": "向量、矩阵与线性变换 · 迁移验证",
+      "prompt": "先执行变换 A，再执行变换 B，列向量约定下合成矩阵应如何写？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "A B，因为矩阵从左向右执行。",
+          "gapId": "matrix-as-table-vs-transform"
+        },
+        {
+          "id": "b",
+          "label": "B A；对向量 x，先算 Ax，再算 B(Ax)。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "用一个具体向量 x 写出两步映射。",
+        "比较 B(Ax) 与矩阵乘法的括号结构。"
+      ],
+      "explanation": "矩阵乘法表示变换复合；列向量约定下，右侧矩阵先作用。矩阵的列是标准基向量经过变换后的结果。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/math/chapter-02/",
+      "sourceLabel": "课程来源 · 线性代数的直觉优先路线"
+    },
+    {
+      "id": "review-model-routing-evaluation-a",
+      "competencyId": "model-routing-evaluation",
+      "topicId": "model-infra",
+      "gapIds": [
+        "model-routing-by-size"
+      ],
+      "title": "模型路由与任务评估 · 场景判断",
+      "prompt": "一个任务需要稳定调用工具、严格遵循 JSON Schema，且延迟预算较低。如何选择模型？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "无条件选择参数量最大的模型，因为规模越大所有指标必然越好。",
+          "gapId": "model-routing-by-size"
+        },
+        {
+          "id": "b",
+          "label": "在目标任务集上评估工具调用正确率、Schema 合规率、延迟、成本和失败恢复，再选择满足约束的模型。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先列出任务的硬约束和质量指标。",
+        "再使用同一数据集、相同提示和可复现评估比较候选模型。"
+      ],
+      "explanation": "模型选择是多目标约束问题；必须用代表性任务集测量质量、延迟、成本和稳定性。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/model-infra/chapter-01/",
+      "sourceLabel": "课程来源 · 模型路由与 CLI 研究记录"
+    },
+    {
+      "id": "review-model-routing-evaluation-b",
+      "competencyId": "model-routing-evaluation",
+      "topicId": "model-infra",
+      "gapIds": [
+        "model-routing-by-size"
+      ],
+      "title": "模型路由与任务评估 · 迁移验证",
+      "prompt": "模型 A 在通用问答更强，模型 B 在结构化工具任务更可靠且延迟更低。Agent 路由应如何处理？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "所有任务固定使用模型 A，避免路由逻辑。",
+          "gapId": "model-routing-by-size"
+        },
+        {
+          "id": "b",
+          "label": "按任务类型和风险路由；对工具任务优先选择通过对应评估门槛的模型，并监控退化。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先列出任务的硬约束和质量指标。",
+        "再使用同一数据集、相同提示和可复现评估比较候选模型。"
+      ],
+      "explanation": "模型选择是多目标约束问题；必须用代表性任务集测量质量、延迟、成本和稳定性。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/model-infra/chapter-01/",
+      "sourceLabel": "课程来源 · 模型路由与 CLI 研究记录"
+    },
+    {
+      "id": "review-gpu-memory-estimation-a",
+      "competencyId": "gpu-memory-estimation",
+      "topicId": "model-infra",
+      "gapIds": [
+        "gpu-weights-vs-total-memory"
+      ],
+      "title": "GPU 显存与推理容量估算 · 场景判断",
+      "prompt": "约 7B 参数模型以 FP16 加载，权重本身约需多少十进制 GB（忽略额外开销）？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "约 3.5 GB，因为 FP16 每个参数只需 0.5 byte。",
+          "gapId": "gpu-weights-vs-total-memory"
+        },
+        {
+          "id": "b",
+          "label": "约 14 GB，因为每个参数约 2 bytes；实际推理还需要 KV Cache、激活和运行时开销。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先计算权重存储：参数量 × 每参数字节数。",
+        "再单独列出 KV Cache、激活、批处理和运行时开销。"
+      ],
+      "explanation": "权重估算约为参数量乘每参数字节数；总推理显存还受上下文长度、并发批次、KV Cache 和实现开销影响。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/model-infra/chapter-02/",
+      "sourceLabel": "课程来源 · 免费 GPU 资源与评估原则"
+    },
+    {
+      "id": "review-gpu-memory-estimation-b",
+      "competencyId": "gpu-memory-estimation",
+      "topicId": "model-infra",
+      "gapIds": [
+        "gpu-weights-vs-total-memory"
+      ],
+      "title": "GPU 显存与推理容量估算 · 迁移验证",
+      "prompt": "把模型权重量化到 4-bit 后，是否能保证长上下文、多并发推理一定装入显存？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "能，量化后所有推理内存都按 4-bit 等比例缩小。",
+          "gapId": "gpu-weights-vs-total-memory"
+        },
+        {
+          "id": "b",
+          "label": "不能；量化主要降低权重占用，KV Cache、激活、批处理和运行时仍会占用额外显存。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先计算权重存储：参数量 × 每参数字节数。",
+        "再单独列出 KV Cache、激活、批处理和运行时开销。"
+      ],
+      "explanation": "权重估算约为参数量乘每参数字节数；总推理显存还受上下文长度、并发批次、KV Cache 和实现开销影响。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/model-infra/chapter-02/",
+      "sourceLabel": "课程来源 · 免费 GPU 资源与评估原则"
+    },
+    {
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "resolved-vs-settled"
+      ],
+      "difficulty": "intermediate",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 03 单元",
+      "id": "review-resolved-vs-settled-c",
+      "title": "解决权与落定状态：拒绝传播",
+      "prompt": "inner Promise 在同步代码结束前被 reject，outer 已通过 resolve(inner) 采用它。outer 的结果是什么？",
+      "code": "let rejectInner; const inner = new Promise((_, reject) => rejectInner = reject); const outer = Promise.resolve(inner); outer.catch(() => console.log('outer rejected')); console.log('sync-end'); rejectInner(new Error('x'));",
+      "options": [
+        {
+          "id": "a",
+          "label": "outer 在 resolve(inner) 时已经 fulfilled，inner 后续拒绝不会影响 outer。",
+          "gapId": "resolved-vs-settled"
+        },
+        {
+          "id": "b",
+          "label": "outer 采用 inner；inner 后续拒绝会使 outer rejected，reaction 在同步代码之后执行。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "resolve(inner) 并不把 inner 当普通对象值直接兑现。",
+        "追踪采用关系：inner 的最终拒绝会传播到 outer，reaction 仍然异步执行。"
+      ],
+      "explanation": "outer 的解决方向被锁定为采用 inner，但 outer 要等待 inner 的最终状态；inner 被拒绝后，outer 也拒绝。"
+    },
+    {
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "resolved-vs-settled"
+      ],
+      "difficulty": "intermediate",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 03 单元",
+      "id": "review-resolved-vs-settled-d",
+      "title": "解决权与落定状态：后续 reject 是否有效",
+      "prompt": "Promise executor 先调用 resolve(inner)，随后又调用 reject(error)。如果 inner 最终 fulfilled，outer 会怎样？",
+      "code": "let finish; const inner = new Promise(resolve => finish = resolve); const outer = new Promise((resolve, reject) => { resolve(inner); reject(new Error('late')); }); finish('ok'); outer.then(value => console.log(value));",
+      "options": [
+        {
+          "id": "a",
+          "label": "后续 reject 会覆盖之前的 resolve，outer 最终 rejected。",
+          "gapId": "resolved-vs-settled"
+        },
+        {
+          "id": "b",
+          "label": "第一次 resolve 已锁定解决权，后续 reject 被忽略；outer 继续采用 inner 并最终 fulfilled。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "Promise executor 的 resolve/reject 共享一次性解决权。",
+        "区分“解决权已被调用”与“采用的 inner 已经落定”。"
+      ],
+      "explanation": "resolve(inner) 首先锁定解决权；随后 reject(error) 因 already-resolved 标记而被忽略。outer 继续采用 inner，inner fulfilled 后 outer 才 fulfilled。"
+    },
+    {
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "promise-resolve-identity"
+      ],
+      "difficulty": "intermediate",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 03 单元",
+      "id": "review-promise-resolve-identity-a",
+      "title": "Promise.resolve 同一性：原生 Promise",
+      "prompt": "当 p 是同一 Realm、同一构造器的原生 Promise 时，Promise.resolve(p) === p 的结果是什么？",
+      "code": "const p = Promise.resolve(1); console.log(Promise.resolve(p) === p);",
+      "options": [
+        {
+          "id": "a",
+          "label": "false；Promise.resolve 总会创建新的包装对象。",
+          "gapId": "promise-resolve-identity"
+        },
+        {
+          "id": "b",
+          "label": "true；同构造器原生 Promise 会走身份快速路径。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先检查输入是否已经是 Promise。",
+        "再检查 Promise.resolve 的构造器是否与输入 Promise 的构造器一致。"
+      ],
+      "explanation": "同构造器的原生 Promise 会直接返回，不创建新的 Promise 包装对象。"
+    },
+    {
+      "competencyId": "thenable-adoption",
+      "topicId": "promise",
+      "gapIds": [
+        "promise-resolve-identity"
+      ],
+      "difficulty": "intermediate",
+      "lessonId": "lesson-03",
+      "sourceHref": "./knowledge/promise/lesson-03/",
+      "sourceLabel": "课程来源 · 第 03 单元",
+      "id": "review-promise-resolve-identity-b",
+      "title": "Promise.resolve 同一性：普通 Thenable",
+      "prompt": "输入是普通对象 thenable，而不是原生 Promise。Promise.resolve(thenable) 会返回什么？",
+      "code": "const thenable = { then(resolve) { resolve(7); } }; const result = Promise.resolve(thenable); console.log(result === thenable);",
+      "options": [
+        {
+          "id": "a",
+          "label": "true；只要对象有 then 方法，Promise.resolve 就原样返回。",
+          "gapId": "promise-resolve-identity"
+        },
+        {
+          "id": "b",
+          "label": "false；会创建新的 Promise，并通过 Promise Resolution Procedure 采用 thenable。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "区分原生 Promise 的同构造器快速路径与普通对象。",
+        "普通 thenable 的 then 属性会被读取，其调用由 ThenableJob 执行。"
+      ],
+      "explanation": "普通 thenable 不是 Promise 实例；Promise.resolve 会创建新的 Promise 并采用其结果。"
+    },
+    {
+      "id": "review-multimodal-learning-architecture-c",
+      "competencyId": "multimodal-learning-architecture",
+      "topicId": "ai-education",
+      "gapIds": [
+        "multimodal-path-conflation"
+      ],
+      "title": "多模态学习台的双通路架构 · 迁移验证",
+      "prompt": "学生在实时视频讲解中举起试卷，同时要求系统保存原始分辨率并逐题标注批改证据。系统应该如何组织这两个请求？",
+      "code": "",
+      "options": [
+        {
+          "id": "a",
+          "label": "将所有输入压缩为实时视频流，直接把口头回答作为可复查的批改证据。",
+          "gapId": "multimodal-path-conflation"
+        },
+        {
+          "id": "b",
+          "label": "实时通路处理连续互动；高清原图进入独立审阅流程，保留题号定位和可复查结果。"
+        }
+      ],
+      "answer": "b",
+      "hints": [
+        "先分别考虑实时互动的延迟目标与作业审阅的证据精度。",
+        "两条通路可以共享学习者与课程上下文，但需要不同的处理 SLA。"
+      ],
+      "explanation": "实时交互和高保真审阅有不同的质量目标。共享档案不要求共享处理管线。",
+      "difficulty": "intermediate",
+      "sourceHref": "./knowledge/ai-education/chapter-01/",
+      "sourceLabel": "课程来源 · 多模态学习台架构"
     }
   ],
   "version": "2.0.0"

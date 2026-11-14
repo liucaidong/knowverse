@@ -51,22 +51,22 @@
       "workId": "promise-identity",
       "topicId": "promise",
       "competencyId": "thenable-adoption",
-      "title": "Promise 采用与状态检查",
-      "prompt": "执行 resolve(inner) 后，外层 Promise 的状态应该如何理解？",
-      "code": "const inner = Promise.resolve(42); const outer = new Promise(resolve => resolve(inner));",
+      "title": "Promise.resolve 同一性检查",
+      "prompt": "inner 是同一 Realm 的原生 Promise 且构造器相同，Promise.resolve(inner) 会返回什么？",
+      "code": "const inner = Promise.resolve(42); const outer = Promise.resolve(inner); console.log(outer === inner);",
       "options": [
         {
           "id": "a",
-          "label": "外层立即复制 inner 的 fulfilled 状态和值。",
-          "gapId": "resolved-vs-settled"
+          "label": "Promise.resolve 每次都会创建新的 Promise 包装对象，因此 outer !== inner。",
+          "gapId": "promise-resolve-identity"
         },
         {
           "id": "b",
-          "label": "外层解决权被锁定，但仍要采用 inner；此刻不应把它等同于已经 fulfilled。"
+          "label": "同构造器的原生 Promise 会原样返回，因此 outer === inner。"
         }
       ],
       "answer": "b",
-      "explanation": "外层解决权被锁定，但最终落定要遵循 inner 的状态与 Promise Resolution Procedure。"
+      "explanation": "Promise.resolve 的同构造器快速路径会直接返回输入 Promise；普通 thenable 则会创建新的 Promise 并采用其结果。"
     },
     {
       "id": "cp-promise-resolution",

@@ -2,8 +2,8 @@
 
 - 审计日期：2026-11-14
 - 本清单按真实注册路由、页面入口、业务模块、数据服务与自动化测试追踪；不是按页面标题推断完成度。
-- 规范路由：47；业务能力条目：22。
-- 专题：12；正式 Concept：19；Competency：18；Gap：34；Review Assessment：78；Checkpoint：14；Challenge：3；作品：17；来源：17。
+- 规范路由：63；业务能力条目：22。
+- 专题：12；正式 Concept：35；Competency：34；Gap：50；Review Assessment：112；Checkpoint：14；Challenge：3；作品：17；来源：17。
 
 ## 1. 全站入口与知识结构
 
@@ -12,7 +12,7 @@
 | 工作区 | 入口路由 | 核心业务 | 状态 |
 |---|---|---|---|
 | 开始学习 | `learning.start` / `learning.agent` | 引导学习、Agent、今日计划 | 可用；真实 Provider 需独立核验 |
-| 知识库 | `knowledge.overview` | 12 个专题、Concept、来源 | 可用；只有 4/12 专题具备正式能力图 |
+| 知识库 | `knowledge.overview` | 12 个专题、Concept、来源 | 可用；12/12 专题具备正式能力图 |
 | 实践中心 | `experience.lab` / `experience.gallery` / `experience.puzzles` | 原理实验、3D 场景、挑战 | 可用；逐场景运行时真实性仍需审计 |
 | 我的进度 | `learning.overview` / `learning.review` | 掌握图谱、Gap、复习、历史、档案 | 部分可用；需核对真实数据持久化与因果链 |
 
@@ -22,7 +22,7 @@
 |---|---|---|---|---|
 | 全局导航与首页 | `home` | `index.html, site-shell.mjs, build-site-shell.mjs` | 静态注册表 + 页面 Shell | 已实现；导航与路由静态回归覆盖 |
 | 登录与账户状态 | `account.archive` | `auth.mjs, config.mjs, index.html` | Supabase session + 本地会话状态 | 部分可用；生产数据表已核实，真实登录/账户权限端到端待验 |
-| 知识专题目录与课程 | `knowledge.overview` | `knowledge.json, learning-map.json, index.html` | 构建期注册表 + 静态页面 | 已实现；12 专题/47 路由/19 Concept/18 Competency 架构检查通过 |
+| 知识专题目录与课程 | `knowledge.overview` | `knowledge.json, learning-map.json, index.html` | 构建期注册表 + 静态页面 | 已实现；12 专题/63 路由/35 Concept/34 Competency 架构检查通过 |
 | 原理实验室入口 | `experience.lab` | `index.html, works.json` | 静态页面 + 作品注册表 | 已实现；入口路由通过 |
 | Promise 调试工作台 | `topic.promise` | `index.html, debugger.js, promise-*.js` | 页面运行时模型 + 可视化事件状态 | 已实现；13 场景/原生差分/解析与 FIFO 单测通过 |
 | Promise 课程与独立挑战 | `topic.promise` | `**, promise-quest.mjs, challenges.json` | 静态课程 + 挑战引擎 + 本地学习证据 | 已实现；20 课与 5 阶段挑战验证通过 |

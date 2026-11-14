@@ -23,7 +23,7 @@
 ## B. 复习工作台
 
 - 入口：`review/index.html`；主交互：`assets/js/review-workspace.mjs`；业务引擎：`assets/js/review-engine.mjs`。
-- 正式题目来自 `content/review-assessments.json`（78 项），并通过 competency / topic / gap / source lesson 关联。
+- 正式题目来自 `content/review-assessments.json`（112 项），并通过 competency / topic / gap / source lesson 关联。
 - 答题流程：`start` 建立 session → hint 记录提示 → `submit` 记录 attempt → 独立正确才生成 assessment_passed；session / attempt / pass 通过 sessionId、taskId、gapId、variantId、causationEventIds 与 targetGapEventIds 关联。
 - Gap reducer：`assets/js/learning-progress.mjs` 仅根据失败 attempt 识别 Gap；通过同一 Gap 的不同变体、零提示和完整因果链验证后才能关闭 Gap。
 - Task orchestrator：`assets/js/learning-agent/task-orchestrator.mjs` 对 review task 完成执行因果链校验，普通阅读任务完成不增加 mastery evidence；重复终态转换幂等，非法状态转换拒绝。
@@ -44,10 +44,10 @@
 ## D. 知识专题与课程
 
 - 构建期知识注册表：`content/knowledge.json`、`content/learning-map.json`、`content/routes.json`、`content/works.json`、`content/sources.json`。
-- 结构快照：12 个专题、19 个 Concept、18 个 Competency、34 个 Gap、14 个 Checkpoint、78 个 Review Assessment、17 个作品、17 个来源、47 条规范路由。
+- 结构快照：12 个专题、35 个 Concept、34 个 Competency、51 个 Gap、14 个 Checkpoint、115 个 Review Assessment、17 个作品、17 个来源、63 条规范路由。
 - Promise 课程有 20 课、5 阶段挑战、原理工作台和展厅出口；Monorepo 课程有 10 章、3 个实验、1 个展厅和 1 个解谜；React Native 课程固定到 v0.88.1 源码路径与 patch 级事实；AI Agent 专题有 4 课和 Concept 详情页。
 - 当前只有 Promise、Monorepo、React Native、AI Agent 四个专题有正式 Competency / Gap 图谱；其余 8 个专题可以浏览学习，但没有同等粒度的能力掌握推断。系统不得为这些专题伪造掌握分数。
-- `validate-v2.py` 扫描 6,663 条本地链接、22 个 Mermaid 图和 118 条搜索记录；全站 47 条 canonical route 有 Chromium route smoke coverage。
+- `validate-v2.py` 扫描 6,663 条本地链接、22 个 Mermaid 图和 134 条搜索记录；全站 63 条 canonical route 有 Chromium route smoke coverage。
 - 仍需人工内容质量审查：专题前置关系、知识来源时效、重复段落和所有非核心专题的 competency mapping 不属于静态链接测试能证明的内容。
 
 ## 总结
@@ -55,4 +55,4 @@
 - 原理实验室：核心 Promise 工作台的真实运行模型有测试证据；静态教学时间线须与真实执行区分。
 - 复习工作台：已有真实事件、Gap、独立变体与任务状态机；本次补齐计划和任务的来源证据传递。
 - 沉浸展厅：发现并修复 Promise Universe 的持续 RAF 性能缺陷；五个场景生命周期回归通过。
-- 知识课程：静态结构完整性高，但正式能力图谱只覆盖 4/12 专题；其余专题的能力级自适应仍未验收。
+- 知识课程：静态结构完整性高，但12/12 专题已建立正式能力图谱；新增专题的掌握状态仍需真实学习证据持续验证。

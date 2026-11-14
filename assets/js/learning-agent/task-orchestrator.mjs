@@ -145,7 +145,8 @@ export function mapPlanActionToTask(action, planId, options = {}) {
     action.type === "repair" ? "review" :
       action.type === "validate" || action.type === "review" ? "assessment" :
         action.resourceType === "checkpoint" || action.resourceType === "challenge" ? "challenge" :
-          action.resourceType === "lab" ? "explore" : "practice";
+          action.resourceType === "assessment" ? "assessment" :
+            action.resourceType === "lab" ? "explore" : "practice";
   const evidencePolicy = ["review", "assessment", "challenge"].includes(taskType)
     ? "required_assessment" : "execution_confirmation";
   const taskId = planId + ":" + action.actionId;

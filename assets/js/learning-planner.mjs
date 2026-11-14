@@ -138,6 +138,14 @@ function challengeResource(competency, works, challengeRegistry, usedVariants) {
 }
 
 function practiceResource(competency, works, checkpointRegistry, challengeRegistry, usedVariants) {
+  if (competency.assessmentHref) return {
+    href: competency.assessmentHref,
+    resourceTitle: competency.title,
+    resourceLabel: "进入复习工作台完成独立能力验证",
+    resourceType: "assessment",
+    variantId: null,
+    workId: null,
+  };
   return checkpointResource(competency, works, checkpointRegistry, usedVariants) ||
     challengeResource(competency, works, challengeRegistry, usedVariants) ||
     (competency.labHref && competency.labHref !== "./lab/" ? {
@@ -166,11 +174,13 @@ function makeAction({ today, type, competency, gapId = null, minutes, priority, 
     title: type === "repair" ? "纠正一个具体概念误区" :
       type === "review" ? "进行间隔复习" :
       type === "learn" ? "建立知识基础" :
+      type === "practice" && resource?.resourceType === "assessment" ? "完成一次独立能力验证" :
       type === "practice" ? "进入实验并验证理解" :
       "完成一次独立验证",
     typeLabel: type === "repair" ? "薄弱点纠正" :
       type === "review" ? "间隔复习" :
       type === "learn" ? "学习新知识" :
+      type === "practice" && resource?.resourceType === "assessment" ? "独立验证" :
       type === "practice" ? "实验练习" : "独立验证",
     estimatedMinutes: minutes,
     priority: Math.round(priority),

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-12",
+  "updated": "2026-11-15",
   "description": "稳定 Concept 注册表。Concept 表示可解释和关联的知识对象；Competency 表示可验证能力，两者不可混为同一对象。只有 learning-map 中明确登记的 prerequisites 才复制为 concept prerequisites。",
   "coverage": [
     {
@@ -20,9 +20,8 @@
     },
     {
       "topicId": "ai-education",
-      "status": "content-only",
-      "conceptCount": 0,
-      "note": "已有专题内容；尚未建立正式 Concept / Competency 与先修关系，不推断学习门控。"
+      "status": "mapped",
+      "conceptCount": 2
     },
     {
       "topicId": "ai-agents",
@@ -31,45 +30,38 @@
     },
     {
       "topicId": "model-infra",
-      "status": "content-only",
-      "conceptCount": 0,
-      "note": "已有专题内容；尚未建立正式 Concept / Competency 与先修关系，不推断学习门控。"
+      "status": "mapped",
+      "conceptCount": 2
     },
     {
       "topicId": "database",
-      "status": "content-only",
-      "conceptCount": 0,
-      "note": "已有专题内容；尚未建立正式 Concept / Competency 与先修关系，不推断学习门控。"
+      "status": "mapped",
+      "conceptCount": 2
     },
     {
       "topicId": "finance",
-      "status": "content-only",
-      "conceptCount": 0,
-      "note": "已有专题内容；尚未建立正式 Concept / Competency 与先修关系，不推断学习门控。"
+      "status": "mapped",
+      "conceptCount": 2
     },
     {
       "topicId": "creative",
-      "status": "content-only",
-      "conceptCount": 0,
-      "note": "已有专题内容；尚未建立正式 Concept / Competency 与先修关系，不推断学习门控。"
+      "status": "mapped",
+      "conceptCount": 2
     },
     {
       "topicId": "math",
-      "status": "content-only",
-      "conceptCount": 0,
-      "note": "已有专题内容；尚未建立正式 Concept / Competency 与先修关系，不推断学习门控。"
+      "status": "mapped",
+      "conceptCount": 2
     },
     {
       "topicId": "language",
-      "status": "content-only",
-      "conceptCount": 0,
-      "note": "已有专题内容；尚未建立正式 Concept / Competency 与先修关系，不推断学习门控。"
+      "status": "mapped",
+      "conceptCount": 2
     },
     {
       "topicId": "engineering",
-      "status": "content-only",
-      "conceptCount": 0,
-      "note": "已有专题内容；尚未建立正式 Concept / Competency 与先修关系，不推断学习门控。"
+      "status": "mapped",
+      "conceptCount": 2
     }
   ],
   "concepts": [
@@ -204,6 +196,22 @@
           "type": "review",
           "id": "review-thenable-job-timing-b",
           "title": "ThenableJob：与普通微任务的顺序"
+        },
+        {
+          "type": "review",
+          "id": "review-resolved-vs-settled-c"
+        },
+        {
+          "type": "review",
+          "id": "review-resolved-vs-settled-d"
+        },
+        {
+          "type": "review",
+          "id": "review-promise-resolve-identity-a"
+        },
+        {
+          "type": "review",
+          "id": "review-promise-resolve-identity-b"
         }
       ],
       "sources": [
@@ -1403,6 +1411,578 @@
         "mcp-spec-2026-07-28"
       ],
       "difficulty": "advanced",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "ai-education.multimodal-learning-architecture",
+      "topicId": "ai-education",
+      "title": "多模态学习台的双通路架构",
+      "summary": "区分低延迟实时互动与高保真异步作业审阅；根据输入质量、延迟、可复查证据和成本设计分工。",
+      "learningObjectives": [
+        "区分低延迟实时互动与高保真异步作业审阅；根据输入质量、延迟、可复查证据和成本设计分工。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "Mac × iPhone 多模态学习台需求",
+          "href": "./knowledge/ai-education/chapter-01/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "multimodal-learning-architecture"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-multimodal-learning-architecture-a"
+        },
+        {
+          "type": "review",
+          "id": "review-multimodal-learning-architecture-b"
+        },
+        {
+          "type": "review",
+          "id": "review-multimodal-learning-architecture-c"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "ai-education.learning-feedback-evidence",
+      "topicId": "ai-education",
+      "title": "学习反馈与可验证证据边界",
+      "summary": "区分模型生成的解释、学习者实际作答、规则评分、人工复核和掌握度证据；只有满足评估策略的证据才能更新掌握度。",
+      "learningObjectives": [
+        "区分模型生成的解释、学习者实际作答、规则评分、人工复核和掌握度证据；只有满足评估策略的证据才能更新掌握度。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [
+        "ai-education.multimodal-learning-architecture"
+      ],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "平台与 Agent 候选研究",
+          "href": "./knowledge/ai-education/chapter-02/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "learning-feedback-evidence"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-learning-feedback-evidence-a"
+        },
+        {
+          "type": "review",
+          "id": "review-learning-feedback-evidence-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "creative.experience-pillar-boundaries",
+      "topicId": "creative",
+      "title": "实验室、展厅与解谜体验的职责边界",
+      "summary": "根据学习目标选择可验证运行轨迹、空间化整体认知或可探索机制规则，不把三种体验压成重复页面。",
+      "learningObjectives": [
+        "根据学习目标选择可验证运行轨迹、空间化整体认知或可探索机制规则，不把三种体验压成重复页面。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "三条产品主线的角色边界",
+          "href": "./knowledge/creative/chapter-01/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "experience-pillar-boundaries"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-experience-pillar-boundaries-a"
+        },
+        {
+          "type": "review",
+          "id": "review-experience-pillar-boundaries-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "beginner",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "creative.webgl-scene-lifecycle",
+      "topicId": "creative",
+      "title": "WebGL 场景生命周期与降级",
+      "summary": "设计场景初始化、资源加载、动画循环、页面可见性、离屏暂停、资源释放和低性能降级的完整生命周期。",
+      "learningObjectives": [
+        "设计场景初始化、资源加载、动画循环、页面可见性、离屏暂停、资源释放和低性能降级的完整生命周期。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [
+        "creative.experience-pillar-boundaries"
+      ],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "电影级 WebGL 滚动叙事",
+          "href": "./knowledge/creative/chapter-02/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "webgl-scene-lifecycle"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-webgl-scene-lifecycle-a"
+        },
+        {
+          "type": "review",
+          "id": "review-webgl-scene-lifecycle-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "database.database-query-execution",
+      "topicId": "database",
+      "title": "SQL 查询执行管线",
+      "summary": "沿 Connection、Parser/AST、Catalog、Logical/Physical Plan、Optimizer、Executor 到索引/页/缓冲池追踪查询，不把 SQL 当作直接磁盘操作。",
+      "learningObjectives": [
+        "沿 Connection、Parser/AST、Catalog、Logical/Physical Plan、Optimizer、Executor 到索引/页/缓冲池追踪查询，不把 SQL 当作直接磁盘操作。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "从一条 SQL 追踪数据库内核",
+          "href": "./knowledge/database/chapter-02/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "database-query-execution"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-database-query-execution-a"
+        },
+        {
+          "type": "review",
+          "id": "review-database-query-execution-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "database.agent-memory-consistency",
+      "topicId": "database",
+      "title": "Agent 记忆与数据库真相源",
+      "summary": "区分工作、情景、语义和程序性记忆；用事务型数据库维护规范状态，把全文/向量/图索引视为可重建的派生检索结构。",
+      "learningObjectives": [
+        "区分工作、情景、语义和程序性记忆；用事务型数据库维护规范状态，把全文/向量/图索引视为可重建的派生检索结构。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "Agent 记忆与数据库的关系",
+          "href": "./knowledge/database/chapter-03/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "agent-memory-consistency"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-agent-memory-consistency-a"
+        },
+        {
+          "type": "review",
+          "id": "review-agent-memory-consistency-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "engineering.spec-traceability",
+      "topicId": "engineering",
+      "title": "Spec 到代码与测试的双向追踪",
+      "summary": "把需求约束映射到实现、自动化测试、文档和发布证据；识别文档与代码漂移并保留可审计链路。",
+      "learningObjectives": [
+        "把需求约束映射到实现、自动化测试、文档和发布证据；识别文档与代码漂移并保留可审计链路。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "工程治理闭环与 Spec 漂移",
+          "href": "./knowledge/engineering/chapter-01/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "spec-traceability"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-spec-traceability-a"
+        },
+        {
+          "type": "review",
+          "id": "review-spec-traceability-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "engineering.delivery-quality-gates",
+      "topicId": "engineering",
+      "title": "工程交付质量门禁",
+      "summary": "按风险组合静态校验、单元/集成/E2E、浏览器兼容、路由资源和生产部署验证；区分构建成功与真实业务验收。",
+      "learningObjectives": [
+        "按风险组合静态校验、单元/集成/E2E、浏览器兼容、路由资源和生产部署验证；区分构建成功与真实业务验收。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [
+        "engineering.spec-traceability"
+      ],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "开发工具与环境问题索引",
+          "href": "./knowledge/engineering/chapter-02/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "delivery-quality-gates"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-delivery-quality-gates-a"
+        },
+        {
+          "type": "review",
+          "id": "review-delivery-quality-gates-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "beginner",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "finance.time-value-of-money",
+      "topicId": "finance",
+      "title": "货币时间价值与折现",
+      "summary": "使用复利、终值和现值公式比较不同时间点现金流；明确利率、期限和现金流假设。",
+      "learningObjectives": [
+        "使用复利、终值和现值公式比较不同时间点现金流；明确利率、期限和现金流假设。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "千例金融学教材项目",
+          "href": "./knowledge/finance/chapter-01/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "time-value-of-money"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-time-value-of-money-a"
+        },
+        {
+          "type": "review",
+          "id": "review-time-value-of-money-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "beginner",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "finance.leverage-margin-risk",
+      "topicId": "finance",
+      "title": "杠杆、保证金与强平风险",
+      "summary": "区分名义敞口、初始保证金、维持保证金、费用、流动性和强平机制；理解杠杆放大盈亏但不保证收益或避免亏损。",
+      "learningObjectives": [
+        "区分名义敞口、初始保证金、维持保证金、费用、流动性和强平机制；理解杠杆放大盈亏但不保证收益或避免亏损。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "量化研究与杠杆风险",
+          "href": "./knowledge/finance/chapter-02/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "leverage-margin-risk"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-leverage-margin-risk-a"
+        },
+        {
+          "type": "review",
+          "id": "review-leverage-margin-risk-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "language.semantic-role-analysis",
+      "topicId": "language",
+      "title": "语义角色与信息结构识别",
+      "summary": "先识别施事、动作、受事、地点和时间，再分析话题前置与语境省略；不把表层词序直接等同语义关系。",
+      "learningObjectives": [
+        "先识别施事、动作、受事、地点和时间，再分析话题前置与语境省略；不把表层词序直接等同语义关系。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "东北话与英语语序对照",
+          "href": "./knowledge/language/chapter-01/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "semantic-role-analysis"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-semantic-role-analysis-a"
+        },
+        {
+          "type": "review",
+          "id": "review-semantic-role-analysis-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "beginner",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "language.english-clause-structure",
+      "topicId": "language",
+      "title": "英语从句结构与时体表达",
+      "summary": "将语义角色映射到英语主谓宾结构，正确处理助动词、时态、介词、冠词、连词和修饰语位置。",
+      "learningObjectives": [
+        "将语义角色映射到英语主谓宾结构，正确处理助动词、时态、介词、冠词、连词和修饰语位置。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [
+        "language.semantic-role-analysis"
+      ],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "东北话与英语语序对照",
+          "href": "./knowledge/language/chapter-01/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "english-clause-structure"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-english-clause-structure-a"
+        },
+        {
+          "type": "review",
+          "id": "review-english-clause-structure-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "math.discrete-structure-modeling",
+      "topicId": "math",
+      "title": "离散结构与关系建模",
+      "summary": "使用集合、命题、关系、函数和图描述对象及其约束；区分节点、边、方向和关系语义。",
+      "learningObjectives": [
+        "使用集合、命题、关系、函数和图描述对象及其约束；区分节点、边、方向和关系语义。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "离散数学学习路线",
+          "href": "./knowledge/math/chapter-01/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "discrete-structure-modeling"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-discrete-structure-modeling-a"
+        },
+        {
+          "type": "review",
+          "id": "review-discrete-structure-modeling-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "beginner",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "math.linear-transformations",
+      "topicId": "math",
+      "title": "向量、矩阵与线性变换",
+      "summary": "把向量视为状态/方向，把矩阵视为线性映射；理解矩阵列向量、复合变换顺序和几何意义。",
+      "learningObjectives": [
+        "把向量视为状态/方向，把矩阵视为线性映射；理解矩阵列向量、复合变换顺序和几何意义。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "线性代数的直觉优先路线",
+          "href": "./knowledge/math/chapter-02/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "linear-transformations"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-linear-transformations-a"
+        },
+        {
+          "type": "review",
+          "id": "review-linear-transformations-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "model-infra.model-routing-evaluation",
+      "topicId": "model-infra",
+      "title": "模型路由与任务评估",
+      "summary": "按任务能力、质量、延迟、成本、工具调用和可靠性选择模型；通过可复现基准而不是品牌或参数规模决策。",
+      "learningObjectives": [
+        "按任务能力、质量、延迟、成本、工具调用和可靠性选择模型；通过可复现基准而不是品牌或参数规模决策。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "模型路由与 CLI 研究记录",
+          "href": "./knowledge/model-infra/chapter-01/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "model-routing-evaluation"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-model-routing-evaluation-a"
+        },
+        {
+          "type": "review",
+          "id": "review-model-routing-evaluation-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
+      "coverage": "mapped-content"
+    },
+    {
+      "id": "model-infra.gpu-memory-estimation",
+      "topicId": "model-infra",
+      "title": "GPU 显存与推理容量估算",
+      "summary": "估算模型权重、激活、KV Cache 和运行时开销；理解量化主要降低权重占用，长上下文和并发仍会增加显存需求。",
+      "learningObjectives": [
+        "估算模型权重、激活、KV Cache 和运行时开销；理解量化主要降低权重占用，长上下文和并发仍会增加显存需求。",
+        "能够用独立场景解释关键边界，并识别常见错误推理。"
+      ],
+      "prerequisites": [],
+      "relatedConcepts": [],
+      "articles": [
+        {
+          "title": "免费 GPU 资源与评估原则",
+          "href": "./knowledge/model-infra/chapter-02/"
+        }
+      ],
+      "works": [],
+      "competencyIds": [
+        "gpu-memory-estimation"
+      ],
+      "assessmentRefs": [
+        {
+          "type": "review",
+          "id": "review-gpu-memory-estimation-a"
+        },
+        {
+          "type": "review",
+          "id": "review-gpu-memory-estimation-b"
+        }
+      ],
+      "sources": [],
+      "difficulty": "intermediate",
       "coverage": "mapped-content"
     }
   ]

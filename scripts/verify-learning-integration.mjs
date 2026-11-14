@@ -169,16 +169,16 @@ test("a correct checkpoint creates one independent no-hint evidence variant", as
   assert.equal(passed.workId, checkpoint.workId);
 });
 
-test("the assessment catalog covers 18 competencies, 34 gaps and 78 targeted variants", async () => {
+test("the assessment catalog covers 34 competencies, 51 gaps and 115 targeted variants", async () => {
   const map = await readJSON("../content/learning-map.json");
   const registry = await readJSON("../content/review-assessments.json");
   const ids = new Set(map.topics.flatMap(topic => topic.competencies.map(item => item.id)));
   const gaps = new Set(map.gaps.map(item => item.id));
-  assert.equal(ids.size, 18);
-  assert.equal(gaps.size, 34);
-  assert.equal(registry.assessments.length, 78);
+  assert.equal(ids.size, 34);
+  assert.equal(gaps.size, 51);
+  assert.equal(registry.assessments.length, 115);
   const promiseAssessments = registry.assessments.filter(item => item.topicId === "promise");
-  assert.equal(promiseAssessments.length, 30);
+  assert.equal(promiseAssessments.length, 34);
   const difficultyBands = new Set(["foundation", "intermediate", "stretch"]);
   for (const item of promiseAssessments) {
     assert.ok(difficultyBands.has(item.difficulty), item.id + " difficulty");
@@ -236,6 +236,34 @@ test("Promise Review sessions retain official difficulty and lesson provenance",
   const reactNative = await engine.start({ competencyId: "rn-jsi-boundaries", variantId: "review-rn-jsi-bridge-myth-a" });
   assert.equal(reactNative.difficulty, "foundation");
   assert.equal(reactNative.sourceHref, "./knowledge/react-native/chapter-03/");
+});
+
+
+
+test("all eight expanded topic domains provide independently scorable review evidence", async () => {
+  const map = await readJSON("../content/learning-map.json");
+  const registry = await readJSON("../content/review-assessments.json");
+  const progressStore = createLearningProgressStore();
+  const engine = createReviewSessionEngine({ progressStore, registry });
+  const expandedTopics = ["ai-education", "creative", "database", "engineering", "finance", "language", "math", "model-infra"];
+  for (const topicId of expandedTopics) {
+    const topic = map.topics.find(item => item.id === topicId);
+    assert.equal(topic.competencies.length, 2, topicId);
+    for (const competency of topic.competencies) {
+      const variant = registry.assessments.find(item => item.competencyId === competency.id && item.id.endsWith("-a"));
+      assert.ok(variant, competency.id + " must have an official review variant");
+      const session = await engine.start({ competencyId: competency.id, variantId: variant.id });
+      assert.equal(session.sourceHref, competency.lessonHref);
+      assert.equal(session.topicId, topicId);
+      const result = await engine.submit(session.sessionId, variant.answer);
+      assert.equal(result.correct, true, competency.id);
+    }
+  }
+  const snapshot = await progressStore.load();
+  const expandedEvents = snapshot.events.filter(event => expandedTopics.includes(event.topicId));
+  assert.equal(expandedEvents.filter(event => event.type === "assessment_passed").length, 16);
+  assert.equal(expandedEvents.filter(event => event.type === "attempt").length, 16);
+  assert.ok(expandedEvents.every(event => event.competencyIds?.length === 1));
 });
 
 test("Promise course lessons use the shared learning integration and mapped reader routes are real pages", async () => {

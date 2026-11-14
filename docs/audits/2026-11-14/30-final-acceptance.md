@@ -17,7 +17,7 @@ KNOWVERSE 4.1 已完成可信基线、全站盘点、四大核心模块审计、
 
 | 项目 | 真实结果 | 判定 |
 |---|---|---|
-| 全站功能与内容盘点 | 47 路由、12 专题、19 Concept、18 Competency、17 works / sources；22-feature capability inventory | 完成 |
+| 全站功能与内容盘点 | 63 路由、12 专题、19 Concept、18 Competency、17 works / sources；22-feature capability inventory | 完成 |
 | 四大核心模块审计 | Lab、Review、Gallery、课程均有代码、数据与测试证据 | 完成 |
 | P0 | 0 项确认 | 通过 |
 | P1 | 1 项：Staging 初始同步文档冲突，受同步范围冻结阻塞 | 未通过 |
@@ -69,3 +69,28 @@ KNOWVERSE 4.1 已完成可信基线、全站盘点、四大核心模块审计、
 ## 6. 最终结论
 
 **KNOWVERSE 4.1 的本地核心学习闭环、核心代码修复、回归测试和生产前端部署已通过；但云端学习数据闭环仍未通过，且存在 1 项 P1 阻塞和多项未验证风险。因此，整体验收结论为：未完成，不得宣告 KNOWVERSE 4.1 全部达标。**
+
+
+## 2026-11-15 最终补充
+
+- 全站图谱扩展至 12/12 专题、35 Concept、34 Competency、51 Gap、115 Review Assessment。
+- 16 个现有课程章节已接入学习任务组件；repair task 的 assessment 证据策略与 review gap 因果链已统一。
+- Production Phase N 函数体与本地 SQL 一致，未执行迁移；Auth、OAuth、Production secrets 均未修改。
+- Staging AI Tutor 简单请求成功，但 practice generation 返回 HTTP 546；Production AI Provider 缺少必需 secrets。
+- Production Auth leak-password protection 仍待明确授权；统计信息不足以安全删除 Advisor 标记的索引。
+
+**最终结论：本地核心学习模型和课程覆盖已补齐；Production AI Provider 与 Auth 配置仍有外部阻塞。Staging 云端闭环以本次 E2E 实际退出码为准；在所有阻塞解除前，不宣告 KNOWVERSE 4.1 全部验收完成。**
+
+
+## 2026-11-15 最终判定补充
+- Staging 云端 initialSync 与第二设备 archive 恢复通过，但 Review task 在无提示独立通过后仍停留 `in_progress`；P1 闭环验收未通过。
+- Production AI Provider secrets 缺失，真实模型能力不能验收；Staging practice generation 出现 HTTP 546。
+- Supabase Auth leak-password protection 仍待明确授权；本阶段没有修改 Auth。
+- 因上述未解决项，整体不得宣告 KNOWVERSE 4.1 全部达标。
+
+
+## 2026-11-15 最终判定补充
+- Staging initialSync 与第二设备归档恢复通过，但 Review task 无提示独立通过后未完成，云端闭环未通过。
+- Production AI Provider secrets 缺失，真实模型能力不能验收；Staging practice generation 曾返回 HTTP 546。
+- Supabase Auth leak-password protection 仍待明确授权；本阶段未修改 Auth。
+- 因上述外部配置与验收项未完成，不能宣告 KNOWVERSE 4.1 全部达标。

@@ -71,13 +71,13 @@
       ],
       "dataSource": "知识注册表、专题 Markdown/HTML、Concept / Competency 图",
       "stateManagement": "构建期注册表 + 静态页面",
-      "availabilityAssessment": "已实现；12 专题/47 路由/19 Concept/18 Competency 架构检查通过",
+      "availabilityAssessment": "已实现；12 专题/63 路由/35 Concept/34 Competency 架构检查通过",
       "testCoverage": [
         "scripts/validate-content.py",
         "scripts/validate-v2.py",
         "scripts/validate-site-architecture.mjs"
       ],
-      "knownRisks": "仅 4/12 专题具备正式 Competency/Gap 映射"
+      "knownRisks": "12/12 专题已具备正式 Concept / Competency / Gap 映射；新增能力的掌握度仍必须由真实独立评估证据派生。"
     },
     {
       "feature": "原理实验室入口",
@@ -238,11 +238,11 @@
       ],
       "dataSource": "Learning Events V3 + Competency/Gap 注册表",
       "stateManagement": "事件派生状态；非直接写入掌握分数",
-      "availabilityAssessment": "部分可用；仅正式映射的 4 个专题可进行能力级推断",
+      "availabilityAssessment": "已实现；12/12 专题具备正式能力级图谱定义；无证据时仍保持 unverified，不生成虚假掌握度",
       "testCoverage": [
         "scripts/verify-learning-intelligence.mjs"
       ],
-      "knownRisks": "其余 8 专题不能伪造能力掌握度"
+      "knownRisks": "专题覆盖已补齐；课程质量和掌握度仍需通过学习者真实作答持续验证。"
     },
     {
       "feature": "薄弱点识别",
@@ -260,7 +260,7 @@
       ],
       "dataSource": "真实 attempt/checkpoint/review 事件与 Gap 定义",
       "stateManagement": "因果事件图 + reducer 派生",
-      "availabilityAssessment": "部分可用；已覆盖 Gap 创建/定向练习/解决流程",
+      "availabilityAssessment": "已实现；51 个正式 Gap 定义、真实 attempt/checkpoint/review 事件和因果链校验通过",
       "testCoverage": [
         "scripts/verify-learning-intelligence.mjs",
         "scripts/e2e-phase-k-learning-loop.mjs"
@@ -280,11 +280,11 @@
         "content/review-assessments.json"
       ],
       "dependencies": [
-        "78 道正式 Review assessment + Gap + 事件日志"
+        "112 道正式 Review assessment + Gap + 事件日志"
       ],
-      "dataSource": "78 道正式 Review assessment + Gap + 事件日志",
+      "dataSource": "115 道正式 Review assessment + Gap + 事件日志",
       "stateManagement": "复习 session + 独立变体 + 学习事件",
-      "availabilityAssessment": "已实现；独立变体、错题 Gap、解决状态与刷新恢复测试通过",
+      "availabilityAssessment": "已实现；34 Competency / 51 Gap / 115 变体覆盖；复习变体、因果链与持久化单测通过",
       "testCoverage": [
         "scripts/verify-learning-progress.mjs",
         "scripts/e2e-phase-k-learning-loop.mjs",
@@ -331,7 +331,7 @@
       ],
       "dataSource": "Competency 先修图、Gap、偏好、目标、任务、事件",
       "stateManagement": "本地 reducer + 版本化计划文档 + 事件",
-      "availabilityAssessment": "已实现；目标→计划→任务→刷新恢复有浏览器测试",
+      "availabilityAssessment": "已实现；34 Competency 先修图、Gap、偏好、目标、任务与证据引用驱动计划生成",
       "testCoverage": [
         "scripts/verify-learning-planner.mjs",
         "scripts/e2e-learning-agent.mjs",

@@ -15,6 +15,7 @@ import {
   recordLearningPlanAction,
 } from "../assets/js/learning-planner.mjs";
 import { createLearningProgressStore, deriveLearningInsights } from "../assets/js/learning-progress.mjs";
+import { mapPlanActionToTask } from "../assets/js/learning-agent/task-orchestrator.mjs";
 
 const readJSON = async path => JSON.parse(await readFile(new URL(path, import.meta.url), "utf8"));
 const NOW = new Date("2026-11-01T12:00:00.000Z");
@@ -56,7 +57,7 @@ test("an empty profile starts with prerequisite roots, not advanced topics", asy
   assert.ok(result.plannedMinutes <= 25);
   const rootCompetencies = new Set(f.learningMap.topics.flatMap(topic =>
     topic.competencies.filter(item => !item.prerequisites?.length).map(item => item.id)));
-  assert.equal(rootCompetencies.size, 4);
+  assert.equal(rootCompetencies.size, 16);
   assert.ok(rootCompetencies.has("agent-architecture-selection"));
   assert.ok(result.actions.every(item => rootCompetencies.has(item.competencyId)),
     "An empty profile must only schedule prerequisite roots");
@@ -301,4 +302,29 @@ test("a used challenge step is not recommended again as a fake independent varia
   ] };
   const result = plan(f, snapshot);
   assert.ok(!result.actions.some(item => item.competencyId === "chain-error-propagation" && item.type === "validate"));
+});
+
+
+test("new content-only topics now progress from reading to a real independent assessment task", async () => {
+  const f = await fixtures();
+  const topic = f.learningMap.topics.find(item => item.id === "ai-education");
+  assert.ok(topic?.competencies?.length >= 2);
+  const competency = topic.competencies.find(item => item.id === "multimodal-learning-architecture");
+  assert.ok(competency?.assessmentHref);
+  const store = createLearningProgressStore();
+  const prefs = { dailyMinutes: 60, focusTopicId: "ai-education" };
+  const first = plan(f, await store.load(), prefs);
+  const lesson = first.actions.find(item => item.competencyId === competency.id);
+  assert.equal(lesson?.type, "learn");
+  await recordLearningPlanAction(store, lesson, "completed", { at: NOW });
+  const next = plan(f, await store.load(), prefs);
+  const assessment = next.actions.find(item => item.competencyId === competency.id);
+  assert.equal(assessment?.type, "practice");
+  assert.equal(assessment?.resourceType, "assessment");
+  assert.match(assessment.href, /review\/\?competencyId=multimodal-learning-architecture/);
+  const task = mapPlanActionToTask(assessment, "plan-ai-education");
+  assert.equal(task.taskType, "assessment");
+  assert.equal(task.evidencePolicy, "required_assessment");
+  assert.match(task.href, /taskId=/);
+  assert.match(task.href, /competencyId=multimodal-learning-architecture/);
 });

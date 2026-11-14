@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-11-12",
-  "description": "全站 canonical route 注册表。页面链接只由稳定 route ID 或专题/概念注册表构建；所有内部页面路径均相对仓库根目录。",
+  "updated": "2026-11-15",
+  "description": "Canonical routes for all public site pages, including generated Concept detail routes.",
   "routes": [
     {
       "id": "home",
@@ -283,6 +283,102 @@
       "id": "concept.ai-agents.agent-safety-governance",
       "label": "Agent 权限、同意与安全治理",
       "path": "./concept/ai-agents.agent-safety-governance/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.ai-education.multimodal-learning-architecture",
+      "label": "多模态学习台的双通路架构",
+      "path": "./concept/ai-education.multimodal-learning-architecture/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.ai-education.learning-feedback-evidence",
+      "label": "学习反馈与可验证证据边界",
+      "path": "./concept/ai-education.learning-feedback-evidence/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.creative.experience-pillar-boundaries",
+      "label": "实验室、展厅与解谜体验的职责边界",
+      "path": "./concept/creative.experience-pillar-boundaries/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.creative.webgl-scene-lifecycle",
+      "label": "WebGL 场景生命周期与降级",
+      "path": "./concept/creative.webgl-scene-lifecycle/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.database.database-query-execution",
+      "label": "SQL 查询执行管线",
+      "path": "./concept/database.database-query-execution/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.database.agent-memory-consistency",
+      "label": "Agent 记忆与数据库真相源",
+      "path": "./concept/database.agent-memory-consistency/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.engineering.spec-traceability",
+      "label": "Spec 到代码与测试的双向追踪",
+      "path": "./concept/engineering.spec-traceability/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.engineering.delivery-quality-gates",
+      "label": "工程交付质量门禁",
+      "path": "./concept/engineering.delivery-quality-gates/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.finance.time-value-of-money",
+      "label": "货币时间价值与折现",
+      "path": "./concept/finance.time-value-of-money/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.finance.leverage-margin-risk",
+      "label": "杠杆、保证金与强平风险",
+      "path": "./concept/finance.leverage-margin-risk/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.language.semantic-role-analysis",
+      "label": "语义角色与信息结构识别",
+      "path": "./concept/language.semantic-role-analysis/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.language.english-clause-structure",
+      "label": "英语从句结构与时体表达",
+      "path": "./concept/language.english-clause-structure/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.math.discrete-structure-modeling",
+      "label": "离散结构与关系建模",
+      "path": "./concept/math.discrete-structure-modeling/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.math.linear-transformations",
+      "label": "向量、矩阵与线性变换",
+      "path": "./concept/math.linear-transformations/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.model-infra.model-routing-evaluation",
+      "label": "模型路由与任务评估",
+      "path": "./concept/model-infra.model-routing-evaluation/",
+      "pageType": "concept"
+    },
+    {
+      "id": "concept.model-infra.gpu-memory-estimation",
+      "label": "GPU 显存与推理容量估算",
+      "path": "./concept/model-infra.gpu-memory-estimation/",
       "pageType": "concept"
     }
   ]

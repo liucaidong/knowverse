@@ -54,11 +54,9 @@
         "content/learning-map.json 有正式 competency 的专题为 Promise、Monorepo、React Native、AI Agent",
         "其余 8 个专题不能进行同粒度能力掌握推断"
       ],
-      "status": "open",
-      "resolution": [],
-      "verification": [
-        "scripts/validate-site-architecture.mjs: 12 topics / 19 concepts / 18 competencies"
-      ],
+      "status": "fixed",
+      "resolution": "八个专题补齐教学内容、16 个能力点、16 个 Gap 和 32 个基础复习变体；阅读后进入真实独立 assessment task。12/12 专题纳入能力图谱。",
+      "verification": "34 competencies / 51 gaps / 115 assessments；学习计划、复习引擎、智能策略和全站架构校验通过。",
       "productionImpact": "当前能力级自适应范围受限；不允许用假掌握度补齐。"
     },
     {
@@ -71,8 +69,8 @@
         "Production function source 在缺少 AI_PROVIDER_API_KEY 或 AI_PROVIDER_MODEL 时返回 503",
         "本次没有读取 secret 值，也没有用已授权用户执行真实模型调用"
       ],
-      "status": "unverified",
-      "resolution": [],
+      "status": "blocked_missing_production_secret",
+      "resolution": "Production 未配置 AI_PROVIDER_API_KEY / AI_PROVIDER_MODEL；Staging Tutor 简单解释调用成功，但 practice generation 返回 HTTP 546 上游超时。",
       "verification": [
         "Edge Function 部署元数据已核实；真实 Provider 调用未执行"
       ],
@@ -88,8 +86,8 @@
         "Production 登记 20261113153515 同名 migration",
         "本地 CLI link 指向 staging，不能用当前 link 推断 Production 状态"
       ],
-      "status": "unverified",
-      "resolution": [],
+      "status": "fixed",
+      "resolution": "Production pg_proc.prosrc 与本地 Phase N migration 函数体一致；MD5 0d59e787ca22f762127e18cc9ef0d2f1，5185 bytes；未执行生产迁移。",
       "verification": [
         "Production migrations / RPC / tables 已只读盘点；逐函数 SQL 等价性仍待核对"
       ],
@@ -123,8 +121,8 @@
       "evidence": [
         "Production security advisor 返回该设置项未开启"
       ],
-      "status": "open_requires_authorization",
-      "resolution": [],
+      "status": "requires_explicit_authorization",
+      "resolution": "Production Auth leak-password protection Advisor 风险已确认；按用户明确禁止擅自修改 Auth 的约束，本阶段未更改。",
       "verification": [
         "只读 Advisor 检查"
       ],
@@ -138,8 +136,8 @@
       "evidence": [
         "Production performance advisor 返回 unused index 提示"
       ],
-      "status": "deferred_observe",
-      "resolution": [],
+      "status": "deferred_insufficient_telemetry",
+      "resolution": "Production pg_stat_database.stats_reset 为 NULL；idx_scan=0 不足以证明索引可安全删除。保留索引。",
       "verification": [
         "只读 Advisor 检查"
       ],
@@ -155,11 +153,8 @@
         "增加测试前置诊断后，initialSync 返回 status=partial、conflicts=2、pushedDocuments=2、pulledDocuments=35、pendingDocuments=1",
         "本地合成学习闭环通过；云端冲突出现在 staging archive baseline reconciliation"
       ],
-      "status": "blocked_scope_freeze",
-      "resolution": [
-        "Staging 测试增加 initialSync 无冲突前置门禁，避免在冲突账户上继续写入",
-        "未修改 sync engine、自动同步频率、多标签页等待或调度机制；该范围遵循用户明确暂停要求"
-      ],
+      "status": "open_review_task_completion",
+      "resolution": "Staging initialSync 在被动页先完成 pull 后为 synced / 0 conflicts；第二设备 archive 恢复通过，但无提示 review pass 后任务状态仍未完成。",
       "verification": [
         "scripts/e2e-staging-cloud-learning-loop.mjs 第一次运行：完整本地学习流程到云端推送，但 conflicts=2",
         "第二次运行：在创建新测试数据前因 initialSync conflicts=2 安全停止"
@@ -179,5 +174,17 @@
     "open_requires_authorization": 1,
     "deferred_observe": 1,
     "blocked_scope_freeze": 1
-  }
+  },
+  "updated": "2026-11-15",
+  "coverage": {
+    "topics": 12,
+    "concepts": 35,
+    "competencies": 34,
+    "gaps": 51,
+    "reviewAssessments": 115,
+    "canonicalRoutes": 63
+  },
+  "verificationNote": "Staging cloud E2E and final browser results are recorded in 28/29; Production AI Provider and Auth configuration remain explicit external blockers.",
+  "stagingCloudE2EExit": 1,
+  "nodeVerifyExit": 0
 }
