@@ -184,6 +184,18 @@ for (const { file, rel } of htmlFiles) {
     html = html.replace(/<\/body>/i, `${renderSearchOverlay()}\n</body>`);
     searchAdded++;
   }
+  const pageSpecificStyle = rel === "index.html" ? "site-home.css"
+    : rel === "progress/index.html" ? "site-progress.css"
+    : rel === "provenance/index.html" ? "site-provenance.css"
+    : immersive.has(rel) ? "site-immersive.css"
+    : null;
+  if (pageSpecificStyle && !html.includes("assets/css/" + pageSpecificStyle)) {
+    const link = '<link rel="stylesheet" href="' + prefix + 'assets/css/' + pageSpecificStyle + '">';
+    const anchor = html.match(/<link[^>]+assets\/css\/(?:site-design-system|site-architecture)\.css[^>]*>/i);
+    if (anchor) html = html.replace(anchor[0], anchor[0] + "\n" + link);
+    else html = html.replace(/<\/head>/i, "  " + link + "\n</head>");
+  }
+
   await writeFile(file, html);
   transformed++;
 }
