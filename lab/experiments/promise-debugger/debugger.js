@@ -13,9 +13,6 @@ async function bootPromiseWorkbench() {
     const bundle = await new Response(stream).json();
     if (bundle.format !== "knowverse-promise-workbench-bundle-v1") throw new Error("Promise 工作台资源包版本不匹配");
 
-    document.querySelectorAll('link[rel="stylesheet"]').forEach(link => {
-      if (link.href.includes("debugger.css")) link.remove();
-    });
     const style = document.createElement("style");
     style.textContent = bundle.css;
     document.head.append(style);

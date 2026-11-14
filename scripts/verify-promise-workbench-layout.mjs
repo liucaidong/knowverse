@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 
 const html = readFileSync(new URL("../lab/experiments/promise-debugger/index.html", import.meta.url), "utf8");
 const css = readFileSync(new URL("../lab/experiments/promise-debugger/workspace-layout.css", import.meta.url), "utf8");
+const debuggerLoader = readFileSync(new URL("../lab/experiments/promise-debugger/debugger.js", import.meta.url), "utf8");
 const enhancement = readFileSync(new URL("../lab/experiments/promise-debugger/workspace-enhancements.js", import.meta.url), "utf8");
 
 const dockStart = html.indexOf('<div class="output-dock">');
@@ -72,3 +73,7 @@ assert.match(html, /data-icon="maximize"/, "initial fullscreen button must use L
 assert.match(enhancement, /data-icon="maximize"/, "expanded-state toggle must restore Lucide maximize icon");
 assert.match(enhancement, /data-icon="minimize"/, "fullscreen-state toggle must use Lucide minimize icon");
 console.log("PASS: current Lucide maximize/minimize icon pair wired for both view states");
+
+assert.doesNotMatch(html, /debugger\.css/, "the obsolete stylesheet must not be requested by the workbench document");
+assert.doesNotMatch(debuggerLoader, /debugger\.css/, "the workbench loader must not retain obsolete stylesheet removal logic");
+console.log("PASS: obsolete 10 KB render-blocking debugger stylesheet removed; bundled CSS is the only workbench base theme");

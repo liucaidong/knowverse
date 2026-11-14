@@ -19,7 +19,6 @@ required = [
     'assets/panoramas/promise.svg',
     'knowledge/promise/observatory/index.html',
     'lab/experiments/promise-debugger/index.html',
-    'lab/experiments/promise-debugger/debugger.css',
     'lab/experiments/promise-debugger/debugger.js',
     'lab/experiments/promise-debugger/workbench.bundle.part-01.b64',
     'lab/experiments/promise-debugger/workbench.bundle.part-02.b64',
