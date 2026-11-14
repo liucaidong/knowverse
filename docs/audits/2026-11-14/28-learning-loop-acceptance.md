@@ -81,3 +81,11 @@
 
 ## 2026-11-15 最终 Staging 结果
 - Staging cloud E2E：未通过；initialSync `synced / 0 conflicts`，第二设备归档恢复已验证，但 Review task 在无提示独立通过后仍未完成。
+
+
+## 最终验收（2026-11-15）
+
+- Staging initialSync：`synced / 0 conflicts`，已消除由测试启动顺序造成的伪冲突。
+- 云端档案与事件：第二设备可拉取；事件 ID、学习档案、掌握快照均可恢复。
+- **未通过项（P1）：** 无提示独立复习的 `assessment_passed` 事件已持久化，但对应 review task 仍为 `in_progress`，未产生 `learning_task_completed`。这会使任务生命周期与用户可见进度不一致。问题登记为 `KV41-010`，未修复前不得宣告云端学习闭环通过。
+- 初始同步测试顺序问题登记 `KV41-009` 已关闭；没有修改同步调度、频率或跨标签页等待机制。

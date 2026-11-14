@@ -153,27 +153,38 @@
         "增加测试前置诊断后，initialSync 返回 status=partial、conflicts=2、pushedDocuments=2、pulledDocuments=35、pendingDocuments=1",
         "本地合成学习闭环通过；云端冲突出现在 staging archive baseline reconciliation"
       ],
-      "status": "open_review_task_completion",
-      "resolution": "Staging initialSync 在被动页先完成 pull 后为 synced / 0 conflicts；第二设备 archive 恢复通过，但无提示 review pass 后任务状态仍未完成。",
+      "status": "fixed",
+      "resolution": "Staging initialSync 在被动页面先完成 pull 后为 synced / 0 conflicts；之前的冲突来自 E2E 在 Agent workspace 挂载前创建默认 singleton 文档的测试顺序。",
       "verification": [
         "scripts/e2e-staging-cloud-learning-loop.mjs 第一次运行：完整本地学习流程到云端推送，但 conflicts=2",
         "第二次运行：在创建新测试数据前因 initialSync conflicts=2 安全停止"
       ],
       "productionImpact": "仅 Staging 测试账户；Production 未写入。第一次 Staging 测试产生的合成 run 数据保留，不删除。"
+    },
+    {
+      "id": "KV41-010",
+      "severity": "P1",
+      "area": "Review Workspace / Task Orchestrator",
+      "title": "无提示独立复习通过后学习任务仍停留 in_progress",
+      "status": "open",
+      "reproduction": [
+        "Staging 测试账户创建一个 assessment 失败并产生 Gap observation",
+        "创建 gap-scoped review task",
+        "完成一次提示辅助复习，确认任务保持 failed",
+        "创建不同变体的无提示独立 review task 并正确作答",
+        "检查 learning_task 文档和 learning_task_completed 事件"
+      ],
+      "evidence": "scripts/e2e-staging-cloud-learning-loop.mjs：assessment_passed 事件已持久化且 independent=true、hintsUsed=0，但 review task payload.status 仍为 in_progress；未生成预期的 learning_task_completed。",
+      "impact": "复习证据已经产生，但任务生命周期没有闭合；计划进度、复习队列和用户可见任务状态不可信。",
+      "requiredFix": "检查 Review Workspace 提交成功分支与 Task Orchestrator complete() 调用，确保 no-hint review pass 以 taskId 完成 exact targetGapEventIds 因果验证，并持久化 learning_task_completed；hint-assisted pass 必须继续保持未完成。",
+      "verification": "当前 Staging E2E 可稳定复现；未通过验收。"
     }
   ],
   "counts": {
     "P0": 0,
-    "P1": 1,
+    "P1_open": 1,
     "P2": 7,
-    "P3": 1,
-    "fixed": 2,
-    "open": 1,
-    "unverified": 2,
-    "mitigated_forward_only": 1,
-    "open_requires_authorization": 1,
-    "deferred_observe": 1,
-    "blocked_scope_freeze": 1
+    "P3": 1
   },
   "updated": "2026-11-15",
   "coverage": {
@@ -186,5 +197,13 @@
   },
   "verificationNote": "Staging cloud E2E and final browser results are recorded in 28/29; Production AI Provider and Auth configuration remain explicit external blockers.",
   "stagingCloudE2EExit": 1,
-  "nodeVerifyExit": 0
+  "nodeVerifyExit": 0,
+  "nodeVerify": {
+    "passed": 247,
+    "failed": 0
+  },
+  "localBrowserE2E": {
+    "passed": 19,
+    "failed": 0
+  }
 }

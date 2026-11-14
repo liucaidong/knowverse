@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="区分低延迟实时互动与高保真异步作业审阅；根据输入质量、延迟、可复查证据和成本设计分工。"><title>多模态学习台的双通路架构 · AI · 多模态教育 · KNOWVERSE</title><link rel="stylesheet" href="../../assets/css/v2.css"><link rel="stylesheet" href="../../assets/css/concepts.css">  <link rel="stylesheet" href="../../assets/css/site-architecture.css">
+  <link rel="stylesheet" href="../../assets/css/site-design-system.css">
+</head>
+<body data-root="../../" class="kv-concept-page"><div class="topline"></div><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.1"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+    <a class="mark" href="../../">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
+    <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区"><div class="kv-nav-group" data-group-id="start"
+      data-active-routes="learning.start learning.agent learning.today"
+      data-active-paths="../../start/|../../agent/|../../progress/#adaptive-plan">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="learning.start"
+       href="../../start/">开始学习</a><button class="kv-nav-toggle" type="button" aria-label="展开开始学习子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">学习工作区</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="learning.agent" href="../../agent/">个人智能学习 Agent</a><a class="kv-nav-subitem" data-route-id="learning.today" href="../../progress/#adaptive-plan">今日学习计划</a></div></div></div></div>
+    </div><div class="kv-nav-group" data-group-id="knowledge"
+      data-active-routes="knowledge.overview topic.promise topic.monorepo topic.react-native knowledge.sources"
+      data-active-paths="../../knowledge/|../../knowledge/promise/|../../knowledge/monorepo/|../../knowledge/react-native/|../../provenance/">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="knowledge.overview"
+       href="../../knowledge/">知识库</a><button class="kv-nav-toggle" type="button" aria-label="展开知识库子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">重点专题与资料</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="topic.promise" href="../../knowledge/promise/">JavaScript · Promise</a><a class="kv-nav-subitem" data-route-id="topic.monorepo" href="../../knowledge/monorepo/">TypeScript · Monorepo</a><a class="kv-nav-subitem" data-route-id="topic.react-native" href="../../knowledge/react-native/">React Native · 新架构</a><a class="kv-nav-subitem" data-route-id="knowledge.sources" href="../../provenance/">来源与参考</a></div></div></div></div>
+    </div><div class="kv-nav-group" data-group-id="experience"
+      data-active-routes="experience.overview experience.lab experience.gallery experience.puzzles"
+      data-active-paths="../../works/|../../lab/|../../gallery/|../../puzzles/">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="experience.overview"
+       href="../../works/">实践中心</a><button class="kv-nav-toggle" type="button" aria-label="展开实践中心子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">三种实践方式</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="experience.lab" href="../../lab/">01 · 原理实验室</a><a class="kv-nav-subitem" data-route-id="experience.gallery" href="../../gallery/">02 · 沉浸式知识展厅</a><a class="kv-nav-subitem" data-route-id="experience.puzzles" href="../../puzzles/">03 · 知识解谜世界</a></div></div></div></div>
+    </div><div class="kv-nav-group" data-group-id="progress"
+      data-active-routes="learning.overview learning.mastery learning.gaps learning.review learning.history account.archive"
+      data-active-paths="../../progress/|../../progress/#knowledge-map|../../progress/#weak-points|../../review/|../../progress/#challenge-history|../../progress/#cloud-account">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="learning.overview"
+       href="../../progress/">我的进度</a><button class="kv-nav-toggle" type="button" aria-label="展开我的进度子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">掌握与复习工具</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="learning.review" href="../../review/">独立复习工作台</a><a class="kv-nav-subitem" data-route-id="learning.mastery" href="../../progress/#knowledge-map">知识掌握图谱</a><a class="kv-nav-subitem" data-route-id="learning.gaps" href="../../progress/#weak-points">薄弱点诊断</a><a class="kv-nav-subitem" data-route-id="learning.history" href="../../progress/#challenge-history">学习历史</a><a class="kv-nav-subitem" data-route-id="account.archive" href="../../progress/#cloud-account">个人学习档案</a></div></div></div></div>
+    </div></div>
+    <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
+    <button class="search-trigger" id="search-open" type="button" aria-label="全站搜索知识与作品">搜索 <span>⌘ K</span></button>
+    <details class="kv-global-account" id="kv-global-account" data-status="anonymous">
+    <summary class="kv-account-trigger" aria-label="打开全站账户与同步状态">
+      <span class="kv-account-dot" data-status="neutral" aria-hidden="true"></span>
+      <span class="kv-account-label"><small>ACCOUNT / SYNC</small><strong class="kv-account-state" data-kv-account-state>GitHub 登录</strong></span>
+      <span class="kv-account-chevron" aria-hidden="true">⌄</span>
+    </summary>
+    <div class="kv-account-panel" aria-label="账户面板">
+      <strong class="kv-account-panel-title">一个账户，贯穿整个 KNOWVERSE</strong>
+      <p class="kv-account-scope">公开知识、实验、展厅和挑战无需登录。身份认证与云端学习档案授权是两个独立状态。</p>
+      <p class="kv-account-message" data-kv-account-message>当前设备可以直接学习；登录后可在获授权时同步个人学习档案。</p>
+      <p class="kv-account-identity" data-kv-account-identity hidden></p>
+      <button class="kv-account-action primary" type="button" data-kv-sign-in disabled>使用 GitHub 登录</button>
+      <noscript><p class="kv-account-scope">账户操作需要启用 JavaScript；本页导航与知识内容仍可直接访问。</p></noscript>
+      <button class="kv-account-action" type="button" data-kv-sign-out hidden>退出登录</button>
+      <a class="kv-account-manage" href="../../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
+    </div>
+  </details>
+  </nav></header>
+<main class="cp-container"><nav class="cp-breadcrumb" aria-label="面包屑"><a href="../../">首页</a><span>/</span><a href="../../knowledge/">知识体系</a><span>/</span><a href="../../knowledge/ai-education/">AI · 多模态教育</a><span>/</span><strong>多模态学习台的双通路架构</strong></nav>
+<section class="cp-hero"><div><span class="cp-kicker">CONCEPT REGISTRY / AI-EDUCATION</span><h1>多模态学习台的双通路架构</h1><p>区分低延迟实时互动与高保真异步作业审阅；根据输入质量、延迟、可复查证据和成本设计分工。</p><div class="cp-meta"><span>AI 产品</span><span>intermediate 难度</span><span>稳定 ID：ai-education.multimodal-learning-architecture</span></div></div><aside><small>KNOWLEDGE OBJECT</small><strong>Concept</strong><p>概念用于定义、关联和解释知识；Competency 用于定义可验证能力。两者分开维护。</p><p class="cp-competency">对应能力点：multimodal-learning-architecture</p><a href="../../progress/#knowledge-map">查看个人掌握证据 ↗</a></aside></section>
+<section class="cp-section"><div class="cp-section-head"><span>LEARNING OBJECTIVES</span><h2>学完后应该能够</h2></div><ol class="cp-objectives"><li>区分低延迟实时互动与高保真异步作业审阅；根据输入质量、延迟、可复查证据和成本设计分工。</li><li>能够用独立场景解释关键边界，并识别常见错误推理。</li></ol></section>
+<section class="cp-grid"><article class="cp-panel"><div class="cp-section-head"><span>KNOWLEDGE GRAPH</span><h2>前置与关联概念</h2></div><div class="cp-relation-group"><strong>明确前置知识</strong><p>未声明先修要求。系统不会从章节顺序推断依赖。</p></div><div class="cp-relation-group"><strong>相关概念</strong><p>暂无显式 related_to 关系。</p></div></article><article class="cp-panel"><div class="cp-section-head"><span>ASSESSMENT & EVIDENCE</span><h2>如何验证理解</h2></div><ul class="cp-assessments"><li><a href="../../review/"><span>复习题变体</span><strong></strong><b>打开验证入口 ↗</b></a></li><li><a href="../../review/"><span>复习题变体</span><strong></strong><b>打开验证入口 ↗</b></a></li><li><a href="../../review/"><span>复习题变体</span><strong></strong><b>打开验证入口 ↗</b></a></li></ul><p class="cp-note">AI 教学建议、作品探索行为和正式掌握证据严格分离。只有评估引擎接受的独立验证事件才能更新学习状态。</p></article></section>
+<section class="cp-section"><div class="cp-section-head"><span>CANONICAL CONTENT</span><h2>解释与学习材料</h2></div><div class="cp-link-grid"><a class="cp-link" href="../../knowledge/ai-education/chapter-01/"><span>ARTICLE</span><strong>Mac × iPhone 多模态学习台需求</strong><b>阅读内容 ↗</b></a></div></section>
+<section class="cp-section"><div class="cp-section-head"><span>LEARN BY DOING</span><h2>进入对应体验</h2></div><div class="cp-work-grid"><p>本概念尚无登记的互动作品。</p></div></section>
+<section class="cp-section"><div class="cp-section-head"><span>SOURCES & REFERENCES</span><h2>来源与参考</h2></div><div class="cp-source-grid"><p>尚未登记直接来源；请回到专题来源页查看可用资料。</p></div><p class="cp-note">来源记录来自内容注册表。整理、示例和教学流程如有重构，会在对应教材中明确标注；外部链接不等同于对来源内容的逐字复现。</p></section>
+<div class="cp-return"><a href="../../knowledge/ai-education/">← 返回 AI · 多模态教育 专题</a><a href="../../progress/#adaptive-plan">查看下一步学习计划 ↗</a></div></main>
+<footer class="sitefooter kv-shared-footer"><div class="container footerflex"><div><strong>KNOWVERSE / 知域</strong><p>Knowledge → Experience → Evidence → Growth</p></div><div class="footerlinks"><a href="../../knowledge/">知识体系</a><a href="../../works/">实践体验</a><a href="../../progress/">学习成长</a></div></div><div class="kv-footer-links" aria-label="全站快捷入口"><a href="../../knowledge/">知识体系</a><a href="../../works/">实践体验</a><a href="../../progress/">学习成长</a><a href="https://github.com/liucaidong/knowverse" target="_blank" rel="noopener">GitHub ↗</a></div></footer><script defer src="../../assets/js/v2.js"></script><div class="searchoverlay" id="search-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-label="全站搜索">
+    <div class="searchbox"><div class="searchheading"><strong>搜索 KNOWVERSE 知识宇宙</strong><button id="search-close" type="button">关闭 ✕</button></div>
+    <input id="search-input" type="search" placeholder="搜索 Promise、Monorepo、React Native、AI…" aria-label="输入搜索关键词"><div id="search-results" class="searchresults" aria-live="polite"></div></div></div>
+</body></html>

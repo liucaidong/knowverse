@@ -94,3 +94,13 @@ KNOWVERSE 4.1 已完成可信基线、全站盘点、四大核心模块审计、
 - Production AI Provider secrets 缺失，真实模型能力不能验收；Staging practice generation 曾返回 HTTP 546。
 - Supabase Auth leak-password protection 仍待明确授权；本阶段未修改 Auth。
 - 因上述外部配置与验收项未完成，不能宣告 KNOWVERSE 4.1 全部达标。
+
+
+## 最终状态（2026-11-15）
+
+- 全站能力图谱：12 topics / 35 concepts / 34 competencies / 51 gaps / 115 review assessments / 63 canonical routes。
+- Node：247/247 通过；本地浏览器 E2E：19/19 通过；Staging 云端学习闭环：未通过 1 项 P1（`KV41-010` review task completion）。
+- Staging initial sync 与第二设备归档恢复通过；同步频率、调度和标签页等待机制未修改。
+- Production AI Provider secrets 缺失；Staging practice generation 曾返回 HTTP 546。
+- Auth leak-password protection 仍需明确授权；Production 统计数据不足以安全删除索引。
+- **最终结论：KNOWVERSE 4.1 尚未全部达标。** 核心 P1 是无提示独立复习产生通过证据后，review task 未完成生命周期闭合；另有 Production AI Provider 与 Auth 配置阻塞。

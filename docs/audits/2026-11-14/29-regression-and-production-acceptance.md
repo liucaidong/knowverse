@@ -89,3 +89,12 @@
 - Staging Tutor 简单请求通过；practice generation 曾返回 HTTP 546。Production AI Provider secrets 缺失。
 - Production migration 函数体 MD5 与本地一致：`0d59e787ca22f762127e18cc9ef0d2f1`，5185 bytes。
 - Production stats_reset 为 NULL；未删除索引。
+
+
+## 最终实际测试统计（2026-11-15）
+
+- Full Node verify：247 passed / 0 failed / 0 skipped。
+- 本地浏览器 E2E：19 passed / 0 failed（学习计划 4、复习工作台 10、沉浸场景生命周期 5；覆盖 Chromium / WebKit 与移动视口）。
+- Staging cloud learning-loop E2E：1 failed；initial sync 0 conflicts、第二设备恢复完成，但 review task 在无提示独立通过后仍为 `in_progress`。
+- 本地完整构建、静态内容、架构、搜索索引、Monorepo 图校验均通过。
+- Production 在生成的 16 个 Concept 详情页尚未部署前，路由扫描为 47/63 HTTP 200；本次随后提交静态产物并重新部署，最终结果以部署后的二次扫描为准。
