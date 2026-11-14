@@ -94,19 +94,44 @@
   // Mobile navigation is owned by the shared static site shell.
   const diagrams = [...document.querySelectorAll(".mermaid")];
   if (diagrams.length) {
-    import("https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.esm.min.mjs").then(module => {
-      module.default.initialize({
-        startOnLoad: false,
-        securityLevel: "strict",
-        theme: "neutral",
-        flowchart: { htmlLabels: false, useMaxWidth: true }
-      });
-      return module.default.run({ nodes: diagrams });
-    }).catch(() => {
-      for (const diagram of diagrams) {
-        diagram.classList.add("mermaid-fallback");
-        diagram.title = "离线状态保留 Mermaid 源码；专题全景图使用本地 SVG 可正常查看。";
+    let mermaidPromise = null;
+    const rendered = new WeakSet();
+    const renderDiagrams = nodes => {
+      const pending = nodes.filter(node => !rendered.has(node));
+      if (!pending.length) return;
+      pending.forEach(node => rendered.add(node));
+      if (!mermaidPromise) {
+        mermaidPromise = import("https://cdn.jsdelivr.net/npm/mermaid@12/dist/mermaid.esm.min.mjs")
+          .then(module => {
+            module.default.initialize({
+              startOnLoad: false,
+              securityLevel: "strict",
+              theme: "neutral",
+              flowchart: { htmlLabels: false, useMaxWidth: true }
+            });
+            return module.default;
+          });
       }
-    });
+      mermaidPromise.then(mermaid => mermaid.run({ nodes: pending })).catch(() => {
+        for (const diagram of pending) {
+          diagram.classList.add("mermaid-fallback");
+          diagram.title = "离线状态保留 Mermaid 源码；专题全景图使用本地 SVG 可正常查看。";
+        }
+      });
+    };
+
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver(entries => {
+        const visible = entries
+          .filter(entry => entry.isIntersecting)
+          .map(entry => entry.target);
+        if (!visible.length) return;
+        visible.forEach(node => observer.unobserve(node));
+        renderDiagrams(visible);
+      }, { rootMargin: "240px 0px" });
+      diagrams.forEach(diagram => observer.observe(diagram));
+    } else {
+      renderDiagrams(diagrams);
+    }
   }
 })();
