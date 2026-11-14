@@ -55,6 +55,7 @@ export function mountPromiseQuestWorld(canvas) {
   let previousTime = 0;
   let frame = 0;
   let destroyed = false;
+  let inViewport = true;
 
   function resize() {
     const rect = canvas.getBoundingClientRect();
@@ -162,8 +163,19 @@ export function mountPromiseQuestWorld(canvas) {
     context.restore();
   }
 
-  function render(now) {
+  function syncRendering() {
     if (destroyed) return;
+    if (inViewport && !document.hidden) {
+      if (!frame) frame = requestAnimationFrame(render);
+      return;
+    }
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+  }
+
+  function render(now) {
+    frame = 0;
+    if (destroyed || !inViewport || document.hidden) return;
     const delta = previousTime ? Math.min(0.04, (now - previousTime) / 1000) : 0.016;
     previousTime = now;
     if (!dragging) yaw += delta * 0.035;
@@ -211,7 +223,7 @@ export function mountPromiseQuestWorld(canvas) {
     context.fillStyle = "rgba(112,164,187,.54)";
     context.fillText("DRAG TO ROTATE / PROMISE MECHANISM MAP", 18, height - 16);
 
-    frame = requestAnimationFrame(render);
+    syncRendering();
   }
 
   function hitTest(clientX, clientY) {
@@ -230,11 +242,11 @@ export function mountPromiseQuestWorld(canvas) {
     if (nearest) selectedId = nearest;
   }
 
-  canvas.addEventListener("pointerdown", event => {
+  const onPointerDown = event => {
     dragging = { x: event.clientX, y: event.clientY, moved: false };
     canvas.setPointerCapture(event.pointerId);
-  });
-  canvas.addEventListener("pointermove", event => {
+  };
+  const onPointerMove = event => {
     if (!dragging) return;
     const dx = event.clientX - dragging.x;
     const dy = event.clientY - dragging.y;
@@ -245,30 +257,47 @@ export function mountPromiseQuestWorld(canvas) {
     }
     dragging.x = event.clientX;
     dragging.y = event.clientY;
-  });
-  canvas.addEventListener("pointerup", event => {
+  };
+  const onPointerUp = event => {
     if (dragging && !dragging.moved) hitTest(event.clientX, event.clientY);
     dragging = null;
-  });
-  canvas.addEventListener("pointercancel", () => { dragging = null; });
+  };
+  const onPointerCancel = () => { dragging = null; };
+  canvas.addEventListener("pointerdown", onPointerDown);
+  canvas.addEventListener("pointermove", onPointerMove);
+  canvas.addEventListener("pointerup", onPointerUp);
+  canvas.addEventListener("pointercancel", onPointerCancel);
 
-  const observer = "ResizeObserver" in window ? new ResizeObserver(resize) : null;
-  observer?.observe(canvas);
+  const resizeObserver = "ResizeObserver" in window ? new ResizeObserver(resize) : null;
+  resizeObserver?.observe(canvas);
+  const visibilityObserver = "IntersectionObserver" in window
+    ? new IntersectionObserver(entries => {
+      inViewport = entries.some(entry => entry.isIntersecting && entry.intersectionRatio > 0);
+      syncRendering();
+    }, { threshold: 0.01 })
+    : null;
+  visibilityObserver?.observe(canvas);
+  const onVisibilityChange = () => syncRendering();
   window.addEventListener("resize", resize);
+  document.addEventListener("visibilitychange", onVisibilityChange);
   resize();
-  frame = requestAnimationFrame(render);
+  syncRendering();
 
   return {
     supported: true,
     setStage(next) { stage = clamp(next, 0, STAGE_FOCUS.length - 1); },
     destroy() {
       destroyed = true;
-      cancelAnimationFrame(frame);
-      observer?.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      resizeObserver?.disconnect();
+      visibilityObserver?.disconnect();
       window.removeEventListener("resize", resize);
-      canvas.removeEventListener("pointerdown", () => {});
-      canvas.removeEventListener("pointermove", () => {});
-      canvas.removeEventListener("pointerup", () => {});
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      canvas.removeEventListener("pointerdown", onPointerDown);
+      canvas.removeEventListener("pointermove", onPointerMove);
+      canvas.removeEventListener("pointerup", onPointerUp);
+      canvas.removeEventListener("pointercancel", onPointerCancel);
     },
   };
 }

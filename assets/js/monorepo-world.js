@@ -212,6 +212,7 @@ export function mountMonorepoWorld(container, graph, options = {}) {
   let mode = options.mode || "dependencies";
   let frame = 0;
   let destroyed = false;
+  let inViewport = true;
   let pointer = null;
 
   function setAttributes(buffer) {
@@ -247,8 +248,19 @@ export function mountMonorepoWorld(container, graph, options = {}) {
     perspective(projection, Math.PI / 4.2, width / height, 0.1, 60);
   }
 
-  function render(now) {
+  function syncRendering() {
     if (destroyed) return;
+    if (inViewport && !document.hidden) {
+      if (!frame) frame = requestAnimationFrame(render);
+      return;
+    }
+    if (frame) cancelAnimationFrame(frame);
+    frame = 0;
+  }
+
+  function render(now) {
+    frame = 0;
+    if (destroyed || !inViewport || document.hidden) return;
     resize();
     const radius = 8.4;
     const eye = [Math.sin(yaw) * radius, 2.25 + pitch * 4.0, Math.cos(yaw) * radius];
@@ -300,7 +312,7 @@ export function mountMonorepoWorld(container, graph, options = {}) {
       });
     }
 
-    frame = requestAnimationFrame(render);
+    syncRendering();
   }
 
   function chooseAt(clientX, clientY) {
@@ -345,11 +357,20 @@ export function mountMonorepoWorld(container, graph, options = {}) {
   });
   canvas.addEventListener("pointercancel", () => { pointer = null; });
 
-  const observer = "ResizeObserver" in window ? new ResizeObserver(resize) : null;
-  observer?.observe(canvas);
+  const resizeObserver = "ResizeObserver" in window ? new ResizeObserver(resize) : null;
+  resizeObserver?.observe(canvas);
+  const visibilityObserver = "IntersectionObserver" in window
+    ? new IntersectionObserver(entries => {
+      inViewport = entries.some(entry => entry.isIntersecting && entry.intersectionRatio > 0);
+      syncRendering();
+    }, { threshold: 0.01 })
+    : null;
+  visibilityObserver?.observe(container);
+  const onVisibilityChange = () => syncRendering();
   window.addEventListener("resize", resize);
+  document.addEventListener("visibilitychange", onVisibilityChange);
   resize();
-  frame = requestAnimationFrame(render);
+  syncRendering();
 
   return {
     supported: true,
@@ -357,9 +378,12 @@ export function mountMonorepoWorld(container, graph, options = {}) {
     setMode(nextMode) { mode = nextMode; },
     destroy() {
       destroyed = true;
-      cancelAnimationFrame(frame);
-      observer?.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+      frame = 0;
+      resizeObserver?.disconnect();
+      visibilityObserver?.disconnect();
       window.removeEventListener("resize", resize);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       gl.deleteBuffer(cubeBuffer);
       gl.deleteBuffer(edgeBuffer);
       gl.deleteProgram(program);

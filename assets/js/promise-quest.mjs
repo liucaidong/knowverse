@@ -314,6 +314,7 @@ async function boot() {
 
   world = mountPromiseQuestWorld($("promise-world"));
   if (!world.supported) $("scene-fallback").hidden = false;
+  window.addEventListener("pagehide", () => world?.destroy(), { once: true });
 
   $("hint-next").addEventListener("click", () => revealHint().catch(showSaveError));
   $("step-continue").addEventListener("click", continueQuest);
