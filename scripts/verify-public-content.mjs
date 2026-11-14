@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const builder = path.join(root, "scripts/build-public-content.mjs");
-const requiredContent = ["knowledge.json","works.json","learning-map.json","learning-checkpoints.json","review-assessments.json","search-metadata.json","concepts.json","sources.json","routes.json"];
+const requiredContent = ["knowledge.json","knowledge-context.json","works.json","learning-map.json","learning-checkpoints.json","review-assessments.json","search-metadata.json","concepts.json","sources.json","routes.json"];
 const pages = ["index.html","knowledge/index.html","provenance/index.html"];
 
 test("public builder renders canonical topic catalogues, home portal, provenance and all Concept routes", async () => {

@@ -4,6 +4,7 @@ import json
 import os
 from pathlib import Path
 from urllib.parse import unquote, urlsplit
+from knowledge_context_data import build_knowledge_context
 
 root = Path(__file__).resolve().parents[1]
 work_manifest = json.loads((root / "content/works.json").read_text(encoding="utf-8"))
@@ -11,6 +12,8 @@ learning_map = json.loads((root / "content/learning-map.json").read_text(encodin
 challenge_registry = json.loads((root / "content/challenges.json").read_text(encoding="utf-8"))
 checkpoint_registry = json.loads((root / "content/learning-checkpoints.json").read_text(encoding="utf-8"))
 knowledge_manifest = json.loads((root / "content/knowledge.json").read_text(encoding="utf-8"))
+compiled_context = json.loads((root / "content/knowledge-context.json").read_text(encoding="utf-8"))
+assert compiled_context == build_knowledge_context(root), "knowledge-context.json is stale; run scripts/build-knowledge-context.py"
 works = work_manifest["works"]
 pillars = {pillar["id"]: pillar for pillar in work_manifest["pillars"]}
 topics = knowledge_manifest["topics"]

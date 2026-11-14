@@ -41,43 +41,6 @@ function insertAfterPageHead(section) {
   }
 }
 
-function renderAtlasIntro(manifest, learningMap, root) {
-  if (document.querySelector("[data-kv-architecture-overview]")) return;
-  const mappedTopics = learningMap.topics?.length || 0;
-  const section = create("section", "kv-architecture-overview");
-  section.dataset.kvArchitectureOverview = "true";
-  const head = create("div", "kv-architecture-head");
-  head.append(create("span", "kv-architecture-kicker", "ONE KNOWLEDGE GRAPH · THREE EXPERIENCE PILLARS"));
-  head.append(create("h2", "", "知识不是散落的页面，而是一条可追踪的学习路径。"));
-  head.append(create("p", "", "专题负责组织知识，能力点定义真正需要掌握的内容，三条产品主线提供不同的学习方式，挑战与复习结果再回流到个人学习图谱。"));
-  section.append(head);
-
-  const flow = create("div", "kv-architecture-flow");
-  const steps = [
-    { n: "01", title: "知识专题", note: manifest.topics.length + " 个专题 · 文章与全景图", href: "knowledge/" },
-    { n: "02", title: "三种体验", note: "原理实验 · 沉浸展厅 · 机制解谜", href: "works/" },
-    { n: "03", title: "学习证据", note: "挑战 · 检查点 · 独立验证", href: "progress/#knowledge-map" },
-    { n: "04", title: "自适应成长", note: "薄弱点 · 个性化复习 · 再次验证", href: "progress/" },
-  ];
-  steps.forEach((step, index) => {
-    const card = create("div", "kv-architecture-step");
-    card.append(create("span", "kv-architecture-number", step.n));
-    card.append(create("strong", "", step.title));
-    card.append(create("small", "", step.note));
-    addLink(card, "查看入口 ↗", step.href, root, "kv-architecture-link");
-    flow.append(card);
-    if (index < steps.length - 1) flow.append(create("span", "kv-architecture-arrow", "→"));
-  });
-  section.append(flow);
-
-  const sources = create("div", "kv-registry-note");
-  sources.append(create("strong", "", "内容关系由注册表维护，不在页面里重复手写"));
-  sources.append(create("p", "", "知识专题来自 content/knowledge.json；作品与专题的关系来自 content/works.json；能力点先修关系来自 content/learning-map.json；搜索索引只负责定位文章，不另造一套分类。"));
-  sources.append(create("span", "kv-registry-coverage", "当前已有 " + mappedTopics + " 个专题定义了可验证的能力点与先修关系。其他专题不会被假定为线性课程。"));
-  section.append(sources);
-  insertAfterPageHead(section);
-}
-
 function renderCompetencies(container, mapTopic) {
   const competencies = mapTopic?.competencies || [];
   if (!competencies.length) {
@@ -185,8 +148,8 @@ function renderArticleContext(topic, records, works, mapTopic, currentPath, root
   details.append(summary);
   const list = create("div", "kv-article-context-links");
   const siblingRecords = records.filter(record => {
-    const url = safeHref(record.href, root);
-    return url && normalizedPath(url.pathname) !== normalizedPath(currentPath);
+    const href = safeHref(record.href, root);
+    return href && normalizedPath(new URL(href).pathname) !== normalizedPath(currentPath);
   }).slice(0, 5);
   if (siblingRecords.length) {
     const articleLinks = create("div", "kv-article-context-column");
@@ -211,39 +174,25 @@ export async function mountKnowledgeContext(base = document.body.dataset.root ||
   const relative = current.pathname.slice(root.pathname.length).replace(/^\/+/, "").replace(/index\.html$/, "").replace(/\/+$/, "");
   const isHome = relative === "";
   if (isHome) return;
+  if (relative === "knowledge") return; // The directory architecture overview is build-time static.
   if (!relative.startsWith("knowledge/")) return;
   try {
-    const [knowledgeResponse, worksResponse, mapResponse, searchResponse] = await Promise.all([
-      fetch(new URL("content/knowledge.json", root)),
-      fetch(new URL("content/works.json", root)),
-      fetch(new URL("content/learning-map.json", root)),
-      fetch(new URL("content/search-metadata.json", root)),
-    ]);
-    for (const response of [knowledgeResponse, worksResponse, mapResponse, searchResponse]) {
-      if (!response.ok) throw new Error("知识关系注册表 HTTP " + response.status);
+    const response = await fetch(new URL("content/knowledge-context.json", root));
+    if (!response.ok) throw new Error("knowledge-context.json HTTP " + response.status);
+    const context = await response.json();
+    if (context.schemaVersion !== 1 || !Array.isArray(context.topics) || !context.topicContexts) {
+      throw new Error("知识上下文注册表结构无效");
     }
-    const [knowledge, worksManifest, learningMap, searchManifest] = await Promise.all([
-      knowledgeResponse.json(), worksResponse.json(), mapResponse.json(), searchResponse.json(),
-    ]);
-    if (relative === "knowledge") {
-      renderAtlasIntro(knowledge, learningMap, root);
-      return;
-    }
-    if (isHome) return;
     const [, topicId, ...rest] = relative.split("/");
-    const topic = knowledge.topics.find(item => item.id === topicId);
+    const topic = context.topics.find(item => item.id === topicId);
     if (!topic) return;
     if (document.querySelector("[data-kv-topic-context], [data-kv-article-context]")) return;
-    const topicPath = new URL("knowledge/" + topic.id + "/", root).pathname;
-    const records = (searchManifest.records || []).filter(record => {
-      const href = safeHref(record.href, root);
-      return href && new URL(href).pathname.startsWith(topicPath);
-    });
-    const relatedWorks = (worksManifest.works || []).filter(work =>
-      (work.status === "live" || work.status === "planned") &&
-      Array.isArray(work.knowledge_ids) && work.knowledge_ids.includes(topic.id)
-    );
-    const mapTopic = (learningMap.topics || []).find(item => item.id === topic.id);
+    const topicContext = context.topicContexts[topic.id] || {};
+    const records = topicContext.records || [];
+    const relatedWorks = topicContext.works || [];
+    const mapTopic = topicContext.competencies?.length
+      ? { competencies: topicContext.competencies }
+      : null;
     if (!rest.length) renderTopicPage(topic, records, relatedWorks, mapTopic, root);
     else renderArticleContext(topic, records, relatedWorks, mapTopic, current.pathname, root);
   } catch (error) {

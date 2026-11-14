@@ -72,7 +72,10 @@ test("all 12 knowledge topics use the current context system without retired gra
       }
       assert.ok(requested.has("/assets/js/v2.js"), topic + " must load the shared bootstrap");
       assert.ok(requested.has("/assets/js/knowledge-context.mjs"), topic + " must render the current topic relationship context");
+      assert.ok(requested.has("/content/knowledge-context.json"), topic + " must load the compact context registry");
       assert.ok(requested.has("/assets/css/site-architecture.css"), topic + " must load current relationship styles");
+      assert.equal([...requested].some(path => /^\/content\/(knowledge|works|learning-map|search-metadata)\.json$/.test(path)), false,
+        topic + " must not download the four source registries separately");
       assert.equal([...requested].some(path => path.endsWith("/knowledge-graph.js")), false,
         topic + " must not request the retired graph bootstrap");
       assert.equal([...requested].some(path => path.endsWith("/knowledge-graph.css")), false,
@@ -82,6 +85,22 @@ test("all 12 knowledge topics use the current context system without retired gra
         topic + " must not emit a knowledge-context initialization warning: " + JSON.stringify(browserLogs));
     }
 
+    requested = new Set();
+    await page.goto(baseURL + "/knowledge/", { waitUntil: "networkidle" });
+    await page.locator(".kv-architecture-overview").waitFor({ state: "visible", timeout: 15000 });
+    assert.equal(requested.has("/content/knowledge-context.json"), false,
+      "the statically generated knowledge directory must not fetch a context registry");
+    assert.equal([...requested].filter(path => path.startsWith("/content/") && path.endsWith(".json")).length, 0,
+      "the knowledge directory must not fetch content registries for its static overview");
+
+    requested = new Set();
+    await page.goto(baseURL + "/knowledge/ai-agents/chapter-03/", { waitUntil: "networkidle" });
+    await page.locator(".kv-article-context").waitFor({ state: "visible", timeout: 15000 });
+    assert.ok(requested.has("/content/knowledge-context.json"), "article pages must reuse the compact context registry");
+    assert.equal([...requested].filter(path => path.startsWith("/content/") && path.endsWith(".json")).length, 1,
+      "article pages must fetch one compact context JSON instead of source registries");
+    assert.equal(browserLogs.some(log => log.includes("knowledge context unavailable")), false,
+      "article context must not emit a knowledge-context initialization warning");
     assert.deepEqual(failures, []);
   } finally {
     await browser.close();
