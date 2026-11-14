@@ -112,6 +112,7 @@ async function exerciseReview(browser, label, viewport) {
   await page.goto(baseURL + "/progress/", { waitUntil: "domcontentloaded" });
   await page.locator("#hero-tested").waitFor();
   // Advanced review scheduling is intentionally collapsed on first entry.
+  await page.locator("#proactive-learning > summary").scrollIntoViewIfNeeded();
   await page.locator("#proactive-learning > summary").click();
   assert.equal(await page.locator("#proactive-learning").evaluate(element => element.open), true,
     label + ": the advanced analytics disclosure must open when explicitly selected");
@@ -171,7 +172,9 @@ async function exerciseReview(browser, label, viewport) {
   await page.goto(baseURL + "/progress/", { waitUntil: "domcontentloaded" });
   await page.locator("#hero-tested").waitFor();
   await page.locator("#gap-list").waitFor();
+  await page.waitForFunction(() => document.documentElement.dataset.learningProgressReady === "true");
   // Every page load starts with advanced analysis collapsed; open it only for this audit assertion.
+  await page.locator("#proactive-learning > summary").scrollIntoViewIfNeeded();
   await page.locator("#proactive-learning > summary").click();
   assert.equal(await page.locator("#proactive-learning").evaluate(element => element.open), true,
     label + ": advanced analysis must open on explicit user action after navigation");
@@ -181,6 +184,8 @@ async function exerciseReview(browser, label, viewport) {
   await page.waitForFunction(() =>
     document.querySelectorAll("#proactive-timeline .lp-timeline-row").length > 0
   );
+  await page.locator("#weak-points").scrollIntoViewIfNeeded();
+  await page.waitForFunction(() => document.querySelector("#gap-list")?.children.length > 0);
   await page.waitForFunction(() =>
     document.querySelector("#gap-list")?.innerText.includes("没有尚未纠正的概念误区") &&
     document.querySelector("#hero-tested")?.innerText.replaceAll(" ", "").includes("1/18")

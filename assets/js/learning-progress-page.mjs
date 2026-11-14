@@ -982,6 +982,11 @@ function setupLazySections() {
       ensureProactiveAnalysis().catch(error => console.warn("[KNOWVERSE] advanced analysis unavailable:", error));
     }
   });
+  // A learner may expand the native <details> before the async page boot has
+  // attached listeners. Honor that early interaction once lazy wiring is ready.
+  if (advanced?.open) {
+    ensureProactiveAnalysis().catch(error => console.warn("[KNOWVERSE] advanced analysis unavailable:", error));
+  }
 }
 
 async function updatePlanPreference(patch) {

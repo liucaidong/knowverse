@@ -33,3 +33,10 @@ test("heavy proactive modules are dynamically imported only when analysis is req
   assert.match(initializer, /import\("\.\/learning-agent\/task-orchestrator\.mjs"\)/);
   assert.match(page, /advanced\?\.addEventListener\("toggle"/);
 });
+
+test("advanced analysis honors a details section opened before async boot wiring", async () => {
+  const page = await read("assets/js/learning-progress-page.mjs");
+  const setup = page.slice(page.indexOf("function setupLazySections()"), page.indexOf("async function updatePlanPreference"));
+  assert.match(setup, /if \(advanced\?\.open\)/);
+  assert.match(setup, /ensureProactiveAnalysis\(\)\.catch/);
+});
