@@ -26,9 +26,12 @@ test.after(() => new Promise(resolveClose => server.close(resolveClose)));
 const routes = [
   "/knowledge/database/", "/knowledge/model-infra/", "/knowledge/ai-education/",
   "/knowledge/engineering/", "/knowledge/creative/", "/knowledge/language/",
-  "/knowledge/math/", "/knowledge/monorepo/fullstack/",
+  "/knowledge/math/", "/knowledge/ai-agents/", "/knowledge/finance/",
+  "/knowledge/monorepo/", "/knowledge/monorepo/fullstack/",
+  ...Array.from({ length:10 }, (_, index) => `/knowledge/monorepo/unit-${String(index + 1).padStart(2, "0")}/`),
   "/knowledge/monorepo/fullstack/guides/simulator-smoke/",
   "/knowledge/monorepo/fullstack/guides/fault-injection/",
+  "/knowledge/promise/", "/knowledge/react-native/",
 ];
 
 for (const [name, engine, viewport] of [
@@ -53,9 +56,12 @@ for (const [name, engine, viewport] of [
             loading:element.getAttribute("loading"),
             decoding:element.getAttribute("decoding"),
             alt:element.getAttribute("alt"),
+            width:element.getAttribute("width"),
+            height:element.getAttribute("height"),
           }));
           assert.equal(attributes.loading, "lazy", route + " image " + index + " should be lazy-loaded");
           assert.equal(attributes.decoding, "async", route + " image " + index + " should decode asynchronously");
+          assert.ok(Number(attributes.width) > 0 && Number(attributes.height) > 0, route + " image " + index + " must reserve its intrinsic aspect ratio before download");
           assert.ok(attributes.alt?.trim(), route + " image " + index + " needs descriptive alternative text");
           assert.doesNotMatch(attributes.alt, /join\(|esc\(|\+['"]\s*,/, route + " image alt must not expose template source");
           await image.scrollIntoViewIfNeeded();
