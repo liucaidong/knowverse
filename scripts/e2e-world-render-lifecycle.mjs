@@ -135,6 +135,15 @@ test("Promise Realm immersive scene pauses while the document is hidden", { time
   }
 });
 
+test("Promise Universe exhibit pauses offscreen and while the document is hidden", { timeout: 45000 }, async () => {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    await assertRenderLifecycle(browser, "/gallery/exhibits/promise-universe/", "#scene");
+  } finally {
+    await browser.close();
+  }
+});
+
 test("Promise Cosmos immersive scene pauses while the document is hidden", { timeout: 45000 }, async () => {
   const browser = await chromium.launch({ headless: true });
   try {
