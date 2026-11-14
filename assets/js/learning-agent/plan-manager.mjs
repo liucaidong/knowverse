@@ -9,16 +9,30 @@ const makeId = () => globalThis.crypto?.randomUUID?.() || "plan-" + Date.now().t
 const nowIso = () => new Date().toISOString();
 
 function planEvent(plan, type, extra = {}, at = nowIso()) {
+  const actions = Array.isArray(plan.actions) ? plan.actions : [];
+  const topicIds = [...new Set(actions.map(action => action.topicId).filter(value => typeof value === "string" && value))].sort();
+  const competencyIds = [...new Set(actions.map(action => action.competencyId).filter(value => typeof value === "string" && value))].sort();
+  const sourceEvidenceRefs = [...new Set([
+    ...(Array.isArray(plan.strategyEvidenceRefs) ? plan.strategyEvidenceRefs : []),
+    ...actions.flatMap(action => Array.isArray(action.sourceEvidenceRefs) ? action.sourceEvidenceRefs : []),
+  ].filter(value => typeof value === "string" && value.length > 0))].slice(-20);
+  const targetGapEventIds = [...new Set(actions
+    .filter(action => action.gapId)
+    .flatMap(action => Array.isArray(action.sourceEvidenceRefs) ? action.sourceEvidenceRefs : []))].slice(-20);
   return {
     id: "learning-plan:" + plan.planId + ":" + type,
     type,
     at,
-    topicId: "unclassified",
+    topicId: topicIds.length === 1 ? topicIds[0] : "unclassified",
+    topicIds,
     challengeId: "learning-agent",
     challengeTitle: "自适应学习规划",
     stepId: plan.planId,
     stepTitle: plan.headline || type,
-    competencyIds: [],
+    competencyIds,
+    sourceEvidenceRefs,
+    causationEventIds: sourceEvidenceRefs,
+    targetGapEventIds,
     sessionId: plan.planId,
     sessionType: "planning",
     planId: plan.planId,
@@ -29,6 +43,7 @@ function planEvent(plan, type, extra = {}, at = nowIso()) {
     strategyDecisionId: plan.strategyDecisionId || null,
     strategyProfileRevision: plan.strategyProfileRevision || null,
     strategyAlgorithmVersion: plan.strategyAlgorithmVersion || null,
+    ...extra,
   };
 }
 
@@ -304,6 +319,9 @@ export function createLearningPlanManager(options = {}) {
       learningIntervention: task.learningIntervention || null,
       strategyInstruction: task.strategyInstruction || null,
       difficultyLevel: task.difficultyLevel || "maintain",
+      sourceEvidenceRefs: task.sourceEvidenceRefs || [],
+      causationEventIds: task.sourceEvidenceRefs || [],
+      targetGapEventIds: task.gapId ? (task.sourceEvidenceRefs || []) : [],
     }))];
     await repository.commit({
       events,

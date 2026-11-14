@@ -150,7 +150,7 @@ function practiceResource(competency, works, checkpointRegistry, challengeRegist
     } : null);
 }
 
-function makeAction({ today, type, competency, gapId = null, minutes, priority, reasons, resource, state }) {
+function makeAction({ today, type, competency, gapId = null, minutes, priority, reasons, resource, state, sourceEvidenceRefs = [] }) {
   const resourceKey = gapId || resource?.variantId || resource?.workId || type;
   const actionId = [today, type, competency.id, resourceKey].join(":");
   return {
@@ -184,6 +184,10 @@ function makeAction({ today, type, competency, gapId = null, minutes, priority, 
     resourceType: resource?.resourceType || "lesson",
     variantId: resource?.variantId || null,
     workId: resource?.workId || null,
+    sourceEvidenceRefs: [...new Set([
+      ...(Array.isArray(state?.evidence) ? state.evidence.map(item => item.id) : []),
+      ...(Array.isArray(sourceEvidenceRefs) ? sourceEvidenceRefs : []),
+    ].filter(value => typeof value === "string" && value.length > 0))].slice(-20),
   };
 }
 
@@ -314,7 +318,7 @@ export function buildAdaptiveLearningPlan(options = {}) {
             downstream ? "该能力影响 " + downstream + " 个下游知识点" : null,
             focusBoost ? "符合当前优先专题" : null,
           ].filter(Boolean),
-          resource, state,
+          resource, state, sourceEvidenceRefs: gap.sourceEvidenceRefs,
         }));
       }
       if (competencyStrategyDifficulty === "scaffold" && definition.lessonHref) {

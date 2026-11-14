@@ -526,6 +526,7 @@ export function deriveLearningInsights(learningMap, challengeRegistry, snapshot,
         lessonHref: definition.lessonHref || definition.topicHref,
         challengeHref: definition.challengeHref || null,
         targetGapId: gapId,
+        sourceEvidenceRefs: unresolved.map(observationId).slice(-20),
         lastFailureVariantId: lastFailure.variantId || lastFailure.challengeId + ":" + lastFailure.stepId,
         verificationVariantId: null,
       };

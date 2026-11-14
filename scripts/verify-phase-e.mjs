@@ -185,6 +185,9 @@ test("plan history is immutable, a new proposal supersedes only the previous pro
   const second = await s.planManager.generate(s.context, "second proposal", { horizonDays: 1 });
   assert.equal((await s.planManager.get(first.planId)).status, "superseded");
   assert.equal((await s.planManager.get(second.planId)).status, "proposed");
+  const supersededEvent = (await s.repository.events.list()).find(item =>
+    item.type === "learning_plan_superseded" && item.planId === first.planId);
+  assert.equal(supersededEvent.supersededByPlanId, second.planId);
   const accepted = await s.planManager.accept(second.planId);
   assert.equal(accepted.status, "accepted");
   assert.ok(accepted.tasks.length > 0);
@@ -194,6 +197,47 @@ test("plan history is immutable, a new proposal supersedes only the previous pro
   assert.equal((await s.planManager.accept(second.planId)).idempotent, true);
   await assert.rejects(() => s.planManager.accept(first.planId), /只有待接受/);
   assert.ok((await s.planManager.history()).length >= 2);
+});
+
+test("adaptive plan and created tasks preserve exact source evidence and lifecycle metadata", async () => {
+  const s = await setup();
+  const failure = learningEvent("plan-gap-source", "attempt", new Date(NOW.getTime() - 60_000).toISOString(), {
+    correct: false,
+    gapId: "thenable-get-vs-call",
+    gapObservationId: "plan-gap-source",
+    variantId: "original-variant",
+    sessionType: "checkpoint",
+  });
+  await s.repository.events.append([failure]);
+  await s.profileStore.savePreferences({
+    dailyMinutes: 25, weeklyDays: 5, preferredTopicIds: ["promise"],
+    learningModes: ["read", "challenge"],
+  });
+  s.context.profilePreferences = await s.profileStore.loadPreferences();
+
+  const plan = await s.planManager.generate(s.context, "evidence-linked plan", { horizonDays: 1 });
+  const repair = plan.actions.find(item => item.type === "repair" && item.gapId === "thenable-get-vs-call");
+  assert.ok(repair, "an unresolved mapped Gap must produce a repair action");
+  assert.deepEqual(repair.sourceEvidenceRefs, [failure.id]);
+
+  let events = await s.repository.events.list();
+  const generated = events.find(item => item.type === "learning_plan_generated" && item.planId === plan.planId);
+  assert.deepEqual(generated.topicIds, [...new Set(plan.actions.map(item => item.topicId))].sort());
+  assert.ok(generated.topicIds.includes("promise"));
+  assert.ok(generated.competencyIds.includes("thenable-adoption"));
+  assert.ok(generated.targetGapEventIds.includes(failure.id));
+  assert.ok(generated.causationEventIds.includes(failure.id));
+
+  const accepted = await s.planManager.accept(plan.planId);
+  const createdTask = accepted.tasks.find(item => item.gapId === "thenable-get-vs-call");
+  assert.ok(createdTask);
+  assert.deepEqual(createdTask.sourceEvidenceRefs, [failure.id]);
+  events = await s.repository.events.list();
+  const acceptedEvent = events.find(item => item.type === "learning_plan_accepted" && item.planId === plan.planId);
+  assert.equal(acceptedEvent.actor, "learner");
+  const taskEvent = events.find(item => item.type === "learning_task_created" && item.taskId === createdTask.taskId);
+  assert.ok(taskEvent.sourceEvidenceRefs.includes(failure.id));
+  assert.ok(taskEvent.targetGapEventIds.includes(failure.id));
 });
 
 test("task state machine rejects illegal transitions and read completion never becomes mastery evidence", async () => {

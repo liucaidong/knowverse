@@ -46,6 +46,9 @@ function eventFor(task, status, extra = {}, at = nowIso()) {
     learningIntervention: task.learningIntervention || null,
     strategyInstruction: task.strategyInstruction || null,
     difficultyLevel: task.difficultyLevel || "maintain",
+    sourceEvidenceRefs: task.sourceEvidenceRefs || [],
+    causationEventIds: task.sourceEvidenceRefs || [],
+    targetGapEventIds: task.gapId ? (task.sourceEvidenceRefs || []) : [],
     ...extra,
   };
 }
@@ -186,6 +189,8 @@ export function mapPlanActionToTask(action, planId, options = {}) {
     strategyInstruction: action.strategyInstruction || null,
     difficultyLevel: action.difficultyLevel || "maintain",
     strategyEvidenceRefs: action.strategyEvidenceRefs || [],
+    sourceEvidenceRefs: [...new Set((Array.isArray(action.sourceEvidenceRefs) ? action.sourceEvidenceRefs : [])
+      .filter(value => typeof value === "string" && value.length > 0))].slice(-20),
     gapId: action.gapId || null,
     dependsOnTaskIds: options.dependsOnTaskIds || [],
     evidencePolicy,
