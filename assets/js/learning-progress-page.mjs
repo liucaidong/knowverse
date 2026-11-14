@@ -3,10 +3,6 @@ import { buildAdaptiveLearningPlan, createLearningPlanPreferencesStore, recordLe
 import { mountBackendAccountPanel } from "./backend/account-panel.mjs";
 import { getArchiveRuntime } from "./backend/archive-bootstrap.mjs";
 import { getLearningRepository } from "./backend/learning-repository.mjs";
-import { createLearnerProfileStore } from "./learning-agent/learner-profile.mjs";
-import { createLearningGoalManager } from "./learning-agent/goal-manager.mjs";
-import { createLearningTaskOrchestrator } from "./learning-agent/task-orchestrator.mjs";
-import { createProactiveLearningEngine } from "./proactive-learning-engine.mjs";
 import { buildWeeklyLearningReview } from "./learning-weekly-review.mjs";
 
 const siteRoot = new URL("../../", import.meta.url);
@@ -25,11 +21,17 @@ let insights;
 let selectedTopicId = null;
 let selectedCompetencyId = null;
 let proactiveEngine = null;
+let proactiveInitPromise = null;
 let proactiveRefreshTimer = null;
 let proactiveProjection = null;
 let proactiveTasks = [];
 let taskOrchestrator = null;
 let profileStore = null;
+let goalManager = null;
+let latestSnapshot = null;
+let learningRepository = null;
+let sectionObserver = null;
+const renderedSections = new Set();
 
 const statusLabels = {
   unverified: "待验证",
@@ -919,6 +921,69 @@ function renderAdaptivePlan(snapshot) {
 let pageRefreshPromise = null;
 let pageRefreshAgain = false;
 
+function sectionNearViewport(id) {
+  const target = $(id);
+  if (!target) return false;
+  const rect = target.getBoundingClientRect();
+  return rect.top < window.innerHeight + 520 && rect.bottom > -120;
+}
+
+async function ensureProactiveAnalysis() {
+  if (proactiveEngine && proactiveProjection) return proactiveProjection;
+  if (proactiveInitPromise) return proactiveInitPromise;
+  proactiveInitPromise = (async () => {
+    const [profileModule, goalModule, taskModule, engineModule] = await Promise.all([
+      import("./learning-agent/learner-profile.mjs"),
+      import("./learning-agent/goal-manager.mjs"),
+      import("./learning-agent/task-orchestrator.mjs"),
+      import("./proactive-learning-engine.mjs"),
+    ]);
+    learningRepository ||= await getLearningRepository();
+    profileStore ||= profileModule.createLearnerProfileStore({ repository: learningRepository });
+    goalManager ||= goalModule.createLearningGoalManager({ repository: learningRepository, learningMap });
+    taskOrchestrator ||= taskModule.createLearningTaskOrchestrator({ repository: learningRepository });
+    proactiveEngine ||= engineModule.createProactiveLearningEngine({
+      repository: learningRepository, learningMap, challengeRegistry, goalManager, taskOrchestrator, profileStore,
+    });
+    proactiveProjection = await proactiveEngine.refresh();
+    proactiveTasks = taskOrchestrator ? await taskOrchestrator.list() : [];
+    renderProactiveDashboard();
+    if (renderedSections.has("review-plan") || sectionNearViewport("review-plan")) {
+      renderReviewPlan();
+      renderedSections.add("review-plan");
+    }
+    if (latestSnapshot) renderAdaptivePlan(latestSnapshot);
+    scheduleProactiveRefresh();
+    return proactiveProjection;
+  })().finally(() => { proactiveInitPromise = null; });
+  return proactiveInitPromise;
+}
+
+function setupLazySections() {
+  if (sectionObserver || !("IntersectionObserver" in window)) return;
+  const targets = ["weekly-learning-review", "overview", "knowledge-map", "weak-points", "review-plan", "challenge-history"]
+    .map(id => $(id)).filter(Boolean);
+  sectionObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      const id = entry.target.id;
+      sectionObserver.unobserve(entry.target);
+      if (id === "review-plan") {
+        ensureProactiveAnalysis().catch(error => console.warn("[KNOWVERSE] review projection unavailable:", error));
+      } else {
+        refresh().catch(error => console.warn("[KNOWVERSE] deferred section render failed:", error));
+      }
+    }
+  }, { rootMargin: "520px 0px", threshold: 0.01 });
+  targets.forEach(target => sectionObserver.observe(target));
+  const advanced = $("proactive-learning");
+  advanced?.addEventListener("toggle", () => {
+    if (advanced.open) {
+      ensureProactiveAnalysis().catch(error => console.warn("[KNOWVERSE] advanced analysis unavailable:", error));
+    }
+  });
+}
+
 async function updatePlanPreference(patch) {
   planPreferences = { ...planPreferences, ...patch };
   const snapshot = { ...planPreferences };
@@ -949,27 +1014,48 @@ async function refresh() {
       // Render the local learning snapshot first. Cloud reconciliation and the
       // heavier proactive projection must never hold the first useful paint.
       const snapshot = await store.load();
+      latestSnapshot = snapshot;
       insights = deriveLearningInsights(learningMap, challengeRegistry, snapshot);
       renderMetrics();
-      renderTopicOverview();
-      renderTopicChoices();
-      renderGraph();
+      if (sectionNearViewport("adaptive-plan") || renderedSections.has("adaptive-plan")) {
+        renderAdaptivePlan(snapshot);
+        renderedSections.add("adaptive-plan");
+      }
       await yieldToBrowserPaint();
 
-      if (proactiveEngine) {
+      if (sectionNearViewport("weekly-learning-review") || renderedSections.has("weekly-learning-review")) {
+        renderWeeklyLearningReview(snapshot);
+        renderedSections.add("weekly-learning-review");
+      }
+      if (sectionNearViewport("overview") || renderedSections.has("overview")) {
+        renderTopicOverview();
+        renderedSections.add("overview");
+      }
+      if (sectionNearViewport("knowledge-map") || renderedSections.has("knowledge-map")) {
+        renderTopicChoices();
+        renderGraph();
+        renderedSections.add("knowledge-map");
+      }
+      if (sectionNearViewport("weak-points") || renderedSections.has("weak-points")) {
+        renderGapList();
+        renderWeakSkills();
+        renderedSections.add("weak-points");
+      }
+      if (proactiveEngine && (sectionNearViewport("review-plan") || renderedSections.has("review-plan"))) {
         proactiveProjection = await proactiveEngine.refresh();
         proactiveTasks = taskOrchestrator ? await taskOrchestrator.list() : [];
+        renderReviewPlan();
+        renderedSections.add("review-plan");
       }
-      renderAdaptivePlan(snapshot);
-      renderWeeklyLearningReview(snapshot);
-      await yieldToBrowserPaint();
-      renderGapList();
-      renderWeakSkills();
-      await yieldToBrowserPaint();
-      renderReviewPlan();
-      renderProactiveDashboard();
-      await yieldToBrowserPaint();
-      renderEvents();
+      if (proactiveEngine && $("proactive-learning")?.open) {
+        if (!proactiveProjection) proactiveProjection = await proactiveEngine.refresh();
+        proactiveTasks = taskOrchestrator ? await taskOrchestrator.list() : [];
+        renderProactiveDashboard();
+      }
+      if (sectionNearViewport("challenge-history") || renderedSections.has("challenge-history")) {
+        renderEvents();
+        renderedSections.add("challenge-history");
+      }
       scheduleProactiveRefresh();
     } while (pageRefreshAgain);
   })();
@@ -1063,6 +1149,7 @@ function wireDataActions() {
   });
   $("plan-rebuild").addEventListener("click", () => refresh().catch(error => setText("plan-status", error.message)));
   async function setPersonalizationMode(mode) {
+    await ensureProactiveAnalysis();
     if (!profileStore) return;
     try {
       const preferences = await profileStore.loadPreferences();
@@ -1100,6 +1187,11 @@ function wireDataActions() {
       const target = document.querySelector(button.dataset.scroll);
       if (target instanceof HTMLDetailsElement) target.open = true;
       target?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (target?.id === "review-plan") {
+        ensureProactiveAnalysis().catch(error => console.warn("[KNOWVERSE] review projection unavailable:", error));
+      } else {
+        refresh().catch(error => console.warn("[KNOWVERSE] section navigation refresh failed:", error));
+      }
       document.querySelectorAll(".lp-tab").forEach(item => item.setAttribute("aria-current", String(item === button)));
     });
   });
@@ -1112,7 +1204,8 @@ async function boot() {
   // to arrive after the learner had already saved newer preferences.
   // getLearningRepository resolves only after the one-time local archive migration
   // has completed; do not expose editable controls before this await.
-  const repository = await getLearningRepository();
+  learningRepository = await getLearningRepository();
+  const repository = learningRepository;
 
   // Start cloud reconciliation in the background. The local IndexedDB snapshot
   // is immediately usable and should render while the network catches up.
@@ -1147,13 +1240,8 @@ async function boot() {
   }
   selectedTopicId = learningMap.topics[0]?.id || null;
   selectedCompetencyId = learningMap.topics[0]?.competencies[0]?.id || null;
-  profileStore = createLearnerProfileStore({ repository });
-  const goalManager = createLearningGoalManager({ repository, learningMap });
-  taskOrchestrator = createLearningTaskOrchestrator({ repository });
-  proactiveEngine = createProactiveLearningEngine({
-    repository, learningMap, challengeRegistry, goalManager, taskOrchestrator, profileStore,
-  });
   wireDataActions();
+  setupLazySections();
   await refresh();
   document.documentElement.dataset.learningProgressReady = "true";
 

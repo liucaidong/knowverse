@@ -1,6 +1,6 @@
 {
-  "version": "4.0.0",
-  "description": "极简全站主导航。一级入口只负责进入四个清晰区域；专题、作品和学习管理选项放在各自页面内部，不使用层层悬浮的全站大菜单。",
+  "version": "4.1.0",
+  "description": "四个一级工作区搭配按需展开的二级入口；Agent、复习工作台、重点专题和档案入口在对应分区内可直接发现。",
   "groups": [
     {
       "id": "start",
@@ -9,7 +9,12 @@
       "activeRouteIds": [
         "learning.start",
         "learning.agent"
-      ]
+      ],
+      "children": [
+        "learning.agent",
+        "learning.today"
+      ],
+      "submenuLabel": "学习工作区"
     },
     {
       "id": "knowledge",
@@ -17,7 +22,14 @@
       "routeId": "knowledge.overview",
       "activeRouteIds": [
         "knowledge.overview"
-      ]
+      ],
+      "children": [
+        "topic.promise",
+        "topic.monorepo",
+        "topic.react-native",
+        "knowledge.sources"
+      ],
+      "submenuLabel": "重点专题与资料"
     },
     {
       "id": "experience",
@@ -28,7 +40,13 @@
         "experience.lab",
         "experience.gallery",
         "experience.puzzles"
-      ]
+      ],
+      "children": [
+        "experience.lab",
+        "experience.gallery",
+        "experience.puzzles"
+      ],
+      "submenuLabel": "三种实践方式"
     },
     {
       "id": "progress",
@@ -40,7 +58,15 @@
         "learning.gaps",
         "learning.review",
         "learning.history"
-      ]
+      ],
+      "children": [
+        "learning.review",
+        "learning.mastery",
+        "learning.gaps",
+        "learning.history",
+        "account.archive"
+      ],
+      "submenuLabel": "掌握与复习工具"
     }
   ]
 }

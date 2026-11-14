@@ -5,6 +5,11 @@
   const siteRoot = new URL("../../", script.src);
   const topicCatalogs = document.querySelectorAll("[data-knowledge-catalog]");
   const pillarCatalog = document.querySelector("[data-pillar-catalog]");
+  const needsTopicHydration = [...topicCatalogs].some(container => !container.children.length);
+  const needsPillarHydration = Boolean(pillarCatalog && !pillarCatalog.children.length);
+  // Catalog cards are already generated from the same registry at build time.
+  // Avoid refetching manifests and replacing stable DOM on the first paint.
+  if (!needsTopicHydration && !needsPillarHydration) return;
 
   function resolveHref(href) {
     if (typeof href !== "string" || !href.startsWith("./")) return null;

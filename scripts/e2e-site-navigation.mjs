@@ -30,7 +30,7 @@ async function startServer(){
 const {server,url}=await startServer();
 test.after(()=>new Promise(resolveClose=>server.close(resolveClose)));
 
-test("desktop navigation exposes four direct destinations without nested menus", {timeout:60000}, async()=>{
+test("desktop navigation exposes four workspaces with contextual second-level routes", {timeout:60000}, async()=>{
   const browser=await chromium.launch({headless:true});
   try{
     const page=await browser.newPage({viewport:{width:1440,height:900}});
@@ -38,9 +38,15 @@ test("desktop navigation exposes four direct destinations without nested menus",
     await page.goto(url+"/knowledge/promise/",{waitUntil:"networkidle"});
     assert.equal(await page.locator("#kv-global-account").count(),1);
     assert.equal(await page.locator(".kv-nav-group").count(),4);
-    assert.equal(await page.locator(".kv-nav-toggle,.kv-nav-submenu").count(),0);
+    assert.equal(await page.locator(".kv-nav-toggle").count(),4);
+    assert.equal(await page.locator(".kv-nav-submenu").count(),4);
     assert.deepEqual(await page.locator(".kv-nav-group .kv-nav-link").allTextContents(),
       ["开始学习","知识库","实践中心","我的进度"]);
+    await page.locator('[data-group-id="start"] .kv-nav-toggle').click();
+    assert.equal(await page.locator('[data-group-id="start"] .kv-nav-submenu').isVisible(),true);
+    assert.equal(await page.locator('[data-group-id="start"] .kv-nav-subitem[href*="/agent/"]').count(),1);
+    await page.locator('[data-group-id="progress"] .kv-nav-toggle').click();
+    assert.equal(await page.locator('[data-group-id="progress"] .kv-nav-subitem[href*="/review/"]').count(),1);
     const practice=page.locator('[data-group-id="experience"] .kv-nav-link');
     await practice.click();
     await page.waitForURL("**/works/");
@@ -59,7 +65,7 @@ test("desktop navigation exposes four direct destinations without nested menus",
   }finally{await browser.close();}
 });
 
-test("mobile menu is one short direct-link list and closes after navigation", {timeout:60000}, async()=>{
+test("mobile navigation keeps four main groups and reveals their contextual links on demand", {timeout:60000}, async()=>{
   const browser=await chromium.launch({headless:true});
   try{
     const page=await browser.newPage({viewport:{width:390,height:844}});
@@ -68,7 +74,10 @@ test("mobile menu is one short direct-link list and closes after navigation", {t
     await page.locator("#mobile-menu").click();
     assert.equal(await page.locator("#kv-site-navigation").isVisible(),true);
     assert.equal(await page.locator("#kv-site-navigation .kv-nav-link").count(),4);
-    assert.equal(await page.locator("#kv-site-navigation .kv-nav-toggle,.kv-nav-submenu").count(),0);
+    assert.equal(await page.locator("#kv-site-navigation .kv-nav-toggle").count(),4);
+    await page.locator('[data-group-id="start"] .kv-nav-toggle').click();
+    assert.equal(await page.locator('[data-group-id="start"] .kv-nav-submenu').isVisible(),true);
+    assert.equal(await page.locator('[data-group-id="start"] .kv-nav-subitem[href*="/agent/"]').count(),1);
     await page.locator('[data-group-id="knowledge"] .kv-nav-link').click();
     await page.waitForURL("**/knowledge/");
     assert.equal(await page.locator("#kv-site-navigation").evaluate(e=>e.classList.contains("open")),false);
@@ -199,16 +208,18 @@ test("global search resolves a generated Concept into its canonical detail page"
   }finally{await browser.close();}
 });
 
-test("homepage keeps one learning CTA and moves the architecture overview into the knowledge directory", {timeout:60000}, async()=>{
+test("homepage explains the learning loop and exposes the four workspaces and three experience pillars", {timeout:60000}, async()=>{
   const browser=await chromium.launch({headless:true});
   try{
     const page=await browser.newPage({viewport:{width:1440,height:900}});
     await page.goto(url+"/",{waitUntil:"networkidle"});
     assert.equal(await page.locator("[data-kv-architecture-overview]").count(),0);
-    assert.equal(await page.locator("[data-kv-home-portal]").count(),1);
-    assert.equal(await page.locator(".kv-home-action.primary").count(),1);
-    assert.equal(await page.locator(".kv-home-action.primary").getAttribute("href"),"./start/");
-    assert.equal(await page.locator(".kv-home-welcome,.kv-home-flow").count(),0);
+    assert.equal(await page.locator("#kv-home-title").count(),1);
+    assert.equal(await page.locator(".kv-home-cta[href='./start/']").count(),1);
+    assert.equal(await page.locator(".kv-home-workspace").count(),4);
+    assert.equal(await page.locator(".kv-home-pillar").count(),3);
+    assert.equal(await page.locator(".kv-home-topic").count(),3);
+    assert.equal(await page.locator(".kv-home-hero-loop").count(),0);
     await page.goto(url+"/knowledge/",{waitUntil:"networkidle"});
     assert.equal(await page.locator("[data-kv-architecture-overview]").count(),1);
   }finally{await browser.close();}

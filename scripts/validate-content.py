@@ -79,14 +79,17 @@ for path in [
     assert (root / path).is_file(), f"Missing page: {path}"
 
 home = (root / "index.html").read_text(encoding="utf-8")
-assert 'data-kv-home-portal="true"' in home, "Homepage must render its registry-managed learning portal"
-assert 'href="./start/"' in home, "Homepage must expose the single guided learning entry"
-assert home.count('class="kv-home-action primary"') == 1, "Homepage must have exactly one primary action"
-assert '从这里开始。一次只做下一步。' in home, "Homepage must explain the single next action"
-assert 'href="./knowledge/"' in home and 'href="./works/"' in home, "Homepage secondary exploration routes are required"
-assert 'kv-home-welcome' not in home and 'kv-home-flow' not in home, "Homepage must not duplicate the generated portal with a second hero"
+assert 'class="kv-home-hero"' in home, "Homepage must explain the personal intelligent learning system"
+assert 'id="kv-home-title"' in home and '把知识学懂' in home, "Homepage must state its mastery-oriented value proposition"
+assert 'href="./start/"' in home, "Homepage must expose the guided learning entry"
+assert home.count('class="kv-home-workspace"') == 4, "Homepage must expose the four clear workspaces"
+assert home.count('class="kv-home-pillar"') == 3, "Homepage must explain the three experience pillars"
+assert home.count('class="kv-home-topic"') == 3, "Homepage must expose featured knowledge domains"
+assert 'THE LEARNING LOOP' in home and '学习闭环' in home, "Homepage must explain the evidence-driven learning loop"
+assert 'kv-home-welcome' not in home and 'kv-home-flow' not in home, "Homepage must not duplicate the redesigned hero"
 knowledge_home = (root / "knowledge/index.html").read_text(encoding="utf-8")
 assert 'data-knowledge-catalog="all"' in knowledge_home, "Knowledge directory must use the shared knowledge registry"
+assert 'data-kv-architecture-overview="true"' in knowledge_home, "Knowledge architecture overview must be statically present to avoid layout shift"
 assert "knowledge-graph.js" in knowledge_home
 
 

@@ -210,7 +210,8 @@ export async function mountKnowledgeContext(base = document.body.dataset.root ||
   if (!current.pathname.startsWith(root.pathname)) return;
   const relative = current.pathname.slice(root.pathname.length).replace(/^\/+/, "").replace(/index\.html$/, "").replace(/\/+$/, "");
   const isHome = relative === "";
-  if (!isHome && relative !== "knowledge" && !relative.startsWith("knowledge/")) return;
+  if (isHome) return;
+  if (!relative.startsWith("knowledge/")) return;
   try {
     const [knowledgeResponse, worksResponse, mapResponse, searchResponse] = await Promise.all([
       fetch(new URL("content/knowledge.json", root)),

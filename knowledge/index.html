@@ -1,27 +1,32 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#f7faf9"><meta name="description" content="KNOWVERSE 主题知识全景"><title>专题知识库 · KNOWVERSE 知域</title><link rel="stylesheet" href="../assets/css/v2.css"><link rel="stylesheet" href="../assets/css/knowledge-graph.css">  <link rel="stylesheet" href="../assets/css/site-architecture.css">
-</head><body data-root="../" class=""><div class="topline"></div><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+  <link rel="stylesheet" href="../assets/css/site-design-system.css">
+</head><body data-root="../" class=""><div class="topline"></div><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.1"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
     <a class="mark" href="../">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
     <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区"><div class="kv-nav-group" data-group-id="start"
-      data-active-routes="learning.start learning.start learning.agent learning.today"
-      data-active-paths="../start/|../start/|../agent/|../progress/#adaptive-plan">
-    <a class="kv-nav-link" data-route-id="learning.start"
-       href="../start/">开始学习</a>
-  </div><div class="kv-nav-group" data-group-id="knowledge"
-      data-active-routes="knowledge.overview knowledge.overview"
-      data-active-paths="../knowledge/|../knowledge/">
-    <a class="kv-nav-link" data-route-id="knowledge.overview"
-       href="../knowledge/">知识库</a>
-  </div><div class="kv-nav-group" data-group-id="experience"
-      data-active-routes="experience.overview experience.overview experience.lab experience.gallery experience.puzzles"
-      data-active-paths="../works/|../works/|../lab/|../gallery/|../puzzles/">
-    <a class="kv-nav-link" data-route-id="experience.overview"
-       href="../works/">实践中心</a>
-  </div><div class="kv-nav-group" data-group-id="progress"
-      data-active-routes="learning.overview learning.overview learning.mastery learning.gaps learning.review learning.history"
-      data-active-paths="../progress/|../progress/|../progress/#knowledge-map|../progress/#weak-points|../review/|../progress/#challenge-history">
-    <a class="kv-nav-link" data-route-id="learning.overview"
-       href="../progress/">我的进度</a>
-  </div></div>
+      data-active-routes="learning.start learning.agent learning.today"
+      data-active-paths="../start/|../agent/|../progress/#adaptive-plan">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="learning.start"
+       href="../start/">开始学习</a><button class="kv-nav-toggle" type="button" aria-label="展开开始学习子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">学习工作区</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="learning.agent" href="../agent/">个人智能学习 Agent</a><a class="kv-nav-subitem" data-route-id="learning.today" href="../progress/#adaptive-plan">今日学习计划</a></div></div></div></div>
+    </div><div class="kv-nav-group" data-group-id="knowledge"
+      data-active-routes="knowledge.overview topic.promise topic.monorepo topic.react-native knowledge.sources"
+      data-active-paths="../knowledge/|../knowledge/promise/|../knowledge/monorepo/|../knowledge/react-native/|../provenance/">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="knowledge.overview"
+       href="../knowledge/">知识库</a><button class="kv-nav-toggle" type="button" aria-label="展开知识库子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">重点专题与资料</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="topic.promise" href="../knowledge/promise/">JavaScript · Promise</a><a class="kv-nav-subitem" data-route-id="topic.monorepo" href="../knowledge/monorepo/">TypeScript · Monorepo</a><a class="kv-nav-subitem" data-route-id="topic.react-native" href="../knowledge/react-native/">React Native · 新架构</a><a class="kv-nav-subitem" data-route-id="knowledge.sources" href="../provenance/">来源与参考</a></div></div></div></div>
+    </div><div class="kv-nav-group" data-group-id="experience"
+      data-active-routes="experience.overview experience.lab experience.gallery experience.puzzles"
+      data-active-paths="../works/|../lab/|../gallery/|../puzzles/">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="experience.overview"
+       href="../works/">实践中心</a><button class="kv-nav-toggle" type="button" aria-label="展开实践中心子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">三种实践方式</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="experience.lab" href="../lab/">01 · 原理实验室</a><a class="kv-nav-subitem" data-route-id="experience.gallery" href="../gallery/">02 · 沉浸式知识展厅</a><a class="kv-nav-subitem" data-route-id="experience.puzzles" href="../puzzles/">03 · 知识解谜世界</a></div></div></div></div>
+    </div><div class="kv-nav-group" data-group-id="progress"
+      data-active-routes="learning.overview learning.mastery learning.gaps learning.review learning.history account.archive"
+      data-active-paths="../progress/|../progress/#knowledge-map|../progress/#weak-points|../review/|../progress/#challenge-history|../progress/#cloud-account">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="learning.overview"
+       href="../progress/">我的进度</a><button class="kv-nav-toggle" type="button" aria-label="展开我的进度子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">掌握与复习工具</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="learning.review" href="../review/">独立复习工作台</a><a class="kv-nav-subitem" data-route-id="learning.mastery" href="../progress/#knowledge-map">知识掌握图谱</a><a class="kv-nav-subitem" data-route-id="learning.gaps" href="../progress/#weak-points">薄弱点诊断</a><a class="kv-nav-subitem" data-route-id="learning.history" href="../progress/#challenge-history">学习历史</a><a class="kv-nav-subitem" data-route-id="account.archive" href="../progress/#cloud-account">个人学习档案</a></div></div></div></div>
+    </div></div>
     <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
     <button class="search-trigger" id="search-open" type="button" aria-label="全站搜索知识与作品">搜索 <span>⌘ K</span></button>
     <details class="kv-global-account" id="kv-global-account" data-status="anonymous">
@@ -41,7 +46,16 @@
       <a class="kv-account-manage" href="../progress/#cloud-account">管理个人学习档案与同步状态 ↗</a>
     </div>
   </details>
-  </nav></header><main class="container"><section class="pagehead"><div class="crumb"><a href="../">首页</a> / 知识库</div><span class="eyebrow">THE KNOWLEDGE ATLAS / 02</span><h1>一切讨论，<br>都有它的位置。</h1><p class="lead">按知识领域重建长期对话脉络。每个专题都有一张新生成的知识全景图、逐章文章和可编辑的 Mermaid 源码。</p><div class="stats"><span><strong>12</strong> 个领域</span><span><strong>92</strong> 条可检索内容</span><span>更新日期 <strong>2026-10-30</strong></span></div></section><section class="section" style="padding-top:18px"><div class="sectionhead"><div><span class="eyebrow">DISCOVER THE DOMAINS</span><h2>专题知识地图</h2></div><p>从语言机制、系统工程到认知与创意表达。</p></div><div class="topic-grid" data-knowledge-catalog="all"><a class="topic-card" style="--accent:#34b4a1" href="../knowledge/promise/">
+  </nav></header><main class="container"><section class="pagehead"><div class="crumb"><a href="../">首页</a> / 知识库</div><span class="eyebrow">THE KNOWLEDGE ATLAS / 02</span><h1>一切讨论，<br>都有它的位置。</h1><p class="lead">按知识领域重建长期对话脉络。每个专题都有一张新生成的知识全景图、逐章文章和可编辑的 Mermaid 源码。</p><div class="stats"><span><strong>12</strong> 个领域</span><span><strong>92</strong> 条可检索内容</span><span>更新日期 <strong>2026-10-30</strong></span></div></section><section class="kv-architecture-overview" data-kv-architecture-overview="true">
+  <div class="kv-architecture-head"><span class="kv-architecture-kicker">ONE KNOWLEDGE GRAPH · THREE EXPERIENCE PILLARS</span><h2>知识不是散落的页面，而是一条可追踪的学习路径。</h2><p>专题负责组织知识，能力点定义真正需要掌握的内容，三条产品主线提供不同的学习方式，挑战与复习结果再回流到个人学习图谱。</p></div>
+  <div class="kv-architecture-flow">
+    <div class="kv-architecture-step"><span class="kv-architecture-number">01</span><strong>知识专题</strong><small>12 个专题 · 文章与全景图</small><a class="kv-architecture-link" href="../knowledge/">查看入口 ↗</a></div><span class="kv-architecture-arrow">→</span>
+    <div class="kv-architecture-step"><span class="kv-architecture-number">02</span><strong>三种体验</strong><small>原理实验 · 沉浸展厅 · 机制解谜</small><a class="kv-architecture-link" href="../works/">查看入口 ↗</a></div><span class="kv-architecture-arrow">→</span>
+    <div class="kv-architecture-step"><span class="kv-architecture-number">03</span><strong>学习证据</strong><small>挑战 · 检查点 · 独立验证</small><a class="kv-architecture-link" href="../progress/#knowledge-map">查看入口 ↗</a></div><span class="kv-architecture-arrow">→</span>
+    <div class="kv-architecture-step"><span class="kv-architecture-number">04</span><strong>自适应成长</strong><small>薄弱点 · 个性化复习 · 再次验证</small><a class="kv-architecture-link" href="../progress/">查看入口 ↗</a></div>
+  </div>
+  <div class="kv-registry-note"><strong>内容关系由注册表维护，不在页面里重复手写</strong><p>知识专题、互动作品、能力点与先修关系分别由统一内容注册表维护；搜索索引只负责定位文章，不另造一套分类。</p><span class="kv-registry-coverage">当前已有 4 个专题定义了可验证的能力点与先修关系。其他专题不会被假定为线性课程。</span></div>
+</section><section class="section" style="padding-top:18px"><div class="sectionhead"><div><span class="eyebrow">DISCOVER THE DOMAINS</span><h2>专题知识地图</h2></div><p>从语言机制、系统工程到认知与创意表达。</p></div><div class="topic-grid" data-knowledge-catalog="all"><a class="topic-card" style="--accent:#34b4a1" href="../knowledge/promise/">
     <span class="topic-icon" aria-hidden="true"></span><span class="category">编程语言</span>
     <h3>JavaScript · Promise</h3><p>从状态机到微任务调度，再到规范级解析与工程实践</p><span class="meta">专题中枢 · 进入知识体系 ↗</span></a>
 <a class="topic-card" style="--accent:#6088ef" href="../knowledge/monorepo/">

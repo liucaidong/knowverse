@@ -12,12 +12,24 @@ test("progress page never blocks its first render on cloud initial sync", async 
   assert.ok(boot.indexOf("await refresh()") < boot.indexOf("archiveRuntime.initialSyncPromise?.then"));
 });
 
-test("progress page paints local metrics and graph before expensive proactive projection", async () => {
+test("progress page paints the local action plan before deferred lower-page sections", async () => {
   const page = await read("assets/js/learning-progress-page.mjs");
   const refresh = page.slice(page.indexOf("async function refresh()"), page.indexOf("function scheduleProactiveRefresh()"));
   const localPaint = refresh.indexOf("renderMetrics()");
+  const plan = refresh.indexOf("renderAdaptivePlan(snapshot)");
   const yieldPaint = refresh.indexOf("await yieldToBrowserPaint()");
-  const projection = refresh.indexOf("await proactiveEngine.refresh()");
-  assert.ok(localPaint >= 0 && yieldPaint > localPaint && projection > yieldPaint);
+  const graph = refresh.indexOf("renderGraph()");
+  assert.ok(localPaint >= 0 && plan > localPaint && yieldPaint > plan);
+  assert.ok(graph > yieldPaint, "knowledge graph rendering must be deferred until its section approaches the viewport");
   assert.match(refresh, /const snapshot = await store\.load\(\)/);
+});
+
+test("heavy proactive modules are dynamically imported only when analysis is requested", async () => {
+  const page = await read("assets/js/learning-progress-page.mjs");
+  const staticImports = page.slice(0, page.indexOf("const siteRoot"));
+  const initializer = page.slice(page.indexOf("async function ensureProactiveAnalysis()"), page.indexOf("function setupLazySections()"));
+  assert.doesNotMatch(staticImports, /proactive-learning-engine|learning-agent\/(?:learner-profile|goal-manager|task-orchestrator)/);
+  assert.match(initializer, /import\("\.\/proactive-learning-engine\.mjs"\)/);
+  assert.match(initializer, /import\("\.\/learning-agent\/task-orchestrator\.mjs"\)/);
+  assert.match(page, /advanced\?\.addEventListener\("toggle"/);
 });

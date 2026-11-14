@@ -300,11 +300,13 @@ test("learning progress renders local state before applying background authentic
     new URL("../assets/js/learning-progress-page.mjs", import.meta.url), "utf8",
   );
   const boot = source.slice(source.indexOf("async function boot()"));
-  const profileIndex = boot.indexOf("profileStore = createLearnerProfileStore");
+  const repositoryIndex = boot.indexOf("await getLearningRepository()");
+  const snapshotIndex = boot.indexOf("await store.load()");
   const refreshIndex = boot.indexOf("await refresh()");
   const cloudReconcileIndex = boot.indexOf("archiveRuntime.initialSyncPromise?.then");
-  assert.ok(profileIndex >= 0, "Local learner profile must initialize from IndexedDB.");
-  assert.ok(refreshIndex > profileIndex, "Local page state must render after profile initialization.");
+  assert.ok(repositoryIndex >= 0, "Local learner repository must initialize from IndexedDB.");
+  assert.ok(snapshotIndex > repositoryIndex, "Local learning snapshot must load after repository migration.");
+  assert.ok(refreshIndex > snapshotIndex, "Local page state must render after the snapshot is available.");
   assert.ok(cloudReconcileIndex > refreshIndex, "Cloud reconciliation must refresh derived state after the first render.");
   assert.doesNotMatch(boot, /await archiveRuntime\.initialSyncPromise/,
     "The page must not block its first render on cloud network latency.");

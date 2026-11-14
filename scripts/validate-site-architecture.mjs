@@ -241,6 +241,7 @@ for (const page of pages) {
   if (immersivePages.has(page.rel)) {
     assert.ok(html.includes("kv-immersive-exit"), page.rel + " must provide a consistent exit from full-screen experience");
     assert.equal((html.match(/class="kv-footer-links"/g) || []).length, 0, page.rel + " must keep the full-screen canvas free of the shared page footer");
+    assert.doesNotMatch(html, /site-design-system\.css/, page.rel + " must preserve its dedicated immersive layout styles");
     continue;
   }
   assert.ok(html.includes('data-kv-static-shell="true"'), page.rel + " must use the shared static shell");
@@ -250,7 +251,12 @@ for (const page of pages) {
     assert.equal((html.match(new RegExp('data-group-id="' + id + '"','g')) || []).length, 1,
       page.rel + " must have one " + id + " navigation destination");
   }
-  assert.doesNotMatch(html, /kv-nav-toggle|kv-nav-submenu/, page.rel + " must not contain nested global menus");
+  assert.equal((html.match(/class="kv-nav-toggle"/g) || []).length, 4, page.rel + " must expose four contextual submenu toggles");
+  assert.equal((html.match(/class="kv-nav-submenu"/g) || []).length, 4, page.rel + " must expose four contextual submenu panels");
+  for (const route of ["agent/", "review/"]) {
+    assert.ok(html.includes("href=\"" + (page.rel.includes("/") ? "../".repeat(page.rel.split("/").length - 1) : "./") + route),
+      page.rel + " must expose " + route + " from its relevant workspace menu");
+  }
   assert.equal((html.match(/id="search-overlay"/g) || []).length, 1, page.rel + " must have one shared search overlay");
   const sharedFooterCount = (html.match(/class="kv-footer-links"/g) || []).length;
   if (page.rel === "lab/experiments/promise-debugger/index.html") {
@@ -258,8 +264,9 @@ for (const page of pages) {
   } else {
     assert.equal(sharedFooterCount, 1, page.rel + " must have exactly one set of shared footer links");
   }
-  assert.ok(html.includes('data-kv-shell-version="4.0"'), page.rel + " must use the current shell version");
+  assert.ok(html.includes('data-kv-shell-version="4.1"'), page.rel + " must use the current shell version");
   assert.ok(html.includes("assets/css/site-architecture.css"), page.rel + " must load shared shell styling");
+  assert.ok(html.includes("assets/css/site-design-system.css"), page.rel + " must load the shared design system");
   assert.ok(html.includes("assets/js/v2.js"), page.rel + " must load shared navigation behavior");
   await validateInternalReferences(page);
 }
@@ -276,4 +283,4 @@ for (const file of [
   assert.ok(page.includes('data-kv-static-shell="true"'), file + " must use the shared shell");
   assert.ok(page.includes("../../../../assets/js/v2.js"), file + " must load the shared interaction runtime");
 }
-console.log("KNOWVERSE 4.0 architecture verified: " + navigation.groups.length + " nav groups, " + knowledge.topics.length + " topics, " + concepts.size + " concepts, " + competencyToConcept.size + " competencies, " + works.pillars.length + " pillars, " + works.works.length + " works, " + sourcesManifest.sources.length + " sources, " + routesManifest.routes.length + " canonical routes, " + searchIndex.length + " search records, " + staticPages.length + " static-shell pages, " + immersivePages.size + " immersive exits.");
+console.log("KNOWVERSE 4.1 architecture verified: " + navigation.groups.length + " nav groups, " + knowledge.topics.length + " topics, " + concepts.size + " concepts, " + competencyToConcept.size + " competencies, " + works.pillars.length + " pillars, " + works.works.length + " works, " + sourcesManifest.sources.length + " sources, " + routesManifest.routes.length + " canonical routes, " + searchIndex.length + " search records, " + staticPages.length + " static-shell pages, " + immersivePages.size + " immersive exits.");

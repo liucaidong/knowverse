@@ -1,27 +1,32 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="用设备验收矩阵区分构建、安装、网络与用户体验。"><title>07 · 模拟器与真机验证 · KNOWVERSE</title><style>:root{font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans CJK SC",sans-serif;color:#233c4c;background:#f5f9f7}*{box-sizing:border-box}body{margin:0}a{color:#087f75;text-decoration:none}a:hover{text-decoration:underline}header{position:sticky;top:0;z-index:3;background:#ffffffed;backdrop-filter:blur(15px);border-bottom:1px solid #d6e5e4}header .nav{max-width:1120px;margin:auto;display:flex;justify-content:space-between;gap:14px;padding:18px 25px}.brand{font-size:21px;letter-spacing:-.06em;font-weight:900}.brand b{color:#008f83}main{max-width:1120px;margin:auto;padding:45px 25px 95px}.label{font-size:12px;letter-spacing:.18em;color:#078477;font-weight:750}.lede{color:#647c8b;font-size:18px;line-height:1.75}.reader{display:grid;grid-template-columns:minmax(0,780px) 230px;gap:34px;align-items:start}.article{background:white;border:1px solid #d8e7e4;border-radius:22px;padding:clamp(24px,4vw,48px);font-size:15px;line-height:1.95;min-width:0}.article h1{font-size:clamp(29px,4vw,39px);line-height:1.2;letter-spacing:-.045em;margin:0 0 22px}.article h2{font-size:24px;margin:42px 0 17px;border-top:1px solid #e5edeb;padding-top:18px}.article h3{font-size:18px;margin-top:30px}.article p,.article li{color:#445c69}.article a{text-decoration:underline;text-underline-offset:3px}.article blockquote{padding:10px 20px;margin:25px 0;background:#edf7f4;border-left:4px solid #1a9e8d}.article pre{background:#102535;color:#e4fff8;padding:20px;border-radius:13px;overflow:auto;line-height:1.65;font-size:12.5px}.article pre code{color:inherit}.article :not(pre)>code{background:#edf3f4;padding:2px 5px;border-radius:5px;color:#135a65}.article table{display:block;overflow:auto;border-collapse:collapse;max-width:100%;font-size:13px}.article td,.article th{border:1px solid #d5e4e4;padding:9px 12px;white-space:normal;min-width:100px}.article th{background:#e8f5f1}.side{position:sticky;top:108px;background:#fff;border:1px solid #d8e7e4;padding:19px;border-radius:15px;display:flex;flex-direction:column;gap:13px}.side a{font-size:14px}.side span{font-size:11px;letter-spacing:.1em;color:#69808a}.bottom{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-top:20px}.bottom a{padding:12px 16px;border:1px solid #badbd4;border-radius:10px;background:white}.hint{font-size:13px;color:#687c8b;margin:25px 0}@media(max-width:800px){.reader{grid-template-columns:1fr}.side{position:static;order:-1;flex-direction:row;flex-wrap:wrap}.article{padding:24px}main{padding:28px 17px 60px}.side a{font-size:12px}}</style>  <link rel="stylesheet" href="../../../../../assets/css/site-architecture.css">
-</head><body data-root="../../../../../"><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+  <link rel="stylesheet" href="../../../../../assets/css/site-design-system.css">
+</head><body data-root="../../../../../"><header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.1"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
     <a class="mark" href="../../../../../">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
     <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区"><div class="kv-nav-group" data-group-id="start"
-      data-active-routes="learning.start learning.start learning.agent learning.today"
-      data-active-paths="../../../../../start/|../../../../../start/|../../../../../agent/|../../../../../progress/#adaptive-plan">
-    <a class="kv-nav-link" data-route-id="learning.start"
-       href="../../../../../start/">开始学习</a>
-  </div><div class="kv-nav-group" data-group-id="knowledge"
-      data-active-routes="knowledge.overview knowledge.overview"
-      data-active-paths="../../../../../knowledge/|../../../../../knowledge/">
-    <a class="kv-nav-link" data-route-id="knowledge.overview"
-       href="../../../../../knowledge/">知识库</a>
-  </div><div class="kv-nav-group" data-group-id="experience"
-      data-active-routes="experience.overview experience.overview experience.lab experience.gallery experience.puzzles"
-      data-active-paths="../../../../../works/|../../../../../works/|../../../../../lab/|../../../../../gallery/|../../../../../puzzles/">
-    <a class="kv-nav-link" data-route-id="experience.overview"
-       href="../../../../../works/">实践中心</a>
-  </div><div class="kv-nav-group" data-group-id="progress"
-      data-active-routes="learning.overview learning.overview learning.mastery learning.gaps learning.review learning.history"
-      data-active-paths="../../../../../progress/|../../../../../progress/|../../../../../progress/#knowledge-map|../../../../../progress/#weak-points|../../../../../review/|../../../../../progress/#challenge-history">
-    <a class="kv-nav-link" data-route-id="learning.overview"
-       href="../../../../../progress/">我的进度</a>
-  </div></div>
+      data-active-routes="learning.start learning.agent learning.today"
+      data-active-paths="../../../../../start/|../../../../../agent/|../../../../../progress/#adaptive-plan">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="learning.start"
+       href="../../../../../start/">开始学习</a><button class="kv-nav-toggle" type="button" aria-label="展开开始学习子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">学习工作区</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="learning.agent" href="../../../../../agent/">个人智能学习 Agent</a><a class="kv-nav-subitem" data-route-id="learning.today" href="../../../../../progress/#adaptive-plan">今日学习计划</a></div></div></div></div>
+    </div><div class="kv-nav-group" data-group-id="knowledge"
+      data-active-routes="knowledge.overview topic.promise topic.monorepo topic.react-native knowledge.sources"
+      data-active-paths="../../../../../knowledge/|../../../../../knowledge/promise/|../../../../../knowledge/monorepo/|../../../../../knowledge/react-native/|../../../../../provenance/">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="knowledge.overview"
+       href="../../../../../knowledge/">知识库</a><button class="kv-nav-toggle" type="button" aria-label="展开知识库子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">重点专题与资料</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="topic.promise" href="../../../../../knowledge/promise/">JavaScript · Promise</a><a class="kv-nav-subitem" data-route-id="topic.monorepo" href="../../../../../knowledge/monorepo/">TypeScript · Monorepo</a><a class="kv-nav-subitem" data-route-id="topic.react-native" href="../../../../../knowledge/react-native/">React Native · 新架构</a><a class="kv-nav-subitem" data-route-id="knowledge.sources" href="../../../../../provenance/">来源与参考</a></div></div></div></div>
+    </div><div class="kv-nav-group" data-group-id="experience"
+      data-active-routes="experience.overview experience.lab experience.gallery experience.puzzles"
+      data-active-paths="../../../../../works/|../../../../../lab/|../../../../../gallery/|../../../../../puzzles/">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="experience.overview"
+       href="../../../../../works/">实践中心</a><button class="kv-nav-toggle" type="button" aria-label="展开实践中心子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">三种实践方式</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="experience.lab" href="../../../../../lab/">01 · 原理实验室</a><a class="kv-nav-subitem" data-route-id="experience.gallery" href="../../../../../gallery/">02 · 沉浸式知识展厅</a><a class="kv-nav-subitem" data-route-id="experience.puzzles" href="../../../../../puzzles/">03 · 知识解谜世界</a></div></div></div></div>
+    </div><div class="kv-nav-group" data-group-id="progress"
+      data-active-routes="learning.overview learning.mastery learning.gaps learning.review learning.history account.archive"
+      data-active-paths="../../../../../progress/|../../../../../progress/#knowledge-map|../../../../../progress/#weak-points|../../../../../review/|../../../../../progress/#challenge-history|../../../../../progress/#cloud-account">
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="learning.overview"
+       href="../../../../../progress/">我的进度</a><button class="kv-nav-toggle" type="button" aria-label="展开我的进度子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">掌握与复习工具</p><div class="kv-nav-sublist"><a class="kv-nav-subitem" data-route-id="learning.review" href="../../../../../review/">独立复习工作台</a><a class="kv-nav-subitem" data-route-id="learning.mastery" href="../../../../../progress/#knowledge-map">知识掌握图谱</a><a class="kv-nav-subitem" data-route-id="learning.gaps" href="../../../../../progress/#weak-points">薄弱点诊断</a><a class="kv-nav-subitem" data-route-id="learning.history" href="../../../../../progress/#challenge-history">学习历史</a><a class="kv-nav-subitem" data-route-id="account.archive" href="../../../../../progress/#cloud-account">个人学习档案</a></div></div></div></div>
+    </div></div>
     <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
     <button class="search-trigger" id="search-open" type="button" aria-label="全站搜索知识与作品">搜索 <span>⌘ K</span></button>
     <details class="kv-global-account" id="kv-global-account" data-status="anonymous">

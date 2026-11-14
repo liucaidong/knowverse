@@ -28,13 +28,17 @@ test("build-time shell creates four direct navigation destinations and one accou
     assert.ok(home.includes('href="./start/"'));
     assert.ok(home.includes('data-group-id="knowledge"'));
     assert.ok(home.includes('data-group-id="progress"'));
-    assert.doesNotMatch(home, /kv-nav-toggle|kv-nav-submenu/);
-    assert.ok(home.includes('data-kv-shell-version="4.0"'));
+    assert.ok(home.includes('class="kv-nav-toggle"'));
+    assert.ok(home.includes('class="kv-nav-submenu"'));
+    assert.ok(home.includes('href="./agent/"'));
+    assert.ok(home.includes('href="./review/"'));
+    assert.ok(home.includes('data-kv-shell-version="4.1"'));
     assert.ok(home.includes('href="./assets/css/site-architecture.css"'));
+    assert.ok(home.includes('href="./assets/css/site-design-system.css"'));
     assert.equal((topic.match(/id="kv-global-account"/g)||[]).length,1);
     assert.ok(topic.includes('href="../../start/"'));
     assert.ok(custom.includes("workbench-toolbar"));
-    assert.ok(custom.includes('data-kv-shell-version="4.0"'));
+    assert.ok(custom.includes('data-kv-shell-version="4.1"'));
     assert.equal((custom.match(/id="kv-global-account"/g)||[]).length,1);
   } finally { await rm(fixture,{recursive:true,force:true}); }
 });

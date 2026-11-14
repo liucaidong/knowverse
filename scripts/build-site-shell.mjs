@@ -38,24 +38,32 @@ function renderAccount(prefix) {
 function renderGroup(group, routeById, topicById, prefix) {
   const topRoute = routeById.get(group.routeId);
   if (!topRoute) throw new Error(`Unknown navigation routeId: ${group.routeId}`);
-  const activeIds = [group.routeId, ...(group.activeRouteIds || [])];
+  const childIds = Array.isArray(group.children) ? group.children : [];
+  const activeIds = [...new Set([group.routeId, ...(group.activeRouteIds || []), ...childIds])];
   const activePaths = activeIds
     .map(id => routeById.get(id)?.path)
     .filter(Boolean)
     .map(value => routeHref({ path: value }, prefix));
+  const childLinks = childIds.map(id => {
+    const route = routeById.get(id);
+    if (!route) throw new Error(`Unknown navigation child routeId: ${id}`);
+    return `<a class="kv-nav-subitem" data-route-id="${escapeHtml(route.id)}" href="${escapeHtml(routeHref(route, prefix))}">${escapeHtml(route.label)}</a>`;
+  }).join("");
+  const submenu = childLinks ? `<button class="kv-nav-toggle" type="button" aria-label="展开${escapeHtml(group.label)}子菜单" aria-expanded="false">⌄</button>
+    <div class="kv-nav-submenu" hidden><div class="kv-nav-section"><p class="kv-nav-section-title">${escapeHtml(group.submenuLabel || "快速入口")}</p><div class="kv-nav-sublist">${childLinks}</div></div></div>` : "";
   return `<div class="kv-nav-group" data-group-id="${escapeHtml(group.id)}"
       data-active-routes="${escapeHtml(activeIds.join(" "))}"
       data-active-paths="${escapeHtml(activePaths.join("|"))}">
-    <a class="kv-nav-link" data-route-id="${escapeHtml(topRoute.id)}"
-       href="${escapeHtml(routeHref(topRoute, prefix))}">${escapeHtml(group.label)}</a>
-  </div>`;
+    <div class="kv-nav-top"><a class="kv-nav-link" data-route-id="${escapeHtml(topRoute.id)}"
+       href="${escapeHtml(routeHref(topRoute, prefix))}">${escapeHtml(group.label)}</a>${submenu}</div>
+    </div>`;
 }
 
 function renderHeader(prefix, navigation, routes, topics) {
   const routeById = new Map(routes.routes.map(route => [route.id, route]));
   const topicById = new Map(topics.topics.map(topic => [topic.id, topic]));
   const groups = navigation.groups.map(group => renderGroup(group, routeById, topicById, prefix)).join("");
-  return `<header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.0"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
+  return `<header class="navwrap kv-static-shell" data-kv-static-shell="true" data-kv-shell-version="4.1"><nav class="navbar kv-navbar" aria-label="KNOWVERSE 全站导航">
     <a class="mark" href="${prefix}">KNOW<b>VERSE</b><small>FROM KNOWLEDGE TO MASTERY</small></a>
     <div class="navlinks kv-navlinks" id="kv-site-navigation" aria-label="全站主分区">${groups}</div>
     <button id="mobile-menu" class="mobilemenu kv-mobile-toggle" type="button" aria-label="展开全站导航" aria-controls="kv-site-navigation" aria-expanded="false">菜单</button>
@@ -112,7 +120,7 @@ for (const { file, rel } of htmlFiles) {
   let html = await readFile(file, "utf8");
   const prefix = relativePrefix(rel);
   const headerMatch = html.match(/<header\b([^>]*)>([\s\S]*?)<\/header>/i);
-  const hasStaticShell = html.includes('data-kv-shell-version="4.0"');
+  const hasStaticShell = html.includes('data-kv-shell-version="4.1"');
   const isSiteHeader = Boolean(headerMatch && /class\s*=\s*["'][^"']*(?:navwrap|sitehead)[^"']*["']/i.test(headerMatch[0]));
 
   if (!hasStaticShell && !immersive.has(rel)) {
@@ -135,6 +143,11 @@ for (const { file, rel } of htmlFiles) {
   const stylesheet = `${prefix}assets/css/site-architecture.css`;
   if (!html.includes("assets/css/site-architecture.css")) {
     html = html.replace(/<\/head>/i, `  <link rel="stylesheet" href="${stylesheet}">\n</head>`);
+  }
+  if (immersive.has(rel)) {
+    html = html.replace(/\s*<link[^>]+assets\/css\/site-design-system\.css[^>]*>/gi, "");
+  } else if (!html.includes("assets/css/site-design-system.css")) {
+    html = html.replace(/<\/head>/i, `  <link rel="stylesheet" href="${prefix}assets/css/site-design-system.css">\n</head>`);
   }
 
   // Normalize all previous runs to exactly one footer link group.
