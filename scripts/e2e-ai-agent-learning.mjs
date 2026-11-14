@@ -50,7 +50,7 @@ test("Chromium desktop: AI Agent topic links all four lessons and its Concept pa
     });
     await page.goto(baseURL + "/knowledge/ai-agents/", { waitUntil: "domcontentloaded" });
     assert.equal(await page.locator(".article-card").count(), 4);
-    await page.getByRole("link", { name: /工具调用闭环与 MCP 协议边界/ }).click();
+    await page.getByRole("link", { name: "工具调用闭环与 MCP 协议边界", exact: true }).click();
     await page.getByRole("heading", { name: "工具调用闭环与 MCP 协议边界" }).waitFor();
     await page.getByText(/function_call_output/).waitFor();
     await page.getByRole("link", { name: "Model Context Protocol Specification · 2026-07-28" }).waitFor();
