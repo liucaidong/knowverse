@@ -125,6 +125,11 @@ test("Chromium desktop: goal -> adaptive plan -> task pause/restore -> offline c
   const browser = await chromium.launch({ headless: true });
   try {
     const { context, page, errors } = await openWorkspace(browser, { width: 1440, height: 1100 });
+    const eagerAgentModules = await page.evaluate(() => performance.getEntriesByType("resource")
+      .map(item => item.name)
+      .filter(url => /\/(?:agent-provider|agent-tools|local-agent)\.mjs(?:[?#]|$)/.test(url)));
+    assert.deepEqual(eagerAgentModules, [],
+      "optional AI and tool modules must stay unloaded until the learner opens the chat workflow");
     await createGoalAndPlan(page);
 
     const task = page.locator("#la-active-tasks .la-task-card").first();

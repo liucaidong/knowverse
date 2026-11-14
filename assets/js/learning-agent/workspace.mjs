@@ -1,14 +1,12 @@
 import { getLearningRepository } from "../backend/learning-repository.mjs";
+import { BACKEND_CONFIG } from "../backend/config.mjs";
 import { createLearningProgressStore, deriveLearningInsights } from "../learning-progress.mjs";
 import { createLearnerProfileStore, deriveLearnerProfile } from "./learner-profile.mjs";
 import { createLearningGoalManager } from "./goal-manager.mjs";
 import { createLearningPlanManager } from "./plan-manager.mjs";
 import { createLearningTaskOrchestrator } from "./task-orchestrator.mjs";
 import { createProactiveLearningEngine } from "../proactive-learning-engine.mjs";
-import { createLearningAgentProvider } from "./agent-provider.mjs";
 import { createAgentSessionStore } from "./agent-session-store.mjs";
-import { executeAgentTool } from "./agent-tools.mjs";
-import { answerWithLocalRules } from "./local-agent.mjs";
 
 const root = new URL("../../../", import.meta.url);
 const $ = id => document.getElementById(id);
@@ -43,6 +41,25 @@ const STATUS = {
 };
 const escapeLines = value => String(value || "").split("\n").join(" ");
 let services;
+let agentRuntimePromise = null;
+
+function loadAgentRuntime() {
+  if (!agentRuntimePromise) {
+    agentRuntimePromise = Promise.all([
+      import("./agent-provider.mjs"),
+      import("./agent-tools.mjs"),
+      import("./local-agent.mjs"),
+    ]).then(([providerModule, toolsModule, localModule]) => ({
+      provider: providerModule.createLearningAgentProvider(),
+      executeAgentTool: toolsModule.executeAgentTool,
+      answerWithLocalRules: localModule.answerWithLocalRules,
+    })).catch(error => {
+      agentRuntimePromise = null;
+      throw error;
+    });
+  }
+  return agentRuntimePromise;
+}
 let session;
 let messages = [];
 let lastProposal = null;
@@ -553,7 +570,8 @@ function renderMessages() {
       action.addEventListener("click", async () => {
         action.disabled = true;
         try {
-          await runAction(() => executeAgentTool(suggestion.toolName, suggestion.input, services.context, {
+          const runtime = await loadAgentRuntime();
+          await runAction(() => runtime.executeAgentTool(suggestion.toolName, suggestion.input, services.context, {
             origin: "learner", confirmed: true,
           }));
           await sessionStoreMessage("assistant", "已按你的确认执行「" + suggestion.label + "」。结果已保存并可在对应面板查看。", {
@@ -697,12 +715,13 @@ async function sendMessage(text) {
           goalForecasts: (state.proactive.goalForecasts || []).slice(0, 8),
         } : null,
       };
+      const runtime = await loadAgentRuntime();
       try {
-        const firstPass = await services.provider.ask({ message: text, context: selected });
+        const firstPass = await runtime.provider.ask({ message: text, context: selected });
         let result = firstPass;
         if (firstPass.dataRequests.length) {
           const toolResults = await Promise.all(firstPass.dataRequests.map(async request => {
-            const data = await executeAgentTool(request.toolName, request.input, services.context, {
+            const data = await runtime.executeAgentTool(request.toolName, request.input, services.context, {
               origin: "model", confirmed: false,
             });
             return {
@@ -715,14 +734,14 @@ async function sendMessage(text) {
             ...selected,
             requestedToolResults: toolResults,
           };
-          result = await services.provider.ask({ message: text, context: retrievedContext });
+          result = await runtime.provider.ask({ message: text, context: retrievedContext });
           if (result.dataRequests.length) {
             result.reply += "\n\n（我已完成一轮只读资料检索；更多资料请求需要你提出后续问题，以避免无限检索。）";
           }
         }
         response = { mode: "ai", reply: result.reply, suggestions: result.suggestions };
       } catch (error) {
-        const fallback = await answerWithLocalRules(text, services.context);
+        const fallback = await runtime.answerWithLocalRules(text, services.context);
         const unavailable = error.code === "AI_PROVIDER_NOT_CONFIGURED"
           ? "云端 AI Provider 尚未配置 API Key；"
           : error.code === "AI_AUTH_REQUIRED"
@@ -737,7 +756,8 @@ async function sendMessage(text) {
         };
       }
     } else {
-      response = await answerWithLocalRules(text, services.context);
+      const runtime = await loadAgentRuntime();
+      response = await runtime.answerWithLocalRules(text, services.context);
     }
     if (response.proposal?.kind === "plan") lastProposal = response.proposal.planId;
     await sessionStoreMessage("assistant", response.reply, {
@@ -928,10 +948,9 @@ async function initialize() {
     repository, learningMap, challengeRegistry, goalManager, taskOrchestrator, profileStore,
   });
   const sessionStore = createAgentSessionStore({ repository });
-  const provider = createLearningAgentProvider();
   services = {
     repository, progressStore, profileStore, goalManager, taskOrchestrator,
-    planManager, proactiveEngine, sessionStore, provider,
+    planManager, proactiveEngine, sessionStore,
     learningMap, worksManifest, challengeRegistry, checkpointRegistry,
   };
   services.context = {
@@ -953,7 +972,7 @@ async function initialize() {
   renderMessages();
   window.addEventListener("knowverse:learning-events-appended", receiveLearningEvents);
   await maybeAutoReplan(state.events);
-  $("la-ai-availability").textContent = provider.configured
+  $("la-ai-availability").textContent = BACKEND_CONFIG.enabled
     ? "Supabase 已配置 · 云端 AI 需要登录并完成本轮数据授权"
     : "当前为本地规则模式 · 可使用目标、计划和任务管理";
   $("la-workspace-loading").hidden = true;
