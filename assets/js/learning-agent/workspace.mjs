@@ -977,6 +977,7 @@ async function initialize() {
     : "当前为本地规则模式 · 可使用目标、计划和任务管理";
   $("la-workspace-loading").hidden = true;
   $("la-workspace").hidden = false;
+  document.querySelector(".la-footer")?.removeAttribute("hidden");
   // Hash links are used by the guided start page. The workspace is hidden while
   // IndexedDB hydrates, so native anchor scrolling would otherwise happen too early.
   const anchorId = decodeURIComponent(location.hash.replace(/^#/, ""));
@@ -991,4 +992,5 @@ initialize().catch(error => {
   $("la-workspace-loading").textContent = "学习工作区初始化失败：" + (error.message || "未知错误") +
     "。请检查浏览器是否支持 IndexedDB，以及知识注册表是否正常部署。";
   $("la-workspace-loading").classList.add("la-error");
+  document.querySelector(".la-footer")?.removeAttribute("hidden");
 });

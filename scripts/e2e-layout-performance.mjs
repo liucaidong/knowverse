@@ -113,3 +113,32 @@ test("mobile knowledge graph stays inside the page and supports horizontal node 
     await context.close();
   } finally { await browser.close(); }
 });
+
+
+test("review and agent workspaces keep below-fold layout stable during async initialization", { timeout:60000 }, async () => {
+  const browser = await chromium.launch({ headless:true });
+  try {
+    for (const viewport of [{ width:1440, height:960 }, { width:390, height:844 }]) {
+      for (const path of ["/review/", "/agent/"]) {
+        const { context, page, errors } = await openPage(browser, path, viewport);
+        if (path === "/review/") {
+          await page.waitForFunction(() => document.querySelectorAll("#target-list .rw-topic-group").length > 0);
+        } else {
+          await page.waitForFunction(() => document.querySelector("#la-workspace")?.hidden === false);
+          assert.equal(await page.locator(".la-footer").getAttribute("hidden"), null, "agent footer should return after workspace initialization");
+        }
+        await page.waitForTimeout(150);
+        const metrics = await page.evaluate(() => ({
+          cls:Number(window.__layoutPerf.cls.toFixed(4)),
+          overflow:document.documentElement.scrollWidth > innerWidth,
+          historyTop:document.querySelector("#review-history")?.getBoundingClientRect().top ?? null,
+          footerTop:document.querySelector("footer")?.getBoundingClientRect().top ?? null,
+        }));
+        assert.ok(metrics.cls < 0.1, path + " layout shift budget at " + viewport.width + "px: " + JSON.stringify(metrics));
+        assert.equal(metrics.overflow, false, path + " must not overflow horizontally");
+        assert.deepEqual(errors, [], path + " page errors");
+        await context.close();
+      }
+    }
+  } finally { await browser.close(); }
+});
