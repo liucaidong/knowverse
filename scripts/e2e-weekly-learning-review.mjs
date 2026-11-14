@@ -174,7 +174,11 @@ test("WebKit mobile: weekly recap cards and seven-day activity strip fit the vie
   try {
     const { context, page, errors } = await openProgress(browser, { width: 390, height: 844 });
     const section = page.locator("#weekly-learning-review");
-    await section.scrollIntoViewIfNeeded();
+    await section.evaluate(element => element.scrollIntoView({ block: "center", behavior: "instant" }));
+    await page.waitForFunction(() =>
+      document.querySelectorAll(".lp-weekly-kpi").length === 5 &&
+      document.querySelectorAll(".lp-weekly-day").length === 7
+    );
     const box = await section.boundingBox();
     assert.ok(box && box.width <= 390);
     const pageWidth = await page.evaluate(() => document.documentElement.scrollWidth);
