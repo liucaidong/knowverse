@@ -21,8 +21,14 @@ jobs:
         uses: actions/checkout@v4
       - name: Build public concept pages and registry-backed catalogues
         run: node scripts/build-public-content.mjs
+      - name: Build static knowledge context into topic and article pages
+        run: python3 scripts/build-knowledge-context.py
       - name: Build static site shell, nested navigation and single account control
         run: node scripts/build-site-shell.mjs
+      - name: Validate generated knowledge context and content relationships
+        run: python3 scripts/validate-content.py
+      - name: Validate canonical routes and site architecture before deployment
+        run: node scripts/validate-site-architecture.mjs
       - name: Build deterministic full-text search index from final public pages and Concept registry
         run: python3 scripts/build-search-index.py
       - name: Verify generated search index is reproducible

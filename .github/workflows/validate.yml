@@ -20,6 +20,8 @@ jobs:
           node-version: 22
       - name: Build public concept pages and registry-backed catalogues
         run: node scripts/build-public-content.mjs
+      - name: Build static knowledge context into topic and article pages
+        run: python3 scripts/build-knowledge-context.py
       - name: Build static site shell, nested navigation and single account control
         run: node scripts/build-site-shell.mjs
       - name: Build deterministic full-text search index from final public pages and Concept registry
