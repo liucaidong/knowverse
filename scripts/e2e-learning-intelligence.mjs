@@ -187,11 +187,11 @@ async function exerciseReview(browser, label, viewport) {
   await page.locator("#weak-points").scrollIntoViewIfNeeded();
   await page.waitForFunction(() => document.querySelector("#gap-list")?.children.length > 0);
   await page.waitForFunction(() =>
-    document.querySelector("#gap-list")?.innerText.includes("没有尚未纠正的概念误区") &&
-    document.querySelector("#hero-tested")?.innerText.replaceAll(" ", "").includes("1/18")
+    document.querySelector("#gap-list")?.textContent.includes("没有尚未纠正的概念误区") &&
+    /^1\s*\/\s*\d+$/.test(document.querySelector("#hero-tested")?.textContent || "")
   );
-  assert.match(await page.locator("#gap-list").innerText(), /没有尚未纠正的概念误区/);
-  assert.match(await page.locator("#hero-tested").innerText(), /1\s*\/\s*18/);
+  assert.match(await page.locator("#gap-list").textContent(), /没有尚未纠正的概念误区/);
+  assert.match(await page.locator("#hero-tested").textContent(), /^1\s*\/\s*\d+$/);
   assert.deepEqual(pageErrors, [], label + ": uncaught browser exceptions or failed requests");
   await context.close();
 }

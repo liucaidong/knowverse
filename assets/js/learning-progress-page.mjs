@@ -1051,6 +1051,11 @@ async function refresh() {
       latestSnapshot = snapshot;
       insights = deriveLearningInsights(learningMap, challengeRegistry, snapshot);
       renderMetrics();
+      // The unresolved-gap summary is a primary learning action, not a deferred
+      // analytics panel. Render it with the local-first snapshot so its static
+      // HTML placeholder can never masquerade as current learner state.
+      renderGapList();
+      renderedSections.add("weak-points");
       if (sectionNearViewport("adaptive-plan") || renderedSections.has("adaptive-plan")) {
         renderAdaptivePlan(snapshot);
         renderedSections.add("adaptive-plan");
