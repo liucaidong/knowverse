@@ -183,7 +183,7 @@ jobs:
         run: node --test scripts/e2e-ai-agent-learning.mjs
       - name: Browser E2E · Global navigation, mobile drawer and no-JavaScript fallback
         run: node --test scripts/e2e-site-navigation.mjs
-      - name: Browser E2E · All 47 canonical routes and hash destinations runtime smoke
+      - name: Browser E2E · All canonical routes and hash destinations runtime smoke
         run: node --test scripts/e2e-system-route-smoke.mjs
       - name: Browser E2E · Work checkpoint and learning telemetry
         run: node --test scripts/e2e-learning-integration.mjs
