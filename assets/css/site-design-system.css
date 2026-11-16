@@ -336,3 +336,17 @@ body.kv-workspace-layout .sectionhead h2 { font-size: 23px; }
 
 /* Preserve the established mobile reservation too: the topic list hydrates asynchronously. */
 @media (max-width: 560px) { .rw-target-grid { min-height: 690px; } }
+
+/* Full-bleed workspace heroes sit outside <main>; offset them too so the fixed sidebar never covers their headings. */
+body.kv-workspace-layout .la-hero,
+body.kv-workspace-layout .lp-hero {
+  margin-left: max(280px, calc((100vw - 1160px) / 2 + 252px));
+}
+@media (max-width: 1050px) {
+  body.kv-workspace-layout .la-hero,
+  body.kv-workspace-layout .lp-hero { margin-left: 220px; }
+}
+@media (max-width: 760px) {
+  body.kv-workspace-layout .la-hero,
+  body.kv-workspace-layout .lp-hero { margin-left: 0; }
+}

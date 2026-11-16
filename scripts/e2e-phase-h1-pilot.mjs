@@ -121,7 +121,7 @@ async function createPilotTasks(page, planId) {
     ]);
     const topic = map.topics.find(item => item.id === "promise");
     const competency = topic.competencies.find(item => item.id === "thenable-adoption");
-    const checkpoint = checkpoints.checkpoints.find(item => item.id === "cp-promise-identity");
+    const checkpoint = checkpoints.checkpoints.find(item => item.id === "cp-promise-realm");
     if (!competency || !checkpoint) throw new Error("Promise pilot registry entries are missing.");
     const planDate = new Date().toISOString().slice(0, 10);
     const reading = mapPlanActionToTask({
@@ -143,7 +143,7 @@ async function createPilotTasks(page, planId) {
       type: "validate",
       actionId: "h1-pilot-check-resolved-settled",
       planDate,
-      href: "./lab/experiments/promise-identity/",
+      href: "./puzzles/worlds/promise-realm/",
       competencyId: checkpoint.competencyId,
       competencyTitle: competency.title,
       topicId: checkpoint.topicId,

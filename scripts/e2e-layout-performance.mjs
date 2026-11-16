@@ -127,6 +127,24 @@ test("review and agent workspaces keep below-fold layout stable during async ini
           await page.waitForFunction(() => document.querySelector("#la-workspace")?.hidden === false);
           assert.equal(await page.locator(".la-footer").getAttribute("hidden"), null, "agent footer should return after workspace initialization");
         }
+        if (path === "/agent/" || path === "/progress/") {
+          const heroGeometry = await page.evaluate(() => {
+            const sidebar = document.querySelector(".kv-workspace-sidebar");
+            const hero = document.querySelector(".la-hero, .lp-hero");
+            const side = sidebar.getBoundingClientRect();
+            const heading = hero.querySelector("h1").getBoundingClientRect();
+            return { viewport: innerWidth, sidebar: { left: side.left, right: side.right, bottom: side.bottom }, hero: { left: hero.getBoundingClientRect().left, top: hero.getBoundingClientRect().top }, heading: { left: heading.left, right: heading.right } };
+          });
+          if (viewport.width > 760) {
+            assert.ok(heroGeometry.hero.left >= heroGeometry.sidebar.right - 1,
+              path + " hero must begin to the right of the fixed sidebar: " + JSON.stringify(heroGeometry));
+            assert.ok(heroGeometry.heading.left >= heroGeometry.sidebar.right - 1,
+              path + " heading must not be covered by the fixed sidebar: " + JSON.stringify(heroGeometry));
+          } else {
+            assert.ok(heroGeometry.hero.top >= heroGeometry.sidebar.bottom - 1,
+              path + " mobile hero must follow the in-flow navigation: " + JSON.stringify(heroGeometry));
+          }
+        }
         await page.waitForTimeout(150);
         const metrics = await page.evaluate(() => ({
           cls:Number(window.__layoutPerf.cls.toFixed(4)),
