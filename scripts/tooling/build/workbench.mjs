@@ -30,7 +30,8 @@ export function renderWorkbench(prefix, problems) {
       ${steps}
     </div>
   </div>
-</section>`;
+</section>
+<script defer src="${prefix}assets/js/new-ia.mjs"></script>`;
 }
 
 export const WORKBENCH_START = "<!-- kv-workbench:start -->";
