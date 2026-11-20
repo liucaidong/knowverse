@@ -7,9 +7,14 @@ root = Path(__file__).resolve().parents[1]
 project = root / "knowledge/monorepo/fullstack/project"
 output = root / "knowledge/monorepo/fullstack/fullstack-project.zip"
 excluded = {"node_modules", ".git", ".expo", ".turbo", ".cache", "dist", "build", "coverage", "android", "ios"}
+# Local macOS metadata (e.g. .DS_Store) must not change the ZIP bytes: CI runs on
+# Ubuntu without these files, so including them makes the package non-reproducible.
+noise = {".DS_Store", "Thumbs.db", "desktop.ini"}
 files = sorted(
     path for path in project.rglob("*")
-    if path.is_file() and not any(part in excluded for part in path.relative_to(project).parts)
+    if path.is_file()
+    and not any(part in excluded for part in path.relative_to(project).parts)
+    and path.name not in noise
 )
 with ZipFile(output, "w", compression=ZIP_DEFLATED, compresslevel=9) as archive:
     for path in files:

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "auditDate": "2026-11-20",
+  "repository": "liucaidong/knowverse",
+  "branch": "develop",
+  "head": "355a9ddab68ad33eda5b8087e6e9ccd54aa60495",
+  "productionSupabase": "sxcpareycpokcyroufww",
+  "stagingSupabase": "ypthoicwrfsblaidllyy",
+  "method": "read-only audit plus safe local fix; no production writes, no auth/secret changes, no migrations, no deployment",
+  "issues": [
+    {
+      "id": "KV20-001",
+      "severity": "P2",
+      "category": "build-reproducibility",
+      "module": "scripts/package-fullstack-project.py",
+      "title": "Packaging includes local macOS .DS_Store, making the ZIP non-reproducible across macOS/CI",
+      "evidence": [
+        "Local repackage produced 49 files vs committed 48",
+        "Extra entry: project/.DS_Store; content of all other files identical",
+        "CI runs on Ubuntu where .DS_Store is absent"
+      ],
+      "status": "fixed",
+      "resolution": "Added a noise-file filter (.DS_Store, Thumbs.db, desktop.ini) to the packaging script.",
+      "verification": [
+        "Repackage => 48 files, no .DS_Store",
+        "git diff --stat on the ZIP => no bytes changed (matches HEAD)",
+        "python3 scripts/validate-fullstack.py => RC=0"
+      ],
+      "productionImpact": "None; build artifact only. Not yet pushed."
+    },
+    {
+      "id": "KV41-010",
+      "severity": "P1",
+      "category": "learning-loop",
+      "module": "Review Workspace / Task Orchestrator",
+      "title": "No-hint independent review pass leaves review task in_progress on Staging cloud",
+      "status": "blocked",
+      "evidence": [
+        "Local verify-phase-e.mjs covers exact no-hint causal chain and second targeted review; 18/18 passed this run",
+        "review-engine makeEvent injects taskId, targetGapEventIds and causationEventIds on assessment_passed",
+        "Failure reproduced only in Staging cloud E2E (assessment_passed independent=true, hintsUsed=0, but no learning_task_completed)"
+      ],
+      "requiredFix": "Reproduce with a real staging account, then verify review-workspace submit-success branch calls task-orchestrator.complete with the correct taskId and exact targetGapEventIds causal chain; persist learning_task_completed for no-hint pass only. Do NOT relax validation.",
+      "blocker": "Requires staging credentials and a real account; sync-mechanism scope was explicitly frozen by the user.",
+      "productionImpact": "Affects plan progress, review queue and user-visible task status; production data not written."
+    },
+    {
+      "id": "KV20-002",
+      "severity": "P3",
+      "category": "search-quality",
+      "module": "scripts/build-search-index.py / site shell",
+      "title": "Committed data/search.json drifts from source; nav text extracted into record bodies",
+      "status": "observation_no_change",
+      "evidence": [
+        "build-search-index.py --check fails against committed index, passes after rebuild (134 records)",
+        "58 body differences: 'KNOWLEDGE BASE 知识总览 ...' injected into <main> by the site shell and captured as body"
+      ],
+      "rationale": "Production CI rebuilds the index on every deploy, so live search is current. Changing extraction affects all 134 records and is a product decision.",
+      "suggestion": "Add a data-search-skip marker or dedicated body container in the site shell, then regenerate the index.",
+      "productionImpact": "None on live search."
+    },
+    {
+      "id": "KV41-004",
+      "severity": "P2",
+      "category": "external-config",
+      "module": "Production AI Provider",
+      "title": "Production AI Provider secrets missing; real model capability unverified",
+      "status": "blocked_requires_authorization",
+      "evidence": ["4.1 audit: missing AI_PROVIDER_API_KEY/MODEL; Staging practice generation returned HTTP 546"],
+      "blocker": "Need user to configure production secrets; no secret values read or written."
+    },
+    {
+      "id": "KV41-007",
+      "severity": "P2",
+      "category": "external-config",
+      "module": "Supabase Auth",
+      "title": "Leak-password protection not enabled in Production",
+      "status": "blocked_requires_authorization",
+      "evidence": ["Production security advisor (4.1)"],
+      "blocker": "Auth changes require explicit user authorization; not modified."
+    },
+    {
+      "id": "KV41-005",
+      "severity": "P3",
+      "category": "migration-provenance",
+      "module": "Supabase migrations",
+      "title": "Phase N migration timestamp differs between local and Production",
+      "status": "documented_risk",
+      "evidence": ["local 20261113041514 vs production 20261113153515; function bodies semantically equal (4.1 MD5 match)"],
+      "blocker": "No production migration executed; historical versions must not be rewritten."
+    }
+  ],
+  "counts": {
+    "P0": 0,
+    "P1": 1,
+    "P2_fixed": 1,
+    "P2_blocked": 2,
+    "P3": 2
+  },
+  "coverage": {
+    "topics": 12,
+    "concepts": 35,
+    "competencies": 34,
+    "gaps": 51,
+    "reviewAssessments": 115,
+    "canonicalRoutes": 63,
+    "searchRecords": 134
+  },
+  "testSummary": {
+    "nodeUnitGroups": "all passed (see test-report.md)",
+    "browserE2ELocalGroups": "all passed",
+    "pg17Integration": "migration replay 13/13; sync isolation PASS",
+    "buildChecks": "all reproducible after CI-order rebuild",
+    "productionHTTP": "5 core routes 200; /auth/ 404 expected"
+  }
+}
