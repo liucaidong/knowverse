@@ -11,7 +11,7 @@
 
 ## P1 遗留验收（已完成）
 
-- 用户授权后清理了两个合成 staging 账户的污染业务数据（保留 Auth 用户，备份在 `.workbuddy/staging-cleanup-backup-2026-11-20/`），在干净档案上完整云端 E2E PASS 1/1。端到端验收完成。
+- 用户授权后清理了两个合成 staging 账户的污染业务数据（保留 Auth 用户，备份在 `.workbuddy/staging-cleanup-backup-2026-11-20/`），在干净档案上完整云端 E2E PASS 1/1。应用户要求再次清理（round2 备份 `.workbuddy/staging-cleanup-backup-2026-11-20-round2/`）并复验，再次 PASS 1/1。连续两轮干净档案端到端通过，端到端验收完成且稳定。
 - 注意：该 E2E 的空档案 planner 断言（期望推荐 AI 专题）使其适合单次干净运行；连续运行会因上一次进度使 planner 正确改推其他专题而失败。重复验收前需再次清理账户业务数据。
 
 ## P2（本轮已处理 / 观察）
