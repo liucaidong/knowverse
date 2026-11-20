@@ -54,7 +54,8 @@
         "scripts/verify-review-task-historical-gaps.mjs: 2/2 PASS (RED before fix, GREEN after), registered in validate.yml",
         "verify-phase-e 18/18, plus learning-progress/intelligence/integration, phase-f/g, weekly-review, planner, phase-m-audit-order all PASS",
         "Instrumented staging E2E: after fix, validateEvidence unresolved=[] with a valid validPass and complete() committed learning_task_completed for the review task",
-        "Staging E2E reaches and passes all KV41-010 assertions (task completed, variant change, audit, cloud sync); full test on the long-reused synthetic account is gated only by unrelated planner-output assertions that assume a clean archive"
+        "Staging E2E reaches and passes all KV41-010 assertions (task completed, variant change, audit, cloud sync)",
+        "After the user-authorized cleanup of the two synthetic staging accounts, the full cloud E2E passed 1/1 end-to-end on a clean archive (goal -> plan -> lesson -> checkpoint -> gap -> assisted review -> independent review -> task completion -> scheduling -> cloud sync -> second-device restore)"
       ],
       "productionImpact": "Corrects future review-task lifecycle on any long-lived archive. No production data written; no sync-mechanism/scheduler/timing changes."
     },

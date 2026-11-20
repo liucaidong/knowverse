@@ -79,7 +79,8 @@
 | 历史污染回归（修复后） | 同上 | PASS 2/2 | 两个场景：其他任务已解决的失败、提示辅助历史；task 均正常 completed |
 | 全量 verify 回归 | 全部 `verify-*.mjs` | PASS | 0 失败，含 verify-phase-e 18/18 |
 | Staging 真实环境插桩 | 诊断副本 + complete commit 探针 | PASS | `unresolved=[]`、有效 validPass、complete 写入 learning_task_completed；E2E 通过全部 KV41-010 相关断言 |
-| Staging 完整云端 E2E（端到端） | `e2e-staging-cloud-learning-loop.mjs` | PARTIAL | 核心闭环断言全过；长期复用合成账户（121/364 历史事件）导致更早的 planner 输出假设断言失败，非产品缺陷 |
+| Staging 完整云端 E2E（端到端，清理后） | `e2e-staging-cloud-learning-loop.mjs` | PASS 1/1 | 用户授权清理 staging 合成账户档案后，在干净档案上完整跑通：目标→计划→阅读→检查点失败→Gap→提示辅助→无提示独立复习→任务闭合→延迟排程→云端同步→第二设备恢复全部通过。连续第二次运行因账户已写入新进度、planner 正确改推 Promise 而触发旧断言，属测试对空档案的假设，非产品缺陷 |
+| Staging 测试账户清理 | supabase CLI `--remote=ypthoicwrfsblaidllyy` | PASS | 仅删两个 `@knowverse-test.invalid` 合成账户的业务数据（485 events/213 docs/113 devices/2+2 sync/2 profiles），保留 Auth 用户；备份在 `.workbuddy/staging-cleanup-backup-2026-11-20/`。quality 表因 append-only 触发器保留 |
 
 ## 6. 生产与需授权项
 

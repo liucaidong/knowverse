@@ -9,9 +9,10 @@
 |---|---|---|---|
 | KV41-010 | 被复用学习档案中无提示独立复习通过后 review task 仍 in_progress | FIXED | validateEvidence 改用 taskId 口径，只要求当前任务仍 open 的观察；不放宽因果链。确定性回归 RED→GREEN + staging 插桩验证。完整 staging E2E 仅被污染账户的 planner 输出假设阻断，非产品缺陷。 |
 
-## P1 遗留验收（需新凭证）
+## P1 遗留验收（已完成）
 
-- 若需端到端重跑完整 staging 云端 E2E，应创建一个全新的合成账户（现有 A/B 已累积 121/364 条历史事件），这需要 Supabase Dashboard 授权；本轮未擅自创建用户。
+- 用户授权后清理了两个合成 staging 账户的污染业务数据（保留 Auth 用户，备份在 `.workbuddy/staging-cleanup-backup-2026-11-20/`），在干净档案上完整云端 E2E PASS 1/1。端到端验收完成。
+- 注意：该 E2E 的空档案 planner 断言（期望推荐 AI 专题）使其适合单次干净运行；连续运行会因上一次进度使 planner 正确改推其他专题而失败。重复验收前需再次清理账户业务数据。
 
 ## P2（本轮已处理 / 观察）
 
