@@ -15,3 +15,20 @@
 .kv-home-secondary a:hover{text-decoration:underline}
 @media(max-width:900px){.kv-home-portal{grid-template-columns:1fr;gap:19px;padding:28px}.kv-home-actions{grid-template-columns:1fr}}
 @media(max-width:650px){.kv-home-portal{margin:14px 0 32px;padding:21px}.kv-home-copy h2{font-size:31px}.kv-home-action.primary{min-height:132px;padding:20px}.kv-home-secondary{gap:13px}}
+
+/* P1 workbench (hidden until NEW_IA_ENABLED; default off keeps legacy home intact) */
+.kv-workbench[hidden]{display:none}
+.kv-workbench{margin:0 0 22px;padding:22px 26px;border:1px solid #d8e8e3;border-radius:12px;background:#f7fbfa}
+.kv-wb-head>span{font-size:10px;letter-spacing:.12em;color:#2f7d72;font-weight:800}
+.kv-wb-head h2{margin:6px 0 16px;font-size:25px;color:#123f45}
+.kv-wb-card{display:grid;grid-template-columns:1fr 1.4fr;gap:20px}
+.kv-wb-problem{padding:16px;border-radius:10px;background:#fff;border:1px solid #e0eeea}
+.kv-wb-problem small{display:block;font-size:10px;color:#5b7d77;margin-bottom:6px}
+.kv-wb-problem strong{font-size:16px;color:#123f45;line-height:1.4}
+.kv-wb-steps-label{font-size:10px;color:#5b7d77;margin:0 0 10px;letter-spacing:.08em}
+.kv-wb-step{display:flex;align-items:center;gap:10px;padding:9px 12px;margin-bottom:7px;border:1px solid #d8e8e3;border-radius:8px;background:#fff;text-decoration:none;color:#123f45}
+.kv-wb-step small{font-size:10px;color:#2f7d72;font-weight:800;min-width:56px}
+.kv-wb-step strong{font-size:13px;flex:1}
+.kv-wb-step span{font-size:10px;color:#6b8a84}
+.kv-wb-step:hover{border-color:#0b786e;background:#f0f9f6}
+@media(max-width:900px){.kv-wb-card{grid-template-columns:1fr}}

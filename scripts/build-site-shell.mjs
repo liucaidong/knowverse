@@ -1,6 +1,27 @@
 import { readFile, writeFile, readdir, mkdir } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL, fileURLToPath } from "node:url";
+import { renderWorkbench, WORKBENCH_START, WORKBENCH_END } from "./tooling/build/workbench.mjs";
+import { ROUTE_MANIFEST } from "../src/interface/router/route-manifest.js";
+
+// P1: default flag values for the static site (single source: _shared/flags.mjs defaults, all OFF).
+// Runtime overrides (URL/cookie/localStorage) can enable flags without changing build output.
+const SITE_FLAGS_DEFAULT = Object.freeze({
+  NEW_IA_ENABLED: false,
+  API_V2_ENABLED: false,
+  AI_CONVERSE_ENABLED: false,
+  AI_SUGGEST_ENABLED: false,
+  PRACTICE_GENERATION_ENABLED: false,
+  AI_FORCE_FALLBACK: false,
+});
+
+function stripMarked(html, start, end) {
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  // Also consume whitespace immediately before the marker so repeated builds cannot
+  // accumulate indentation (idempotency guarantee).
+  const re = new RegExp("[ \\t]*" + esc(start) + "[\\s\\S]*?" + esc(end) + "\\n?", "g");
+  return html.replace(re, "");
+}
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const sourceRoot = path.resolve(scriptDir, "..");
@@ -261,6 +282,20 @@ for (const { file, rel } of htmlFiles) {
     const anchor = html.match(/<link[^>]+assets\/css\/(?:site-design-system|site-architecture)\.css[^>]*>/i);
     if (anchor) html = html.replace(anchor[0], anchor[0] + "\n" + link);
     else html = html.replace(/<\/head>/i, "  " + link + "\n</head>");
+  }
+
+  // P1 flag bootstrap: idempotent, deterministic, default all-off. Runtime reader is
+  // assets/js/flags.mjs; nothing imports it yet, so this is inert until a page opts in.
+  html = stripMarked(html, "<!-- kv-flags:start -->", "<!-- kv-flags:end -->");
+  const flagScript = `<!-- kv-flags:start -->\n<script>globalThis.__KV_FLAGS__=${JSON.stringify(SITE_FLAGS_DEFAULT)};</script>\n<!-- kv-flags:end -->`;
+  html = html.replace(/<\/head>/i, `${flagScript}\n</head>`);
+
+  // P1 T1.2: workbench fragment on the home page only (hidden until NEW_IA_ENABLED).
+  if (rel === "index.html" && !excluded.has(rel)) {
+    html = stripMarked(html, WORKBENCH_START, WORKBENCH_END);
+    const problems = ROUTE_MANIFEST.filter((e) => e.mvp).map((e) => ({ problemId: e.problemId, title: e.title, legacyHref: e.legacyPaths[0] }));
+    const fragment = `${WORKBENCH_START}\n${renderWorkbench(prefix, problems)}\n${WORKBENCH_END}`;
+    if (/<\/main>/i.test(html)) html = html.replace(/<\/main>/i, `  ${fragment}\n</main>`);
   }
 
   await writeFile(file, html);
