@@ -46,9 +46,9 @@ Explainable Adaptive Planner
 
 ## 当前知识覆盖边界
 
-截至 2026-11-02，注册表包含 **12 个知识专题、16 个 Concept、15 个映射 Competency、17 个互动作品、13 条参考来源和 42 条 canonical routes**。
+截至 2026-11-20，注册表包含 **12 个知识专题、35 个 Concept、34 个映射 Competency、51 个 Gap、115 个 Review Assessment、14 个 Checkpoint、17 个互动作品、17 条参考来源和 63 条 canonical routes**。
 
-Promise、TypeScript Monorepo、React Native 新架构这 3 个专题已有明确的 Competency 与先修 DAG。其余 9 个专题已有内容和文章，但尚未建立正式 Concept / Competency 图谱。KNOWVERSE 不会将章节顺序伪装成先修因果，也不会为这些专题伪造掌握分数。
+12 个专题均已建立 Concept / Competency 图谱（见 `content/concepts.json` 的 coverage），其中 18 个 Concept 声明了显式 `prerequisites`。KNOWVERSE 只把显式 `prerequisite_of` / `prerequisites` 当作先修因果，不以章节顺序代替，也不为专题伪造掌握分数。
 
 详细覆盖与来源见 [`/provenance/`](provenance/index.html)，数据契约见 [`content/README.md`](content/README.md)。
 
@@ -86,7 +86,7 @@ node --test scripts/e2e-site-navigation.mjs
 | 能力 | 状态 |
 |---|---|
 | 三个一级导航分区、全站账户控件、canonical route 与静态 Shell | 已实现 |
-| 12 个专题、16 个概念页、3 个正式能力图谱 | 已登记；覆盖范围公开说明 |
+| 12 个专题、35 个概念页、34 个映射 Competency | 已登记；覆盖范围公开说明 |
 | 三条体验主线及 17 个作品 | 已有作品登记；状态以 `content/works.json` 为准 |
 | 本地学习事件、掌握分析、Gap、复习、规划与近 7 天证据回顾 | 已实现；回顾只读取真实事件，不新增掌握证据 |
 | Supabase 云端学习档案 | Phase D 数据库迁移已应用；真实 OAuth 双设备、双账户 RLS 与实体 iPhone Safari 仍需验收 |
