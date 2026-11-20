@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "updated": "2026-11-20",
+  "description": "EUU (Effective Understanding Unit) definitions — the atomic unit of the new problem-driven workbench. Anchors to existing Concept IDs; does not merge Concept/Competency/Evidence.",
+  "euus": [
+    {
+      "euuId": "euu.promise-state",
+      "title": "Promise 为什么会有状态？",
+      "topicId": "promise",
+      "problemId": "promise-state",
+      "anchors": [
+        { "kind": "Concept", "canonicalId": "promise.state-model" }
+      ],
+      "prerequisiteEuus": [],
+      "calibrationAssessmentIds": [],
+      "legacyWorkIds": ["promise-mechanism-debugger"],
+      "mvp": true
+    },
+    {
+      "euuId": "euu.promise-identity",
+      "title": "Promise.resolve 什么时候返回同一个对象？",
+      "topicId": "promise",
+      "problemId": "promise-identity",
+      "anchors": [
+        { "kind": "Concept", "canonicalId": "promise.thenable-adoption" }
+      ],
+      "prerequisiteEuus": ["euu.promise-state"],
+      "calibrationAssessmentIds": [],
+      "legacyWorkIds": ["promise-identity"],
+      "mvp": true
+    },
+    {
+      "euuId": "euu.microtask-order",
+      "title": "微任务的执行顺序怎么推导？",
+      "topicId": "promise",
+      "problemId": "microtask-order",
+      "anchors": [
+        { "kind": "Concept", "canonicalId": "promise.microtask-scheduling" }
+      ],
+      "prerequisiteEuus": ["euu.promise-state"],
+      "calibrationAssessmentIds": [
+        "review-thenable-job-timing-a",
+        "review-thenable-job-timing-b"
+      ],
+      "legacyWorkIds": ["lab-microtasks", "microtask-resolution"],
+      "mvp": true
+    },
+    {
+      "euuId": "euu.promise-chain-errors",
+      "title": "链式调用里的错误去了哪里？",
+      "topicId": "promise",
+      "problemId": "promise-chain-errors",
+      "anchors": [
+        { "kind": "Concept", "canonicalId": "promise.chain-error-propagation" }
+      ],
+      "prerequisiteEuus": ["euu.promise-state"],
+      "calibrationAssessmentIds": [],
+      "legacyWorkIds": [],
+      "mvp": true
+    },
+    {
+      "euuId": "euu.promise-combinators",
+      "title": "组合子各自解决什么问题？",
+      "topicId": "promise",
+      "problemId": "promise-combinators",
+      "anchors": [
+        { "kind": "Concept", "canonicalId": "promise.combinator-semantics" }
+      ],
+      "prerequisiteEuus": ["euu.promise-identity"],
+      "calibrationAssessmentIds": [],
+      "legacyWorkIds": [],
+      "mvp": false
+    },
+    {
+      "euuId": "euu.promise-integrated",
+      "title": "把微任务、状态与链串成完整模型",
+      "topicId": "promise",
+      "problemId": "promise-integrated",
+      "anchors": [
+        { "kind": "Concept", "canonicalId": "promise.integrated-execution-model" }
+      ],
+      "prerequisiteEuus": ["euu.microtask-order", "euu.promise-chain-errors"],
+      "calibrationAssessmentIds": [],
+      "legacyWorkIds": [],
+      "mvp": false
+    }
+  ]
+}
