@@ -43,7 +43,7 @@
 
 ## Git 状态（实施后）
 
-- `M scripts/package-fullstack-project.py`（构建修复）
-- `?? AGENTS.md`（新建规则）
-- `?? docs/audits/2026-11-20-knowverse-baseline/`（审计与报告）
-- 未提交、未推送。提交前需检查完整 diff 并确认不覆盖用户工作。
+- 本地提交：`0691532 chore(audit): record 2026-11-20 baseline audit and fix build reproducibility`
+- 提交前已审查完整 diff，确认仅含本次新增文件与脚本修复，不覆盖任何用户工作。
+- 工作区干净（仅本地 `.workbuddy/` 记忆目录未跟踪，不入库）。
+- `develop` 领先 `origin/develop` 1 个提交；**未 push、未部署**（push 会触发生产 Pages 部署，需单独授权）。
