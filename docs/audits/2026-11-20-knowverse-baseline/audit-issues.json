@@ -109,6 +109,23 @@
         "local 20261113041514 vs production 20261113153515; function bodies semantically equal (4.1 MD5 match)"
       ],
       "blocker": "No production migration executed; historical versions must not be rewritten."
+    },
+    {
+      "id": "KV41-011",
+      "severity": "P2",
+      "category": "ai-provider-runtime",
+      "module": "supabase/functions/learning-agent (practice generation)",
+      "title": "Real Staging AI practice generation returns 502 AI_INVALID_OUTPUT: model output fails the strict 11-field exercise schema",
+      "evidence": [
+        "e2e-hosted-learning-agent.mjs run twice on 2026-11-20: first 3 assertions PASS (401 rejection, Reviewer history read, Tutor explain provider call), then practice generation fails HTTP 502 AI_INVALID_OUTPUT '输出不符合 KNOWVERSE Agent 工具协议' both times.",
+        "Failure occurs server-side in validateTutorPracticeExercise (learning-agent/index.ts:188-250): reply object is checked for exactly 11 keys, 2 hints, 2-4 rubric objects with exact id/criterion/expectedSignal, and 2 sourceVariantIds.",
+        "System prompt already specifies the exact schema (index.ts:311-317) and the reply envelope (index.ts:334); failure is model output fidelity, not a missing instruction.",
+        "Runtime console.warn diagnostics are not retained in hosted edge_logs via CLI, so the raw model output could not be retrieved without changing code."
+      ],
+      "status": "observed_real_ai_blocker",
+      "rationale": "AGENTS.md forbids relaxing validPasses/causal-chain or schema checks to pass tests. Loosening validateTutorPracticeExercise to accommodate a weak model would downgrade the safety contract; not done.",
+      "suggestion": "Use a generation model with reliable strict JSON-schema/object output for tutorMode=practice (separate from the Tutor/agent model if needed), re-run e2e-hosted-learning-agent.mjs, and capture edge runtime logs from the Dashboard for the exact validation reason if it persists.",
+      "productionImpact": "None on current production (AI provider not configured there). Blocks end-to-end verification of KV41-004 practice-generation capability on Staging."
     }
   ],
   "counts": {
@@ -117,7 +134,8 @@
     "P2_fixed": 1,
     "P2_blocked": 2,
     "P3": 2,
-    "P1_fixed": 1
+    "P1_fixed": 1,
+    "P2_observed": 1
   },
   "coverage": {
     "topics": 12,
