@@ -1,4 +1,5 @@
 import { getLearningRepository } from "../backend/learning-repository.mjs";
+import { getOpenGapObservationEventIds } from "../learning-progress.mjs";
 
 const TYPE = "learning_task";
 const TERMINAL = new Set(["completed", "skipped", "cancelled"]);
@@ -64,11 +65,19 @@ function validateEvidence(task, events, startedAt) {
   );
 
   if (task.taskType === "review") {
-    // The original gap event predates this review task. Only the review chain itself
-    // must be tagged with this task's ID; the causal source remains the historical failure.
+    // A review task is scoped to the gap observations still open for THIS task.
+    // Observations already resolved by a valid no-hint pass in an earlier task must
+    // not be re-verified here: a reused learner archive can contain many such
+    // historical failures for the same competency+gap, and demanding all of them
+    // made completion permanently impossible (KV41-010). Excluding this task's own
+    // passes from the "already resolved" calculation keeps the task's own in-flight
+    // pass from marking its target resolved, without relying on clock timestamps.
+    const openIds = new Set(getOpenGapObservationEventIds(
+      { events }, task.competencyId, task.gapId, task.taskId));
     const failures = events.filter(event => event.type === "attempt" &&
       event.correct === false && event.gapId === task.gapId &&
-      (event.competencyIds || []).includes(task.competencyId));
+      (event.competencyIds || []).includes(task.competencyId) &&
+      openIds.has(event.gapObservationId || event.id));
     const validPasses = eligible.filter(pass => {
       if (pass.type !== "assessment_passed" || pass.sessionType !== "review" ||
           pass.gapId !== task.gapId || Number(pass.hintsUsed) !== 0 ||

@@ -96,6 +96,8 @@ jobs:
         run: node --test scripts/verify-learning-planner.mjs
       - name: Test Phase E learner profile, goals, plan versions, task orchestration and Agent security
         run: node --test scripts/verify-phase-e.mjs
+      - name: Verify review tasks complete on reused archives with historically resolved gap observations
+        run: node --test scripts/verify-review-task-historical-gaps.mjs
       - name: Test Phase F adaptive review, risk, trends, diagnostics, forecasts, NBA and idempotent task integration
         run: node --test scripts/verify-phase-f.mjs
       - name: Test Phase G evidence quality, strategy calibration, bounded adaptation and audit

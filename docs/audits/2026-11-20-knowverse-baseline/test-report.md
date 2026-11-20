@@ -71,6 +71,16 @@
 
 本地浏览器 E2E 组全部 fail=0。
 
+## 5b. KV41-010 专项（P1 修复验证）
+
+| 测试 | 命令 | 结果 | 证据 |
+|---|---|---|---|
+| 历史污染确定性复现（修复前） | `node --test scripts/verify-review-task-historical-gaps.mjs` | RED（复现） | 精确抛出「必须对所有未解决错误观察完成独立验证」 |
+| 历史污染回归（修复后） | 同上 | PASS 2/2 | 两个场景：其他任务已解决的失败、提示辅助历史；task 均正常 completed |
+| 全量 verify 回归 | 全部 `verify-*.mjs` | PASS | 0 失败，含 verify-phase-e 18/18 |
+| Staging 真实环境插桩 | 诊断副本 + complete commit 探针 | PASS | `unresolved=[]`、有效 validPass、complete 写入 learning_task_completed；E2E 通过全部 KV41-010 相关断言 |
+| Staging 完整云端 E2E（端到端） | `e2e-staging-cloud-learning-loop.mjs` | PARTIAL | 核心闭环断言全过；长期复用合成账户（121/364 历史事件）导致更早的 planner 输出假设断言失败，非产品缺陷 |
+
 ## 6. 生产与需授权项
 
 | 测试 | 状态 | 原因 |
@@ -78,7 +88,7 @@
 | 生产路由 HTTP | PASS | 5 核心路由 200；/auth/ 404 为预期；callback 200 |
 | 生产关键资源哈希逐项复验 | NOT RUN | 沿用 4.1 结论，本轮未逐资源复验 |
 | 生产浏览器控制台错误采集 | NOT RUN | 本轮未单独采集（本地 E2E 错误 0） |
-| Staging 云端 KV41-010 | BLOCKED | 需 staging 凭证 + 真实账户；本地因果链单测全绿 |
+| Staging 云端 KV41-010 | FIXED | 见 5b；确定性回归 + staging 插桩双重验证 |
 | 生产真实学习闭环 / AI Provider / 实体设备 | BLOCKED | 需授权与凭证，未写生产数据 |
 
 ## 结论

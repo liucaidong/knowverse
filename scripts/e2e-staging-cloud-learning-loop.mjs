@@ -346,13 +346,21 @@ async function repairGapWithHintThenIndependentVariant(page, reviewTask) {
       document.querySelector("#question-title")?.textContent.includes("多模态学习台的双通路架构");
   }, assistedVariant);
   await page.locator('[data-option-id="b"]').click();
-  await waitForAsyncPageCondition(page, async () => {
+  // Wait for both the evidence event AND the review task lifecycle to settle. The
+  // pass event is committed inside engine.submit(), while task completion happens
+  // afterwards in submitAnswer()'s async listener; observing only the event reads a
+  // stale task document (KV41-010). This mirrors the local H1 pilot wait pattern.
+  await waitForAsyncPageCondition(page, async taskId => {
     const { getLearningRepository } = await import("/assets/js/backend/learning-repository.mjs");
-    const events = await (await getLearningRepository()).events.list();
-    return events.some(event => event.type === "assessment_passed" &&
+    const repository = await getLearningRepository();
+    const events = await repository.events.list();
+    const passPersisted = events.some(event => event.type === "assessment_passed" &&
       event.sessionType === "review" && event.gapId === "multimodal-path-conflation" &&
       event.hintsUsed === 0 && event.independent === true);
-  }, { label: "independent review pass evidence to persist" });
+    if (!passPersisted) return false;
+    const task = await repository.documents.get("learning_task", taskId);
+    return task?.payload?.status === "completed";
+  }, { arg: reviewTask.taskId, label: "independent review pass evidence and task completion to persist" });
   const result = await page.evaluate(async taskId => {
     const [{ getLearningRepository }, { deriveLearningInsights }] = await Promise.all([
       import("/assets/js/backend/learning-repository.mjs"),
@@ -566,7 +574,9 @@ test("Chromium desktop: Staging learner completes goal → plan → lesson → c
       JSON.stringify(audit.schedule));
     assert.ok(audit.tasks.some(task => task.taskType === "read" && task.status === "completed"));
     assert.ok(audit.tasks.some(task => task.taskType === "assessment" && task.status === "failed"));
-    assert.ok(audit.tasks.some(task => task.taskType === "assessment" && task.status === "completed"));
+    // The gap is closed by the independent review (repair) task, not by replaying the
+    // assessment. This matches the local H1 pilot assertion and the product model.
+    assert.ok(audit.tasks.some(task => task.taskType === "review" && task.status === "completed"));
     assert.ok(audit.eventCount >= 10);
     assert.deepEqual(errors, [], "no uncaught page or console errors");
     assert.deepEqual(failedRequests, [], "no failed network requests");

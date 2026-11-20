@@ -30,20 +30,34 @@
 - 文件：`00-executive-summary.md`、`01-engineering-audit.md`、`02-feature-inventory.md`、`03-content-inventory.md`、`04-database-audit.md`、`05-auth-security-audit.md`、`06-ux-ia-audit.md`、`07-production-audit.md`、`08-architecture-proposal.md`、`09-remediation-roadmap.md`、`audit-issues.json`、`test-report.md`、`deployment-report.md`、`implementation-report.md`。
 - 历史 `docs/audits/2026-11-04/` 与 `2026-11-14/` 完整保留，仅在新文档中对比引用。
 
+### 4. P1 修复：KV41-010（复习任务生命周期闭合）
+
+- **根因**：`task-orchestrator.mjs` 的 `validateEvidence` review 分支把同一 competency+gap 的**全部历史**失败尝试视为当前任务必须验证的未解决观察。被复用的学习档案（staging 合成账户或任何长期真实账户）中，旧任务已通过其他 taskId 解决了其中大部分，导致 `unresolved` 永不为空、`complete()` 永久抛「必须对所有未解决错误观察完成独立验证」。干净 DB 的单测只含单个失败，掩盖了该缺陷。
+- **修复**：
+  - `learning-progress.mjs`：`getOpenGapObservationEventIds` / `resolvingPassForObservation` 新增可选 `excludeTaskId` 参数（默认行为不变）。
+  - `task-orchestrator.mjs`：required failures 改用 `getOpenGapObservationEventIds({events}, competency, gap, taskId)` 口径——其他任务已解决的观察不再要求本任务重复验证；本任务自己的 pass 被排除，不能自我标记为已解决。
+  - **不放宽标准**：`validPasses` 仍要求不同变体、零提示、`review_started→attempt→assessment_passed` 完整因果链。
+- **E2E 配套修正**（`e2e-staging-cloud-learning-loop.mjs`）：
+  - 等待条件同时等待证据事件与任务完成（pass 在 `engine.submit()` 内提交，任务完成在其后的异步监听器中；与本地 H1 pilot 模式一致）。
+  - 更正一处断言笔误： Gap 由 review/repair 任务闭合，而非重做 assessment（与 `e2e-phase-h1-pilot.mjs` 对齐）。
+- **验证**：
+  - 新增 `scripts/verify-review-task-historical-gaps.mjs`（2 个场景：历史已解决失败 + 提示辅助历史），修复前 RED（复现精确错误）、修复后 GREEN；已注册到 `validate.yml`。
+  - `verify-phase-e` 18/18 及其余 gap 相关 8 组单测、全部 `verify-*.mjs`、静态校验、构建可复现性、PG17 replay/隔离全部 PASS。
+  - staging 真实环境插桩：`validateEvidence` 的 `unresolved=[]` 且存在有效 `validPass`，`complete()` 成功写入 `learning_task_completed`；E2E 已通过所有 KV41-010 相关断言。完整 E2E 在长期复用的合成账户上仅被无关的 planner 输出假设（干净档案才有 AI 专题）阻断，非产品缺陷。
+
 ## 明确未实施（含原因）
 
 | 项 | 原因 |
 |---|---|
-| KV41-010 P1 代码修复 | 仅 staging 云端真实账户时序复现；本地因果链单测全绿；无 staging 凭证、无法复现验证。历史上用户冻结同步机制范围。不在无法验证时改动核心校验（避免为通过测试降低标准）。 |
+| 用全新 staging 合成账户跑完整云端 E2E | 现有账户 A/B 已累积 121/364 条历史事件；创建 staging 用户需 Dashboard 授权，未擅自进行。KV41-010 已由本地确定性测试 + staging 插桩验证修复。 |
 | 搜索正文提取改造 | 影响 134 条记录，属产品决策；生产 CI 每次重建，线上不受影响。记录为 P3 观察。 |
 | Production AI Provider / Auth leak-password 配置 | 需用户授权，涉及 secrets/Auth，属禁止擅自操作范围。 |
 | 生产 migration / 数据变更 | 需授权；本轮未执行任何生产写操作。 |
 | 数据库结构重建 | 现有模型已覆盖候选实体，重建会制造重复，违反项目原则。 |
 | Push / 部署 | push develop 触发生产 Pages 部署；遵循显式授权流程，本轮未 push。 |
 
-## Git 状态（实施后）
+## Git 状态
 
-- 本地提交：`0691532 chore(audit): record 2026-11-20 baseline audit and fix build reproducibility`
-- 提交前已审查完整 diff，确认仅含本次新增文件与脚本修复，不覆盖任何用户工作。
-- 工作区干净（仅本地 `.workbuddy/` 记忆目录未跟踪，不入库）。
-- `develop` 领先 `origin/develop` 1 个提交；**未 push、未部署**（push 会触发生产 Pages 部署，需单独授权）。
+- 前序本地提交：`0691532`、`0641300`（基线审计 + 构建修复）。
+- 当前未提交改动（KV41-010 修复）：`assets/js/learning-agent/task-orchestrator.mjs`、`assets/js/learning-progress.mjs`、`scripts/e2e-staging-cloud-learning-loop.mjs`、`.github/workflows/validate.yml`、新增 `scripts/verify-review-task-historical-gaps.mjs`，以及本审计目录的状态更新。
+- 提交前需审查完整 diff，确认不覆盖用户工作。**未 push、未部署**。

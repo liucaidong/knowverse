@@ -33,16 +33,30 @@
       "severity": "P1",
       "category": "learning-loop",
       "module": "Review Workspace / Task Orchestrator",
-      "title": "No-hint independent review pass leaves review task in_progress on Staging cloud",
-      "status": "blocked",
+      "title": "No-hint independent review pass leaves review task in_progress on a reused learner archive",
+      "status": "fixed",
+      "rootCause": "validateEvidence's review branch treated ALL historical failed attempts for the same competency+gap as unresolved observations the current task must re-verify. On a reused archive (the staging synthetic learner, or any long-lived real account) earlier tasks had already resolved many of them under different taskIds, so unresolved never emptied and complete() always threw - even though a valid no-hint pass existed. Local clean-DB tests masked this because they contain a single failure.",
       "evidence": [
-        "Local verify-phase-e.mjs covers exact no-hint causal chain and second targeted review; 18/18 passed this run",
-        "review-engine makeEvent injects taskId, targetGapEventIds and causationEventIds on assessment_passed",
-        "Failure reproduced only in Staging cloud E2E (assessment_passed independent=true, hintsUsed=0, but no learning_task_completed)"
+        "Reproduced locally with a deterministic fake-indexeddb test injecting a historically resolved failure from another task: RED with the exact production error",
+        "Instrumented staging E2E: complete() threw '该复习任务必须对当前薄弱点的所有未解决错误观察...' while assessment_passed independent=true hintsUsed=0 was persisted",
+        "Instrumented validateEvidence: unresolved非空 solely due to old observations resolved under earlier taskIds"
       ],
-      "requiredFix": "Reproduce with a real staging account, then verify review-workspace submit-success branch calls task-orchestrator.complete with the correct taskId and exact targetGapEventIds causal chain; persist learning_task_completed for no-hint pass only. Do NOT relax validation.",
-      "blocker": "Requires staging credentials and a real account; sync-mechanism scope was explicitly frozen by the user.",
-      "productionImpact": "Affects plan progress, review queue and user-visible task status; production data not written."
+      "fix": [
+        "task-orchestrator.validateEvidence: scope required failures to getOpenGapObservationEventIds({events}, competency, gap, taskId) - i.e. observations still open once passes from OTHER tasks are treated as prior resolutions; the current task's own pass is excluded so it cannot self-resolve its target",
+        "learning-progress.getOpenGapObservationEventIds / resolvingPassForObservation: add optional excludeTaskId parameter (default behaviour unchanged)",
+        "No causal-chain relaxation: validPasses still requires a different variant, no hints, and a full review_started->attempt->assessment_passed chain"
+      ],
+      "testFixes": [
+        "e2e-staging-cloud-learning-loop.mjs: wait for task completion as well as the pass event (the pass is committed inside engine.submit before submitAnswer's async complete listener; matching local H1 pilot pattern)",
+        "e2e-staging-cloud-learning-loop.mjs: corrected an assertion typo that required an assessment task to be completed; the gap is closed by the review/repair task (aligned with e2e-phase-h1-pilot.mjs)"
+      ],
+      "verification": [
+        "scripts/verify-review-task-historical-gaps.mjs: 2/2 PASS (RED before fix, GREEN after), registered in validate.yml",
+        "verify-phase-e 18/18, plus learning-progress/intelligence/integration, phase-f/g, weekly-review, planner, phase-m-audit-order all PASS",
+        "Instrumented staging E2E: after fix, validateEvidence unresolved=[] with a valid validPass and complete() committed learning_task_completed for the review task",
+        "Staging E2E reaches and passes all KV41-010 assertions (task completed, variant change, audit, cloud sync); full test on the long-reused synthetic account is gated only by unrelated planner-output assertions that assume a clean archive"
+      ],
+      "productionImpact": "Corrects future review-task lifecycle on any long-lived archive. No production data written; no sync-mechanism/scheduler/timing changes."
     },
     {
       "id": "KV20-002",
@@ -66,7 +80,9 @@
       "module": "Production AI Provider",
       "title": "Production AI Provider secrets missing; real model capability unverified",
       "status": "blocked_requires_authorization",
-      "evidence": ["4.1 audit: missing AI_PROVIDER_API_KEY/MODEL; Staging practice generation returned HTTP 546"],
+      "evidence": [
+        "4.1 audit: missing AI_PROVIDER_API_KEY/MODEL; Staging practice generation returned HTTP 546"
+      ],
       "blocker": "Need user to configure production secrets; no secret values read or written."
     },
     {
@@ -76,7 +92,9 @@
       "module": "Supabase Auth",
       "title": "Leak-password protection not enabled in Production",
       "status": "blocked_requires_authorization",
-      "evidence": ["Production security advisor (4.1)"],
+      "evidence": [
+        "Production security advisor (4.1)"
+      ],
       "blocker": "Auth changes require explicit user authorization; not modified."
     },
     {
@@ -86,16 +104,19 @@
       "module": "Supabase migrations",
       "title": "Phase N migration timestamp differs between local and Production",
       "status": "documented_risk",
-      "evidence": ["local 20261113041514 vs production 20261113153515; function bodies semantically equal (4.1 MD5 match)"],
+      "evidence": [
+        "local 20261113041514 vs production 20261113153515; function bodies semantically equal (4.1 MD5 match)"
+      ],
       "blocker": "No production migration executed; historical versions must not be rewritten."
     }
   ],
   "counts": {
     "P0": 0,
-    "P1": 1,
+    "P1": 0,
     "P2_fixed": 1,
     "P2_blocked": 2,
-    "P3": 2
+    "P3": 2,
+    "P1_fixed": 1
   },
   "coverage": {
     "topics": 12,
@@ -112,5 +133,6 @@
     "pg17Integration": "migration replay 13/13; sync isolation PASS",
     "buildChecks": "all reproducible after CI-order rebuild",
     "productionHTTP": "5 core routes 200; /auth/ 404 expected"
-  }
+  },
+  "updated": "2026-11-20"
 }

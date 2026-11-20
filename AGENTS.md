@@ -88,7 +88,7 @@ python3 scripts/package-fullstack-project.py && python3 scripts/validate-fullsta
 
 ## 7. 已知外部阻塞（截至 2026-11-20，需用户授权或凭证，不得擅自处理）
 
-- KV41-010（P1）：Staging 云端「无提示独立复习通过后 review task 仍 in_progress」，仅云端时序复现，本地因果链单测全绿；需 staging 真实账户复现后再改核心因果验证，禁止为通过测试放宽校验。
+- KV41-010（P1，2026-11-20 已修复）：被复用学习档案中历史已解决的 gap 观察被误判为当前任务仍需验证，导致无提示独立通过后 review task 永久 in_progress。修复见 `task-orchestrator.validateEvidence`（按 taskId 排除其他任务已解决的观察），回归测试 `scripts/verify-review-task-historical-gaps.mjs` 已注册 CI。禁止为过测放宽 `validPasses` 因果链校验。
 - Production AI Provider secrets 未配置：真实模型能力不可宣称已通过。
 - Supabase Auth leak-password protection 未开启：需单独授权。
 - 实体 iPhone Safari、第二物理设备、生产真实学习闭环：未验收。

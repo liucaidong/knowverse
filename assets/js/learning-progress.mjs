@@ -29,9 +29,13 @@ function observationId(event) {
   return event.gapObservationId || event.id;
 }
 
-function resolvingPassForObservation(failure, eventById, competencyId) {
+function resolvingPassForObservation(failure, eventById, competencyId, excludeTaskId = null) {
   const targetId = observationId(failure);
   for (const candidate of eventById.values()) {
+    // Exclude passes belonging to a specific task. A task evaluating its own gap
+    // frontier must not treat its in-flight pass as a prior resolution; conversely,
+    // passes from other tasks resolve observations that need not be re-verified.
+    if (excludeTaskId && candidate.taskId === excludeTaskId) continue;
     if (candidate.type !== "assessment_passed" || candidate.sessionType !== "review" ||
         candidate.gapId !== failure.gapId ||
         !(candidate.competencyIds || []).includes(competencyId) ||
@@ -136,20 +140,20 @@ export function getGapReviewPredecessorEventIds(snapshot, competencyId, gapId, t
   ).map(event => event.id).slice(-MAX_CAUSAL_REFERENCES);
 }
 
-function openGapObservationEvents(events, competencyId, gapId) {
+function openGapObservationEvents(events, competencyId, gapId, excludeTaskId = null) {
   const byId = new Map(events.map(event => [event.id, event]));
   return events.filter(event =>
     event.type === "attempt" &&
     event.correct === false &&
     event.gapId === gapId &&
     (event.competencyIds || []).includes(competencyId)
-  ).filter(event => !resolvingPassForObservation(event, byId, String(competencyId)));
+  ).filter(event => !resolvingPassForObservation(event, byId, String(competencyId), excludeTaskId));
 }
 
 /** Return exact failed-attempt event IDs still awaiting independent correction. */
-export function getOpenGapObservationEventIds(snapshot, competencyId, gapId) {
+export function getOpenGapObservationEventIds(snapshot, competencyId, gapId, excludeTaskId = null) {
   const events = (snapshot?.events || []).map(normalizeLearningEvent).filter(Boolean);
-  return openGapObservationEvents(events, String(competencyId), String(gapId))
+  return openGapObservationEvents(events, String(competencyId), String(gapId), excludeTaskId)
     .map(observationId)
     .slice(-MAX_CAUSAL_REFERENCES);
 }
