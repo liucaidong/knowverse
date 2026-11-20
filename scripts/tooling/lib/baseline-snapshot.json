@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-11-20",
+  "purpose": "P0 baseline for 'assertion count must not decrease' guards during the redesign refactor. Records pre-migration structure before tooling/ regrouping. Never edit to make a guard pass; regeneration requires explicit review.",
+  "source": {
+    "commit": "056df32a7e88db47664e7e0a93604dafa47a2ce9",
+    "tag": "p0-baseline-2026-11-20",
+    "branch": "develop",
+    "note": "Metrics collected by direct inspection on 2026-11-20; test pass counts from the 2026-11-20 baseline audit real runs unless marked RECHECKED."
+  },
+  "scripts": {
+    "total": 95,
+    "mjs": 79,
+    "py": 12,
+    "sh": 4,
+    "directoryLayout": "flat under scripts/ (pre-tooling-regroup)"
+  },
+  "ci": {
+    "workflow": ".github/workflows/validate.yml",
+    "namedSteps": 72,
+    "note": "Count of lines matching '^      - name:'."
+  },
+  "testBaselines": {
+    "learningEngineSuite": { "value": "114/114", "source": "RECHECKED 2026-11-20: verify-learning-progress/intelligence/integration/planner/review-task-historical-gaps/phase-e/f/g/backend-contract grouped run" },
+    "pg17MigrationReplay": { "value": "13/13", "source": "2026-11-20 baseline audit real run" },
+    "kv41_010Regression": { "value": "2/2", "source": "RECHECKED 2026-11-20: verify-review-task-historical-gaps.mjs" },
+    "buildReproducibility": { "value": "all green", "source": "2026-11-20 baseline audit real run" },
+    "productionCoreRoutes": { "value": "5/5 HTTP 200", "source": "RECHECKED 2026-11-20: /, /knowledge/, /progress/, /concept/promise.state-model/, /auth/callback/" }
+  },
+  "freezeBaseline": {
+    "configToml": {
+      "functions": ["learning-agent", "practice-quality-review"],
+      "verifyJwt": true
+    },
+    "migrationCount": 13,
+    "edgeFunctionEnvVarNames": [
+      "AI_PROVIDER_API_KEY",
+      "AI_PROVIDER_BASE_URL",
+      "AI_PROVIDER_MODEL",
+      "KNOWVERSE_CONTENT_REF",
+      "PRACTICE_REVIEWER_API_BASE_URL",
+      "PRACTICE_REVIEWER_API_KEY",
+      "PRACTICE_REVIEWER_MODEL"
+    ],
+    "note": "Only variable NAMES are recorded. No secret values are stored, read, or emitted."
+  },
+  "registries": {
+    "topics": 12,
+    "concepts": 35,
+    "competencies": 34,
+    "gaps": 51,
+    "assessments": 115,
+    "checkpoints": 14,
+    "works": 17,
+    "sources": 17,
+    "routes": 63
+  },
+  "invariants": [
+    "production database is read-only",
+    "no secret values in git or chat",
+    "CAS sync semantics and RLS policies frozen",
+    "learning_events append-only",
+    "one canonical ID / one source of truth",
+    "Concept / Competency / Evidence not merged",
+    "validPasses causal chain and strict schema checks never relaxed to pass tests"
+  ]
+}

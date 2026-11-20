@@ -40,6 +40,7 @@
 等价 CLI 方式（可选，仅当已具备生产写权限并明确授权）：
 
 ```bash
+# PROD_AUTHORIZED: 仅维护者在获得明确授权后执行；ref-guard 据此标记识别生产意图
 # 通过 0600 权限的临时 env 文件传入；终端不回显值
 supabase secrets set --env-file <0600-env-file> --remote=sxcpareycpokcyroufww --yes
 supabase secrets list --remote=sxcpareycpokcyroufww   # 只列名称/摘要
@@ -50,6 +51,7 @@ supabase secrets list --remote=sxcpareycpokcyroufww   # 只列名称/摘要
 ### 1.4 只读验证（配置后，不产生模型调用费用）
 
 ```bash
+# PROD_AUTHORIZED: 只读核验；仅维护者在授权后执行
 supabase secrets list --remote=sxcpareycpokcyroufww   # 确认上表变量名全部出现
 ```
 
